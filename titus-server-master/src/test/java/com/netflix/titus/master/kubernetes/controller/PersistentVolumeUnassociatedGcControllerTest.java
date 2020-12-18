@@ -28,14 +28,25 @@ import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucke
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.V1DeleteOptions;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PersistentVolumeUnassociatedGcControllerTest {
@@ -51,6 +62,7 @@ public class PersistentVolumeUnassociatedGcControllerTest {
     private final LocalScheduler scheduler = mock(LocalScheduler.class);
     private final KubeControllerConfiguration kubeControllerConfiguration = mock(KubeControllerConfiguration.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
+    private final CoreV1Api coreV1Api = mock(CoreV1Api.class);
 
     private final PersistentVolumeUnassociatedGcController pvGcController = new PersistentVolumeUnassociatedGcController(
             titusRuntime,
@@ -65,6 +77,7 @@ public class PersistentVolumeUnassociatedGcControllerTest {
     @Before
     public void setUp() {
         when(kubeControllerConfiguration.getPersistentVolumeUnassociatedGracePeriodMs()).thenReturn(PERSISTENT_VOLUME_GRACE_PERIOD_MS);
+        when(kubeApiFacade.getCoreV1Api()).thenReturn(coreV1Api);
     }
 
     /**
@@ -110,23 +123,35 @@ public class PersistentVolumeUnassociatedGcControllerTest {
     }
 
     /**
-     * Test that a persistent volume that is bound is not GC'd.
+     * Tests that item GC is true when both PVC and PV delete successfully.
      */
     @Test
-    public void testPvIsBound() {
+    public void testPvcAndPvAreDeleted() throws ApiException {
+        when(coreV1Api.deleteNamespacedPersistentVolumeClaim(anyString(), anyString(), nullable(String.class), nullable(String.class), anyInt(), nullable(Boolean.class), nullable(String.class), nullable(V1DeleteOptions.class)))
+                .thenReturn(new V1PersistentVolumeClaim());
+        when(coreV1Api.deletePersistentVolume(anyString(), nullable(String.class), nullable(String.class), anyInt(), nullable(Boolean.class), nullable(String.class), nullable(V1DeleteOptions.class)))
+                .thenReturn(new V1PersistentVolume());
+
+        V1ObjectMeta v1ObjectMeta = new V1ObjectMeta()
+                .name("test-volume");
         V1PersistentVolume v1PersistentVolume = new V1PersistentVolume()
-                .metadata(new V1ObjectMeta()
-                        .name(PERSISTENT_VOLUME_NAME))
-                .status(new V1PersistentVolumeStatus()
-                        .phase("Bound"));
+                .metadata(v1ObjectMeta);
+        assertThat(pvGcController.gcItem(v1PersistentVolume)).isTrue();
+    }
 
-        Set<String> currentEbsVolume = Collections.singleton("vol-2");
+    /**
+     *Test that item GC is false when a PVC fails to delete.
+     */
+    @Test
+    public void testPvcFailsDeletion() throws ApiException {
+        when(coreV1Api.deleteNamespacedPersistentVolumeClaim(anyString(), anyString(), nullable(String.class), nullable(String.class), anyInt(), nullable(Boolean.class), nullable(String.class), nullable(V1DeleteOptions.class)))
+                .thenThrow(new ApiException("Mocked Exception"));
 
-        // Initially checking this volume should not mark it
-        assertThat(pvGcController.isPersistentVolumeUnassociated(v1PersistentVolume, currentEbsVolume)).isFalse();
-
-        // Move time forward and expect the volume to be GC'd
-        clock.advanceTime(Duration.ofMillis(PERSISTENT_VOLUME_GRACE_PERIOD_MS + 1));
-        assertThat(pvGcController.isPersistentVolumeUnassociated(v1PersistentVolume, currentEbsVolume)).isFalse();
+        V1ObjectMeta v1ObjectMeta = new V1ObjectMeta()
+                .name("test-volume");
+        V1PersistentVolume v1PersistentVolume = new V1PersistentVolume()
+                .metadata(v1ObjectMeta);
+        assertThat(pvGcController.gcItem(v1PersistentVolume)).isFalse();
+        verify(coreV1Api, times(0)).deletePersistentVolume(anyString(), anyString(), anyString(), anyInt(), anyBoolean(), anyString(), any(V1DeleteOptions.class));
     }
 }

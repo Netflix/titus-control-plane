@@ -61,11 +61,11 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintToleration
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
-import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
@@ -454,9 +454,9 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                     V1Volume v1Volume = new V1Volume()
                             // The resource name matches the volume ID so that the resource is independent of the job.
                             .name(ebsVolume.getVolumeId())
-                            .awsElasticBlockStore(new V1AWSElasticBlockStoreVolumeSource()
-                                    .volumeID(ebsVolume.getVolumeId())
-                                    .fsType(ebsVolume.getFsType()));
+                            .persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource()
+                                    .claimName(ebsVolume.getVolumeId()));
+
                     V1VolumeMount v1VolumeMount = new V1VolumeMount()
                             // The mount refers to the V1Volume being mounted
                             .name(ebsVolume.getVolumeId())

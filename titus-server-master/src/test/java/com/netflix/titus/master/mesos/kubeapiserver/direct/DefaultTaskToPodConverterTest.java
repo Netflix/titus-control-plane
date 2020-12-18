@@ -205,8 +205,7 @@ public class DefaultTaskToPodConverterTest {
                     V1VolumeMount v1VolumeMount = pair.getRight();
 
                     assertThat(v1Volume.getName()).isEqualTo(volName2);
-                    assertThat(v1Volume.getAwsElasticBlockStore().getVolumeID()).isEqualTo(volName2);
-                    assertThat(v1Volume.getAwsElasticBlockStore().getFsType()).isEqualTo(fsType);
+                    assertThat(v1Volume.getPersistentVolumeClaim().getClaimName()).isEqualTo(volName2);
 
                     assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
                     assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);

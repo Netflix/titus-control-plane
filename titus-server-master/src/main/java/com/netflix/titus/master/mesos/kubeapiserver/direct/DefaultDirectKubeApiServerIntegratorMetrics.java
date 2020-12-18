@@ -37,6 +37,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
 
     private static final String ROOT = MetricConstants.METRIC_KUBERNETES + "directKubeApiServerIntegrator.";
     private static final String PV_ROOT = ROOT + "persistentVolume.";
+    private static final String PVC_ROOT = ROOT + "persistentVolumeClaim.";
 
     private final Registry registry;
 
@@ -45,6 +46,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
     private final Id terminateCounterId;
     private final Id eventCounterId;
     private final Id persistentVolumeCreateCounterId;
+    private final Id persistentVolumeClaimCreateCounterId;
 
     private final BucketCounter podSizeMetrics;
 
@@ -55,6 +57,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
         this.terminateCounterId = registry.createId(ROOT + "terminates");
         this.eventCounterId = registry.createId(ROOT + "events");
         this.persistentVolumeCreateCounterId = registry.createId(PV_ROOT + "create");
+        this.persistentVolumeClaimCreateCounterId = registry.createId(PVC_ROOT + "create");
 
         this.podSizeMetrics = BucketCounter.get(
                 registry,
@@ -77,7 +80,18 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
 
     void persistentVolumeCreateError(Throwable error, long elapsedMs) {
         registry.timer(persistentVolumeCreateCounterId.withTags(
-                "status", "success",
+                "status", "error",
+                "error", error.getClass().getSimpleName()
+        )).record(elapsedMs, TimeUnit.MILLISECONDS);
+    }
+
+    void persistentVolumeClaimCreateSuccess(long elapsedMs) {
+        registry.timer(persistentVolumeClaimCreateCounterId.withTag("status", "success")).record(elapsedMs, TimeUnit.MILLISECONDS);
+    }
+
+    void persistentVolumeClaimCreateError(Throwable error, long elapsedMs) {
+        registry.timer(persistentVolumeClaimCreateCounterId.withTags(
+                "status", "error",
                 "error", error.getClass().getSimpleName()
         )).record(elapsedMs, TimeUnit.MILLISECONDS);
     }

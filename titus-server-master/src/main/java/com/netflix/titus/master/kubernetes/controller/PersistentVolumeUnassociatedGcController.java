@@ -41,6 +41,7 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 
 @Singleton
@@ -97,13 +98,26 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
 
     @Override
     public boolean gcItem(V1PersistentVolume pv) {
+        // Delete the volume's PVC first
+        if (!gcPersistentVolumeClaim(pv)) {
+            // If we cannot delete the PVC then we did not successfully GC the volume.
+            // The PVC and PV will be part of a subsequent GC iteration.
+            return false;
+        }
+        return gcPersistentVolume(pv);
+    }
+
+    private boolean gcPersistentVolume(V1PersistentVolume pv) {
         String volumeName = KubeUtil.getMetadataName(pv.getMetadata());
         try {
+            // If the PV is deleted while still associated with a PVC (though that is not expected), the PV
+            // will not be removed until it is no longer bound to a PVC.
+            // https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection
             kubeApiFacade.getCoreV1Api().deletePersistentVolume(
                     volumeName,
                     null,
                     null,
-                    1,
+                    0,
                     null,
                     null,
                     null
@@ -116,6 +130,38 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
             }
         } catch (Exception e) {
             logger.error("Failed to delete persistent volume: {} with error: ", volumeName, e);
+        }
+        return false;
+    }
+
+    private boolean gcPersistentVolumeClaim(V1PersistentVolume pv) {
+        // We expect the PVCs name to match the PVs name
+        String volumeClaimName = KubeUtil.getMetadataName(pv.getMetadata());
+        try {
+            // If the PVC is deleted while still in use by a pod (though that is not expected), the PVC
+            // will not be removed until no pod is using it.
+            // https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPersistentVolumeClaim(
+                    volumeClaimName,
+                    DEFAULT_NAMESPACE,
+                    null,
+                    null,
+                    0,
+                    null,
+                    null,
+                    null
+            );
+            logger.info("Successfully deleted persistent volume claim {}", volumeClaimName);
+            return true;
+        } catch (ApiException e) {
+            if (e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+                // If we did not find the PVC return true so that we proceed with deleting the PV
+                logger.info("Delete for persistent volume claim {} not found", volumeClaimName);
+                return true;
+            }
+            logger.error("Failed to delete persistent volume: {} with error: ", volumeClaimName, e);
+        } catch (Exception e) {
+            logger.error("Failed to delete persistent volume: {} with error: ", volumeClaimName, e);
         }
         return false;
     }
@@ -134,11 +180,6 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
         }
 
         String volumeName = StringExt.nonNull(metadata.getName());
-        if (KubeUtil.isPersistentVolumeBound(StringExt.nonNull(status.getPhase()))) {
-            // this persistent volume is bound to a pod, so don't GC it
-            return false;
-        }
-
         if (ebsVolumeIds.contains(volumeName)) {
             // this persistent volume is associated with an active job, so reset/remove
             // any marking and don't GC it.
