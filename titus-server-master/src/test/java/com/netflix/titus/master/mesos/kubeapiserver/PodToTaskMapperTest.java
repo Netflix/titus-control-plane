@@ -224,7 +224,7 @@ public class PodToTaskMapperTest {
         );
         V1Pod pod = andScheduled(newPod(podPhase));
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
-        assertValue(result, TaskState.Finished, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR, "Container was terminated without going through the Titus API");
+        assertValue(result, TaskState.Finished, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR, "junit");
     }
 
     private Task newTask(TaskState taskState) {
