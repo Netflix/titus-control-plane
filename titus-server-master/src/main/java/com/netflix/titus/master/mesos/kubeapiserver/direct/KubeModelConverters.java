@@ -16,56 +16,92 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
-import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import io.kubernetes.client.custom.Quantity;
-import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
+import io.kubernetes.client.openapi.models.V1CSIPersistentVolumeSource;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimSpec;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeSpec;
-import io.kubernetes.client.openapi.models.V1Volume;
+import io.kubernetes.client.openapi.models.V1ResourceRequirements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A collection of helper functions to convert core and Kube objects to other Kube model objects.
  */
 public class KubeModelConverters {
 
+    public static final String KUBE_VOLUME_CSI_EBS_DRIVER = "ebs.csi.aws.com";
+    public static final String KUBE_VOLUME_CSI_EBS_VOLUME_KEY = "volumeHandle";
+
+    private static final String KUBE_VOLUME_API_VERSION = "v1";
     private static final String KUBE_VOLUME_ACCESS_MODE = "ReadWriteOnce";
     private static final String KUBE_VOLUME_VOLUME_MODE_FS = "Filesystem";
     private static final String KUBE_VOLUME_RECLAIM_POLICY = "Retain";
 
     private static final String KUBE_VOLUME_CAPACITY_KEY = "storage";
 
-    public static V1PersistentVolume toV1PersistentVolume(Job<?> job, Task task, V1Volume v1Volume) {
-        Optional<EbsVolume> optionalEbsVolume = EbsVolumeUtils.getEbsVolumeForTask(job, task);
-        if (!optionalEbsVolume.isPresent()) {
-            throw new IllegalStateException(String.format("Expected EBS volume for job %s and task %s", job, task));
-        }
-        EbsVolume ebsVolume = optionalEbsVolume.get();
+    public static Map<String, String> toVolumeLabelMap(String volumeName) {
+        return Collections.singletonMap(KUBE_VOLUME_CSI_EBS_VOLUME_KEY, volumeName);
+    }
 
+    public static V1LabelSelector toVolumeMatchSelector(String volumeName) {
+        return new V1LabelSelector()
+                .matchLabels(toVolumeLabelMap(volumeName));
+    }
+
+    public static V1PersistentVolume toEbsV1PersistentVolume(EbsVolume ebsVolume) {
         V1ObjectMeta v1ObjectMeta = new V1ObjectMeta()
-                .name(v1Volume.getName());
+                .labels(toVolumeLabelMap(ebsVolume.getVolumeId()))
+                .name(ebsVolume.getVolumeId());
 
         V1PersistentVolumeSpec v1PersistentVolumeSpec = new V1PersistentVolumeSpec()
                 .addAccessModesItem(KUBE_VOLUME_ACCESS_MODE)
                 .volumeMode(KUBE_VOLUME_VOLUME_MODE_FS)
                 .persistentVolumeReclaimPolicy(KUBE_VOLUME_RECLAIM_POLICY)
-                .putCapacityItem(KUBE_VOLUME_CAPACITY_KEY, new Quantity(ebsVolume.getVolumeCapacityGB() + "Gi"));
-
-        if (null != v1Volume.getAwsElasticBlockStore()) {
-            v1PersistentVolumeSpec
-                    .awsElasticBlockStore(new V1AWSElasticBlockStoreVolumeSource()
-                            .volumeID(v1Volume.getAwsElasticBlockStore().getVolumeID())
-                            .fsType(v1Volume.getAwsElasticBlockStore().getFsType()));
-        }
+                .putCapacityItem(KUBE_VOLUME_CAPACITY_KEY, new Quantity(volumeCapacityGiBToString(ebsVolume.getVolumeCapacityGB())))
+                .csi(new V1CSIPersistentVolumeSource()
+                        .driver(KUBE_VOLUME_CSI_EBS_DRIVER)
+                        .volumeHandle(ebsVolume.getVolumeId())
+                        .fsType(ebsVolume.getFsType()));
 
         return new V1PersistentVolume()
-                .apiVersion("v1")
+                .apiVersion(KUBE_VOLUME_API_VERSION)
                 .metadata(v1ObjectMeta)
                 .spec(v1PersistentVolumeSpec);
+    }
+
+    public static V1PersistentVolumeClaim toV1PersistentVolumeClaim(V1PersistentVolume v1PersistentVolume) {
+        String volumeName = Optional.ofNullable(v1PersistentVolume.getSpec().getCsi())
+                .orElseThrow(() -> new IllegalStateException(String.format("Expected CSI persistent volume for %s", v1PersistentVolume)))
+                .getVolumeHandle();
+
+        // The claim name should match the volume name as the claim is specific to this volume
+        V1ObjectMeta v1ObjectMeta = new V1ObjectMeta()
+                .name(volumeName);
+
+        // The claim spec should be scoped to this specific volume
+        V1PersistentVolumeClaimSpec v1PersistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
+                .volumeName(volumeName)
+                .addAccessModesItem(KUBE_VOLUME_ACCESS_MODE)
+                .volumeMode(KUBE_VOLUME_VOLUME_MODE_FS)
+                .resources(new V1ResourceRequirements().requests(v1PersistentVolume.getSpec().getCapacity()))
+                .selector(KubeModelConverters.toVolumeMatchSelector(volumeName));
+
+        return new V1PersistentVolumeClaim()
+                .apiVersion(KUBE_VOLUME_API_VERSION)
+                .metadata(v1ObjectMeta)
+                .spec(v1PersistentVolumeClaimSpec);
+    }
+
+    private static String volumeCapacityGiBToString(int capacityGiB) {
+        return String.format("%dGi", capacityGiB);
     }
 }
