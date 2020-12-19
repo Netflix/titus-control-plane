@@ -126,8 +126,11 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
             return true;
         } catch (ApiException e) {
             if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
-                logger.error("Failed to delete persistent volume: {} with error: ", volumeName, e);
+                // If we did not find the PV return true as it is removed
+                logger.info("Delete for persistent volume {} not found", volumeName);
+                return true;
             }
+            logger.error("Failed to delete persistent volume: {} with error: ", volumeName, e);
         } catch (Exception e) {
             logger.error("Failed to delete persistent volume: {} with error: ", volumeName, e);
         }
