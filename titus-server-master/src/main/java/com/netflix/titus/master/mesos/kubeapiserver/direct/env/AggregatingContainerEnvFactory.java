@@ -17,31 +17,17 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct.env;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
 
 /**
  * Aggregate container environment variables from many sources. Evaluation happens from left to right, with the
  * next item overriding entries from previous evaluations if there is a collision.
  */
-public class AggregatingContainerEnvFactory implements ContainerEnvFactory {
+public abstract class AggregatingContainerEnvFactory implements ContainerEnvFactory {
 
-    private final List<ContainerEnvFactory> factories;
+    final List<ContainerEnvFactory> factories;
 
     public AggregatingContainerEnvFactory(ContainerEnvFactory... factories) {
         this.factories = Arrays.asList(factories);
-    }
-
-    @Override
-    public Map<String, String> buildContainerEnv(Job<?> job, Task task) {
-        Map<String, String> env = new HashMap<>();
-        for (ContainerEnvFactory factory : factories) {
-            env.putAll(factory.buildContainerEnv(job, task));
-        }
-        return env;
     }
 }

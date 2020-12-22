@@ -42,7 +42,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.NoOpDirectKubeApiServ
 import com.netflix.titus.master.mesos.kubeapiserver.direct.PodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.DefaultAggregatingContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.FarzonePodResourcePoolResolver;
@@ -73,7 +73,7 @@ public class KubeModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ContainerEnvFactory.class).toInstance(ContainerEnvs.getDefaultFactory());
+        bind(ContainerEnvFactory.class).to(DefaultAggregatingContainerEnvFactory.class);
         bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
         bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
