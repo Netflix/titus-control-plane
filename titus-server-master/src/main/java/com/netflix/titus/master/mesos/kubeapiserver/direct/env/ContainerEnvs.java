@@ -24,13 +24,6 @@ import io.kubernetes.client.openapi.models.V1EnvVar;
 
 public class ContainerEnvs {
 
-    public static ContainerEnvFactory getDefaultFactory() {
-        return new AggregatingContainerEnvFactory(
-                UserProvidedContainerEnvFactory.getInstance(),
-                TitusProvidedContainerEnvFactory.getInstance()
-        );
-    }
-
     public static List<V1EnvVar> toV1EnvVar(Map<String, String> env) {
         return env.entrySet().stream()
                 .map(entry -> new V1EnvVar().name(entry.getKey()).value(entry.getValue()))

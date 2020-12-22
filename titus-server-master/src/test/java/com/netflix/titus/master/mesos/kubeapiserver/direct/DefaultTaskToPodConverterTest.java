@@ -21,6 +21,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
@@ -35,9 +36,11 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo.S3LogLocation;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.DefaultAggregatingContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -71,6 +74,10 @@ public class DefaultTaskToPodConverterTest {
 
     private final TaintTolerationFactory taintTolerationFactory = mock(TaintTolerationFactory.class);
 
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
+    private final DefaultAggregatingContainerEnvFactory defaultAggregatingContainerEnvFactory = new DefaultAggregatingContainerEnvFactory(titusRuntime);
+
     private final LogStorageInfo<Task> logStorageInfo = mock(LogStorageInfo.class);
 
     private final DefaultTaskToPodConverter converter = new DefaultTaskToPodConverter(
@@ -78,7 +85,7 @@ public class DefaultTaskToPodConverterTest {
             jobCoordinatorConfiguration,
             podAffinityFactory,
             taintTolerationFactory,
-            ContainerEnvs.getDefaultFactory(),
+            defaultAggregatingContainerEnvFactory,
             logStorageInfo
     );
 
@@ -223,10 +230,14 @@ public class DefaultTaskToPodConverterTest {
     public void testContainerInfoEnvVar() throws Exception {
         String testEnvVarName = "TEST_ENV_VAR_NAME";
         String testEnvVarValue = "TEST_ENV_VAR_VALUE";
+        String testConflictingEnvVarName = KubeConstants.POD_ENV_NETFLIX_EXECUTOR;
+        String testConflictingEnvVarValue = "titus";
+
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withContainer(
                 job.getJobDescriptor().getContainer().toBuilder()
-                        .withEnv(ImmutableMap.of(testEnvVarName, testEnvVarValue))
+                        .withEnv(ImmutableMap.of(testEnvVarName, testEnvVarValue,
+                                testConflictingEnvVarName, testConflictingEnvVarValue))
                         .build()
         ).build()).build();
         BatchJobTask batchJobTask = JobGenerator.batchTasks(job).getValue();
@@ -238,9 +249,18 @@ public class DefaultTaskToPodConverterTest {
         ContainerInfo containerInfo = ContainerInfo.parseFrom(Base64.getDecoder().decode(encodedContainerInfo.getBytes()));
         assertThat(containerInfo.getUserProvidedEnvMap()).isEmpty();
         assertThat(containerInfo.getTitusProvidedEnvMap()).isEmpty();
-        List<V1EnvVar> v1EnvVars = v1Pod.getSpec().getContainers().get(0).getEnv();
-        Optional<V1EnvVar> envVarOptional = v1EnvVars.stream().filter(v1EnvVar -> v1EnvVar.getName().equals(testEnvVarName)).findFirst();
+
+        verifyEnvVar(v1Pod, testEnvVarName, testEnvVarValue);
+        verifyEnvVar(v1Pod, testConflictingEnvVarName, testConflictingEnvVarValue);
+
+        assertThat(titusRuntime.getRegistry().counter("titus.aggregatingContainerEnv.conflict", "env", KubeConstants.POD_ENV_NETFLIX_EXECUTOR).count()).isOne();
+    }
+
+    private void verifyEnvVar(V1Pod v1Pod, String name, String value) {
+        List<V1EnvVar> v1EnvVars = Objects.requireNonNull(v1Pod.getSpec()).getContainers().get(0).getEnv();
+        assert v1EnvVars != null;
+        Optional<V1EnvVar> envVarOptional = v1EnvVars.stream().filter(v1EnvVar -> v1EnvVar.getName().equals(name)).findFirst();
         assertThat(envVarOptional.isPresent()).isTrue();
-        assertThat(envVarOptional.get().getValue()).isEqualTo(testEnvVarValue);
+        assertThat(envVarOptional.get().getValue()).isEqualTo(value);
     }
 }
