@@ -27,6 +27,7 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -40,25 +41,14 @@ import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodPhase;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import io.kubernetes.client.openapi.models.V1ContainerState;
-import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
-import io.kubernetes.client.openapi.models.V1ContainerStateWaiting;
-import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1NodeAddress;
-import io.kubernetes.client.openapi.models.V1NodeStatus;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodSpec;
-import io.kubernetes.client.openapi.models.V1PodStatus;
-import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,6 +61,16 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 
+import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andIpAddress;
+import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodeAnnotations;
+import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.newNode;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andNodeName;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPhase;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPodAnnotations;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPodIp;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andRunning;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andWaiting;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.newPod;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -132,33 +132,12 @@ public class KubeNotificationProcessorTest {
 
     @Test
     public void testOpportunisticAnnotationsArePropagatedToTasks() {
-        V1Pod oldPod = new V1Pod()
-                .metadata(new V1ObjectMeta().name(TASK.getId()))
-                .status(new V1PodStatus()
-                        .phase(PodPhase.PENDING.getPhaseName())
-                        .addContainerStatusesItem(new V1ContainerStatus()
-                                .containerID(TASK.getId())
-                                .state(new V1ContainerState().waiting(new V1ContainerStateWaiting()))
-                        )
-                );
-        V1Pod updatedPod = new V1Pod()
-                .metadata(new V1ObjectMeta()
-                        .name(TASK.getId())
-                        .putAnnotationsItem(KubeConstants.OPPORTUNISTIC_CPU_COUNT, "5")
-                        .putAnnotationsItem(KubeConstants.OPPORTUNISTIC_ID, "opportunistic-resource-1234")
-                )
-                .spec(new V1PodSpec().nodeName("host1"))
-                .status(new V1PodStatus()
-                        .phase(PodPhase.PENDING.getPhaseName())
-                        .addContainerStatusesItem(new V1ContainerStatus()
-                                .containerID(TASK.getId())
-                                .state(new V1ContainerState().running(new V1ContainerStateRunning()))
-                        )
-                        .addContainerStatusesItem(new V1ContainerStatus()
-                                .containerID(TASK.getId())
-                                .state(new V1ContainerState().waiting(new V1ContainerStateWaiting()))
-                        )
-                );
+        V1Pod oldPod = newPod(TASK.getId(), andPhase(PodPhase.PENDING.getPhaseName()), andWaiting());
+        V1Pod updatedPod = newPod(TASK.getId(), andPhase(PodPhase.PENDING.getPhaseName()), andNodeName("host1"),
+                andWaiting(), andRunning(),
+                andPodAnnotations(KubeConstants.OPPORTUNISTIC_CPU_COUNT, "5",
+                        KubeConstants.OPPORTUNISTIC_ID, "opportunistic-resource-1234")
+        );
         podEvents.onNext(PodEvent.onUpdate(oldPod, updatedPod, Optional.empty()));
 
         verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
@@ -175,30 +154,11 @@ public class KubeNotificationProcessorTest {
 
     @Test
     public void testUpdateTaskStatusVK() {
-        V1Pod pod = new V1Pod()
-                .metadata(new V1ObjectMeta()
-                        .name(TASK.getId())
-                )
-                .status(new V1PodStatus()
-                        .addContainerStatusesItem(new V1ContainerStatus()
-                                .containerID(TASK.getId())
-                                .state(new V1ContainerState()
-                                        .running(new V1ContainerStateRunning().startedAt(DateTime.now()))
-                                )
-                        )
-                );
-        V1Node node = new V1Node()
-                .metadata(new V1ObjectMeta()
-                        .annotations(CollectionsExt.asMap(
-                                TITUS_NODE_DOMAIN + "ami", "ami123",
-                                TITUS_NODE_DOMAIN + "stack", "myStack"
-                        ))
-                )
-                .status(new V1NodeStatus()
-                        .addresses(Collections.singletonList(
-                                new V1NodeAddress().address("2.2.2.2").type(KubeUtil.TYPE_INTERNAL_IP)
-                        ))
-                );
+        V1Pod pod = newPod(TASK.getId(), andRunning());
+        V1Node node = newNode(andIpAddress("2.2.2.2"), andNodeAnnotations(
+                TITUS_NODE_DOMAIN + "ami", "ami123",
+                TITUS_NODE_DOMAIN + "stack", "myStack"
+        ));
         Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
@@ -212,7 +172,7 @@ public class KubeNotificationProcessorTest {
                 ))),
                 Optional.of(node),
                 TASK
-        );
+        ).orElse(null);
 
         Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
         assertThat(pastStates).contains(TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated);
@@ -225,47 +185,22 @@ public class KubeNotificationProcessorTest {
     @Test
     public void testUpdateTaskStatusKubelet() {
         when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
-        V1Pod pod = new V1Pod()
-                .metadata(new V1ObjectMeta()
-                        .name(TASK.getId())
-                )
-                .status(new V1PodStatus()
-                        .addContainerStatusesItem(new V1ContainerStatus()
-                                .containerID(TASK.getId())
-                                .state(new V1ContainerState()
-                                        .running(new V1ContainerStateRunning().startedAt(DateTime.now()))
-                                )
-                        )
-                );
-        pod.getStatus().setPodIP("192.0.2.0");
-
-        V1Node node = new V1Node()
-                .metadata(new V1ObjectMeta()
-                        .annotations(Collections.singletonMap(
-                                TITUS_NODE_DOMAIN + "ami", "ami123"
-                        ))
-                )
-                .status(new V1NodeStatus()
-                        .addresses(Collections.singletonList(
-                                new V1NodeAddress().address("2.2.2.2").type(KubeUtil.TYPE_INTERNAL_IP)
-                        ))
-                );
+        V1Pod pod = newPod(TASK.getId(), andRunning(), andPodIp("192.0.2.0"));
+        V1Node node = newNode(andIpAddress("2.2.2.2"), andNodeAnnotations(TITUS_NODE_DOMAIN + "ami", "ami123"));
         Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.empty(),
                 Optional.of(node),
                 TASK
-        );
+        ).orElse(null);
 
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "192.0.2.0");
     }
 
     @Test
     public void testPodPhaseFailedNoContainerCreated() {
-        V1Pod pod = new V1Pod()
-                .metadata(new V1ObjectMeta().name(TASK.getId()))
-                .status(new V1PodStatus().phase("Failed"));
+        V1Pod pod = newPod(TASK.getId(), andPhase("Failed"));
 
         when(jobOperations.findTaskById(eq(TASK.getId()))).thenReturn(Optional.of(Pair.of(JOB, TASK)));
         when(jobOperations.updateTask(eq(TASK.getId()), any(), any(), anyString(), any())).thenReturn(Completable.complete());
@@ -273,6 +208,19 @@ public class KubeNotificationProcessorTest {
 
         verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
                 eq("Kube pod notification"), any());
+    }
+
+    @Test
+    public void testTaskStateDoesNotMoveBack() {
+        V1Pod pod = newPod(TASK.getId(), andRunning());
+        Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
+                new PodWrapper(pod),
+                TaskStatus.newBuilder().withState(TaskState.Started).build(),
+                Optional.empty(),
+                Optional.of(newNode()),
+                JobFunctions.changeTaskStatus(TASK, TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
+        ).orElse(null);
+        assertThat(updatedTask).isNull();
     }
 
     private class FakeDirectKube implements DirectKubeApiServerIntegrator {

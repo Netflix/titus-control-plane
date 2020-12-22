@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
-import java.util.Collections;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -29,22 +28,23 @@ import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import io.kubernetes.client.openapi.models.V1ContainerState;
-import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
-import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
-import io.kubernetes.client.openapi.models.V1ContainerStateWaiting;
-import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodSpec;
-import io.kubernetes.client.openapi.models.V1PodStatus;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andDeletionTimestamp;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andMessage;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPhase;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andReason;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andRunning;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andScheduled;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andTerminated;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andWaiting;
+import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.newPod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -52,9 +52,7 @@ import static org.mockito.Mockito.when;
 
 public class PodToTaskMapperTest {
 
-    private static final String NODE_NAME = "node1";
-
-    private static final V1Node NODE = new V1Node().metadata(new V1ObjectMeta().name(NODE_NAME));
+    private static final V1Node NODE = new V1Node().metadata(new V1ObjectMeta().name(NodeDataGenerator.NODE_NAME));
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
@@ -74,7 +72,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testUpdatesIgnoredWhenTaskFinished() {
         Task task = newTask(TaskState.Finished);
-        V1Pod pod = newPod("Pending");
+        V1Pod pod = newPod(andPhase("Pending"));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertErrorMessage(result, "task already marked as finished");
     }
@@ -82,7 +80,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodCreated() {
         Task task = newTask(TaskState.Accepted);
-        V1Pod pod = newPod("Pending");
+        V1Pod pod = newPod(andPhase("Pending"));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertErrorMessage(result, "pod notification does not change task state");
     }
@@ -90,7 +88,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodPendingAndScheduledButNotInWaitingState() {
         Task task = newTask(TaskState.Accepted);
-        V1Pod pod = andScheduled(newPod("Pending"));
+        V1Pod pod = newPod(andPhase("Pending"), andMessage("junit"), andScheduled());
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Launched, TaskStatus.REASON_POD_SCHEDULED);
     }
@@ -98,7 +96,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodScheduledAndLaunched() {
         Task task = newTask(TaskState.Accepted);
-        V1Pod pod = andWaiting(andScheduled(newPod("Pending")));
+        V1Pod pod = newPod(andPhase("Pending"),andMessage("junit"),  andWaiting(), andScheduled());
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Launched, TaskStatus.REASON_POD_SCHEDULED);
     }
@@ -106,7 +104,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodScheduledAndStartInitiated() {
         Task task = newTask(TaskState.Launched);
-        V1Pod pod = andReason(andWaiting(andScheduled(newPod("Pending"))), PodToTaskMapper.TASK_STARTING);
+        V1Pod pod = newPod(andPhase("Pending"), andMessage("junit"), andWaiting(), andScheduled(), andReason(PodToTaskMapper.TASK_STARTING));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.StartInitiated, PodToTaskMapper.TASK_STARTING);
     }
@@ -114,7 +112,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testTaskStateAheadOfPodInPendingState() {
         Task task = newTask(TaskState.KillInitiated);
-        V1Pod pod = andReason(andWaiting(andScheduled(newPod("Pending"))), PodToTaskMapper.TASK_STARTING);
+        V1Pod pod = newPod(andPhase("Pending"), andScheduled(), andWaiting(), andReason(PodToTaskMapper.TASK_STARTING));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertErrorMessage(result, "pod in state not consistent with the task state");
     }
@@ -122,7 +120,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodRunning() {
         Task task = newTask(TaskState.StartInitiated);
-        V1Pod pod = andReason(andRunning(andScheduled(newPod("Running"))), TaskStatus.REASON_NORMAL);
+        V1Pod pod = newPod(andPhase("Running"), andMessage("junit"), andScheduled(), andRunning(), andReason(TaskStatus.REASON_NORMAL));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Started, TaskStatus.REASON_NORMAL);
     }
@@ -130,7 +128,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testTaskStateAheadOfPodInRunningState() {
         Task task = newTask(TaskState.KillInitiated);
-        V1Pod pod = andReason(andRunning(andScheduled(newPod("Running"))), TaskStatus.REASON_NORMAL);
+        V1Pod pod = newPod(andPhase("Running"), andScheduled(), andRunning(), andReason(TaskStatus.REASON_NORMAL));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertErrorMessage(result, "pod state (Running) not consistent with the task state");
     }
@@ -138,7 +136,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodSucceeded() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andReason(andTerminated(andScheduled(newPod("Succeeded"))), TaskStatus.REASON_NORMAL);
+        V1Pod pod = newPod(andPhase("Succeeded"), andMessage("junit"), andScheduled(), andTerminated(), andReason(TaskStatus.REASON_NORMAL));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_NORMAL);
     }
@@ -146,7 +144,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodFailed() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andReason(andTerminated(andScheduled(newPod("Failed"))), "exit -1");
+        V1Pod pod = newPod(andPhase("Failed"), andMessage("junit"), andScheduled(), andTerminated(), andReason("exit -1"));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_FAILED);
     }
@@ -154,7 +152,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodFailedWithKillReason() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andDeletionTimestamp(andReason(andTerminated(andScheduled(newPod("Failed"))), REASON_TASK_KILLED));
+        V1Pod pod = newPod(andPhase("Failed"), andMessage("junit"), andScheduled(), andTerminated(), andReason(REASON_TASK_KILLED), andDeletionTimestamp());
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, REASON_TASK_KILLED);
     }
@@ -165,7 +163,7 @@ public class PodToTaskMapperTest {
                 newTask(TaskState.KillInitiated),
                 TaskStatus.newBuilder().withState(TaskState.KillInitiated).withReasonCode(TaskStatus.REASON_STUCK_IN_STATE).build()
         );
-        V1Pod pod = andReason(andTerminated(andScheduled(newPod("Succeeded"))), "terminated");
+        V1Pod pod = newPod(andPhase("Succeeded"), andMessage("junit"), andScheduled(), andTerminated(), andReason("terminated"));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR);
     }
@@ -173,7 +171,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodDeletedWhenNodeLost() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andReason(newPod("Running"), KubeConstants.NODE_LOST);
+        V1Pod pod = newPod(andPhase("Running"), andReason(KubeConstants.NODE_LOST));
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, REASON_TASK_KILLED, "The host running the container was unexpectedly terminated");
     }
@@ -181,7 +179,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodDeletedWhenUnexpectedlyTerminated() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andReason(newPod("Running"), "kubectl_terminate");
+        V1Pod pod = newPod(andPhase("Running"), andReason("kubectl_terminate"));
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, REASON_TASK_KILLED, "Container was terminated without going through the Titus API");
     }
@@ -204,7 +202,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodUpdateWithSystemErrorResolution() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andMessage(newPod("Failed"), "system error");
+        V1Pod pod = newPod(andPhase("Failed"), andMessage("system error"));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, REASON_LOCAL_SYSTEM_ERROR, "system error");
     }
@@ -212,7 +210,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodDeleteWithSystemErrorResolution() {
         Task task = newTask(TaskState.Started);
-        V1Pod pod = andMessage(newPod("Running"), "system error");
+        V1Pod pod = newPod(andPhase("Running"), andMessage("system error"));
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, REASON_LOCAL_SYSTEM_ERROR, "Container was terminated without going through the Titus API");
     }
@@ -222,66 +220,13 @@ public class PodToTaskMapperTest {
                 newTask(TaskState.KillInitiated),
                 TaskStatus.newBuilder().withState(TaskState.KillInitiated).withReasonCode(TaskStatus.REASON_STUCK_IN_STATE).build()
         );
-        V1Pod pod = andScheduled(newPod(podPhase));
+        V1Pod pod = newPod(andPhase(podPhase),andMessage("junit"),  andScheduled());
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR, "junit");
     }
 
     private Task newTask(TaskState taskState) {
         return JobFunctions.changeTaskStatus(JobGenerator.oneBatchTask(), TaskStatus.newBuilder().withState(taskState).build());
-    }
-
-    private V1Pod newPod(String podPhase) {
-        return new V1Pod()
-                .spec(new V1PodSpec())
-                .status(new V1PodStatus()
-                        .phase(podPhase)
-                        .message("junit")
-                );
-    }
-
-    private V1Pod andScheduled(V1Pod pod) {
-        pod.getSpec().nodeName(NODE_NAME);
-        return pod;
-    }
-
-    private V1Pod andWaiting(V1Pod pod) {
-        pod.getStatus().containerStatuses(Collections.singletonList(
-                new V1ContainerStatus().state(new V1ContainerState().waiting(new V1ContainerStateWaiting()))
-        ));
-        return pod;
-    }
-
-    private V1Pod andRunning(V1Pod pod) {
-        pod.getStatus().containerStatuses(Collections.singletonList(
-                new V1ContainerStatus().state(new V1ContainerState().running(new V1ContainerStateRunning()))
-        ));
-        return pod;
-    }
-
-    private V1Pod andDeletionTimestamp(V1Pod pod) {
-        if (pod.getMetadata() == null) {
-            pod.metadata(new V1ObjectMeta());
-        }
-        pod.getMetadata().deletionTimestamp(DateTime.now());
-        return pod;
-    }
-
-    private V1Pod andTerminated(V1Pod pod) {
-        pod.getStatus().containerStatuses(Collections.singletonList(
-                new V1ContainerStatus().state(new V1ContainerState().terminated(new V1ContainerStateTerminated()))
-        ));
-        return pod;
-    }
-
-    private V1Pod andReason(V1Pod pod, String reason) {
-        pod.getStatus().reason(reason);
-        return pod;
-    }
-
-    private V1Pod andMessage(V1Pod pod, String message) {
-        pod.getStatus().message(message);
-        return pod;
     }
 
     private PodToTaskMapper updateMapper(Task task, V1Pod v1Pod) {

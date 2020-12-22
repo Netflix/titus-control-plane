@@ -179,7 +179,7 @@ public class KubeNotificationProcessor {
 
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
-                current -> Optional.of(updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current)),
+                current -> updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current),
                 V3JobOperations.Trigger.Kube,
                 "Kube pod notification",
                 KUBE_CALL_METADATA
@@ -210,11 +210,27 @@ public class KubeNotificationProcessor {
     }
 
     @VisibleForTesting
-    static Task updateTaskStatus(PodWrapper podWrapper,
-                                 TaskStatus newTaskStatus,
-                                 Optional<TitusExecutorDetails> executorDetailsOpt,
-                                 Optional<V1Node> node,
-                                 Task currentTask) {
+    static Optional<Task> updateTaskStatus(PodWrapper podWrapper,
+                                           TaskStatus newTaskStatus,
+                                           Optional<TitusExecutorDetails> executorDetailsOpt,
+                                           Optional<V1Node> node,
+                                           Task currentTask) {
+
+        // This may happen as we build 'newTaskStatus' outside of the reconciler transaction. A real example:
+        // 1. a job is terminated by a user
+        // 2. reconciler moves the job's task to the 'KillInitiated' state, and calls KubeAPI.deleteNamespacedPod
+        // 3. before `KubeAPI.deleteNamespacedPod` completes, KubeAPI sends pod notification triggered by that action
+        // 4. pod notification handler receives the update. The latest committed task state is still 'Started'.
+        // 5. a new job transaction is created to write pod update (taskState='Started'), and is put into the reconciler queue
+        // 6. `KubeAPI.deleteNamespacedPod` completes, and the new task state 'KillInitiated' is written
+        // 7. the pod transaction is taken off the queue and is executed, and writes new task state 'Started'
+        // 8. in the next reconciliation loop a task is moved again to 'KillInitiated' state.
+        if (TaskState.isBefore(newTaskStatus.getState(), currentTask.getStatus().getState())) {
+            logger.info("Ignoring an attempt to move the task state to the earlier one: taskId={}, attempt={}, current={}",
+                    currentTask.getId(), newTaskStatus.getState(), currentTask.getStatus().getState()
+            );
+            return Optional.empty();
+        }
 
         Task updatedTask;
         if (TaskStatus.areEquivalent(currentTask.getStatus(), newTaskStatus)) {
@@ -237,7 +253,7 @@ public class KubeNotificationProcessor {
         Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
         Task taskWithAnnotations = addMissingAttributes(podWrapper, taskWithNodeMetadata);
 
-        return taskWithAnnotations;
+        return Optional.of(taskWithAnnotations);
     }
 
     private static Task attachNodeMetadata(Task task, V1Node node) {
