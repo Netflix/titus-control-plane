@@ -133,9 +133,9 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
         // Supplementary subscription to detect cases when the event publisher gets broken.
         eventsMergeSubject
-                .doOnError(error -> logger.error("Reconciliation even loop terminated with an error", error))
+                .doOnError(error -> logger.error("Reconciliation even publisher terminated with an error", error))
                 .doOnTerminate(() -> {
-                    logger.info("Reconciliation even loop terminated; eventsMergeSubject: hasCompleted={}, hasThrowable={}, hasObservers={}",
+                    logger.info("Reconciliation even publisher terminated; eventsMergeSubject: hasCompleted={}, hasThrowable={}, hasObservers={}",
                             eventsMergeSubject.hasCompleted(), eventsMergeSubject.hasThrowable(), eventsMergeSubject.hasObservers());
                 }).subscribe(ObservableExt.silentSubscriber());
 
