@@ -131,6 +131,14 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         this.worker = scheduler.createWorker();
         this.eventsObservable = Observable.merge(eventsMergeSubject).share();
 
+        // Supplementary subscription to detect cases when the event publisher gets broken.
+        eventsMergeSubject
+                .doOnError(error -> logger.error("Reconciliation even loop terminated with an error", error))
+                .doOnTerminate(() -> {
+                    logger.info("Reconciliation even loop terminated; eventsMergeSubject: hasCompleted={}, hasThrowable={}, hasObservers={}",
+                            eventsMergeSubject.hasCompleted(), eventsMergeSubject.hasThrowable(), eventsMergeSubject.hasObservers());
+                }).subscribe(ObservableExt.silentSubscriber());
+
         // To keep eventsObservable permanently active.
         this.internalEventSubscription = eventsObservable.subscribe(ObservableExt.silentSubscriber());
 
