@@ -41,6 +41,8 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.DefaultAggregatingContainerEnvFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.TitusProvidedContainerEnvFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -76,7 +78,10 @@ public class DefaultTaskToPodConverterTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private final DefaultAggregatingContainerEnvFactory defaultAggregatingContainerEnvFactory = new DefaultAggregatingContainerEnvFactory(titusRuntime);
+    private final DefaultAggregatingContainerEnvFactory defaultAggregatingContainerEnvFactory =
+            new DefaultAggregatingContainerEnvFactory(titusRuntime,
+                    UserProvidedContainerEnvFactory.getInstance(),
+                    TitusProvidedContainerEnvFactory.getInstance());
 
     private final LogStorageInfo<Task> logStorageInfo = mock(LogStorageInfo.class);
 
