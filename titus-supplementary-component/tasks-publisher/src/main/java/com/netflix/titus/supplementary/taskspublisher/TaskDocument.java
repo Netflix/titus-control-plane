@@ -18,11 +18,15 @@ package com.netflix.titus.supplementary.taskspublisher;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
@@ -41,6 +45,8 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.ext.elasticsearch.EsDoc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
@@ -59,6 +65,8 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALE
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 
 public class TaskDocument implements EsDoc {
+    private static final Logger logger = LoggerFactory.getLogger(TaskDocument.class);
+    private static final Pattern INVALID_ENV_KEY_FORMAT = Pattern.compile("^[.]|[.]{2,}|[.]$");
 
     private String id;
     private String instanceId;
@@ -411,7 +419,7 @@ public class TaskDocument implements EsDoc {
         taskDocument.gpu = containerResources.getGpu();
         taskDocument.shm = containerResources.getShmMB();
         taskDocument.allocateIpAddress = containerResources.isAllocateIP();
-        taskDocument.env = container.getEnv();
+        taskDocument.env = sanitizeEnvMap(container.getEnv());
         taskDocument.iamProfile = container.getSecurityProfile().getIamRole();
         taskDocument.securityGroups = container.getSecurityProfile().getSecurityGroups();
         taskDocument.softConstraints = new ArrayList<>(container.getSoftConstraints().keySet());
@@ -544,7 +552,6 @@ public class TaskDocument implements EsDoc {
             case StartInitiated:
                 return TitusTaskState.STARTING;
             case Started:
-                return TitusTaskState.RUNNING;
             case KillInitiated:
                 return TitusTaskState.RUNNING;
             case Finished:
@@ -562,6 +569,22 @@ public class TaskDocument implements EsDoc {
             default:
                 return TitusTaskState.FAILED;
         }
+    }
+
+    @VisibleForTesting
+    static Map<String, String> sanitizeEnvMap(Map<String, String> env) {
+        if (env == null) {
+            return Collections.emptyMap();
+        }
+        return env.keySet().stream().filter(TaskDocument::isSafe).collect(Collectors.toMap(k -> k, env::get));
+    }
+
+    private static boolean isSafe(String key) {
+        boolean isKeySafeForES = !INVALID_ENV_KEY_FORMAT.matcher(key).find();
+        if (!isKeySafeForES) {
+            logger.info("Removing invalid ENV \"{}\" from ES task document.", key);
+        }
+        return isKeySafeForES;
     }
 
     private static void extractNetworkConfigurationData(Map<String, String> taskContext, TaskDocument taskDocument) {
