@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -25,6 +26,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent;
@@ -49,11 +51,17 @@ class JobTransactionLogger {
 
     private static final long BUFFER_SIZE = 5000;
 
-    static Subscription logEvents(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework) {
+    static Subscription logEvents(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework,
+                                  AtomicLong lastErrorRef,
+                                  Clock clock) {
+        lastErrorRef.set(-1);
         return eventStreamWithBackpressure(reconciliationFramework)
                 .observeOn(Schedulers.io())
                 .retryWhen(errors -> errors.flatMap(
                         e -> {
+                            // BUG: event stream breaks permanently, and cannot be retried.
+                            // As we cannot fix the underlying issue yet, we have to be able to discover when it happens.
+                            lastErrorRef.set(clock.wallTime());
                             logger.warn("Transactions may be missing in the log. The event stream has terminated with an error and must be re-subscribed: {}", ExceptionExt.toMessage(e));
                             return eventStreamWithBackpressure(reconciliationFramework);
                         }))
@@ -263,7 +271,7 @@ class JobTransactionLogger {
                 "waited=" + waitTimeMs + "ms",
                 "elapsed=" + executionTime + "ms",
                 summary
-                );
+        );
     }
 
     private static String toTargetName(String jobId, String entityId) {

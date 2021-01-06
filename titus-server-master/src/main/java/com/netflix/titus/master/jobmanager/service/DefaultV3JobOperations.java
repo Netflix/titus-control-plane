@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -30,6 +31,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -69,7 +71,9 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -105,6 +109,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultV3JobOperations.class);
     private static final int OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE = 1024;
+
+    private static final String METRIC_EVENT_STREAM_LAST_ERROR = MetricConstants.METRIC_ROOT + "jobManager.eventStreamLastError";
 
     enum IndexKind {StatusCreationTime}
 
@@ -154,7 +160,15 @@ public class DefaultV3JobOperations implements V3JobOperations {
     @Activator
     public void enterActiveMode() {
         this.reconciliationFramework = jobReconciliationFrameworkFactory.newInstance();
-        this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
+
+        // BUG: event stream breaks permanently, and cannot be retried.
+        // As we cannot fix the underlying issue yet, we have to be able to discover when it happens.
+        AtomicLong eventStreamLastError = new AtomicLong();
+        Clock clock = titusRuntime.getClock();
+        this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework, eventStreamLastError, clock);
+        PolledMeter.using(titusRuntime.getRegistry())
+                .withName(METRIC_EVENT_STREAM_LAST_ERROR)
+                .monitorValue(eventStreamLastError, value -> value.get() <= 0 ? 0 : clock.wallTime() - value.get());
 
         // Remove finished jobs from the reconciliation framework.
         Observable<JobManagerReconcilerEvent> reconciliationEventsObservable = reconciliationFramework.events()
@@ -203,6 +217,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @PreDestroy
     public void shutdown() {
+        PolledMeter.remove(titusRuntime.getRegistry(), titusRuntime.getRegistry().createId(METRIC_EVENT_STREAM_LAST_ERROR));
         ObservableExt.safeUnsubscribe(transactionLoggerSubscription, reconcilerEventSubscription);
         if (reconciliationFramework != null) {
             reconciliationFramework.stop(RECONCILER_SHUTDOWN_TIMEOUT_MS);
@@ -442,9 +457,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     }
 
                     String reasonCode;
-                    if(trigger == Trigger.Eviction) {
+                    if (trigger == Trigger.Eviction) {
                         reasonCode = TaskStatus.REASON_TASK_EVICTED;
-                    } else if(trigger == Trigger.Scheduler) {
+                    } else if (trigger == Trigger.Scheduler) {
                         reasonCode = TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
                     } else {
                         reasonCode = TaskStatus.REASON_TASK_KILLED;
