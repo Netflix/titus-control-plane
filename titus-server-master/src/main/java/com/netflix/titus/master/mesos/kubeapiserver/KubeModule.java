@@ -167,7 +167,6 @@ public class KubeModule extends AbstractModule {
 
     @Provides
     @Singleton
-    @Inject
     public ContainerEnvFactory getContainerEnvFactory(TitusRuntime titusRuntime) {
         return new DefaultAggregatingContainerEnvFactory(titusRuntime,
                 UserProvidedContainerEnvFactory.getInstance(),
