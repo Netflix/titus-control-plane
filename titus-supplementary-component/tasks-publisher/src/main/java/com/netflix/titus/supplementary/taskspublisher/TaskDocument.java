@@ -45,6 +45,8 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.ext.elasticsearch.EsDoc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
@@ -63,6 +65,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALE
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 
 public class TaskDocument implements EsDoc {
+    private static final Logger logger = LoggerFactory.getLogger(TaskDocument.class);
     private static final Pattern INVALID_ENV_KEY_FORMAT = Pattern.compile("^[.]|[.]{2,}|[.]$");
 
     private String id;
@@ -577,7 +580,11 @@ public class TaskDocument implements EsDoc {
     }
 
     private static boolean isSafe(String key) {
-        return !INVALID_ENV_KEY_FORMAT.matcher(key).find();
+        boolean isKeySafeForES = !INVALID_ENV_KEY_FORMAT.matcher(key).find();
+        if (!isKeySafeForES) {
+            logger.info("Removing invalid ENV \"{}\" from ES task document.", key);
+        }
+        return isKeySafeForES;
     }
 
     private static void extractNetworkConfigurationData(Map<String, String> taskContext, TaskDocument taskDocument) {
