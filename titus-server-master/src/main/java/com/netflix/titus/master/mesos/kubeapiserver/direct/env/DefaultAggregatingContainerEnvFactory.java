@@ -16,13 +16,12 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct.env;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.collect.ImmutableList;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -33,8 +32,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
  * Default implementation aggregating container environment variables from multiple sources.
  * Evaluation happens from left to right, with the next item overriding entries from
  * previous evaluations if there is a collision.
- * This class aggregates {@link UserProvidedContainerEnvFactory} and {@link TitusProvidedContainerEnvFactory}
- * in that order.
  */
 @Singleton
 public class DefaultAggregatingContainerEnvFactory implements ContainerEnvFactory {
@@ -47,9 +44,8 @@ public class DefaultAggregatingContainerEnvFactory implements ContainerEnvFactor
 
     private final List<ContainerEnvFactory> orderedFactoryList;
 
-    @Inject
-    public DefaultAggregatingContainerEnvFactory(TitusRuntime titusRuntime) {
-        orderedFactoryList = ImmutableList.of(UserProvidedContainerEnvFactory.getInstance(), TitusProvidedContainerEnvFactory.getInstance());
+    public DefaultAggregatingContainerEnvFactory(TitusRuntime titusRuntime, ContainerEnvFactory... containerEnvFactories) {
+        orderedFactoryList = Arrays.asList(containerEnvFactories);
         this.registry = titusRuntime.getRegistry();
         this.conflictId = registry.createId(CONFLICT_COUNTER);
     }

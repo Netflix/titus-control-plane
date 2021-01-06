@@ -17,6 +17,7 @@
 package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.util.Arrays;
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -43,6 +44,8 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.PodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.DefaultAggregatingContainerEnvFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.TitusProvidedContainerEnvFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.FarzonePodResourcePoolResolver;
@@ -73,7 +76,6 @@ public class KubeModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ContainerEnvFactory.class).to(DefaultAggregatingContainerEnvFactory.class);
         bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
         bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
@@ -161,5 +163,14 @@ public class KubeModule extends AbstractModule {
             return injector.getInstance(DefaultKubeJobManagementReconciler.class);
         }
         return new NoOpJobManagementReconciler();
+    }
+
+    @Provides
+    @Singleton
+    @Inject
+    public ContainerEnvFactory getContainerEnvFactory(TitusRuntime titusRuntime) {
+        return new DefaultAggregatingContainerEnvFactory(titusRuntime,
+                UserProvidedContainerEnvFactory.getInstance(),
+                TitusProvidedContainerEnvFactory.getInstance());
     }
 }
