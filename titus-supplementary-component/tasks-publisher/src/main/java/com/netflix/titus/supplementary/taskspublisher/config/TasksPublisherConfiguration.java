@@ -33,8 +33,8 @@ import com.netflix.titus.supplementary.taskspublisher.TitusClient;
 import com.netflix.titus.supplementary.taskspublisher.TitusClientImpl;
 import com.netflix.titus.supplementary.taskspublisher.es.EsPublisher;
 import io.grpc.ManagedChannel;
+import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import io.grpc.util.RoundRobinLoadBalancerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -110,13 +110,11 @@ public class TasksPublisherConfiguration {
 
     private ManagedChannel getTitusGrpcChannel() {
         return NettyChannelBuilder.forAddress(titusApiHost, titusApiPort)
-                .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
+                .defaultLoadBalancingPolicy("round_robin")
                 .keepAliveTime(GRPC_KEEP_ALIVE_TIME, TimeUnit.SECONDS)
                 .keepAliveTimeout(GRPC_KEEP_ALIVE_TIMEOUT, TimeUnit.SECONDS)
                 .userAgent(GRPC_CLIENT_AGENT)
-                .usePlaintext(true)
+                .negotiationType(NegotiationType.PLAINTEXT)
                 .build();
     }
-
-
 }
