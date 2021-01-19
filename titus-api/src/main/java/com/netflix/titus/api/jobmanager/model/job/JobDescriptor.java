@@ -40,7 +40,8 @@ import com.netflix.titus.common.util.CollectionsExt;
 @ClassFieldsNotNull
 @ClassInvariant.List({
         @ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)", mode = VerifierMode.Strict),
-        @ClassInvariant(expr = "@asserts.notExceedsIpAllocations(container, extensions)", mode = VerifierMode.Strict)
+        @ClassInvariant(expr = "@asserts.notExceedsIpAllocations(container, extensions)", mode = VerifierMode.Strict),
+        @ClassInvariant(expr = "@asserts.notExceedsEbsVolumes(container, extensions)", mode = VerifierMode.Strict)
 })
 public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
 
@@ -250,6 +251,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         }
         if (result instanceof ServiceJobExt.Builder) {
             return toBuilder().withExtensions((E) ((ServiceJobExt.Builder) result).build()).build();
+        }
+        if (result instanceof Map) {
+            return toBuilder().withAttributes((Map<String, String>) result).build();
         }
         throw new IllegalArgumentException("Invalid result type " + result.getClass());
     }

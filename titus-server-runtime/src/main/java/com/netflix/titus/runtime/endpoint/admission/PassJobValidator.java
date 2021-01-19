@@ -19,7 +19,7 @@ package com.netflix.titus.runtime.endpoint.admission;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.UnaryOperator;
-import javax.inject.Inject;
+import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -56,6 +56,18 @@ public class PassJobValidator implements AdmissionValidator<JobDescriptor>, Admi
 
     @Override
     public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
-        return Mono.just(UnaryOperator.identity());
+        // Sets an availability zone and capacity for any EBS volumes
+        return Mono.just(jd -> jd.toBuilder()
+                    .withContainer(jd.getContainer().toBuilder()
+                            .withContainerResources(jd.getContainer().getContainerResources().toBuilder()
+                                    .withEbsVolumes(jd.getContainer().getContainerResources().getEbsVolumes().stream()
+                                            .map(ebsVolume -> ebsVolume.toBuilder()
+                                                    .withVolumeAvailabilityZone("us-east-1a")
+                                                    .withVolumeCapacityGB(5)
+                                                    .build())
+                                            .collect(Collectors.toList()))
+                                    .build())
+                            .build())
+                    .build());
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ public class JobEbsVolumeValidatorTest {
             .withVolumeCapacityGB(5)
             .withVolumeAvailabilityZone("us-east-1c")
             .build();
+    // Invalid volume missing AZ and capacity fields
     private static final EbsVolume EBS_VOLUME_INVALID = EbsVolume.newBuilder()
             .withVolumeId("vol-invalid")
             .withMountPath("/invalid")
@@ -85,6 +86,21 @@ public class JobEbsVolumeValidatorTest {
     public void testJobWithNoEbsVolumes() {
         StepVerifier.create(jobEbsVolumeValidator.validate(JOB_WITH_NO_EBS_VOLUMES))
                 .expectNextMatches(Set::isEmpty)
+                .verifyComplete();
+    }
+
+    @Test
+    public void testJobWithDuplicateVolumes() {
+        StepVerifier.create(jobEbsVolumeValidator.validate(
+                JOB_WITH_VALID_EBS_VOLUMES
+                        .but(jd -> jd.getContainer()
+                                .but(c -> c.getContainerResources().toBuilder()
+                                        .withEbsVolumes(Arrays.asList(EBS_VOLUME_VALID, EBS_VOLUME_VALID))
+                                        .build()))
+        ))
+                .expectNextMatches(violations -> violations.size() == 1 && violations.stream()
+                            .filter(validationError -> validationError.getDescription().contains("Duplicate volume IDs exist"))
+                            .count() == 1)
                 .verifyComplete();
     }
 }

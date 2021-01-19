@@ -16,16 +16,19 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.admission.ValidatorMetrics;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import reactor.core.publisher.Mono;
 
@@ -48,14 +51,10 @@ public class JobEbsVolumeValidator implements AdmissionValidator<JobDescriptor> 
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor jobDescriptor) {
-        return Mono.fromCallable(() -> jobDescriptor.getContainer().getContainerResources().getEbsVolumes().stream()
-                .filter(ebsVolume -> StringExt.isEmpty(ebsVolume.getVolumeAvailabilityZone()) ||
-                        ebsVolume.getVolumeCapacityGB() == 0)
-                .peek(ebsVolume -> metrics.incrementValidationError(ebsVolume.getVolumeId(), REASON_MISSING_FIELD))
-                .map(ebsVolume -> new ValidationError(
-                        JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS,
-                        String.format("Required field missing from EBS volume %s", ebsVolume)))
-                .collect(Collectors.toSet()))
+        return Mono.fromCallable(() -> CollectionsExt.merge(
+                validateFieldsSet(jobDescriptor),
+                validateDuplicateVolumeIds(jobDescriptor)
+        ))
                 .doOnNext(validationErrors -> {
                     if (validationErrors.isEmpty()) {
                         metrics.incrementValidationSuccess(JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS);
@@ -66,5 +65,33 @@ public class JobEbsVolumeValidator implements AdmissionValidator<JobDescriptor> 
     @Override
     public ValidationError.Type getErrorType() {
         return validationErrorTypeProvider.get();
+    }
+
+    /**
+     * Validates that all required EBS fields are set.
+     */
+    private Set<ValidationError> validateFieldsSet(JobDescriptor jobDescriptor) {
+        return jobDescriptor.getContainer().getContainerResources().getEbsVolumes().stream()
+                .filter(ebsVolume -> StringExt.isEmpty(ebsVolume.getVolumeAvailabilityZone()) ||
+                        ebsVolume.getVolumeCapacityGB() == 0)
+                .peek(ebsVolume -> metrics.incrementValidationError(ebsVolume.getVolumeId(), REASON_MISSING_FIELD))
+                .map(ebsVolume -> new ValidationError(
+                        JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS,
+                        String.format("Required field missing from EBS volume %s", ebsVolume)))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Validates that there are no duplicate volume IDs.
+     */
+    private Set<ValidationError> validateDuplicateVolumeIds(JobDescriptor jobDescriptor) {
+        return jobDescriptor.getContainer().getContainerResources().getEbsVolumes().stream()
+                .map(EbsVolume::getVolumeId)
+                .distinct()
+                .count() == jobDescriptor.getContainer().getContainerResources().getEbsVolumes().size()
+                ? Collections.emptySet()
+                : Collections.singleton(new ValidationError(
+                JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS,
+                "Duplicate volume IDs exist"));
     }
 }
