@@ -551,6 +551,18 @@ public class JobScenarioBuilder {
         return this;
     }
 
+    public JobScenarioBuilder expectTasksInSlot(int slot, Predicate<List<TaskScenarioBuilder>> predicate) {
+        logger.info("[{}] Expecting tasks in slot {} to fulfill the predicate requirements", discoverActiveTest(), slot);
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
+            List<TaskScenarioBuilder> taskScenarioBuilders = taskSlotIndexes.get(slot).stream()
+                    .map(taskHolders::get)
+                    .map(TaskHolder::getTaskScenarioBuilder)
+                    .collect(Collectors.toList());
+            return predicate.test(taskScenarioBuilders);
+        });
+        return this;
+    }
+
     public JobScenarioBuilder expectSome(int count, Predicate<TaskScenarioBuilder> predicate) {
         logger.info("[{}] Expecting {} tasks to fulfill the predicate requirements", discoverActiveTest(), count);
         await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {

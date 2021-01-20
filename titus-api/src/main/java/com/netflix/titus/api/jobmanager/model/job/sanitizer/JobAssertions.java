@@ -217,6 +217,23 @@ public class JobAssertions {
         return Collections.emptyMap();
     }
 
+    public Map<String, String> notExceedsEbsVolumes(Container container, JobDescriptor.JobDescriptorExt extension) {
+        // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
+        if (container == null) {
+            return Collections.emptyMap();
+        }
+
+        int numEbsVolumes = container.getContainerResources().getEbsVolumes().size();
+        int numInstances = extension instanceof ServiceJobExt
+                ? ((ServiceJobExt) extension).getCapacity().getMax()
+                : ((BatchJobExt) extension).getSize();
+        if (numEbsVolumes > 0 && numInstances > numEbsVolumes) {
+            return Collections.singletonMap("container.containerResources.ebsVolumes", "Above number of max task instances " + numInstances);
+        }
+
+        return Collections.emptyMap();
+    }
+
     private <N extends Number> Optional<String> check(Supplier<N> jobResource, Supplier<N> maxAllowed) {
         if (jobResource.get().doubleValue() > maxAllowed.get().doubleValue()) {
             return Optional.of("Above maximum allowed value " + maxAllowed.get());
