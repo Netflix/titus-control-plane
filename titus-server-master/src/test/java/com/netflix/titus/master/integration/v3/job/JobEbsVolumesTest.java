@@ -18,6 +18,7 @@ package com.netflix.titus.master.integration.v3.job;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -125,7 +126,6 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
         JobDescriptor<ServiceJobExt> serviceJobDescriptor = serviceJobDescriptors(serviceOfSizeAndEbsVolumes(3)).getValue();
         List<EbsVolume> ebsVolumes = serviceJobDescriptor.getContainer().getContainerResources().getEbsVolumes();
 
-        // String volumeId = ONE_TASK_SERVICE_JOB.getContainer().getContainerResources().
         jobsScenarioBuilder.schedule(serviceJobDescriptor, jobScenarioBuilder ->
                 jobScenarioBuilder
                         // Start the initial tasks
@@ -148,10 +148,10 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
                         .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
                         .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
                         .inTask(2, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
-                        // Make sure replacements have correct attribute
-                        .expectSome(1, taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, "").equals(ebsVolumes.get(0).getVolumeId()))
-                        .expectSome(1, taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, "").equals(ebsVolumes.get(1).getVolumeId()))
-                        .expectSome(1, taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, "").equals(ebsVolumes.get(2).getVolumeId()))
+                        // Make sure replacements have the same volume as its resubmitOf
+                        .expectTasksInSlot(0, sameEbsVolumePredicate())
+                        .expectTasksInSlot(1, sameEbsVolumePredicate())
+                        .expectTasksInSlot(2, sameEbsVolumePredicate())
         );
     }
 
@@ -219,5 +219,12 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
                 .but(j -> j.getContainer()
                         .but(c -> c.getContainerResources().toBuilder().withEbsVolumes(ebsVolumes).build()))
                 .but(j -> JobEbsVolumeGenerator.jobEbsVolumesToAttributes(ebsVolumes));
+    }
+
+    private static Predicate<List<TaskScenarioBuilder>> sameEbsVolumePredicate() {
+        return taskScenarioBuilders -> taskScenarioBuilders.stream()
+                .map(taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID))
+                .distinct()
+                .count() == 1;
     }
 }

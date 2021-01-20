@@ -227,8 +227,7 @@ public class JobAssertions {
         int numInstances = extension instanceof ServiceJobExt
                 ? ((ServiceJobExt) extension).getCapacity().getMax()
                 : ((BatchJobExt) extension).getSize();
-        if (numEbsVolumes > 0 &&
-                numInstances > numEbsVolumes) {
+        if (numEbsVolumes > 0 && numInstances > numEbsVolumes) {
             return Collections.singletonMap("container.containerResources.ebsVolumes", "Above number of max task instances " + numInstances);
         }
 
