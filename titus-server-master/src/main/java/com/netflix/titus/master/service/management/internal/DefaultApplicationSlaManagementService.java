@@ -24,6 +24,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
@@ -78,9 +79,11 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
     public ApplicationSLA getApplicationSLA(String applicationName) {
         return storage.findByName(applicationName)
                 .onErrorReturn(t -> {
-                    logger.info("Error retrieving ApplicationSLA for applicationName {}: {}", applicationName, t.getMessage());
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Error retrieving ApplicationSLA for applicationName " + applicationName, t);
+                    if (!(t instanceof NotFoundException)) {
+                        logger.info("Error retrieving ApplicationSLA for applicationName {}: {}", applicationName, t.getMessage());
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Error retrieving ApplicationSLA for applicationName " + applicationName, t);
+                        }
                     }
                     return null;
                 })
