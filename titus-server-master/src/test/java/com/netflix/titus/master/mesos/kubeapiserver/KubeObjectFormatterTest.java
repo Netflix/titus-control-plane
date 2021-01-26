@@ -24,6 +24,7 @@ import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.and
 import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodeAllocatableResources;
 import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodeLabels;
 import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodePhase;
+import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andTaint;
 import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.newNode;
 import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andLabel;
 import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andNodeName;
@@ -51,9 +52,10 @@ public class KubeObjectFormatterTest {
                 andNodeAllocatableResources(64, 8192, 16384, 512),
                 andNodePhase("READY"),
                 andNodeLabels("labelA", "valueA"),
-                andIpAddress("nodeIpAddress")
+                andIpAddress("nodeIpAddress"),
+                andTaint("taintKey", "taintValue", "NoExecute")
         );
         String result = KubeObjectFormatter.formatNodeEssentials(node);
-        assertThat(result).isEqualTo("{name=testNode, labels={labelA=valueA}, phase=READY, allocatableResources={disk=16384000000, memory=8192000000, cpu=64, network=536870912}}");
+        assertThat(result).isEqualTo("{name=testNode, labels={labelA=valueA}, taints=[{key=taintKey, value=taintValue, effect=NoExecute], phase=READY, allocatableResources={disk=16384000000, memory=8192000000, cpu=64, network=536870912}}");
     }
 }

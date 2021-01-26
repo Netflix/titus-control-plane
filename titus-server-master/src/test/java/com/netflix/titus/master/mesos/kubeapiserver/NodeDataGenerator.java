@@ -16,8 +16,10 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -25,8 +27,10 @@ import com.netflix.titus.common.util.CollectionsExt;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeAddress;
+import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Taint;
 
 public class NodeDataGenerator {
 
@@ -116,6 +120,20 @@ public class NodeDataGenerator {
                     CollectionsExt.asMap(keyValuePairs)
             );
             node.getMetadata().annotations(annotations);
+            return node;
+        };
+    }
+
+    public static Function<V1Node, V1Node> andTaint(String key, String value, String effect) {
+        return node -> {
+            if (node.getSpec() == null) {
+                node.spec(new V1NodeSpec());
+            }
+            List<V1Taint> taints = node.getSpec().getTaints();
+            if (taints == null) {
+                node.getSpec().taints(taints = new ArrayList<>());
+            }
+            taints.add(new V1Taint().key(key).value(value).effect(effect));
             return node;
         };
     }

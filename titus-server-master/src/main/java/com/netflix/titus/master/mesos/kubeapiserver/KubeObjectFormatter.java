@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.util.List;
 import java.util.Map;
 
 import io.kubernetes.client.custom.Quantity;
@@ -26,6 +27,7 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
+import io.kubernetes.client.openapi.models.V1Taint;
 
 /**
  * Helper functions to build compact representations of Kube objects suitable for logging.
@@ -59,7 +61,20 @@ public final class KubeObjectFormatter {
 
         V1NodeSpec spec = node.getSpec();
         if (spec != null) {
-            builder.append(", taints=").append(spec.getTaints());
+            List<V1Taint> taints = spec.getTaints();
+            builder.append(", taints=");
+            if (taints == null) {
+                builder.append("[]");
+            } else {
+                builder.append("[");
+                taints.forEach(taint -> {
+                    builder.append("{");
+                    builder.append("key=").append(taint.getKey()).append(", ");
+                    builder.append("value=").append(taint.getValue()).append(", ");
+                    builder.append("effect=").append(taint.getEffect());
+                });
+                builder.append("]");
+            }
         }
 
         V1NodeStatus status = node.getStatus();
