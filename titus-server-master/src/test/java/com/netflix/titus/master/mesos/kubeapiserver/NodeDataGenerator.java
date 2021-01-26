@@ -17,10 +17,12 @@
 package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 import com.netflix.titus.common.util.CollectionsExt;
+import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeAddress;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
@@ -51,16 +53,42 @@ public class NodeDataGenerator {
         }
     }
 
+    public static Function<V1Node, V1Node> andNodePhase(String phase) {
+        return node -> {
+            if (node.getStatus() == null) {
+                node.status(new V1NodeStatus());
+            }
+            node.getStatus().phase(phase);
+            return node;
+        };
+    }
+
+    public static Function<V1Node, V1Node> andNodeAllocatableResources(int cpu, int memoryMB, int diskMB, int networkMbps) {
+        return node -> {
+            if (node.getStatus() == null) {
+                node.status(new V1NodeStatus());
+            }
+            Map<String, Quantity> allocatable = new HashMap<>();
+            allocatable.put("cpu", new Quantity(cpu + ""));
+            allocatable.put("memory", new Quantity(memoryMB + "M"));
+            allocatable.put("disk", new Quantity(diskMB + "M"));
+            allocatable.put("network", new Quantity(networkMbps + "Mi"));
+            node.getStatus().allocatable(allocatable);
+            return node;
+        };
+    }
+
     public static V1Node andIpAddress(String ipAddress, V1Node node) {
         return andIpAddress(ipAddress).apply(node);
     }
 
     public static Function<V1Node, V1Node> andIpAddress(String ipAddress) {
         return node -> {
-            node.status(new V1NodeStatus()
-                    .addresses(Collections.singletonList(
-                            new V1NodeAddress().address(ipAddress).type(KubeUtil.TYPE_INTERNAL_IP)
-                    ))
+            if (node.getStatus() == null) {
+                node.status(new V1NodeStatus());
+            }
+            node.getStatus().addresses(
+                    Collections.singletonList(new V1NodeAddress().address(ipAddress).type(KubeUtil.TYPE_INTERNAL_IP))
             );
             return node;
         };
@@ -68,6 +96,17 @@ public class NodeDataGenerator {
 
     public static V1Node andNodeAnnotations(V1Node node, String... keyValuePairs) {
         return andNodeAnnotations(keyValuePairs).apply(node);
+    }
+
+    public static Function<V1Node, V1Node> andNodeLabels(String... keyValuePairs) {
+        return node -> {
+            Map<String, String> labels = CollectionsExt.copyAndAdd(
+                    CollectionsExt.nonNull(node.getMetadata().getLabels()),
+                    CollectionsExt.asMap(keyValuePairs)
+            );
+            node.getMetadata().labels(labels);
+            return node;
+        };
     }
 
     public static Function<V1Node, V1Node> andNodeAnnotations(String... keyValuePairs) {

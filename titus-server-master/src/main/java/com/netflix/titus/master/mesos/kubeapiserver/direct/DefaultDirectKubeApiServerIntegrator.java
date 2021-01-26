@@ -63,6 +63,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPodEssentials;
+
 @Singleton
 public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServerIntegrator {
 
@@ -149,7 +151,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return Mono.fromCallable(() -> {
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
-                logger.info("creating pod: {}", v1Pod);
+                logger.info("creating pod: {}", formatPodEssentials(v1Pod));
+                logger.debug("complete pod data: {}", v1Pod);
                 return v1Pod;
             } catch (Exception e) {
                 logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
@@ -330,7 +333,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                     if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
                         return;
                     }
-                    logger.info("Pod Added: {}", pod);
+                    logger.info("Pod Added: {}", formatPodEssentials(pod));
+                    logger.debug("complete pod data: {}", pod);
 
                     String taskId = pod.getSpec().getContainers().get(0).getName();
 
@@ -352,7 +356,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                         return;
                     }
 
-                    logger.info("Pod Updated Old: {}, New: {}", oldPod, newPod);
+                    logger.info("Pod Updated: old={}, new={}", formatPodEssentials(oldPod), formatPodEssentials(newPod));
+                    logger.debug("Complete pod data: old={}, new={}", oldPod, newPod);
                     metrics.onUpdate(newPod);
 
                     pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
@@ -365,7 +370,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                         return;
                     }
 
-                    logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}", pod, deletedFinalStateUnknown);
+                    logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}", formatPodEssentials(pod), deletedFinalStateUnknown);
+                    logger.debug("complete pod data: {}", pod);
                     metrics.onDelete(pod);
 
                     pods.remove(pod.getSpec().getContainers().get(0).getName());

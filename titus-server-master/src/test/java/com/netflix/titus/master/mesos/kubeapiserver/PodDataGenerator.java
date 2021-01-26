@@ -205,4 +205,15 @@ public class PodDataGenerator {
             return pod;
         };
     }
+
+    public static Function<V1Pod, V1Pod> andLabel(String... keyValuePairs) {
+        return pod -> {
+            Map<String, String> labels = CollectionsExt.copyAndAdd(
+                    CollectionsExt.nonNull(pod.getMetadata().getLabels()),
+                    CollectionsExt.asMap(keyValuePairs)
+            );
+            pod.getMetadata().labels(labels);
+            return pod;
+        };
+    }
 }

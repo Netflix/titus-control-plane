@@ -102,6 +102,8 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_STUCK
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatNodeEssentials;
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPodEssentials;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.FAILED;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
@@ -228,7 +230,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             try {
                 launchTaskCounter.increment();
                 V1Pod v1Pod = taskInfoToPod(request);
-                logger.info("creating pod: {}", v1Pod);
+                logger.info("creating pod: {}", formatPodEssentials(v1Pod));
+                logger.debug("complete pod data: {}", v1Pod);
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(DEFAULT_NAMESPACE, v1Pod, null, null, null);
                 podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (Exception e) {
@@ -249,7 +252,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     ))
                     .doOnSubscribe(subscription -> {
                         launchTaskCounter.increment();
-                        logger.info("creating pod: {}", v1Pod);
+                        logger.info("creating pod: {}", formatPodEssentials(v1Pod));
+                        logger.debug("complete pod data: {}", v1Pod);
                         podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
                     })
                     .timeout(Duration.ofMillis(directKubeConfiguration.getKubeApiClientTimeoutMs()))
@@ -456,7 +460,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         nodeName, nodeAttributes);
             }
         } catch (Exception e) {
-            logger.info("Failed to convert node to offer for node {}", node, e);
+            logger.info("Failed to convert node to offer for node: {}", formatNodeEssentials(node), e);
+            logger.debug("Complete node: {}", node);
         }
         return null;
     }
