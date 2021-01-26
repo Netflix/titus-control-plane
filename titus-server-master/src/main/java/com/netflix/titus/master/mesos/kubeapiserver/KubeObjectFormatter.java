@@ -35,6 +35,14 @@ import io.kubernetes.client.openapi.models.V1Taint;
 public final class KubeObjectFormatter {
 
     public static String formatPodEssentials(V1Pod pod) {
+        try {
+            return formatPodEssentialsInternal(pod);
+        } catch (Exception e) {
+            return "pod formatting error: " + e.getMessage();
+        }
+    }
+
+    private static String formatPodEssentialsInternal(V1Pod pod) {
         StringBuilder builder = new StringBuilder("{");
 
         appendMetadata(builder, pod.getMetadata());
@@ -55,6 +63,14 @@ public final class KubeObjectFormatter {
     }
 
     public static String formatNodeEssentials(V1Node node) {
+        try {
+            return formatNodeEssentialsInternal(node);
+        } catch (Exception e) {
+            return "node formatting error: " + e.getMessage();
+        }
+    }
+
+    private static String formatNodeEssentialsInternal(V1Node node) {
         StringBuilder builder = new StringBuilder("{");
 
         appendMetadata(builder, node.getMetadata());
