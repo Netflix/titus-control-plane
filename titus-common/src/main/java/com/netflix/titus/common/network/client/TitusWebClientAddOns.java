@@ -25,6 +25,7 @@ import javax.net.ssl.SSLException;
 import com.netflix.titus.common.network.client.internal.WebClientMetric;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -33,6 +34,7 @@ import reactor.core.publisher.Flux;
 import reactor.netty.http.HttpOperations;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
+import reactor.util.retry.Retry;
 
 /**
  * A collection of add-ons for Spring {@link WebClient}.
@@ -72,26 +74,32 @@ public final class TitusWebClientAddOns {
         return addTitusDefaults(clientBuilder, httpClient, webClientMetric);
     }
 
-    public static Function<Flux<Throwable>, Flux<?>> retryer(Duration interval,
-                                                             int retryLimit,
-                                                             Function<Throwable, Boolean> retryPredicate,
-                                                             Logger callerLogger) {
-        return errors -> Flux.defer(() -> {
-            AtomicInteger remaining = new AtomicInteger(retryLimit);
-            return errors.flatMap(error -> {
-                if (!retryPredicate.apply(error)) {
-                    return Flux.error(error);
-                }
-                if (remaining.get() <= 0) {
-                    callerLogger.warn("Retry limit reached. Returning error to the client", error);
-                    return Flux.error(error);
-                }
-                remaining.getAndDecrement();
-                logger.info("Retrying failed HTTP request in {}ms", interval.toMillis());
+    public static Retry retryer(Duration interval,
+                                int retryLimit,
+                                Function<Throwable, Boolean> retryPredicate,
+                                Logger callerLogger) {
+        return new Retry() {
+            @Override
+            public Publisher<?> generateCompanion(Flux<RetrySignal> retrySignals) {
+                return Flux.defer(() -> {
+                    AtomicInteger remaining = new AtomicInteger(retryLimit);
+                    return retrySignals.flatMap(retrySignal -> {
+                        Throwable error = retrySignal.failure() == null ? new IllegalStateException("retry called without a failure") : retrySignal.failure();
+                        if (!retryPredicate.apply(error)) {
+                            return Flux.error(error);
+                        }
+                        if (remaining.get() <= 0) {
+                            callerLogger.warn("Retry limit reached. Returning error to the client", error);
+                            return Flux.error(error);
+                        }
+                        remaining.getAndDecrement();
+                        logger.info("Retrying failed HTTP request in {}ms", interval.toMillis());
 
-                return Flux.interval(interval).take(1);
-            });
-        });
+                        return Flux.interval(interval).take(1);
+                    });
+                });
+            }
+        };
     }
 
     private static HttpClient addLoggingCallbacks(HttpClient httpClient) {
@@ -118,7 +126,7 @@ public final class TitusWebClientAddOns {
 
             StringBuilder sb = new StringBuilder("http://");
 
-            InetSocketAddress address = httpOperations.address();
+            InetSocketAddress address = (InetSocketAddress) httpOperations.address();
             sb.append(address.getHostString());
             sb.append(':').append(address.getPort());
 
@@ -135,7 +143,7 @@ public final class TitusWebClientAddOns {
 
     private static HttpClient addMetricCallbacks(HttpClient httpClient, WebClientMetric webClientMetric) {
         return httpClient
-                .doAfterResponse(webClientMetric::incrementOnSuccess)
+                .doAfterResponseSuccess(webClientMetric::incrementOnSuccess)
                 .doOnResponseError(webClientMetric::incrementOnError);
     }
 }

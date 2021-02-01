@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
+import reactor.util.retry.Retry;
 
 class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
 
@@ -85,7 +86,7 @@ class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
                     }
                     return Mono.empty();
                 })
-                .retryBackoff(Long.MAX_VALUE, retryInterval, retryInterval)
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, retryInterval))
                 .subscribe(
                         this::refresh,
                         e -> logger.warn("Cluster membership event stream terminated with an error", e),

@@ -68,8 +68,8 @@ public class PollingLocalMasterReadinessResolver implements LocalMasterReadiness
     @Override
     public Flux<ReadinessStatus> observeLocalMasterReadinessUpdates() {
         return readinessUpdatesProcessor
-                .compose(ReactorExt.head(() -> Collections.singletonList(readinessStatusRef.get())))
-                .compose(ReactorExt.badSubscriberHandler(logger));
+                .transformDeferred(ReactorExt.head(() -> Collections.singletonList(readinessStatusRef.get())))
+                .transformDeferred(ReactorExt.badSubscriberHandler(logger));
     }
 
     private void process(ReadinessStatus newReadinessStatus) {

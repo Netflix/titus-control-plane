@@ -91,7 +91,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
             ConcurrentMap<String, ContainerHealthEvent> current = new ConcurrentHashMap<>();
             return Flux.merge(eurekaCallbacks, ReactorExt.toFlux(jobOperations.observeJobs()))
                     .flatMap(event -> handleJobManagerOrEurekaStatusUpdate(event, current));
-        }).share().compose(ReactorExt.badSubscriberHandler(logger));
+        }).share().transformDeferred(ReactorExt.badSubscriberHandler(logger));
 
     }
 

@@ -32,7 +32,7 @@ public class EventEmitterTransformerTest {
     private static final StringEvent SNAPSHOT_END = new StringEvent("SNAPSHOT_END", true);
 
     private final DirectProcessor<List<String>> source = DirectProcessor.create();
-    private final Flux<StringEvent> events = source.compose(ReactorExt.eventEmitter(
+    private final Flux<StringEvent> events = source.transformDeferred(ReactorExt.eventEmitter(
             string -> string.substring(0, 1),
             String::equals,
             string -> new StringEvent(string, true),

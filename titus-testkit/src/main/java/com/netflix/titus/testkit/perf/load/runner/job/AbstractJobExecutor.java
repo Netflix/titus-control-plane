@@ -157,7 +157,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
                         .withUnlimitedRetries()
                         .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
                         .withReactorScheduler(Schedulers.parallel())
-                        .buildReactorExponentialBackoff()
+                        .buildRetryExponentialBackoff()
                 )
                 .doOnTerminate(() -> {
                     jobCompleted.onComplete();

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,6 +41,7 @@ import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEven
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.IOExt;
+import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.spectator.ActionMetrics;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionConfig;
@@ -192,7 +194,12 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
                         }
                         return Flux.<ClusterMembershipEvent>just(ClusterMembershipEvent.leaderElected(revision));
                     })
-                    .retryBackoff(LEADER_POLL_RETRIES, Duration.ofMillis(Math.max(1, leaseDuration.toMillis() / 10)), leaseDuration)
+                    .retryWhen(RetryHandlerBuilder.retryHandler()
+                            .withRetryCount(LEADER_POLL_RETRIES)
+                            .withDelay(Math.max(1, leaseDuration.toMillis() / 10), leaseDuration.toMillis(), TimeUnit.MILLISECONDS)
+                            .withReactorScheduler(Schedulers.parallel())
+                            .buildRetryExponentialBackoff()
+                    )
                     .doOnCancel(singleScheduler::dispose)
                     .doAfterTerminate(singleScheduler::dispose);
         }).distinctUntilChanged();

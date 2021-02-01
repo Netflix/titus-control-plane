@@ -52,7 +52,7 @@ public class ReactorHeadTransformerTest {
             .doOnTerminate(() -> terminateFlag.set(true))
             .doOnCancel(() -> terminateFlag.set(true));
 
-    private final Flux<String> combined = hotObservable.compose(ReactorExt.head(() -> {
+    private final Flux<String> combined = hotObservable.transformDeferred(ReactorExt.head(() -> {
         while (emittedTicks.size() < 2) { // Tight loop
         }
         return HEAD_ITEMS;
@@ -109,7 +109,7 @@ public class ReactorHeadTransformerTest {
 
     @Test
     public void testExceptionInHead() {
-        Flux.just("A").compose(ReactorExt.head(() -> {
+        Flux.just("A").transformDeferred(ReactorExt.head(() -> {
             throw new RuntimeException("Simulated error");
         })).subscribe(testSubscriber);
         assertThat(testSubscriber.hasError()).isTrue();

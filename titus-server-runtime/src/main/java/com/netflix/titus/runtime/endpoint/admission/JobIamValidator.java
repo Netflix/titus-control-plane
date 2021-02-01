@@ -87,7 +87,7 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
         return Mono
                 .defer(() -> {
                             if (configuration.isIamRoleWithStsValidationEnabled()) {
-                                return iamConnector.canAgentAssume(iamRoleName).compose(
+                                return iamConnector.canAgentAssume(iamRoleName).transformDeferred(
                                         ReactorExt.hedged(
                                                 iamValidationHedgeThresholdsConfig.get(),
                                                 error -> {

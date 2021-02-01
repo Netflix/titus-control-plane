@@ -122,7 +122,7 @@ public class MetricsCollector {
                             this.activeTaskLastStates.clear();
                         })
                         .withReactorScheduler(Schedulers.parallel())
-                        .buildReactorExponentialBackoff()
+                        .buildRetryExponentialBackoff()
                 )
                 .subscribe();
     }

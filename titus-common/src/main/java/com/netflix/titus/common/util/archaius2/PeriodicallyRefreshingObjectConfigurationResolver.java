@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 
 /**
  * Spring Environment does not provide change callbacks. In this integration we refresh the data periodically using the
@@ -76,7 +77,7 @@ class PeriodicallyRefreshingObjectConfigurationResolver<OBJECT, CONFIG> implemen
         );
 
         Disposable disposable = updateTrigger
-                .retryBackoff(Long.MAX_VALUE, RETRY_INTERVAL)
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, RETRY_INTERVAL))
                 .subscribe(tick -> resolver.refresh());
 
         return CloseableReference.<ObjectConfigurationResolver<OBJECT, CONFIG>>newBuilder()

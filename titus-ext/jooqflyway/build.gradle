@@ -101,7 +101,11 @@ task startDb {
     group 'Embedded Postgresql DB'
     description 'Starts an instance of Embedded Postgresql DB'
     doFirst {
-        startEmbeddedPostgresDatabase(false)
+        def useLocal = false
+        if (project.hasProperty('useLocalPostgres')) {
+            useLocal = Boolean.parseBoolean(project.property('useLocalPostgres'))
+        }
+        startEmbeddedPostgresDatabase(useLocal)
         flyway {
             driver = 'org.postgresql.Driver'
             url = project.property('jdbcUrl')
