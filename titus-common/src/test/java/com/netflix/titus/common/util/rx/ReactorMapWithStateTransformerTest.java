@@ -35,7 +35,7 @@ public class ReactorMapWithStateTransformerTest {
     @Test
     public void testStatePropagation() {
         List<String> all = Flux.just("a", "b")
-                .compose(mapWithState("START", (next, state) -> Pair.of(state + " -> " + next, next)))
+                .transformDeferred(mapWithState("START", (next, state) -> Pair.of(state + " -> " + next, next)))
                 .collectList().block();
         assertThat(all).contains("START -> a", "a -> b");
     }
@@ -46,7 +46,7 @@ public class ReactorMapWithStateTransformerTest {
         DirectProcessor<Function<List<String>, Pair<String, List<String>>>> cleanupActions = DirectProcessor.create();
 
         TitusRxSubscriber<String> testSubscriber = new TitusRxSubscriber<>();
-        source.compose(mapWithState(
+        source.transformDeferred(mapWithState(
                 new ArrayList<>(),
                 (next, state) -> Pair.of(
                         String.join(",", state) + " + " + next,

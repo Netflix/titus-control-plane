@@ -86,8 +86,8 @@ public class TitusQuotasManager {
         this.jobUpdateDisposable = jobOperations.observeJobsReactor()
                 .filter(event -> event instanceof JobUpdateEvent)
                 .map(event -> (Job) event.getCurrent())
-                .compose(ReactorExt.head(jobOperations::getJobs))
-                .compose(ReactorRetriers.instrumentedRetryer(NAME, RETRY_INTERVAL, logger))
+                .transformDeferred(ReactorExt.head(jobOperations::getJobs))
+                .transformDeferred(ReactorRetriers.instrumentedRetryer(NAME, RETRY_INTERVAL, logger))
                 .subscribe(this::updateJobController);
     }
 

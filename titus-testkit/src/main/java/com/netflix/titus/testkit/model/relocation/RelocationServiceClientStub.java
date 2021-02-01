@@ -54,7 +54,7 @@ public class RelocationServiceClientStub implements RelocationServiceClient {
     @Override
     public Flux<TaskRelocationEvent> events(TaskRelocationQuery query) {
         return eventProcessor
-                .compose(ReactorExt.head(() -> {
+                .transformDeferred(ReactorExt.head(() -> {
                             List<TaskRelocationEvent> snapshot = taskRelocationPlans.values().stream()
                                     .map(TaskRelocationEvent::taskRelocationPlanUpdated)
                                     .collect(Collectors.toList());

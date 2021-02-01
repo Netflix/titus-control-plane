@@ -203,7 +203,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     @Override
     public Flux<TaskRelocationEvent> events() {
         return ReactorExt.protectFromMissingExceptionHandlers(newRelocationPlanEmitter, logger)
-                .compose(ReactorExt.eventEmitter(
+                .transformDeferred(ReactorExt.eventEmitter(
                         TaskRelocationPlan::getTaskId,
                         TaskRelocationPlan::equals,
                         TaskRelocationEvent::taskRelocationPlanUpdated,

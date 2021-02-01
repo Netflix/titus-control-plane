@@ -18,6 +18,7 @@ package com.netflix.titus.client.clustermembership.resolver;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -36,6 +37,8 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.rx.ReactorRetriers;
+import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.grpc.protogen.ClusterMember.LeadershipState;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
@@ -53,6 +56,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import static com.netflix.titus.api.clustermembership.model.ClusterMembershipFunctions.hasIpAddress;
 import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipGrpcConverters.toCoreClusterMember;
@@ -148,11 +152,12 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
                     }
                     return Mono.empty();
                 })
-                .retry(this::isConnectionDeadline)
-                .retryBackoff(Long.MAX_VALUE,
-                        Duration.ofMillis(configuration.getSingleMemberInitialRetryIntervalMs()),
-                        Duration.ofMillis(configuration.getSingleMemberMaxRetryIntervalMs()),
-                        scheduler
+                .retryWhen(ReactorRetriers.rectorPredicateRetryer(this::isConnectionDeadline))
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(configuration.getSingleMemberInitialRetryIntervalMs(), configuration.getSingleMemberMaxRetryIntervalMs(), TimeUnit.MILLISECONDS)
+                        .withReactorScheduler(Schedulers.parallel())
+                        .buildRetryExponentialBackoff()
                 )
                 .doFinally(signal -> {
                     if (signal == SignalType.CANCEL) {
@@ -302,6 +307,9 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
     }
 
     private boolean isConnectionDeadline(Throwable error) {
+        if (error == null) {
+            return false;
+        }
         if (!(error instanceof StatusRuntimeException)) {
             return false;
         }

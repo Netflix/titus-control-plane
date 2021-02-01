@@ -153,7 +153,7 @@ public class ClusterMembershipInMemoryConnector implements ClusterMembershipConn
 
     @Override
     public Flux<ClusterMembershipEvent> membershipChangeEvents() {
-        return eventProcessor.compose(ReactorExt.head(() -> Collections.singletonList(newSnapshot())));
+        return eventProcessor.transformDeferred(ReactorExt.head(() -> Collections.singletonList(newSnapshot())));
     }
 
     private <T> Mono<T> invoke(Mono<T> action) {

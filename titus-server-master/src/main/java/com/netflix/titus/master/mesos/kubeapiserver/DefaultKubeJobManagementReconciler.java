@@ -157,12 +157,12 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
 
     @Override
     public Flux<ContainerEvent> getV3ContainerEventSource() {
-        return v3ContainerEventProcessor.compose(ReactorExt.badSubscriberHandler(logger));
+        return v3ContainerEventProcessor.transformDeferred(ReactorExt.badSubscriberHandler(logger));
     }
 
     @Override
     public Flux<PodEvent> getPodEventSource() {
-        return podEventProcessor.compose(ReactorExt.badSubscriberHandler(logger));
+        return podEventProcessor.transformDeferred(ReactorExt.badSubscriberHandler(logger));
     }
 
     private void reconcile() {

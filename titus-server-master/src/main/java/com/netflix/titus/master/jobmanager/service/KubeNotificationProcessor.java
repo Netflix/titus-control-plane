@@ -61,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT;
@@ -126,7 +127,7 @@ public class KubeNotificationProcessor {
                 }, Math.max(1, configuration.getKubeEventConcurrencyLimit()))
                 .ignoreElements()
                 .doOnError(error -> logger.warn("Kube integration event stream terminated with an error (retrying soon)", error))
-                .retryBackoff(Long.MAX_VALUE, Duration.ofSeconds(1))
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)))
                 .subscribe(
                         next -> {
                             // Nothing

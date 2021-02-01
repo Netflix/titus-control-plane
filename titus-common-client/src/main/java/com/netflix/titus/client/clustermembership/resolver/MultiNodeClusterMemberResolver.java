@@ -102,7 +102,7 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
     private final Flux<ClusterMembershipSnapshot> snapshotEventObservable = snapshotEventProcessor
             .distinctUntilChanged()
             .onBackpressureError()
-            .compose(ReactorExt.badSubscriberHandler(logger));
+            .transformDeferred(ReactorExt.badSubscriberHandler(logger));
 
     public MultiNodeClusterMemberResolver(String serviceName,
                                           ClusterMembershipResolverConfiguration configuration,

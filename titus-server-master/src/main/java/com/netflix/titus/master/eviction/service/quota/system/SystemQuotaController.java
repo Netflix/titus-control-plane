@@ -83,7 +83,7 @@ public class SystemQuotaController implements QuotaController<Void> {
         this.metrics = new SystemQuotaMetrics(this, titusRuntime);
 
         this.resolverDisposable = systemDisruptionBudgetResolver.resolve()
-                .compose(instrumentedRetryer("systemDisruptionBudgetResolver", retryInterval, logger))
+                .transformDeferred(instrumentedRetryer("systemDisruptionBudgetResolver", retryInterval, logger))
                 .subscribe(next -> {
                     try {
                         resetDisruptionBudget(next);

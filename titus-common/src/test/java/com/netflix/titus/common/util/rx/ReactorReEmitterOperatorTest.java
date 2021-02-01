@@ -82,7 +82,7 @@ public class ReactorReEmitterOperatorTest {
         Flux<String> source = Flux.interval(delay, interval)
                 .map(Object::toString)
                 .doOnCancel(() -> this.cancelled = true);
-        return source.compose(ReactorExt.reEmitter(this::toReEmitted, EMIT_INTERVAL, Schedulers.parallel()));
+        return source.transformDeferred(ReactorExt.reEmitter(this::toReEmitted, EMIT_INTERVAL, Schedulers.parallel()));
     }
 
     private String toReEmitted(String tick) {

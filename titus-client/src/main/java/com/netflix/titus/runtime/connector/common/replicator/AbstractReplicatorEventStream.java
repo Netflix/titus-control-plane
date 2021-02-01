@@ -41,7 +41,7 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
     public Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connect() {
 
         return newConnection()
-                .compose(ReactorExt.reEmitter(
+                .transformDeferred(ReactorExt.reEmitter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
                         cacheEvent -> new ReplicatorEvent<>(cacheEvent.getSnapshot(), cacheEvent.getTrigger(), titusRuntime.getClock().wallTime()),

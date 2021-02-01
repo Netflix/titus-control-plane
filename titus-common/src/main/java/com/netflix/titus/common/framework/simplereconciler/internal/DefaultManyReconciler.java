@@ -106,8 +106,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         // We build snapshot only after the subscription to 'eventStream' happens, otherwise we might lose events
         // due to fact that subscription happening on the 'notification' thread may take some time.
         eventStream = eventProcessor
-                .compose(ReactorExt.head(() -> Collections.singleton(buildSnapshot())))
-                .compose(ReactorExt.badSubscriberHandler(logger))
+                .transformDeferred(ReactorExt.head(() -> Collections.singleton(buildSnapshot())))
+                .transformDeferred(ReactorExt.badSubscriberHandler(logger))
                 .subscribeOn(notificationSchedulerRef.get())
                 .publishOn(notificationSchedulerRef.get());
 

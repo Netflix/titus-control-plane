@@ -57,7 +57,7 @@ public final class ReactorExt {
      * Wrap value or error into {@link Either}. The resulting stream never emits an error.
      */
     public static <T> Function<Mono<T>, Mono<Either<T, Throwable>>> either() {
-        return source -> source.map(Either::<T, Throwable>ofValue).onErrorResume(e -> Mono.just(Either.ofError(e)));
+        return source -> source.<Either<T, Throwable>>map(Either::ofValue).onErrorResume(e -> Mono.just(Either.ofError(e)));
     }
 
     /**

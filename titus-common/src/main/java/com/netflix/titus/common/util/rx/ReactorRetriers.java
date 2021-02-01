@@ -18,6 +18,7 @@ package com.netflix.titus.common.util.rx;
 
 import java.time.Duration;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -51,5 +52,15 @@ public class ReactorRetriers {
                         .flatMap(fn);
             }
         };
+    }
+
+    public static Retry rectorPredicateRetryer(Predicate<Throwable> predicate) {
+        return Retry.from(companion -> companion.handle((retrySignal, sink) -> {
+            if (retrySignal.failure() != null && predicate.test(retrySignal.failure())) {
+                sink.next(1);
+            } else {
+                sink.error(retrySignal.failure());
+            }
+        }));
     }
 }

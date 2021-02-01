@@ -212,7 +212,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Override
     public Flux<PodEvent> events() {
-        return kubeInformerEvents().mergeWith(supplementaryPodEventProcessor).compose(ReactorExt.badSubscriberHandler(logger));
+        return kubeInformerEvents().mergeWith(supplementaryPodEventProcessor).transformDeferred(ReactorExt.badSubscriberHandler(logger));
     }
 
     @Override

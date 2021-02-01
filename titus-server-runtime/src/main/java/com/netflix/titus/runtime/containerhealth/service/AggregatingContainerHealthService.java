@@ -82,7 +82,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
                     return Flux
                             .merge(transformSet(healthServices, h -> h.events(false)))
                             .flatMap(event -> handleContainerHealthUpdateEvent(event, emittedStates));
-                }).share().compose(ReactorExt.badSubscriberHandler(logger));
+                }).share().transformDeferred(ReactorExt.badSubscriberHandler(logger));
     }
 
     @Override
@@ -98,7 +98,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
     @Override
     public Flux<ContainerHealthEvent> events(boolean snapshot) {
         return snapshot
-                ? healthStatuses.compose(ReactorExt.head(() -> Collections.singletonList(buildCurrentSnapshot())))
+                ? healthStatuses.transformDeferred(ReactorExt.head(() -> Collections.singletonList(buildCurrentSnapshot())))
                 : healthStatuses;
     }
 

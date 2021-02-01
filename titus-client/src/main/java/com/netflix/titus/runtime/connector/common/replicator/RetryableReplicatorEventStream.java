@@ -53,7 +53,7 @@ public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements Replic
 
     @Override
     public Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connect() {
-        return newRetryableConnection().compose(
+        return newRetryableConnection().transformDeferred(
                 ReactorExt.reEmitter(Function.identity(), Duration.ofMillis(LATENCY_REPORT_INTERVAL_MS), scheduler)
         );
     }

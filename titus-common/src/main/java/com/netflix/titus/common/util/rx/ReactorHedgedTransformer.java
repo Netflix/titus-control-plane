@@ -80,7 +80,7 @@ class ReactorHedgedTransformer<T> implements Function<Mono<T>, Mono<T>> {
         }
 
         // Wrap results as optionals, to capture Mono<Void> sources, which do not provide any value.
-        Flux<Optional<Either<T, Throwable>>> fluxAction = source.compose(ReactorExt.either())
+        Flux<Optional<Either<T, Throwable>>> fluxAction = source.transformDeferred(ReactorExt.either())
                 .map(Optional::of)
                 .switchIfEmpty(Mono.just(Optional.empty()))
                 .flux();

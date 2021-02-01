@@ -51,7 +51,7 @@ public class DefaultOneOffReconciler<DATA> implements OneOffReconciler<DATA> {
     private volatile long lastLongCycleTimestamp;
 
     private final ReplayProcessor<DATA> eventProcessor = ReplayProcessor.create(1);
-    private final Flux<DATA> eventStream = eventProcessor.compose(ReactorExt.badSubscriberHandler(logger));
+    private final Flux<DATA> eventStream = eventProcessor.transformDeferred(ReactorExt.badSubscriberHandler(logger));
 
     public DefaultOneOffReconciler(String id,
                                    DATA initial,

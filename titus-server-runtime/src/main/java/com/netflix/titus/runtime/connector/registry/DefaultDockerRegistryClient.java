@@ -108,7 +108,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                     return Mono.just(dockerDigestHeaderValue.get(0));
                 })
                 .timeout(Duration.ofMillis(titusRegistryClientConfiguration.getRegistryTimeoutMs()))
-                .compose(WebClientExt.latencyMonoOperator(titusRuntime.getClock(), webClientMetrics, HttpMethod.GET))
+                .transformDeferred(WebClientExt.latencyMonoOperator(titusRuntime.getClock(), webClientMetrics, HttpMethod.GET))
                 .retryWhen(TitusWebClientAddOns.retryer(
                         Duration.ofMillis(titusRegistryClientConfiguration.getRegistryRetryDelayMs()),
                         titusRegistryClientConfiguration.getRegistryRetryCount(),

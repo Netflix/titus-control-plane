@@ -56,7 +56,7 @@ public class ReactorHedgedTransformerTest {
     }
 
     private void testSuccess(long awaitMs, Behavior[] behaviors) {
-        StepVerifier.withVirtualTime(() -> newSource(behaviors).compose(hedgeOf(THRESHOLDS)))
+        StepVerifier.withVirtualTime(() -> newSource(behaviors).transformDeferred(hedgeOf(THRESHOLDS)))
                 .thenAwait(Duration.ofMillis(awaitMs))
                 .expectNext(1L)
                 .verifyComplete();
@@ -66,7 +66,7 @@ public class ReactorHedgedTransformerTest {
     public void testMonoVoidSuccess() {
         StepVerifier.withVirtualTime(() ->
                 newVoidSource(new Behavior[]{Behavior.RetryableError, Behavior.Success, Behavior.RetryableError, Behavior.RetryableError})
-                        .compose(hedgeOf(THRESHOLDS))
+                        .transformDeferred(hedgeOf(THRESHOLDS))
         )
                 .thenAwait(Duration.ofMillis(1))
                 .expectComplete()
@@ -77,7 +77,7 @@ public class ReactorHedgedTransformerTest {
     public void testFailureWithNonRetryableError() {
         StepVerifier.withVirtualTime(() ->
                 newSource(new Behavior[]{Behavior.NotRetryableError, Behavior.Success, Behavior.Success, Behavior.Success})
-                        .compose(hedgeOf(THRESHOLDS))
+                        .transformDeferred(hedgeOf(THRESHOLDS))
         )
                 .thenAwait(Duration.ofMillis(0))
                 .expectErrorMatches(error -> error == SIMULATED_NOT_RETRYABLE_ERROR)
@@ -88,7 +88,7 @@ public class ReactorHedgedTransformerTest {
     public void testConcurrent() {
         StepVerifier.withVirtualTime(() ->
                 newSource(Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.Success)
-                        .compose(hedgeOf(asList(Duration.ZERO, Duration.ZERO, Duration.ZERO)))
+                        .transformDeferred(hedgeOf(asList(Duration.ZERO, Duration.ZERO, Duration.ZERO)))
         )
                 .thenAwait(Duration.ZERO)
                 .expectNext(1L)
@@ -99,7 +99,7 @@ public class ReactorHedgedTransformerTest {
     public void testAllFailures() {
         StepVerifier.withVirtualTime(() ->
                 newSource(Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError)
-                        .compose(hedgeOf(THRESHOLDS))
+                        .transformDeferred(hedgeOf(THRESHOLDS))
         )
                 .thenAwait(Duration.ofMillis(100))
                 .expectErrorMatches(error -> error == SIMULATED_RETRYABLE_ERROR)
@@ -110,7 +110,7 @@ public class ReactorHedgedTransformerTest {
     public void testAllMonoVoidFailures() {
         StepVerifier.withVirtualTime(() ->
                 newVoidSource(Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError)
-                        .compose(hedgeOf(THRESHOLDS))
+                        .transformDeferred(hedgeOf(THRESHOLDS))
         )
                 .thenAwait(Duration.ofMillis(100))
                 .expectErrorMatches(error -> error == SIMULATED_RETRYABLE_ERROR)
