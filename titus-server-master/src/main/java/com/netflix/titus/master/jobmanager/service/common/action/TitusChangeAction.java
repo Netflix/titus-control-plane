@@ -35,6 +35,10 @@ import rx.Observable;
  */
 public abstract class TitusChangeAction implements ChangeAction {
 
+    private static final CallMetadata NOT_SET_CALLMETADATA = JobManagerConstants.UNDEFINED_CALL_METADATA.toBuilder()
+            .withCallReason("WARNING: caller id not set for the change action")
+            .build();
+
     private final V3JobOperations.Trigger trigger;
     private final String id;
     private final String name;
@@ -55,9 +59,7 @@ public abstract class TitusChangeAction implements ChangeAction {
         this.name = name;
         this.summary = summary;
         // We assume that if call metadata is undefined, it comes from reconciler
-        this.callMetadata = callMetadata == null
-                ? JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(summary).build()
-                : callMetadata;
+        this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
     }
 
     public Trigger getTrigger() {

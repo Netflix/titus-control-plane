@@ -33,6 +33,10 @@ import com.netflix.titus.common.util.tuple.Pair;
  */
 public abstract class TitusModelAction implements ModelAction {
 
+    private static final CallMetadata NOT_SET_CALLMETADATA = JobManagerConstants.UNDEFINED_CALL_METADATA.toBuilder()
+            .withCallReason("WARNING: caller id not set for the model change action")
+            .build();
+
     private final String name;
     private final Trigger trigger;
     private final String id;
@@ -43,9 +47,7 @@ public abstract class TitusModelAction implements ModelAction {
         this.trigger = trigger;
         this.id = id;
         this.summary = summary;
-        this.callMetadata = callMetadata == null
-                ? JobManagerConstants.RECONCILER_CALLMETADATA
-                : callMetadata;
+        this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
         this.name = getClass().getSimpleName();
     }
 
@@ -54,9 +56,7 @@ public abstract class TitusModelAction implements ModelAction {
         this.trigger = trigger;
         this.id = id;
         this.summary = summary;
-        this.callMetadata = callMetadata == null
-                ? JobManagerConstants.RECONCILER_CALLMETADATA
-                : callMetadata;
+        this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
     }
 
     public String getName() {
