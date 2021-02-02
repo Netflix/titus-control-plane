@@ -107,9 +107,8 @@ public class CreateOrReplaceServiceTaskActions {
         TitusModelAction.Builder modelBuilder = TitusModelAction.newModelUpdate(changeActionBuilder).summary(summary);
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, newRetryer)
-                        .addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(summary).build())
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(summary).build())));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask)));
 
         return actions;
     }

@@ -45,6 +45,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
@@ -292,6 +293,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 }
             } else {
                 if (runningTask == null) {
+                    CallMetadata callMetadata = RECONCILER_CALLMETADATA.toBuilder().withCallReason("Add task to Fenzo").build();
                     missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService,
                             schedulingService,
                             runningJobView.getJob(),
@@ -300,7 +302,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                             () -> JobManagerUtil.filterActiveTaskIds(engine),
                             constraintEvaluatorTransformer,
                             systemSoftConstraint,
-                            systemHardConstraint
+                            systemHardConstraint,
+                            callMetadata
                     ));
                 }
             }
@@ -337,7 +340,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 }
             } else {
                 Task task = referenceTask.getEntity();
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, engine, task.getId(), titusRuntime)));
+                CallMetadata callMetadata = RECONCILER_CALLMETADATA.toBuilder().withCallReason("Writing runtime state changes to store").build();
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, engine, task.getId(), callMetadata, titusRuntime)));
             }
             // Both current and delayed retries are counted
             if (shouldRetry) {

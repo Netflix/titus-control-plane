@@ -28,7 +28,6 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -111,7 +110,7 @@ public class CreateOrReplaceBatchTaskActions {
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, nextTaskRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Creating new task entity holder").build())));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask)));
 
         return actions;
     }

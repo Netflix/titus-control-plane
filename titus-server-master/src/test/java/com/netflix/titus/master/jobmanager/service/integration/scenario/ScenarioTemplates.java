@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -30,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 
+import static com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder.CHANGE_CAPACITY_CALL_METADATA;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ScenarioTemplates {
@@ -37,7 +39,11 @@ public class ScenarioTemplates {
     public static Function<JobScenarioBuilder<ServiceJobExt>, JobScenarioBuilder<ServiceJobExt>> changeJobCapacity(Capacity newCapacity) {
         return jobScenario -> jobScenario
                 .changeCapacity(newCapacity)
-                .expectServiceJobEvent(job -> assertThat(job.getJobDescriptor().getExtensions().getCapacity()).isEqualTo(newCapacity))
+                .expectJobUpdateEventObject(event -> {
+                    Job<ServiceJobExt> job = event.getCurrent();
+                    assertThat(job.getJobDescriptor().getExtensions().getCapacity()).isEqualTo(newCapacity);
+                    assertThat(event.getCallMetadata()).isEqualTo(CHANGE_CAPACITY_CALL_METADATA);
+                })
                 .expectServiceJobUpdatedInStore(job -> assertThat(job.getJobDescriptor().getExtensions().getCapacity()).isEqualTo(newCapacity));
     }
 

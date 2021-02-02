@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +56,8 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.Caller;
+import com.netflix.titus.api.model.callmetadata.CallerType;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
@@ -71,6 +74,14 @@ import static com.netflix.titus.master.jobmanager.service.integration.scenario.J
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
+
+    static final CallMetadata CHANGE_CAPACITY_CALL_METADATA = CallMetadata.newBuilder()
+            .withCallers(Collections.singletonList(Caller.newBuilder()
+                    .withId("capacity")
+                    .withCallerType(CallerType.Application)
+                    .build()))
+            .withCallReason("capacity update")
+            .build();
 
     private final String jobId;
     private final boolean kubeScheduler;
@@ -221,7 +232,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     public JobScenarioBuilder<E> changeCapacity(Capacity newCapacity) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         CapacityAttributes capacityAttributes = JobModel.newCapacityAttributes(newCapacity).build();
-        jobOperations.updateJobCapacityAttributes(jobId, capacityAttributes, callMetadata).subscribe(subscriber);
+        jobOperations.updateJobCapacityAttributes(jobId, capacityAttributes, CHANGE_CAPACITY_CALL_METADATA).subscribe(subscriber);
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
         return this;
     }
@@ -354,15 +365,19 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return expectJobEvent(checkNoTypeParam);
     }
 
-    public JobScenarioBuilder<E> expectJobEvent(Consumer<Job<?>> check) {
+    public JobScenarioBuilder<E> expectJobUpdateEventObject(Consumer<JobUpdateEvent> check) {
         JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNextJobEvent);
         assertThat(event).describedAs("No job update event for job: %s", jobId).isNotNull();
         assertThat(event).isInstanceOf(JobUpdateEvent.class);
+        check.accept((JobUpdateEvent) event);
+        return this;
+    }
 
-        JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
-        assertThat(jobUpdateEvent.getCurrent().getId()).isEqualTo(jobId);
-        check.accept(jobUpdateEvent.getCurrent());
-
+    public JobScenarioBuilder<E> expectJobEvent(Consumer<Job<?>> check) {
+        expectJobUpdateEventObject(jobUpdateEvent -> {
+            assertThat(jobUpdateEvent.getCurrent().getId()).isEqualTo(jobId);
+            check.accept(jobUpdateEvent.getCurrent());
+        });
         return this;
     }
 

@@ -96,7 +96,8 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
             super(
                     delegate.getTrigger(),
                     delegate.getId(),
-                    "Report failure of: " + delegate.getSummary() + '(' + e.getMessage() + ')'
+                    "Report failure of: " + delegate.getSummary() + '(' + e.getMessage() + ')',
+                    delegate.getCallMetadata()
             );
         }
 
@@ -128,7 +129,8 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
             super(
                     delegate.getTrigger(),
                     delegate.getId(),
-                    "Cleaning up after successful action execution"
+                    "Cleaning up after successful action execution",
+                    delegate.getCallMetadata()
             );
         }
 

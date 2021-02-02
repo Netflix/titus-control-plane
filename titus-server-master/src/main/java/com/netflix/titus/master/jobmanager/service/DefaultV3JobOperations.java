@@ -355,6 +355,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 .id(taskId)
                 .trigger(Trigger.Scheduler)
                 .summary("Scheduler assigned task to an agent")
+                .callMetadata(callMetadata)
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
@@ -365,7 +366,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                         return Observable.<List<ModelActionHolder>>error(e);
                                     }
 
-                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata);
+                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
                                     return store.updateTask(newTask).andThen(Observable.just(ModelActionHolder.allModels(modelUpdate)));
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
@@ -532,7 +533,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                             name = "moveTask(from)";
                             summary = "Moving a task out of this job to job " + jobTo.getId();
                         }
-                        return new TitusChangeAction(Trigger.API, rootId, name, summary) {
+                        return new TitusChangeAction(Trigger.API, rootId, name, summary, callMetadata) {
                             @Override
                             public Observable<List<ModelActionHolder>> apply() {
                                 return modelUpdatesObservable;

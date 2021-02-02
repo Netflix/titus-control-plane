@@ -23,7 +23,7 @@ import com.netflix.titus.api.model.callmetadata.CallMetadata;
  */
 public class JobManagerConstants {
     /**
-     * Call metadata attribute for a job/task mutation
+     * Call metadata attribute used when a new job is created.
      */
     public static final String JOB_MANAGER_ATTRIBUTE_CALLMETADATA = "callmetadata";
 
@@ -36,11 +36,6 @@ public class JobManagerConstants {
      * Call metadata for a scheduler job/task mutation
      */
     public static final CallMetadata SCHEDULER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Scheduler").build();
-
-    /**
-     * Call metadata for a task migrator job/task mutation
-     */
-    public static final CallMetadata TASK_MIGRATOR_CALLMETADATA = CallMetadata.newBuilder().withCallerId("LegacyTaskMigrator").build();
 
     /**
      * Call metadata for an undefined job/task mutation
