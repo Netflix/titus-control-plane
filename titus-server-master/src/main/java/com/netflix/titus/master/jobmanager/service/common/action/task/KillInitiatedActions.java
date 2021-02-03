@@ -67,6 +67,7 @@ public class KillInitiatedActions {
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
                 .summary(reasonMessage)
+                .callMetadata(callMetadata)
                 .changeWithModelUpdates(self -> {
                     Job job = engine.getReferenceView().getEntity();
                     JobStatus newStatus = JobStatus.newBuilder()
@@ -76,7 +77,7 @@ public class KillInitiatedActions {
                     Job jobWithKillInitiated = JobFunctions.changeJobStatus(job, newStatus);
 
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
-                            .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)));
+                            .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated)));
 
                     return titusStore.updateJob(jobWithKillInitiated).andThen(Observable.just(ModelActionHolder.allModels(modelUpdateAction)));
                 });
@@ -102,6 +103,7 @@ public class KillInitiatedActions {
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
                 .summary(reason)
+                .callMetadata(callMetadata)
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.toTaskObservable(engine, taskId, titusRuntime).flatMap(task -> {
                             TaskState taskState = task.getStatus().getState();
@@ -122,7 +124,7 @@ public class KillInitiatedActions {
                             Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId(), titusRuntime).map(current -> {
                                 List<ModelActionHolder> updateActions = new ArrayList<>();
 
-                                TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated, callMetadata);
+                                TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
                                 updateActions.addAll(ModelActionHolder.allModels(stateUpdateAction));
 
                                 if (shrink) {
@@ -154,6 +156,7 @@ public class KillInitiatedActions {
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary(reason)
+                .callMetadata(JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build())
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.toTaskObservable(engine, task.getId(), titusRuntime).flatMap(currentTask -> {
                             TaskState taskState = currentTask.getStatus().getState();
@@ -162,8 +165,7 @@ public class KillInitiatedActions {
                             }
 
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock());
-                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated,
-                                    JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build());
+                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
 
                             // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
                             if (taskState == TaskState.KillInitiated) {
@@ -263,7 +265,7 @@ public class KillInitiatedActions {
                                             .withExtensions(oldExt.toBuilder().withCapacity(newCapacity).build())
                                             .build())
                             .build();
-                    return jobHolder.setEntity(newJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Shrinking job as a result of terminate and shrink request").build());
+                    return jobHolder.setEntity(newJob);
                 });
     }
 }

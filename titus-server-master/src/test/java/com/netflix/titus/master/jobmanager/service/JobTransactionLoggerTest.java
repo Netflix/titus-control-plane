@@ -19,12 +19,12 @@ package com.netflix.titus.master.jobmanager.service;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -61,6 +61,7 @@ public class JobTransactionLoggerTest {
                 .job(previousJob)
                 .trigger(Trigger.API)
                 .summary("Job update")
+                .callMetadata(CallMetadata.newBuilder().withCallerId("LoggerTest").withCallReason("Testing logger transaction").build())
                 .applyModelUpdate(self -> modelActionHolder);
 
         JobManagerReconcilerEvent jobReconcilerEvent = new JobModelUpdateReconcilerEvent(
@@ -69,8 +70,8 @@ public class JobTransactionLoggerTest {
                 modelActionHolder,
                 EntityHolder.newRoot(currentJob.getId(), currentJob),
                 Optional.of(EntityHolder.newRoot(previousJob.getId(), previousJob)),
-                "1",
-                CallMetadata.newBuilder().withCallerId("LoggerTest").withCallReason("Testing logger transaction").build()
+                "1"
+
         );
         String logLine = JobTransactionLogger.doFormat(jobReconcilerEvent);
         assertThat(logLine).isNotEmpty();

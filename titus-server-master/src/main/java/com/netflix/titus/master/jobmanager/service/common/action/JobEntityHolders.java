@@ -19,13 +19,11 @@ package com.netflix.titus.master.jobmanager.service.common.action;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;
 
@@ -51,10 +49,10 @@ public final class JobEntityHolders {
         return Observable.fromCallable(() -> expectTask(engine, taskId, titusRuntime).orElse(null)).filter(Objects::nonNull);
     }
 
-    public static Pair<EntityHolder, EntityHolder> addTask(EntityHolder rootHolder, Task newTask, CallMetadata callMetadata) {
+    public static Pair<EntityHolder, EntityHolder> addTask(EntityHolder rootHolder, Task newTask) {
         EntityHolder newTaskHolder = rootHolder.findById(newTask.getId())
                 .map(taskHolder -> taskHolder.setEntity(newTask))
-                .orElseGet(() -> EntityHolder.newRoot(newTask.getId(), newTask)).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata);
+                .orElseGet(() -> EntityHolder.newRoot(newTask.getId(), newTask));
         return Pair.of(rootHolder.addChild(newTaskHolder), newTaskHolder);
     }
 }

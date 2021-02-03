@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -67,6 +68,7 @@ public class TaskTimeoutChangeActions {
                 .id(taskId)
                 .trigger(Trigger.Reconciler)
                 .summary("Setting timeout for task in state %s: %s", taskState, DateTimeExt.toTimeUnitString(timeoutMs))
+                .callMetadata(JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("configure timeout").build())
                 .applyModelUpdate(self -> {
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self)
                             .taskMaybeUpdate(jobHolder ->

@@ -32,7 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
@@ -82,11 +81,12 @@ public class BasicTaskActions {
                 .id(taskId)
                 .trigger(trigger)
                 .summary(reason)
+                .callMetadata(callMetadata)
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
                                     Task newTask = changeFunction.apply(task);
-                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata);
+                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
                                     return jobStore.updateTask(newTask).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelUpdate)));
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
@@ -101,11 +101,13 @@ public class BasicTaskActions {
                                                               SchedulingService<? extends TaskRequest> schedulingService,
                                                               ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                               String taskId,
+                                                              CallMetadata callMetadata,
                                                               TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("writeReferenceTaskToStore")
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .id(taskId)
                 .summary("Persisting task to the store")
+                .callMetadata(callMetadata)
                 .changeWithModelUpdate(self -> {
                     Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
                     if (!taskHolder.isPresent()) {
@@ -147,6 +149,7 @@ public class BasicTaskActions {
                 .id(taskId)
                 .trigger(trigger)
                 .summary(reason)
+                .callMetadata(callMetadata)
                 .applyModelUpdates(self -> {
                             Optional<EntityHolder> taskOptional = JobEntityHolders.expectTaskHolder(engine, taskId, titusRuntime);
                             if (!taskOptional.isPresent()) {
@@ -167,10 +170,10 @@ public class BasicTaskActions {
                             if (newTask.getStatus().getState() == TaskState.Finished) {
                                 modelActionHolders.add(ModelActionHolder.reference(attachRetryer(self, taskHolder, newTask, callMetadata, configuration, titusRuntime)));
                             } else {
-                                modelActionHolders.add(ModelActionHolder.reference(TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata)));
+                                modelActionHolders.add(ModelActionHolder.reference(TitusModelAction.newModelUpdate(self).taskUpdate(newTask)));
                             }
 
-                            modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata)));
+                            modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(newTask)));
 
                             return modelActionHolders;
                         }
@@ -188,11 +191,13 @@ public class BasicTaskActions {
                                                  Supplier<Set<String>> activeTasksGetter,
                                                  ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                                  SystemSoftConstraint systemSoftConstraint,
-                                                 SystemHardConstraint systemHardConstraint) {
+                                                 SystemHardConstraint systemHardConstraint,
+                                                 CallMetadata callMetadata) {
         return TitusChangeAction.newAction("scheduleTask")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary("Adding task to scheduler")
+                .callMetadata(callMetadata)
                 .applyModelUpdate(self -> {
                     Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
                     schedulingService.addTask(new V3QueueableTask(
@@ -233,6 +238,7 @@ public class BasicTaskActions {
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary("Adding task to Kube")
+                .callMetadata(callMetadata)
                 .changeWithModelUpdates(self -> {
                     EntityHolder taskHolder = JobEntityHolders.expectTaskHolder(engine, task.getId(), titusRuntime).orElse(null);
                     if (taskHolder == null) {
@@ -254,7 +260,7 @@ public class BasicTaskActions {
                                         .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
                                         .build();
 
-                                TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithPod, callMetadata);
+                                TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithPod);
                                 return ModelActionHolder.referenceAndRunning(modelUpdateAction);
                             }))
                             .onErrorReturn(error -> {
@@ -270,7 +276,7 @@ public class BasicTaskActions {
 
                                 List<ModelActionHolder> modelActionHolders = new ArrayList<>();
                                 modelActionHolders.add(ModelActionHolder.reference(attachRetryer(self, taskHolder, finishedTask, callMetadata, configuration, titusRuntime)));
-                                modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(finishedTask, callMetadata)));
+                                modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(finishedTask)));
 
                                 return modelActionHolders;
                             });
@@ -293,11 +299,11 @@ public class BasicTaskActions {
                 .build();
         EntityHolder newTaskHolder = taskHolder.
                 setEntity(updatedTask)
-                .addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)
                 .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
 
         return TitusModelAction.newModelUpdate(self)
                 .summary("Setting retry delay on task in Finished state: %s", retryDelayString)
+                .callMetadata(callMetadata)
                 .addTaskHolder(newTaskHolder);
     }
 }

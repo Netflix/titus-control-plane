@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.jobmanager.service.event;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 
@@ -26,8 +25,8 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     private final TitusChangeAction changeAction;
 
-    JobChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId, CallMetadata callMetadata) {
-        super(job, transactionId, callMetadata);
+    JobChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId) {
+        super(job, transactionId, changeAction.getCallMetadata());
         this.changeAction = changeAction;
     }
 
@@ -37,8 +36,8 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     public static class JobBeforeChangeReconcilerEvent extends JobChangeReconcilerEvent {
 
-        JobBeforeChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId, CallMetadata callMetadata) {
-            super(job, changeAction, transactionId, callMetadata);
+        JobBeforeChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId) {
+            super(job, changeAction, transactionId);
         }
     }
 
@@ -47,8 +46,8 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
         private final long waitTimeMs;
         private final long executionTimeMs;
 
-        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long waitTimeMs, long executionTimeMs, String transactionId, CallMetadata callMetadata) {
-            super(job, changeAction, transactionId, callMetadata);
+        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long waitTimeMs, long executionTimeMs, String transactionId) {
+            super(job, changeAction, transactionId);
             this.waitTimeMs = waitTimeMs;
             this.executionTimeMs = executionTimeMs;
         }
@@ -68,8 +67,8 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
         private final long waitTimeMs;
         private final long executionTimeMs;
 
-        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long waitTimeMs, long executionTimeMs, String transactionId, CallMetadata callMetadata) {
-            super(job, changeAction, transactionId, callMetadata);
+        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long waitTimeMs, long executionTimeMs, String transactionId) {
+            super(job, changeAction, transactionId);
             this.error = error;
             this.waitTimeMs = waitTimeMs;
             this.executionTimeMs = executionTimeMs;

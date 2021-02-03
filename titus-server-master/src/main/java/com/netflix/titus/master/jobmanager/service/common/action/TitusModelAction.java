@@ -20,10 +20,11 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelAction;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -32,23 +33,30 @@ import com.netflix.titus.common.util.tuple.Pair;
  */
 public abstract class TitusModelAction implements ModelAction {
 
+    private static final CallMetadata NOT_SET_CALLMETADATA = JobManagerConstants.UNDEFINED_CALL_METADATA.toBuilder()
+            .withCallReason("WARNING: caller id not set for the model change action")
+            .build();
+
     private final String name;
     private final Trigger trigger;
     private final String id;
     private final String summary;
+    private final CallMetadata callMetadata;
 
-    protected TitusModelAction(Trigger trigger, String id, String summary) {
+    protected TitusModelAction(Trigger trigger, String id, String summary, CallMetadata callMetadata) {
         this.trigger = trigger;
         this.id = id;
         this.summary = summary;
+        this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
         this.name = getClass().getSimpleName();
     }
 
-    protected TitusModelAction(String name, Trigger trigger, String id, String summary) {
+    protected TitusModelAction(String name, Trigger trigger, String id, String summary, CallMetadata callMetadata) {
         this.name = name;
         this.trigger = trigger;
         this.id = id;
         this.summary = summary;
+        this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
     }
 
     public String getName() {
@@ -63,9 +71,12 @@ public abstract class TitusModelAction implements ModelAction {
         return trigger;
     }
 
-
     public String getSummary() {
         return summary;
+    }
+
+    public CallMetadata getCallMetadata() {
+        return callMetadata;
     }
 
     public static Builder newModelUpdate(String name) {
@@ -76,14 +87,16 @@ public abstract class TitusModelAction implements ModelAction {
         return new Builder(sourceChangeAction.name)
                 .id(sourceChangeAction.id)
                 .trigger(sourceChangeAction.trigger)
-                .summary(sourceChangeAction.summary);
+                .summary(sourceChangeAction.summary)
+                .callMetadata(sourceChangeAction.callMetadata);
     }
 
     public static Builder newModelUpdate(String name, TitusChangeAction sourceChangeAction) {
         return new Builder(name)
                 .id(sourceChangeAction.getId())
                 .trigger(sourceChangeAction.getTrigger())
-                .summary(sourceChangeAction.getSummary());
+                .summary(sourceChangeAction.getSummary())
+                .callMetadata(sourceChangeAction.getCallMetadata());
     }
 
     public static class Builder {
@@ -92,6 +105,7 @@ public abstract class TitusModelAction implements ModelAction {
         private String id;
         private Trigger trigger;
         private String summary = "None";
+        private CallMetadata callMetadata;
 
         private Builder(String name) {
             this.name = name;
@@ -122,16 +136,20 @@ public abstract class TitusModelAction implements ModelAction {
             return this;
         }
 
+        public Builder callMetadata(CallMetadata callMetadata) {
+            this.callMetadata = callMetadata;
+            return this;
+        }
+
         public TitusModelAction jobMaybeUpdate(Function<EntityHolder, Optional<EntityHolder>> jobHolderFun) {
             check();
-            return new TitusModelAction(name, trigger, id, summary) {
+            return new TitusModelAction(name, trigger, id, summary, callMetadata) {
                 @Override
                 public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
                     Optional<EntityHolder> newRoot = jobHolderFun.apply(rootHolder);
                     return newRoot.map(value -> verify(Pair.of(value, value)));
                 }
             };
-
         }
 
         public TitusModelAction jobUpdate(Function<EntityHolder, EntityHolder> jobHolderFun) {
@@ -140,7 +158,7 @@ public abstract class TitusModelAction implements ModelAction {
 
         public TitusModelAction taskMaybeUpdate(Function<EntityHolder, Optional<Pair<EntityHolder, EntityHolder>>> taskHolderFun) {
             check();
-            return new TitusModelAction(name, trigger, id, summary) {
+            return new TitusModelAction(name, trigger, id, summary, callMetadata) {
                 @Override
                 public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
                     return taskHolderFun.apply(rootHolder).map(pair -> verify(pair));
@@ -152,8 +170,8 @@ public abstract class TitusModelAction implements ModelAction {
             return taskMaybeUpdate(eh -> Optional.of(taskHolderFun.apply(eh)));
         }
 
-        public TitusModelAction taskUpdate(Task newTask, CallMetadata callMetadata) {
-            return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask, callMetadata));
+        public TitusModelAction taskUpdate(Task newTask) {
+            return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask));
         }
 
         public TitusModelAction addTaskHolder(EntityHolder taskHolder) {

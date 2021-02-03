@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import rx.Observable;
@@ -31,6 +32,7 @@ import rx.Observable;
  */
 public final class SampleTitusChangeActions {
 
+    private static final CallMetadata TEST_CALLMETADATA = CallMetadata.newBuilder().withCallerId("junit").build();
 
     public static TitusChangeAction successfulJob() {
         return new SuccessfulChangeAction(V3JobOperations.Trigger.API, "jobId");
@@ -43,7 +45,7 @@ public final class SampleTitusChangeActions {
     private static class SuccessfulChangeAction extends TitusChangeAction {
 
         private SuccessfulChangeAction(Trigger trigger, String id) {
-            super(trigger, id, "simulatedChangeAction", "Simulated successful action");
+            super(trigger, id, "simulatedChangeAction", "Simulated successful action", TEST_CALLMETADATA);
         }
 
         @Override
@@ -57,7 +59,7 @@ public final class SampleTitusChangeActions {
         private final AtomicInteger failureCounter;
 
         protected FailingChangeAction(Trigger trigger, String id, int failureCount) {
-            super(trigger, id, "simulatedFailingAction", "Simulated initial failure repeated " + failureCount + " times");
+            super(trigger, id, "simulatedFailingAction", "Simulated initial failure repeated " + failureCount + " times", TEST_CALLMETADATA);
             this.failureCounter = new AtomicInteger(failureCount);
         }
 
