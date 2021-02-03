@@ -58,7 +58,6 @@ public abstract class TitusChangeAction implements ChangeAction {
         this.id = id;
         this.name = name;
         this.summary = summary;
-        // We assume that if call metadata is undefined, it comes from reconciler
         this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
     }
 
