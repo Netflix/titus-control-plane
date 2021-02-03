@@ -89,7 +89,8 @@ public abstract class TitusChangeAction implements ChangeAction {
         return new Builder(name + '(' + changeAction.getName() + ')')
                 .id(changeAction.getId())
                 .trigger(changeAction.getTrigger())
-                .summary(name + ": " + changeAction.getSummary());
+                .summary(name + ": " + changeAction.getSummary())
+                .callMetadata(changeAction.getCallMetadata());
     }
 
     public static class Builder {
