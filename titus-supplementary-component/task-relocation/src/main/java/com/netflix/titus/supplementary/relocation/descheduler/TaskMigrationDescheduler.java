@@ -23,19 +23,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
+import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TaskMigrationDescheduler {
+    private static final Logger logger = LoggerFactory.getLogger(TaskMigrationDescheduler.class);
 
     private static final double FITNESS_NONE = 0.0;
     private static final double FITNESS_PERFECT = 1.0;
@@ -59,10 +69,12 @@ class TaskMigrationDescheduler {
     private final Map<String, Job<?>> jobsById;
     private final Map<String, Task> tasksById;
     private final Clock clock;
+    private final Function<String, Matcher> appsExemptFromSystemDisruptionBudgetMatcherFactory;
 
     TaskMigrationDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans,
                              EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker,
                              EvictionQuotaTracker evictionQuotaTracker,
+                             EvictionConfiguration evictionConfiguration,
                              Map<String, Job<?>> jobsById,
                              Map<String, Task> tasksById,
                              TitusRuntime titusRuntime) {
@@ -71,6 +83,8 @@ class TaskMigrationDescheduler {
         this.evictionQuotaTracker = evictionQuotaTracker;
         this.jobsById = jobsById;
         this.tasksById = tasksById;
+        this.appsExemptFromSystemDisruptionBudgetMatcherFactory = RegExpExt.dynamicMatcher(evictionConfiguration::getAppsExemptFromSystemDisruptionBudget,
+                "titus.eviction.appsExemptFromSystemDisruptionBudget", Pattern.DOTALL, logger);
         this.clock = titusRuntime.getClock();
     }
 
@@ -100,7 +114,7 @@ class TaskMigrationDescheduler {
             Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfRelocationRequired(job, task).ifPresent(reason -> {
-                    if (evictionQuotaTracker.getSystemEvictionQuota() > 0 && canTerminate(task)) {
+                    if (isSystemEvictionQuotaAvailable(job) && canTerminate(task)) {
                         long quota = evictionQuotaTracker.getJobEvictionQuota(task.getJobId());
                         if (quota > 0) {
                             evictionQuotaTracker.consumeQuota(task.getJobId());
@@ -229,5 +243,15 @@ class TaskMigrationDescheduler {
         }
 
         return relocationPlan.getRelocationTime() <= clock.wallTime();
+    }
+
+    private boolean isSystemEvictionQuotaAvailable(Job<?>job) {
+        boolean skipSystemDisruptionBudget = appsExemptFromSystemDisruptionBudgetMatcherFactory
+                .apply(job.getJobDescriptor().getApplicationName()).matches();
+
+        if (!skipSystemDisruptionBudget) {
+            return evictionQuotaTracker.getSystemEvictionQuota() > 0;
+        }
+        return true;
     }
 }

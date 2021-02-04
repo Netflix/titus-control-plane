@@ -19,6 +19,7 @@ package com.netflix.titus.supplementary.relocation.descheduler;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +31,8 @@ public class DeschedulerComponent {
     public DeschedulerService getDeschedulerService(ReadOnlyJobOperations jobOperations,
                                                     ReadOnlyEvictionOperations evictionOperations,
                                                     NodeDataResolver nodeDataResolver,
+                                                    EvictionConfiguration evictionConfiguration,
                                                     TitusRuntime titusRuntime) {
-        return new DefaultDeschedulerService(jobOperations, evictionOperations, nodeDataResolver, titusRuntime);
+        return new DefaultDeschedulerService(jobOperations, evictionOperations, nodeDataResolver, evictionConfiguration, titusRuntime);
     }
 }

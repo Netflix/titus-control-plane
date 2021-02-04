@@ -396,6 +396,10 @@ public final class JobFunctions {
         return job -> job.toBuilder().withId(jobId).build();
     }
 
+    public static <E extends JobDescriptorExt> Function<Job<E>, Job<E>> withApplicationName(String appName) {
+        return job -> job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withApplicationName(appName).build()).build();
+    }
+
     public static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> ofBatchSize(int size) {
         return jd -> JobFunctions.changeBatchJobSize(jd, size);
     }

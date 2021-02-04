@@ -35,6 +35,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
@@ -51,16 +52,19 @@ public class DefaultDeschedulerService implements DeschedulerService {
     private final NodeDataResolver nodeDataResolver;
 
     private final TitusRuntime titusRuntime;
+    private final EvictionConfiguration evictionConfiguration;
     private final Clock clock;
 
     @Inject
     public DefaultDeschedulerService(ReadOnlyJobOperations jobOperations,
                                      ReadOnlyEvictionOperations evictionOperations,
                                      NodeDataResolver nodeDataResolver,
+                                     EvictionConfiguration evictionConfiguration,
                                      TitusRuntime titusRuntime) {
         this.jobOperations = jobOperations;
         this.evictionOperations = evictionOperations;
         this.nodeDataResolver = nodeDataResolver;
+        this.evictionConfiguration = evictionConfiguration;
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
     }
@@ -77,7 +81,12 @@ public class DefaultDeschedulerService implements DeschedulerService {
         EvictionQuotaTracker evictionQuotaTracker = new EvictionQuotaTracker(evictionOperations, jobs);
 
         TaskMigrationDescheduler taskMigrationDescheduler = new TaskMigrationDescheduler(
-                plannedAheadTaskRelocationPlans, evacuatedAgentsAllocationTracker, evictionQuotaTracker, jobs, tasksById, titusRuntime
+                plannedAheadTaskRelocationPlans,
+                evacuatedAgentsAllocationTracker,
+                evictionQuotaTracker,
+                evictionConfiguration,
+                jobs, tasksById,
+                titusRuntime
         );
 
         Map<String, DeschedulingResult> requestedImmediateEvictions = taskMigrationDescheduler.findAllImmediateEvictions();
