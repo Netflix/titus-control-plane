@@ -55,8 +55,6 @@ import static com.netflix.titus.master.MetricConstants.METRIC_JOB_MANAGER;
 public class ArchivedTasksGc {
     private static final Logger logger = LoggerFactory.getLogger(ArchivedTasksGc.class);
 
-    private static final int MAX_RX_CONCURRENCY = 100;
-
     private final V3JobOperations jobOperations;
     private final JobStore jobStore;
     private final TitusRuntime titusRuntime;
@@ -94,7 +92,7 @@ public class ArchivedTasksGc {
                 .withDescription("GC oldest archived pasts once the criteria is met")
                 .withInitialDelay(Duration.ofMillis(configuration.getGcInitialDelayMs()))
                 .withInterval(Duration.ofMillis(configuration.getGcIntervalMs()))
-                .withTimeout(Duration.ofMinutes(configuration.getGcTimeoutMs()))
+                .withTimeout(Duration.ofMillis(configuration.getGcTimeoutMs()))
                 .build();
 
         this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
@@ -127,7 +125,7 @@ public class ArchivedTasksGc {
                 .map(jobId -> jobStore.retrieveArchivedTaskCountForJob(jobId).map(count -> Pair.of(jobId, count)))
                 .collect(Collectors.toList());
 
-        List<Pair<String, Long>> archivedTaskCountsPerJob = Observable.merge(archivedTaskCountObservables, MAX_RX_CONCURRENCY)
+        List<Pair<String, Long>> archivedTaskCountsPerJob = Observable.merge(archivedTaskCountObservables, configuration.getMaxRxConcurrency())
                 .toList().toBlocking().singleOrDefault(Collections.emptyList());
         logger.debug("archivedTaskCountsPerJob: {}", archivedTaskCountsPerJob);
 
@@ -144,7 +142,7 @@ public class ArchivedTasksGc {
                 .map(jobId -> jobStore.retrieveArchivedTasksForJob(jobId).toList().map(l -> Pair.of(jobId, l)))
                 .collect(Collectors.toList());
 
-        List<Pair<String, List<Task>>> archivedTasksPerJob = Observable.merge(archivedTaskObservables, MAX_RX_CONCURRENCY)
+        List<Pair<String, List<Task>>> archivedTasksPerJob = Observable.merge(archivedTaskObservables, configuration.getMaxRxConcurrency())
                 .toList().toBlocking().singleOrDefault(Collections.emptyList());
 
         List<Task> archivedTasksNeedingGc = new ArrayList<>();
@@ -165,7 +163,7 @@ public class ArchivedTasksGc {
         List<Completable> deleteArchivedTaskCompletables = archivedTasksToGc.stream()
                 .map(t -> jobStore.deleteArchivedTask(t.getJobId(), t.getId())).collect(Collectors.toList());
 
-        Completable.merge(Observable.from(deleteArchivedTaskCompletables), MAX_RX_CONCURRENCY).await();
+        Completable.merge(Observable.from(deleteArchivedTaskCompletables), configuration.getMaxRxConcurrency()).await();
         logger.info("Finished GC");
     }
 
