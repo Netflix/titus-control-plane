@@ -20,10 +20,14 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -33,12 +37,14 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.ReactorRetriers;
 import com.netflix.titus.master.eviction.service.quota.job.EffectiveJobDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.job.JobQuotaController;
 import com.netflix.titus.master.eviction.service.quota.system.SystemQuotaController;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -65,6 +71,7 @@ public class TitusQuotasManager {
     private final ConcurrentMap<String, JobQuotaController> jobQuotaControllersByJobId = new ConcurrentHashMap<>();
 
     private final Object lock = new Object();
+    private final Function<String, Matcher> appsExemptFromSystemDisruptionBudgetMatcherFactory;
 
     private Disposable jobUpdateDisposable;
 
@@ -73,11 +80,14 @@ public class TitusQuotasManager {
                               EffectiveJobDisruptionBudgetResolver budgetResolver,
                               ContainerHealthService containerHealthService,
                               SystemQuotaController systemQuotaController,
+                              EvictionConfiguration evictionConfiguration,
                               TitusRuntime titusRuntime) {
         this.budgetResolver = budgetResolver;
         this.containerHealthService = containerHealthService;
         this.systemQuotaController = systemQuotaController;
         this.jobOperations = jobOperations;
+        this.appsExemptFromSystemDisruptionBudgetMatcherFactory = RegExpExt.dynamicMatcher(evictionConfiguration::getAppsExemptFromSystemDisruptionBudget,
+                "titus.eviction.appsExemptFromSystemDisruptionBudget", Pattern.DOTALL, logger);
         this.titusRuntime = titusRuntime;
     }
 
@@ -103,30 +113,7 @@ public class TitusQuotasManager {
         }
 
         String taskId = task.getId();
-
-        synchronized (lock) {
-            ConsumptionResult systemResult = systemQuotaController.consume(taskId);
-            ConsumptionResult jobResult = jobQuotaController.consume(taskId);
-
-            if (systemResult.isApproved() && jobResult.isApproved()) {
-                return jobResult;
-            }
-
-            if (!systemResult.isApproved() && !jobResult.isApproved()) {
-                return ConsumptionResult.rejected(String.format(
-                        "No job and system quota: {systemQuota=%s, jobQuota=%s}",
-                        systemResult.getRejectionReason().get(), jobResult.getRejectionReason().get()
-                ));
-            }
-
-            if (systemResult.isApproved()) {
-                systemQuotaController.giveBackConsumedQuota(taskId);
-                return jobResult;
-            }
-
-            jobQuotaController.giveBackConsumedQuota(taskId);
-            return systemResult;
-        }
+        return tryConsumeSystemAndJobQuota(jobQuotaController, job, taskId);
     }
 
     public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
@@ -165,5 +152,43 @@ public class TitusQuotasManager {
         } else {
             jobQuotaControllersByJobId.put(newJob.getId(), new JobQuotaController(newJob, jobOperations, budgetResolver, containerHealthService, titusRuntime));
         }
+    }
+
+    @VisibleForTesting
+    ConsumptionResult tryConsumeSystemAndJobQuota(JobQuotaController jobQuotaController, Job<?> job, String taskId) {
+        synchronized (lock) {
+            ConsumptionResult jobResult = jobQuotaController.consume(taskId);
+            ConsumptionResult systemResult;
+            if (isJobExemptFromSystemDisruptionBudget(job)) {
+                systemResult = ConsumptionResult.approved();
+            } else {
+                systemResult = systemQuotaController.consume(taskId);
+            }
+
+            if (systemResult.isApproved() && jobResult.isApproved()) {
+                return jobResult;
+            }
+
+            if (!systemResult.isApproved() && !jobResult.isApproved()) {
+                return ConsumptionResult.rejected(String.format(
+                        "No job and system quota: {systemQuota=%s, jobQuota=%s}",
+                        systemResult.getRejectionReason().get(), jobResult.getRejectionReason().get()
+                ));
+            }
+
+            if (systemResult.isApproved()) {
+                systemQuotaController.giveBackConsumedQuota(taskId);
+                return jobResult;
+            }
+
+            jobQuotaController.giveBackConsumedQuota(taskId);
+            return systemResult;
+        }
+    }
+
+    @VisibleForTesting
+    boolean isJobExemptFromSystemDisruptionBudget(Job<?> job) {
+        String applicationName = job.getJobDescriptor().getApplicationName();
+        return appsExemptFromSystemDisruptionBudgetMatcherFactory.apply(applicationName).matches();
     }
 }

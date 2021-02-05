@@ -25,6 +25,7 @@ import com.netflix.titus.master.eviction.service.quota.job.ArchaiusEffectiveJobD
 import com.netflix.titus.master.eviction.service.quota.job.EffectiveJobDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetResolver;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 
 public class EvictionServiceModule extends AbstractModule {
     @Override
@@ -38,5 +39,11 @@ public class EvictionServiceModule extends AbstractModule {
     @Singleton
     public EvictionServiceConfiguration getEvictionServiceConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(EvictionServiceConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public EvictionConfiguration getEvictionConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(EvictionConfiguration.class);
     }
 }
