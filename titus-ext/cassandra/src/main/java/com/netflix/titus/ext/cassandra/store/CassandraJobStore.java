@@ -91,6 +91,7 @@ public class CassandraJobStore implements JobStore {
     private static final String RETRIEVE_ARCHIVED_TASK_IDS_FOR_JOB_STRING = "SELECT task_id FROM archived_task_ids WHERE job_id = ?;";
     private static final String RETRIEVE_ACTIVE_TASK_STRING = "SELECT value FROM active_tasks WHERE task_id = ?;";
     private static final String RETRIEVE_ARCHIVED_TASK_STRING = "SELECT value FROM archived_tasks WHERE task_id = ?;";
+    private static final String RETRIEVE_ARCHIVED_TASKS_COUNT_STRING = "SELECT count(*) FROM archived_task_ids WHERE job_id = ?;";
 
     private final PreparedStatement retrieveActiveJobIdBucketsStatement;
     private final PreparedStatement retrieveActiveJobIdsStatement;
@@ -100,6 +101,7 @@ public class CassandraJobStore implements JobStore {
     private final PreparedStatement retrieveArchivedTaskIdsForJobStatement;
     private final PreparedStatement retrieveActiveTaskStatement;
     private final PreparedStatement retrieveArchivedTaskStatement;
+    private final PreparedStatement retrieveArchivedTasksCountStatement;
 
     // INSERT Queries
     private static final String INSERT_ACTIVE_JOB_ID_STRING = "INSERT INTO active_job_ids (bucket, job_id) VALUES (?, ?);";
@@ -123,11 +125,15 @@ public class CassandraJobStore implements JobStore {
     private static final String DELETE_ACTIVE_JOB_STRING = "DELETE FROM active_jobs WHERE job_id = ?;";
     private static final String DELETE_ACTIVE_TASK_ID_STRING = "DELETE FROM active_task_ids WHERE job_id = ? and task_id = ?";
     private static final String DELETE_ACTIVE_TASK_STRING = "DELETE FROM active_tasks WHERE task_id = ?;";
+    private static final String DELETE_ARCHIVED_TASK_ID_STRING = "DELETE FROM archived_task_ids WHERE job_id = ? and task_id = ?;";
+    private static final String DELETE_ARCHIVED_TASK_STRING = "DELETE FROM archived_tasks WHERE task_id = ?;";
 
     private final PreparedStatement deleteActiveJobIdStatement;
     private final PreparedStatement deleteActiveJobStatement;
     private final PreparedStatement deleteActiveTaskIdStatement;
     private final PreparedStatement deleteActiveTaskStatement;
+    private final PreparedStatement deletedArchivedTaskIdStatement;
+    private final PreparedStatement deletedArchivedTaskStatement;
 
     private final TitusRuntime titusRuntime;
     private final Session session;
@@ -185,6 +191,7 @@ public class CassandraJobStore implements JobStore {
         retrieveArchivedTaskIdsForJobStatement = session.prepare(RETRIEVE_ARCHIVED_TASK_IDS_FOR_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         retrieveActiveTaskStatement = session.prepare(RETRIEVE_ACTIVE_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         retrieveArchivedTaskStatement = session.prepare(RETRIEVE_ARCHIVED_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveArchivedTasksCountStatement = session.prepare(RETRIEVE_ARCHIVED_TASKS_COUNT_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
 
         insertActiveJobStatement = session.prepare(INSERT_ACTIVE_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         insertActiveJobIdStatement = session.prepare(INSERT_ACTIVE_JOB_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
@@ -198,6 +205,8 @@ public class CassandraJobStore implements JobStore {
         deleteActiveJobStatement = session.prepare(DELETE_ACTIVE_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         deleteActiveTaskIdStatement = session.prepare(DELETE_ACTIVE_TASK_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         deleteActiveTaskStatement = session.prepare(DELETE_ACTIVE_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        deletedArchivedTaskIdStatement = session.prepare(DELETE_ARCHIVED_TASK_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        deletedArchivedTaskStatement = session.prepare(DELETE_ARCHIVED_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
     @Override
@@ -595,11 +604,13 @@ public class CassandraJobStore implements JobStore {
             String jobId = task.getJobId();
             checkIfJobIsActive(jobId);
 
-            transactionLogger().logBeforeDelete(deleteActiveTaskStatement, "deleteTask", task);
+            BatchStatement archiveTaskBatchStatement = getArchiveTaskBatchStatement(task);
 
-            return getArchiveTaskBatchStatement(task);
+            transactionLogger().logBeforeDelete(archiveTaskBatchStatement, "deleteTask", task);
+
+            return archiveTaskBatchStatement;
         }).flatMap(statement -> {
-                    transactionLogger().logAfterDelete(deleteActiveTaskStatement, "deleteTask", task);
+                    transactionLogger().logAfterDelete(statement, "deleteTask", task);
                     return execute(statement);
                 }
         ).toCompletable();
@@ -670,6 +681,32 @@ public class CassandraJobStore implements JobStore {
                 .switchIfEmpty(Observable.error(JobStoreException.taskDoesNotExist(taskId)));
     }
 
+    /**
+     * This method counts the number of archived tasks for a given job id.
+     */
+    @Override
+    public Observable<Long> retrieveArchivedTaskCountForJob(String jobId) {
+        return retrieveEntityById(jobId, Long.class, retrieveArchivedTasksCountStatement);
+    }
+
+    /**
+     * This method deletes an archived task.
+     */
+    @Override
+    public Completable deleteArchivedTask(String jobId, String taskId) {
+        return Observable.fromCallable((Callable<Statement>) () -> {
+            BatchStatement deleteArchivedTaskBatchStatement = getDeleteArchivedTaskBatchStatement(jobId, taskId);
+
+            transactionLogger().logBeforeDelete(deleteArchivedTaskBatchStatement, "deleteArchivedTask", taskId);
+
+            return deleteArchivedTaskBatchStatement;
+        }).flatMap(statement -> {
+                    transactionLogger().logAfterDelete(statement, "deleteArchivedTask", taskId);
+                    return execute(statement);
+                }
+        ).toCompletable();
+    }
+
     private <T> Observable<T> retrieveEntityById(String id, Class<T> type, PreparedStatement preparedStatement) {
         return Observable.fromCallable((Callable<Statement>) () -> preparedStatement.bind(id))
                 .flatMap(this::execute)
@@ -679,9 +716,12 @@ public class CassandraJobStore implements JobStore {
                         return Observable.empty();
                     }
                     try {
+                        if (type == Long.class) {
+                            return Observable.just(type.cast(row.getLong(0)));
+                        }
                         String value = row.getString(0);
                         if (type.isAssignableFrom(Task.class)) {
-                            return Observable.just((T) deserializeTask(value));
+                            return Observable.just(type.cast(deserializeTask(value)));
                         }
                         return Observable.just(ObjectMappers.readValue(mapper, value, type));
                     } catch (Exception e) {
@@ -737,6 +777,17 @@ public class CassandraJobStore implements JobStore {
         batchStatement.add(deleteTaskIdStatement);
         batchStatement.add(insertTaskStatement);
         batchStatement.add(insertTaskIdStatement);
+
+        return batchStatement;
+    }
+
+    private BatchStatement getDeleteArchivedTaskBatchStatement(String jobId, String taskId) {
+        Statement deleteArchivedTaskIdStatement = deletedArchivedTaskIdStatement.bind(jobId, taskId);
+        Statement deleteArchivedTaskStatement = deletedArchivedTaskStatement.bind(taskId);
+
+        BatchStatement batchStatement = new BatchStatement();
+        batchStatement.add(deleteArchivedTaskIdStatement);
+        batchStatement.add(deleteArchivedTaskStatement);
 
         return batchStatement;
     }

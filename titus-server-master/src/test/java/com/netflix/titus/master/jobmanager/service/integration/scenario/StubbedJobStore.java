@@ -357,6 +357,16 @@ class StubbedJobStore implements JobStore {
     }
 
     @Override
+    public Observable<Long> retrieveArchivedTaskCountForJob(String jobId) {
+        throw new IllegalStateException("not implemented yet");
+    }
+
+    @Override
+    public Completable deleteArchivedTask(String jobId, String taskId) {
+        throw new IllegalStateException("not implemented yet");
+    }
+
+    @Override
     public Observable<Job<?>> retrieveArchivedJob(String jobId) {
         return beforeObservable(() -> {
             Callable<Job<?>> jobCallable = () -> archivedJobs.get(jobId);

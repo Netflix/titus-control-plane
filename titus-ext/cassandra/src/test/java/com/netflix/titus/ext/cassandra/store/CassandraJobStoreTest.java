@@ -432,6 +432,39 @@ public class CassandraJobStoreTest {
         jobToTasksLoaded.getLeft().forEach(t -> assertThat(t.getJobId()).isEqualTo(jobTo.getId()));
     }
 
+    @Test
+    public void testRetrieveArchivedTaskCountForJob() {
+        JobStore store = getJobStore();
+        Job<BatchJobExt> job = createFinishedBatchJobObject();
+        store.init().await();
+        store.storeJob(job).await();
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        Task task = createFinishedTaskObject(job);
+        store.storeTask(task).await();
+        store.deleteTask(task).await();
+        Long count = store.retrieveArchivedTaskCountForJob(job.getId()).toBlocking().first();
+        assertThat(count).isEqualTo(1);
+    }
+
+    @Test
+    public void testDeleteArchivedTask() {
+        JobStore store = getJobStore();
+        Job<BatchJobExt> job = createFinishedBatchJobObject();
+        store.init().await();
+        store.storeJob(job).await();
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        Task task = createFinishedTaskObject(job);
+        store.storeTask(task).await();
+        store.deleteTask(task).await();
+        Long count = store.retrieveArchivedTaskCountForJob(job.getId()).toBlocking().first();
+        assertThat(count).isEqualTo(1);
+        store.deleteArchivedTask(job.getId(), task.getId()).await();
+        Long count2 = store.retrieveArchivedTaskCountForJob(job.getId()).toBlocking().first();
+        assertThat(count2).isEqualTo(0);
+    }
+
     private JobStore getJobStore() {
         return getJobStore(null);
     }

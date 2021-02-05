@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +79,42 @@ public class StoreTransactionLogger {
 
     private <T> void log(PreparedStatement statement, String operation, T entity, String crudAction) {
         tryLog(() -> doFormat(doFormatKey(entity), statement.getQueryKeyspace(), operation, crudAction, statement.getConsistencyLevel(), doFormatEntity(entity)));
+    }
+
+    public <T> void logBeforeCreate(Statement statement, String method, T entity) {
+        log(statement, method, entity, "BeforeCreate");
+    }
+
+    public <T> void logAfterCreate(Statement statement, String method, T entity) {
+        log(statement, method, entity, "AfterCreate");
+    }
+
+    public <T> void logBeforeUpdate(Statement statement, String method, T entity) {
+        log(statement, method, entity, "BeforeUpdate");
+    }
+
+    public <T> void logAfterUpdate(Statement statement, String method, T entity) {
+        log(statement, method, entity, "AfterUpdate");
+    }
+
+    public void logBeforeRead(Statement statement, String key, String method) {
+        tryLog(() -> doFormat(key, statement.getKeyspace(), method, "BeforeRead", statement.getConsistencyLevel(), "<N/A>"));
+    }
+
+    public <T> void logAfterRead(Statement statement, String method, T entity) {
+        log(statement, method, entity, "AfterRead");
+    }
+
+    public <T> void logBeforeDelete(Statement statement, String method, T entity) {
+        log(statement, method, entity, "BeforeDelete");
+    }
+
+    public <T> void logAfterDelete(Statement statement, String method, T entity) {
+        log(statement, method, entity, "AfterDelete");
+    }
+
+    private <T> void log(Statement statement, String operation, T entity, String crudAction) {
+        tryLog(() -> doFormat(doFormatKey(entity), statement.getKeyspace(), operation, crudAction, statement.getConsistencyLevel(), doFormatEntity(entity)));
     }
 
     private void tryLog(Supplier<String> messageProducer) {

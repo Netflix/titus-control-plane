@@ -148,4 +148,19 @@ public interface JobStore {
      * @return the task or an error if it is not found.
      */
     Observable<Task> retrieveArchivedTask(String taskId);
+
+    /**
+     * Retrieve all the archived tasks for a specific job.
+     *
+     * @param jobId
+     * @return the count of archived tasks for a specific job.
+     */
+    Observable<Long> retrieveArchivedTaskCountForJob(String jobId);
+
+    /**
+     * Delete an archived task record.
+     *
+     * @param taskId
+     */
+    Completable deleteArchivedTask(String jobId, String taskId);
 }

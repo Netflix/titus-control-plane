@@ -173,4 +173,16 @@ public class InMemoryJobStore implements JobStore {
             return task;
         });
     }
+
+    @Override
+    public Observable<Long> retrieveArchivedTaskCountForJob(String jobId) {
+        return Observable.from(archivedTasks.asMap().values()).filter(task -> task.getJobId().equals(jobId)).count().cast(Long.class);
+    }
+
+    @Override
+    public Completable deleteArchivedTask(String jobId, String taskId) {
+        return Completable.fromAction(() -> {
+            archivedTasks.invalidate(taskId);
+        });
+    }
 }
