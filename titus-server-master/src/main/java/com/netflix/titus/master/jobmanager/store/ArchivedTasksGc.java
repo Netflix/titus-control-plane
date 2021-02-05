@@ -92,7 +92,7 @@ public class ArchivedTasksGc {
                 .withDescription("GC oldest archived pasts once the criteria is met")
                 .withInitialDelay(Duration.ofMillis(configuration.getGcInitialDelayMs()))
                 .withInterval(Duration.ofMillis(configuration.getGcIntervalMs()))
-                .withTimeout(Duration.ofMinutes(configuration.getGcTimeoutMs()))
+                .withTimeout(Duration.ofMillis(configuration.getGcTimeoutMs()))
                 .build();
 
         this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
