@@ -573,7 +573,10 @@ public class DefaultV3JobOperations implements V3JobOperations {
         return Job.<E>newBuilder()
                 .withId(UUID.randomUUID().toString())
                 .withJobDescriptor(jobDescriptor)
-                .withStatus(JobStatus.newBuilder().withState(JobState.Accepted).build())
+                .withStatus(JobStatus.newBuilder()
+                                .withState(JobState.Accepted)
+                                .withReasonMessage("New Job created. Next tasks will be launched.")
+                                .build())
                 .build();
     }
 

@@ -251,7 +251,7 @@ public class BasicTaskActions {
                                 TaskStatus taskStatus = JobModel.newTaskStatus()
                                         .withState(TaskState.Accepted)
                                         .withReasonCode(TaskStatus.REASON_POD_CREATED)
-                                        .withReasonMessage("Created pod in Kube")
+                                        .withReasonMessage("Created pod in Kubernetes via KubeScheduler. Needs to be scheduled on a node.")
                                         .withTimestamp(titusRuntime.getClock().wallTime())
                                         .build();
                                 Task taskWithPod = task.toBuilder()

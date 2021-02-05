@@ -141,7 +141,7 @@ public class KubeNotificationProcessorTest {
         podEvents.onNext(PodEvent.onUpdate(oldPod, updatedPod, Optional.empty()));
 
         verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
-                eq("Kube pod notification"), any());
+                eq("Pod status updated from kubernetes node (k8s pod phase is now 'Pending')"), any());
 
         Function<Task, Optional<Task>> changeFunction = changeFunctionCaptor.getValue();
         assertThat(changeFunction).isNotNull();
@@ -207,7 +207,7 @@ public class KubeNotificationProcessorTest {
         podEvents.onNext(PodEvent.onAdd(pod));
 
         verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
-                eq("Kube pod notification"), any());
+                eq("Pod status updated from kubernetes node (k8s pod phase is now 'Failed')"), any());
     }
 
     @Test

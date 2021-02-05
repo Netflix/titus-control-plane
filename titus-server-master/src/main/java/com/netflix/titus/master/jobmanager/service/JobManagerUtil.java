@@ -209,7 +209,7 @@ public final class JobManagerUtil {
             TaskStatus taskStatus = JobModel.newTaskStatus()
                     .withState(TaskState.Launched)
                     .withReasonCode("scheduled")
-                    .withReasonMessage("Fenzo task placement")
+                    .withReasonMessage("Fenzo task placement on node " + TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID + ". Next it needs to start.")
                     .withTimestamp(titusRuntime.getClock().wallTime())
                     .build();
 
