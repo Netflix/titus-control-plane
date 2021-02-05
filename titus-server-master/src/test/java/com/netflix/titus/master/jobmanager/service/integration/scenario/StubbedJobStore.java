@@ -30,6 +30,7 @@ import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,7 @@ import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -48,7 +50,7 @@ import rx.subjects.PublishSubject;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.isServiceJob;
 
-class StubbedJobStore implements JobStore {
+public class StubbedJobStore implements JobStore {
 
     enum StoreEvent {
         JobAdded,
@@ -79,6 +81,22 @@ class StubbedJobStore implements JobStore {
 
     void setStoreState(StoreState storeState) {
         this.storeState = storeState;
+    }
+
+    public Map<String, Job<?>> getJobsInternal() {
+        return new HashMap<>(jobs);
+    }
+
+    public Map<String, Task> getArchivedTasksInternal(String jobId) {
+        Preconditions.checkState(jobs.containsKey(jobId) || archivedJobs.containsKey(jobId));
+        return archivedTasks.values().stream()
+                .filter(task -> task.getJobId().equals(jobId))
+                .collect(Collectors.toMap(Task::getId, Function.identity()));
+    }
+
+    public void addArchivedTaskInternal(Task task) {
+        Preconditions.checkState(TaskState.isTerminalState(task.getStatus().getState()));
+        archivedTasks.put(task.getId(), task);
     }
 
     public Observable<Pair<StoreEvent, ?>> events() {
@@ -358,12 +376,19 @@ class StubbedJobStore implements JobStore {
 
     @Override
     public Observable<Long> retrieveArchivedTaskCountForJob(String jobId) {
-        throw new IllegalStateException("not implemented yet");
+        return Observable.fromCallable(() ->
+                archivedTasks.values().stream().filter(task -> task.getJobId().equals(jobId)).count()
+        );
     }
 
     @Override
     public Completable deleteArchivedTask(String jobId, String taskId) {
-        throw new IllegalStateException("not implemented yet");
+        return Completable.defer(() -> {
+            if (archivedTasks.remove(taskId) != null) {
+                return Completable.complete();
+            }
+            return Completable.error(new IllegalStateException("not found"));
+        });
     }
 
     @Override
@@ -376,7 +401,10 @@ class StubbedJobStore implements JobStore {
 
     @Override
     public Observable<Task> retrieveArchivedTasksForJob(String jobId) {
-        throw new IllegalStateException("not implemented yet");
+        return Observable.defer(() -> {
+            List<Task> jobTasks = archivedTasks.values().stream().filter(task -> task.getJobId().equals(jobId)).collect(Collectors.toList());
+            return Observable.from(jobTasks);
+        });
     }
 
     private Completable beforeCompletable(Supplier<Completable> action) {

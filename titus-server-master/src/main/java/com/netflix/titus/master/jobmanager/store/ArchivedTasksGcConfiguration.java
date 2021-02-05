@@ -56,4 +56,10 @@ public interface ArchivedTasksGcConfiguration {
      */
     @DefaultValue("10000")
     int getMaxNumberOfArchivedTasksToGcPerIteration();
+
+    /**
+     * Maximum number of Cassandra operations executed concurrently.
+     */
+    @DefaultValue("100")
+    int getMaxRxConcurrency();
 }
