@@ -104,7 +104,6 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     private final FluxSink<PodEvent> podEventSink = podEventProcessor.sink(FluxSink.OverflowStrategy.IGNORE);
 
     private final Map<OrphanedKind, Gauge> orphanedTaskGauges;
-    private final Gauge terminalPodsToGcGauge;
 
     private ScheduleReference schedulerRef;
 
@@ -129,7 +128,6 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
                 Function.identity(),
                 kind -> registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedTasks", "kind", kind.name())
         ));
-        this.terminalPodsToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "terminalPodsToGc");
     }
 
     @Activator

@@ -40,6 +40,8 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
 import com.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
+import com.netflix.titus.master.jobmanager.store.ArchivedTasksGc;
+import com.netflix.titus.master.jobmanager.store.ArchivedTasksGcConfiguration;
 import com.netflix.titus.master.mesos.DefaultV3TaskInfoRequestFactory;
 import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 import org.slf4j.Logger;
@@ -68,6 +70,8 @@ public class V3JobManagerModule extends AbstractModule {
         bind(KubeNotificationProcessorInitializer.class).asEagerSingleton();
 
         bind(JobAndTaskMetrics.class).asEagerSingleton();
+
+        bind(ArchivedTasksGc.class).asEagerSingleton();
     }
 
     @Provides
@@ -108,5 +112,11 @@ public class V3JobManagerModule extends AbstractModule {
                 logger.info("Kube-scheduler disabled: not starting KubeNotificationProcessor");
             }
         }
+    }
+
+    @Provides
+    @Singleton
+    public ArchivedTasksGcConfiguration getArchivedTasksGcConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ArchivedTasksGcConfiguration.class);
     }
 }

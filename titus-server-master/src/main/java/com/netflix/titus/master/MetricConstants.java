@@ -48,4 +48,6 @@ public class MetricConstants {
     public static final String METRIC_KUBERNETES_CONTROLLER = METRIC_KUBERNETES + "controller.";
 
     public static final String METRIC_LOADBALANCER = METRIC_ROOT + "loadBalancer.";
+
+    public static final String METRIC_JOB_MANAGER = METRIC_ROOT + "jobManager.";
 }
