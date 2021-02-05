@@ -170,7 +170,7 @@ public class KubeNotificationProcessor {
 
         TaskStatus newTaskStatus = newTaskStatusOrError.getValue();
         if (TaskStatus.areEquivalent(task.getStatus(), newTaskStatus)) {
-            logger.info("Pod change notification does not change task status: taskId={}, status={}", task.getId(), newTaskStatus);
+            logger.info("Pod change notification does not change task status: taskId={}, status={}", task.getId (), newTaskStatus);
         } else {
             logger.info("Pod notification changes task status: taskId={}, fromStatus={}, toStatus={}", task.getId(),
                     task.getStatus(), newTaskStatus);
@@ -182,7 +182,7 @@ public class KubeNotificationProcessor {
                 task.getId(),
                 current -> updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current),
                 V3JobOperations.Trigger.Kube,
-                "Kube pod notification",
+                "Pod status updated from kubernetes node (k8s pod phase is now '" + event.getPod().getStatus().getPhase() + "')",
                 KUBE_CALL_METADATA
         ));
     }
@@ -205,7 +205,7 @@ public class KubeNotificationProcessor {
                     return Optional.of(updatedTask);
                 },
                 V3JobOperations.Trigger.Kube,
-                "Kube pod notification",
+                "Pod status updated from kubernetes node, it couldn't find the pod " + task.getId(),
                 KUBE_CALL_METADATA
         ));
     }
@@ -319,7 +319,7 @@ public class KubeNotificationProcessor {
 
         TaskStatus.Builder statusTemplate = TaskStatus.newBuilder()
                 .withReasonCode(TaskStatus.REASON_STATE_MISSING)
-                .withReasonMessage("Filled in")
+                .withReasonMessage("Filled in missing state update that was missed previously")
                 .withTimestamp(startAtTimestamp);
 
         List<TaskStatus> missingStatuses = new ArrayList<>();
@@ -355,7 +355,7 @@ public class KubeNotificationProcessor {
         newStatusHistory.add(TaskStatus.newBuilder()
                 .withState(TaskState.Launched)
                 .withReasonCode(TaskStatus.REASON_STATE_MISSING)
-                .withReasonMessage("Filled in")
+                .withReasonMessage("Filled in missing state update that was missed previously due to container setup failure")
                 .withTimestamp(startAtTimestamp)
                 .build()
         );

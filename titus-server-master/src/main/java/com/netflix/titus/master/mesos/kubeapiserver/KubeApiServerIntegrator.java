@@ -776,13 +776,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             Optional<TaskStatus> startInitiatedOpt = JobFunctions.findTaskStatus(task, StartInitiated);
             if (!startInitiatedOpt.isPresent()) {
                 logger.debug("Publishing missing task status: StartInitiated for task: {}", taskId);
-                publishContainerEvent(taskId, StartInitiated, TaskStatus.REASON_NORMAL, "",
+                publishContainerEvent(taskId, StartInitiated, TaskStatus.REASON_NORMAL, "(Filling in missed event)",
                         executorDetailsOpt, timestampOpt);
             }
             Optional<TaskStatus> startedOpt = JobFunctions.findTaskStatus(task, Started);
             if (!startedOpt.isPresent()) {
                 logger.debug("Publishing missing task status: Started for task: {}", taskId);
-                publishContainerEvent(taskId, Started, TaskStatus.REASON_NORMAL, "",
+                publishContainerEvent(taskId, Started, TaskStatus.REASON_NORMAL, "(Filling in missed event)",
                         executorDetailsOpt, timestampOpt);
             }
         }
