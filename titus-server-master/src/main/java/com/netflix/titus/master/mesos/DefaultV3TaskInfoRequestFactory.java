@@ -161,7 +161,13 @@ public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
         String attributeKillWaitSeconds = containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS);
         Integer killWaitSeconds = attributeKillWaitSeconds == null ? null : Ints.tryParse(attributeKillWaitSeconds);
         if (killWaitSeconds == null || killWaitSeconds < mesosConfiguration.getMinKillWaitSeconds() || killWaitSeconds > mesosConfiguration.getMaxKillWaitSeconds()) {
-            killWaitSeconds = mesosConfiguration.getDefaultKillWaitSeconds();
+            if (JobFunctions.isBatchJob(job)) {
+                killWaitSeconds = mesosConfiguration.getBatchDefaultKillWaitSeconds();
+            } else if (JobFunctions.isServiceJob(job)) {
+                killWaitSeconds = mesosConfiguration.getServiceDefaultKillWaitSeconds();
+            } else {
+                killWaitSeconds = mesosConfiguration.getMinKillWaitSeconds();
+            }
         }
         containerInfoBuilder.setKillWaitSeconds(killWaitSeconds);
 

@@ -76,10 +76,16 @@ public interface MesosConfiguration {
     int getMaxKillWaitSeconds();
 
     /**
-     * @return maximum amount of seconds to wait before forcefully terminating a container.
+     * @return maximum amount of seconds to wait before forcefully terminating a batch job container.
      */
     @DefaultValue("10")
-    int getDefaultKillWaitSeconds();
+    int getBatchDefaultKillWaitSeconds();
+
+    /**
+     * @return maximum amount of seconds to wait before forcefully terminating a service job container.
+     */
+    @DefaultValue("120")
+    int getServiceDefaultKillWaitSeconds();
 
     /**
      * @return whether or not to override the executor URI on an agent.
