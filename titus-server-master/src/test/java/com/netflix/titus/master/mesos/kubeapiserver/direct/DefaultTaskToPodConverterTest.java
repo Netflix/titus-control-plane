@@ -258,7 +258,7 @@ public class DefaultTaskToPodConverterTest {
         verifyEnvVar(v1Pod, testEnvVarName, testEnvVarValue);
         verifyEnvVar(v1Pod, testConflictingEnvVarName, testConflictingEnvVarValue);
 
-        assertThat(titusRuntime.getRegistry().counter("titus.aggregatingContainerEnv.conflict", "env", KubeConstants.POD_ENV_NETFLIX_EXECUTOR).count()).isOne();
+        assertThat(titusRuntime.getRegistry().counter("titus.aggregatingContainerEnv.conflict", "var_name", KubeConstants.POD_ENV_NETFLIX_EXECUTOR).count()).isOne();
     }
 
     private void verifyEnvVar(V1Pod v1Pod, String name, String value) {
