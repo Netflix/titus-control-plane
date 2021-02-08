@@ -126,6 +126,7 @@ public class ResourceDimension {
     public static Builder newBuilder(ResourceDimension source) {
         return new Builder()
                 .withCpus(source.getCpu())
+                .withGpu(source.getGpu())
                 .withMemoryMB(source.getMemoryMB())
                 .withDiskMB(source.getDiskMB())
                 .withNetworkMbs(source.getNetworkMbs())
@@ -174,7 +175,7 @@ public class ResourceDimension {
         }
 
         public Builder but() {
-            return newBuilder().withCpus(cpus).withMemoryMB(memoryMB).withDiskMB(diskMB).withNetworkMbs(networkMbs)
+            return newBuilder().withCpus(cpus).withGpu(gpu).withMemoryMB(memoryMB).withDiskMB(diskMB).withNetworkMbs(networkMbs)
                     .withOpportunisticCpus(opportunisticCpus);
         }
 
