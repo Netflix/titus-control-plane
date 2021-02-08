@@ -27,6 +27,8 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation aggregating container environment variables from multiple sources.
@@ -35,6 +37,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
  */
 @Singleton
 public class DefaultAggregatingContainerEnvFactory implements ContainerEnvFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultAggregatingContainerEnvFactory.class);
 
     private static final String CONFLICT_COUNTER = "titus.aggregatingContainerEnv.conflict";
 
@@ -56,13 +60,17 @@ public class DefaultAggregatingContainerEnvFactory implements ContainerEnvFactor
         for (ContainerEnvFactory factory : orderedFactoryList) {
             Map<String, String> envMap = factory.buildContainerEnv(job, task);
             // Tracking conflicting env var for any two given factories
-            env.keySet().stream().filter(envMap::containsKey).forEach(this::incrementConflictCounter);
+            env.keySet()
+                    .stream()
+                    .filter(envMap::containsKey)
+                    .forEach(envVarName -> incrementConflictCounter(envVarName, job.getId(), job.getJobDescriptor().getApplicationName()));
             env.putAll(envMap);
         }
         return env;
     }
 
-    private void incrementConflictCounter(String envVarName) {
-        registry.counter(this.conflictId.withTags("env", envVarName)).increment();
+    private void incrementConflictCounter(String envVarName, String jobId, String applicationName) {
+        logger.info("JobId {} applicationName {} has conflicting env variable {}", jobId, applicationName, envVarName);
+        registry.counter(this.conflictId.withTags("var_name", envVarName)).increment();
     }
 }
