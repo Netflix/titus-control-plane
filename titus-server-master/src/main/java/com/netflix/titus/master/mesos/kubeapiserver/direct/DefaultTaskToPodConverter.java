@@ -271,7 +271,13 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         String attributeKillWaitSeconds = containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS);
         Integer killWaitSeconds = attributeKillWaitSeconds == null ? null : Ints.tryParse(attributeKillWaitSeconds);
         if (killWaitSeconds == null || killWaitSeconds < configuration.getMinKillWaitSeconds() || killWaitSeconds > configuration.getMaxKillWaitSeconds()) {
-            killWaitSeconds = configuration.getDefaultKillWaitSeconds();
+            if (JobFunctions.isBatchJob(job)) {
+                killWaitSeconds = configuration.getBatchDefaultKillWaitSeconds();
+            } else if (JobFunctions.isServiceJob(job)) {
+                killWaitSeconds = configuration.getServiceDefaultKillWaitSeconds();
+            } else {
+                killWaitSeconds = configuration.getMinKillWaitSeconds();
+            }
         }
         containerInfoBuilder.setKillWaitSeconds(killWaitSeconds);
 

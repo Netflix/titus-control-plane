@@ -53,10 +53,16 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     int getMaxKillWaitSeconds();
 
     /**
-     * @return maximum amount of seconds to wait before forcefully terminating a container.
+     * @return maximum amount of seconds to wait before forcefully terminating a batch job container.
      */
     @DefaultValue("10")
-    int getDefaultKillWaitSeconds();
+    int getBatchDefaultKillWaitSeconds();
+
+    /**
+     * @return maximum amount of seconds to wait before forcefully terminating a service job container.
+     */
+    @DefaultValue("120")
+    int getServiceDefaultKillWaitSeconds();
 
     /**
      * Thread pool size for handling Kube apiClient calls.
