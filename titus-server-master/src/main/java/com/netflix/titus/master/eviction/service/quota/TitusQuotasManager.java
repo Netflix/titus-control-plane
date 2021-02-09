@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 
 import static com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations.VERY_HIGH_QUOTA;
+import static com.netflix.titus.master.eviction.service.quota.system.SystemQuotaConsumptionResults.OUTSIDE_SYSTEM_TIME_WINDOW;
 
 @Singleton
 public class TitusQuotasManager {
@@ -158,11 +159,13 @@ public class TitusQuotasManager {
     ConsumptionResult tryConsumeSystemAndJobQuota(JobQuotaController jobQuotaController, Job<?> job, String taskId) {
         synchronized (lock) {
             ConsumptionResult jobResult = jobQuotaController.consume(taskId);
-            ConsumptionResult systemResult;
+            ConsumptionResult systemResult = systemQuotaController.consume(taskId);
             if (isJobExemptFromSystemDisruptionBudget(job)) {
-                systemResult = ConsumptionResult.approved();
-            } else {
-                systemResult = systemQuotaController.consume(taskId);
+                if (!systemResult.isApproved() &&
+                        systemResult.getRejectionReason().isPresent() &&
+                        systemResult.getRejectionReason().get().equals(OUTSIDE_SYSTEM_TIME_WINDOW.getRejectionReason().get())) {
+                    systemResult = ConsumptionResult.approved();
+                }
             }
 
             if (systemResult.isApproved() && jobResult.isApproved()) {

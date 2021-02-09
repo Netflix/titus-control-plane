@@ -3,6 +3,7 @@ package com.netflix.titus.master.eviction.service.quota;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.master.eviction.service.quota.job.JobQuotaController;
+import com.netflix.titus.master.eviction.service.quota.system.SystemQuotaConsumptionResults;
 import com.netflix.titus.master.eviction.service.quota.system.SystemQuotaController;
 import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -18,11 +19,10 @@ public class TitusQuotasManagerTest {
     public void tryConsumeSystemAndJobQuota() {
         String taskId = "job1Task1";
         String jobQuotaRejectionReason = "Job does not allow any more terminations";
-        String systemQuotaRejectionReason = "System is on fire";
 
         Job<BatchJobExt> job1 = JobGenerator.oneBatchJob().but(withApplicationName("app1Test"));
         EvictionConfiguration config1 = mock(EvictionConfiguration.class);
-        when(config1.getAppsExemptFromSystemDisruptionBudget()).thenReturn("foo.*");
+        when(config1.getAppsExemptFromSystemDisruptionBudget()).thenReturn("app1.*");
         SystemQuotaController systemQuotaController = mock(SystemQuotaController.class);
         when(systemQuotaController.consume(taskId)).thenReturn(ConsumptionResult.approved());
         JobQuotaController jobQuotaController = mock(JobQuotaController.class);
@@ -41,11 +41,17 @@ public class TitusQuotasManagerTest {
         ConsumptionResult consumptionResult2 = titusQuotasManager.tryConsumeSystemAndJobQuota(jobQuotaController2, job1, taskId);
         assertThat(consumptionResult2.isApproved()).isTrue();
 
-        when(systemQuotaController.consume(taskId)).thenReturn(ConsumptionResult.rejected(systemQuotaRejectionReason));
+        String quotaLimitExceededReason = SystemQuotaConsumptionResults.QUOTA_LIMIT_EXCEEDED.getRejectionReason().get();
+        when(systemQuotaController.consume(taskId)).thenReturn(ConsumptionResult.rejected(quotaLimitExceededReason));
         ConsumptionResult consumptionResult3 = titusQuotasManager.tryConsumeSystemAndJobQuota(jobQuotaController2, job1, taskId);
         assertThat(consumptionResult3.isApproved()).isFalse();
         assertThat(consumptionResult3.getRejectionReason()).isPresent();
-        assertThat(consumptionResult3.getRejectionReason().get()).isEqualTo(systemQuotaRejectionReason);
+        assertThat(consumptionResult3.getRejectionReason().get()).isEqualTo(quotaLimitExceededReason);
+
+        String outsideSystemWindowReason = SystemQuotaConsumptionResults.OUTSIDE_SYSTEM_TIME_WINDOW.getRejectionReason().get();
+        when(systemQuotaController.consume(taskId)).thenReturn(ConsumptionResult.rejected(outsideSystemWindowReason));
+        ConsumptionResult consumptionResult4 = titusQuotasManager.tryConsumeSystemAndJobQuota(jobQuotaController2, job1, taskId);
+        assertThat(consumptionResult4.isApproved()).isTrue();
     }
 
     @Test
