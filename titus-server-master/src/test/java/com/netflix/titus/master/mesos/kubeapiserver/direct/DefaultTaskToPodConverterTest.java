@@ -36,6 +36,7 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo.S3LogLocation;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -44,6 +45,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.env.DefaultAggregatin
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.TitusProvidedContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
@@ -72,6 +74,8 @@ public class DefaultTaskToPodConverterTest {
 
     private final MasterConfiguration jobCoordinatorConfiguration = mock(MasterConfiguration.class);
 
+    private final ApplicationSlaManagementService capacityGroupManagement = mock(ApplicationSlaManagementService.class);
+
     private final PodAffinityFactory podAffinityFactory = mock(PodAffinityFactory.class);
 
     private final TaintTolerationFactory taintTolerationFactory = mock(TaintTolerationFactory.class);
@@ -88,6 +92,7 @@ public class DefaultTaskToPodConverterTest {
     private final DefaultTaskToPodConverter converter = new DefaultTaskToPodConverter(
             configuration,
             jobCoordinatorConfiguration,
+            capacityGroupManagement,
             podAffinityFactory,
             taintTolerationFactory,
             defaultAggregatingContainerEnvFactory,
@@ -259,6 +264,25 @@ public class DefaultTaskToPodConverterTest {
         verifyEnvVar(v1Pod, testConflictingEnvVarName, testConflictingEnvVarValue);
 
         assertThat(titusRuntime.getRegistry().counter("titus.aggregatingContainerEnv.conflict", "var_name", KubeConstants.POD_ENV_NETFLIX_EXECUTOR).count()).isOne();
+    }
+
+    @Test
+    public void testCapacityGroupAssignment() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withCapacityGroup("myGroup").build()).build();
+        when(capacityGroupManagement.getApplicationSLA("myGroup")).thenReturn(ApplicationSLA.newBuilder()
+                .withAppName("myGroup")
+                .build()
+        );
+
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = converter.apply(job, task);
+
+        assertThat(pod.getMetadata().getAnnotations()).containsEntry(
+                KubeConstants.LABEL_CAPACITY_GROUP, "mygroup"
+        );
     }
 
     private void verifyEnvVar(V1Pod v1Pod, String name, String value) {

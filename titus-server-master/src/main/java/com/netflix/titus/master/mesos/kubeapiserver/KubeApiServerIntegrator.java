@@ -52,6 +52,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
@@ -63,6 +64,7 @@ import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
@@ -144,6 +146,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private final TitusRuntime titusRuntime;
     private final MesosConfiguration mesosConfiguration;
+    private final ApplicationSlaManagementService capacityGroupManagement;
     private final DirectKubeConfiguration directKubeConfiguration;
     private final Injector injector;
     private final KubeApiFacade kubeApiFacade;
@@ -171,6 +174,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     @Inject
     public KubeApiServerIntegrator(TitusRuntime titusRuntime,
                                    MesosConfiguration mesosConfiguration,
+                                   ApplicationSlaManagementService capacityGroupManagement,
                                    DirectKubeConfiguration directKubeConfiguration,
                                    Injector injector,
                                    KubeApiFacade kubeApiFacade,
@@ -178,6 +182,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                                    ContainerResultCodeResolver containerResultCodeResolver) {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
+        this.capacityGroupManagement = capacityGroupManagement;
         this.directKubeConfiguration = directKubeConfiguration;
         this.injector = injector;
         this.kubeApiFacade = kubeApiFacade;
@@ -543,8 +548,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
+        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptor(taskInfoRequest.getJob().getJobDescriptor(), capacityGroupManagement).getAppName().toLowerCase();
         Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
-                taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
+                capacityGroup, taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
                 mesosConfiguration.isJobDescriptorAnnotationEnabled());
 
         V1ObjectMeta metadata = new V1ObjectMeta()

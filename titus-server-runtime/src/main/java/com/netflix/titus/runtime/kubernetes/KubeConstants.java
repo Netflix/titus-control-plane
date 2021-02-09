@@ -43,6 +43,8 @@ public final class KubeConstants {
     /**
      * Common prefix for Titus node annotations/labels and taints.
      */
+    public static final String TITUS_DOMAIN = "titus.netflix.com/";
+
     public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
 
     private static final String TITUS_POD_DOMAIN = "pod.titus.netflix.com/";
@@ -53,6 +55,12 @@ public final class KubeConstants {
      * Common prefix for Titus V3 job API specific annotations/labels.
      */
     public static final String TITUS_V3_JOB_DOMAIN = "v3.job.titus.netflix.com/";
+
+    /*
+     * Common Titus labels and annotations.
+     */
+
+    public static final String LABEL_CAPACITY_GROUP = TITUS_DOMAIN + "capacity-group";
 
     /*
      * Titus pod labels and annotations.
