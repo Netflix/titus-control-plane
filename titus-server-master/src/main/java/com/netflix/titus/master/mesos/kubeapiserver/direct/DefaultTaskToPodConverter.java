@@ -153,7 +153,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     public V1Pod apply(Job<?> job, Task task) {
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = buildContainerInfo(job, task);
-        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement).getAppName().toLowerCase();
+        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
         Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, capacityGroup, containerInfo.toByteArray(),
                 containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 

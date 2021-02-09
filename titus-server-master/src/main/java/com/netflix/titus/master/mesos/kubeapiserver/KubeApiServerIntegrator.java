@@ -548,7 +548,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
-        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptor(taskInfoRequest.getJob().getJobDescriptor(), capacityGroupManagement).getAppName().toLowerCase();
+        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(taskInfoRequest.getJob().getJobDescriptor(), capacityGroupManagement).toLowerCase();
         Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
                 capacityGroup, taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
                 mesosConfiguration.isJobDescriptorAnnotationEnabled());
