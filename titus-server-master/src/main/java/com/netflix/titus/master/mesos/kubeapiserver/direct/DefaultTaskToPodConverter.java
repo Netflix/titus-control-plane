@@ -53,11 +53,13 @@ import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.ContainerInfoUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
@@ -119,6 +121,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     private final DirectKubeConfiguration configuration;
     private final MasterConfiguration jobCoordinatorConfiguration;
+    private final ApplicationSlaManagementService capacityGroupManagement;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
     private final ContainerEnvFactory containerEnvFactory;
@@ -128,12 +131,14 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     @Inject
     public DefaultTaskToPodConverter(DirectKubeConfiguration configuration,
                                      MasterConfiguration jobCoordinatorConfiguration,
+                                     ApplicationSlaManagementService capacityGroupManagement,
                                      PodAffinityFactory podAffinityFactory,
                                      TaintTolerationFactory taintTolerationFactory,
                                      ContainerEnvFactory ContainerEnvFactory,
                                      LogStorageInfo<Task> logStorageInfo) {
         this.configuration = configuration;
         this.jobCoordinatorConfiguration = jobCoordinatorConfiguration;
+        this.capacityGroupManagement = capacityGroupManagement;
         this.podAffinityFactory = podAffinityFactory;
         this.taintTolerationFactory = taintTolerationFactory;
         containerEnvFactory = ContainerEnvFactory;
@@ -148,7 +153,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     public V1Pod apply(Job<?> job, Task task) {
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = buildContainerInfo(job, task);
-        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, containerInfo.toByteArray(),
+        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, capacityGroup, containerInfo.toByteArray(),
                 containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 
         Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);

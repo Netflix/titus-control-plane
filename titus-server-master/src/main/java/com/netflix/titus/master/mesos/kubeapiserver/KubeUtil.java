@@ -232,6 +232,7 @@ public class KubeUtil {
     public static Map<String, String> createPodAnnotations(
             Job<?> job,
             Task task,
+            String capacityGroup,
             byte[] containerInfoData,
             Map<String, String> passthroughAttributes,
             boolean includeJobDescriptor
@@ -239,6 +240,7 @@ public class KubeUtil {
         String encodedContainerInfo = Base64.getEncoder().encodeToString(containerInfoData);
 
         Map<String, String> annotations = new HashMap<>(passthroughAttributes);
+        annotations.put(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup);
         annotations.putAll(PerformanceToolUtil.toAnnotations(job));
         annotations.put("containerInfo", encodedContainerInfo);
         Evaluators.acceptNotNull(

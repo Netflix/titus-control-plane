@@ -104,6 +104,11 @@ public final class JobManagerUtil {
         return applicationSLA == null ? capacityGroupService.getApplicationSLA(ApplicationSlaManagementService.DEFAULT_APPLICATION) : applicationSLA;
     }
 
+    public static String getCapacityGroupDescriptorName(JobDescriptor<?> jobDescriptor, ApplicationSlaManagementService capacityGroupService) {
+        ApplicationSLA applicationSLA = getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
+        return applicationSLA == null ? ApplicationSlaManagementService.DEFAULT_APPLICATION : applicationSLA.getAppName();
+    }
+
     public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, Optional<TitusExecutorDetails> detailsOpt, TitusRuntime titusRuntime) {
         return oldTask -> {
             TaskState oldState = oldTask.getStatus().getState();
