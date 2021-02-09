@@ -57,23 +57,23 @@ public class RelocationPredicates {
         }
 
         if (isRelocationRequired(task)) {
-            return Optional.of("Task tagged for relocation");
+            return Optional.of("Task terminated because it was marked for relocation, and this was a safe time per this job's Disruption Budget");
         }
 
         if (isRelocationRequiredBy(job, task)) {
             long jobTimestamp = getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY);
             long taskTimestamp = getTaskCreateTimestamp(task);
             if (jobTimestamp >= taskTimestamp) {
-                return Optional.of("Job tagged for relocation for tasks created before " + DateTimeExt.toUtcDateTimeString(jobTimestamp));
+                return Optional.of("Task terminated because tasks before " + DateTimeExt.toUtcDateTimeString(jobTimestamp) + " were marked for relocation");
             }
         }
 
         if (instance.isRelocationRequired()) {
-            return Optional.of("Agent instance tagged for eviction");
+            return Optional.of("Task terminated because the underlying Titus Agent was tagged for eviction, and this was a safe time per this job's Disruption Budget");
         }
 
         if (instance.isServerGroupRelocationRequired()) {
-            return Optional.of("Agent instance group tagged for eviction");
+            return Optional.of("Task terminated because the underlying Titus Agent instance group tagged for eviction, and this was a safe time per this job's Disruption Budget");
         }
 
         return Optional.empty();
@@ -81,15 +81,15 @@ public class RelocationPredicates {
 
     public static Optional<Pair<RelocationTrigger, String>> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, Node instance) {
         if (instance.isRelocationRequiredImmediately()) {
-            return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent instance tagged for immediate eviction"));
+            return Optional.of(Pair.of(RelocationTrigger.Instance, "Task terminated because the underlying Titus Agent was tagged for immediate eviction, regardless of the Disruption Budget"));
         }
 
         if (isRelocationRequiredImmediately(task)) {
-            return Optional.of(Pair.of(RelocationTrigger.Task, "Task marked for immediate eviction"));
+            return Optional.of(Pair.of(RelocationTrigger.Task, "Task terminated because the it was marked for immediate eviction, regardless of the Disruption Budget"));
         }
 
         if (isRelocationRequiredByImmediately(job, task)) {
-            return Optional.of(Pair.of(RelocationTrigger.Job, "Job marked for immediate eviction"));
+            return Optional.of(Pair.of(RelocationTrigger.Job, "Task terminated because the whole job was marked for immediate eviction, regardless of the Disruption Budget"));
         }
 
         return Optional.empty();
@@ -97,12 +97,12 @@ public class RelocationPredicates {
 
     public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task) {
         if (isRelocationRequired(task)) {
-            return Optional.of(Pair.of(RelocationTrigger.Task, "Task marked for eviction"));
+            return Optional.of(Pair.of(RelocationTrigger.Task, "Task terminated because the it was marked for eviction, and this was a safe time per this job's Disruption Budget"));
         }
 
         if (isRelocationRequiredBy(job, task)) {
             long timestamp = getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY);
-            return Optional.of(Pair.of(RelocationTrigger.Job, String.format("Job tasks created before %s marked for eviction", DateTimeExt.toUtcDateTimeString(timestamp))));
+            return Optional.of(Pair.of(RelocationTrigger.Job, String.format("Job's tasks terminated because tasks launched before %s were marked for relocation", DateTimeExt.toUtcDateTimeString(timestamp))));
         }
 
         return Optional.empty();
@@ -110,7 +110,7 @@ public class RelocationPredicates {
 
     public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task, Node instance) {
         if (instance.isRelocationRequired()) {
-            return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent tagged for eviction"));
+            return Optional.of(Pair.of(RelocationTrigger.Instance, "Task terminated because the underlying Titus Agent was tagged for eviction, and this was a safe time per this job's Disruption Budget"));
         }
         return checkIfRelocationRequired(job, task);
     }

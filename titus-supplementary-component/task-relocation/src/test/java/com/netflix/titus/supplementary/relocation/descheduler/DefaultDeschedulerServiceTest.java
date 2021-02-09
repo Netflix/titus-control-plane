@@ -118,7 +118,7 @@ public class DefaultDeschedulerServiceTest {
             TaskRelocationPlan plan = result.getTaskRelocationPlan();
             assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
             if (isImmediateJobMigration) {
-                assertThat(plan.getReasonMessage()).containsSequence("Job marked for immediate eviction");
+                assertThat(plan.getReasonMessage()).containsSequence("Task terminated because the whole job was marked for immediate eviction, regardless of the Disruption Budget");
             } else {
                 assertThat(plan.getReasonMessage()).containsSequence("Enough quota to migrate the task");
             }

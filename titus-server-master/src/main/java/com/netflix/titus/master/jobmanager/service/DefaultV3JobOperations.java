@@ -472,8 +472,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
-                    String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"),
-                            Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
+                    String reason = String.format("%s %s shrink=%s", Evaluators.getOrDefault(callMetadata.getCallReason(), "No reason specified"),
+                            Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"),
+                            shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
                             engineChildPair.getLeft(), vmService, kubeApiServerIntegrator, store, task.getId(), shrink, preventMinSizeUpdate, reasonCode, reason, titusRuntime, callMetadata
                     );

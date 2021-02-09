@@ -87,7 +87,7 @@ public class TaskEvictionStep {
                 .collect(Collectors.toMap(
                         TaskRelocationPlan::getTaskId,
                         p -> {
-                            String message = String.format("%s: reasonCode=%s, plannedRelocationTime=%s",
+                            String message = String.format("%s reasonCode=%s plannedRelocationTime=%s",
                                     p.getReasonMessage(), p.getReason(), DateTimeExt.toUtcDateTimeString(p.getRelocationTime())
                             );
                             return evictionServiceClient.terminateTask(p.getTaskId(), message).timeout(EVICTION_TIMEOUT);
