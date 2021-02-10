@@ -19,6 +19,7 @@ package com.netflix.titus.supplementary.relocation.workflow;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
@@ -37,6 +38,11 @@ public class TaskRelocationWorkflowComponent {
     @Bean
     public RelocationConfiguration getRelocationConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(RelocationConfiguration.class, environment);
+    }
+
+    @Bean
+    public EvictionConfiguration getEvictionConfiguration(Environment environment) {
+        return Archaius2Ext.newConfiguration(EvictionConfiguration.class, environment);
     }
 
     @Bean
@@ -66,11 +72,11 @@ public class TaskRelocationWorkflowComponent {
 
     @Bean
     public NodeConditionController getNodeConditionCtrl(RelocationConfiguration configuration,
-                                                               NodeDataResolver nodeDataResolver,
-                                                               JobDataReplicator jobDataReplicator,
-                                                               ReadOnlyJobOperations readOnlyJobOperations,
-                                                               JobManagementClient jobManagementClient,
-                                                               TitusRuntime titusRuntime) {
+                                                        NodeDataResolver nodeDataResolver,
+                                                        JobDataReplicator jobDataReplicator,
+                                                        ReadOnlyJobOperations readOnlyJobOperations,
+                                                        JobManagementClient jobManagementClient,
+                                                        TitusRuntime titusRuntime) {
         return new DefaultNodeConditionController(configuration, nodeDataResolver,
                 jobDataReplicator, readOnlyJobOperations, jobManagementClient, titusRuntime);
     }
