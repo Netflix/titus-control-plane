@@ -66,6 +66,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFacto
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
@@ -548,14 +549,16 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
-        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(taskInfoRequest.getJob().getJobDescriptor(), capacityGroupManagement).toLowerCase();
         Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
-                capacityGroup, taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
+                taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
                 mesosConfiguration.isJobDescriptorAnnotationEnabled());
+
+        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(taskInfoRequest.getJob().getJobDescriptor(), capacityGroupManagement).toLowerCase();
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
-                .annotations(annotations);
+                .annotations(annotations)
+                .labels(Collections.singletonMap(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup));
 
         V1Container container = new V1Container()
                 .name(taskId)
