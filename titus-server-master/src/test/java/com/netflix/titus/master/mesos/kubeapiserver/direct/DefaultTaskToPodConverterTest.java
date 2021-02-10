@@ -280,7 +280,7 @@ public class DefaultTaskToPodConverterTest {
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
         V1Pod pod = converter.apply(job, task);
 
-        assertThat(pod.getMetadata().getAnnotations()).containsEntry(
+        assertThat(pod.getMetadata().getLabels()).containsEntry(
                 KubeConstants.LABEL_CAPACITY_GROUP, "mygroup"
         );
     }

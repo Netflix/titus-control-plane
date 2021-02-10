@@ -153,8 +153,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     public V1Pod apply(Job<?> job, Task task) {
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = buildContainerInfo(job, task);
-        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
-        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, capacityGroup, containerInfo.toByteArray(),
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, containerInfo.toByteArray(),
                 containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 
         Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);
@@ -163,6 +162,10 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         Map<String, String> labels = new HashMap<>();
         labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
         labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
+
+        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
+        labels.put(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup);
+
         if (configuration.isBytePodResourceEnabled()) {
             labels.put(KubeConstants.POD_LABEL_BYTE_UNITS, "true");
         }
