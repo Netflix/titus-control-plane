@@ -25,6 +25,8 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 
 import static com.netflix.titus.master.kubernetes.controller.NodeGcController.NODE_GC_CONTROLLER;
+import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeClaimGcController.PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER;
+import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeReclaimController.PERSISTENT_VOLUME_RECLAIM_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeUnassociatedGcController.PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PodDeletionGcController.POD_DELETION_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PodOnUnknownNodeGcController.POD_ON_UNKNOWN_NODE_GC_CONTROLLER;
@@ -41,6 +43,8 @@ public class KubeControllerModule extends AbstractModule {
         bind(PodTerminalGcController.class).asEagerSingleton();
         bind(PodUnknownGcController.class).asEagerSingleton();
         bind(PersistentVolumeUnassociatedGcController.class).asEagerSingleton();
+        bind(PersistentVolumeClaimGcController.class).asEagerSingleton();
+        bind(PersistentVolumeReclaimController.class).asEagerSingleton();
     }
 
     @Provides
@@ -131,5 +135,33 @@ public class KubeControllerModule extends AbstractModule {
     @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER)
     public ControllerConfiguration getPersistentVolumeUnassociatedGcControllerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(ControllerConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER);
+    }
+
+    @Provides
+    @Singleton
+    @Named(PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER)
+    public FixedIntervalTokenBucketConfiguration getPersistentVolumeClaimGcControllerTokenBucketConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER);
+    }
+
+    @Provides
+    @Singleton
+    @Named(PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER)
+    public ControllerConfiguration getPersistentVolumeClaimGcControllerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ControllerConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER);
+    }
+
+    @Provides
+    @Singleton
+    @Named(PERSISTENT_VOLUME_RECLAIM_CONTROLLER)
+    public FixedIntervalTokenBucketConfiguration getPersistentVolumeReclaimControllerTokenBucketConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_RECLAIM_CONTROLLER);
+    }
+
+    @Provides
+    @Singleton
+    @Named(PERSISTENT_VOLUME_RECLAIM_CONTROLLER)
+    public ControllerConfiguration getPersistentVolumeReclaimControllerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ControllerConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_RECLAIM_CONTROLLER);
     }
 }

@@ -20,10 +20,18 @@ import java.util.List;
 import java.util.Map;
 
 import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.openapi.models.V1CSIPersistentVolumeSource;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1ObjectReference;
+import io.kubernetes.client.openapi.models.V1PersistentVolume;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimSpec;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimStatus;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeSpec;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
@@ -104,6 +112,70 @@ public final class KubeObjectFormatter {
                 builder.setLength(builder.length() - 2);
                 builder.append("}");
             }
+        }
+
+        builder.append("}");
+        return builder.toString();
+    }
+
+    public static String formatPvEssentials(V1PersistentVolume pv) {
+        try {
+            return formatPvEssentialsInternal(pv);
+        } catch (Exception e) {
+            return "pv formatting error: " + e.getMessage();
+        }
+    }
+
+    private static String formatPvEssentialsInternal(V1PersistentVolume pv) {
+        StringBuilder builder = new StringBuilder("{");
+
+        appendMetadata(builder, pv.getMetadata());
+
+        V1PersistentVolumeSpec spec = pv.getSpec();
+        if (spec != null) {
+            V1CSIPersistentVolumeSource csi = spec.getCsi();
+            if (csi != null) {
+                builder.append(", volume=").append(csi.getVolumeHandle());
+                builder.append(", driver=").append(csi.getDriver());
+            }
+
+            V1ObjectReference claimRef = spec.getClaimRef();
+            if (claimRef != null) {
+                builder.append(", claimRef=").append(claimRef.getName());
+            }
+        }
+
+        V1PersistentVolumeStatus status = pv.getStatus();
+        if (status != null) {
+            builder.append(", phase=").append(status.getPhase());
+            builder.append("null");
+        }
+
+        builder.append("}");
+        return builder.toString();
+    }
+
+    public static String formatPvcEssentials(V1PersistentVolumeClaim pvc) {
+        try {
+            return formatPvcEssentialsInternal(pvc);
+        } catch (Exception e) {
+            return "pvc formatting error: " + e.getMessage();
+        }
+    }
+
+    private static String formatPvcEssentialsInternal(V1PersistentVolumeClaim pvc) {
+        StringBuilder builder = new StringBuilder("{");
+
+        appendMetadata(builder, pvc.getMetadata());
+
+        V1PersistentVolumeClaimSpec spec = pvc.getSpec();
+        if (spec != null) {
+            builder.append(", volume=").append(spec.getVolumeName());
+        }
+
+        V1PersistentVolumeClaimStatus status =pvc.getStatus();
+        if (status != null) {
+            builder.append(", phase=").append(status.getPhase());
         }
 
         builder.append("}");

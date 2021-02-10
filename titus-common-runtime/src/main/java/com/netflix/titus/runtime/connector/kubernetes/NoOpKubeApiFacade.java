@@ -23,6 +23,7 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 public class NoOpKubeApiFacade implements KubeApiFacade {
@@ -54,6 +55,11 @@ public class NoOpKubeApiFacade implements KubeApiFacade {
 
     @Override
     public SharedIndexInformer<V1PersistentVolume> getPersistentVolumeInformer() {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public SharedIndexInformer<V1PersistentVolumeClaim> getPersistentVolumeClaimInformer() {
         throw new IllegalStateException("Kubernetes not supported");
     }
 
