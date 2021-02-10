@@ -29,14 +29,12 @@ import java.util.regex.Pattern;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
-import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
@@ -197,23 +195,39 @@ class TaskMigrationDescheduler {
             return FITNESS_RESULT_NONE;
         }
 
-        long terminateLimit = Math.min(tasks.size(), evictionQuotaTracker.getSystemEvictionQuota());
-        if (terminateLimit <= 0) {
-            return FITNESS_RESULT_NONE;
+        boolean systemWindowOpen = evictionQuotaTracker.isSystemDisruptionWindowOpen();
+        long availableTerminationLimit;
+        if (systemWindowOpen) {
+            availableTerminationLimit = Math.min(tasks.size(), evictionQuotaTracker.getSystemEvictionQuota());
+            if (availableTerminationLimit <= 0) {
+                return FITNESS_RESULT_NONE;
+            }
+        } else {
+            // system window is closed, we'll need to inspect eligible jobs to pick up during closed window
+            availableTerminationLimit = tasks.size();
         }
+
 
         Map<String, List<Task>> chosen = new HashMap<>();
         List<Task> chosenList = new ArrayList<>();
+
         for (Task task : tasks) {
             if (canTerminate(task)) {
                 String jobId = task.getJobId();
-                long quota = evictionQuotaTracker.getJobEvictionQuota(jobId);
-                long used = chosen.getOrDefault(jobId, Collections.emptyList()).size();
-                if ((quota - used) > 0) {
-                    chosen.computeIfAbsent(jobId, jid -> new ArrayList<>()).add(task);
-                    chosenList.add(task);
-                    if (terminateLimit <= chosenList.size()) {
-                        break;
+                Job<?> job = jobsById.get(jobId);
+
+                // if window is closed, then only pick up jobs that are exempt
+                boolean continueWithJobQuotaCheck = systemWindowOpen || isJobExemptFromSystemDisruptionWindow(job);
+                if (continueWithJobQuotaCheck) {
+                    // applying job eviction quota
+                    long quota = evictionQuotaTracker.getJobEvictionQuota(jobId);
+                    long used = chosen.getOrDefault(jobId, Collections.emptyList()).size();
+                    if ((quota - used) > 0) {
+                        chosen.computeIfAbsent(jobId, jid -> new ArrayList<>()).add(task);
+                        chosenList.add(task);
+                        if (availableTerminationLimit <= chosenList.size()) {
+                            break;
+                        }
                     }
                 }
             }
@@ -245,13 +259,15 @@ class TaskMigrationDescheduler {
         return relocationPlan.getRelocationTime() <= clock.wallTime();
     }
 
-    private boolean isSystemEvictionQuotaAvailable(Job<?>job) {
-        boolean skipSystemDisruptionBudget = appsExemptFromSystemDisruptionBudgetMatcherFactory
-                .apply(job.getJobDescriptor().getApplicationName()).matches();
-
-        if (!skipSystemDisruptionBudget) {
-            return evictionQuotaTracker.getSystemEvictionQuota() > 0;
+    private boolean isSystemEvictionQuotaAvailable(Job<?> job) {
+        boolean skipSystemWindowCheck = isJobExemptFromSystemDisruptionWindow(job);
+        if (evictionQuotaTracker.getSystemEvictionQuota() <= 0) {
+            return !evictionQuotaTracker.isSystemDisruptionWindowOpen() && skipSystemWindowCheck;
         }
         return true;
+    }
+
+    private boolean isJobExemptFromSystemDisruptionWindow(Job<?> job) {
+        return appsExemptFromSystemDisruptionBudgetMatcherFactory.apply(job.getJobDescriptor().getApplicationName()).matches();
     }
 }

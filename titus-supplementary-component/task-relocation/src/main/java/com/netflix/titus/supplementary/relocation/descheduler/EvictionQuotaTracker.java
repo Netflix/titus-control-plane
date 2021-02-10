@@ -23,14 +23,25 @@ import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.model.reference.Reference;
+import com.netflix.titus.runtime.connector.eviction.EvictionRejectionReasons;
 
 class EvictionQuotaTracker {
 
     private final Map<String, Long> jobEvictionQuotas = new HashMap<>();
     private long systemEvictionQuota;
+    private boolean systemDisruptionWindowOpen = true;
 
     EvictionQuotaTracker(ReadOnlyEvictionOperations evictionOperations, Map<String, Job<?>> jobs) {
-        this.systemEvictionQuota = evictionOperations.getEvictionQuota(Reference.system()).getQuota();
+        EvictionQuota systemEvictionQuotaObj = evictionOperations.getEvictionQuota(Reference.system());
+        this.systemEvictionQuota = systemEvictionQuotaObj.getQuota();
+
+        if (systemEvictionQuota == 0) {
+            String evictionQuotaMessage = systemEvictionQuotaObj.getMessage();
+            if (evictionQuotaMessage.equals(EvictionRejectionReasons.SYSTEM_WINDOW_CLOSED.getReasonMessage())) {
+                systemDisruptionWindowOpen = false;
+            }
+        }
+
         jobs.forEach((id, job) ->
                 jobEvictionQuotas.put(id, evictionOperations.findEvictionQuota(Reference.job(id)).map(EvictionQuota::getQuota).orElse(0L))
         );
@@ -38,6 +49,10 @@ class EvictionQuotaTracker {
 
     long getSystemEvictionQuota() {
         return systemEvictionQuota;
+    }
+
+    boolean isSystemDisruptionWindowOpen() {
+        return systemDisruptionWindowOpen;
     }
 
     long getJobEvictionQuota(String jobId) {
