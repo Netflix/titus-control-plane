@@ -22,7 +22,7 @@ public class TitusQuotasManagerTest {
 
         Job<BatchJobExt> job1 = JobGenerator.oneBatchJob().but(withApplicationName("app1Test"));
         EvictionConfiguration config1 = mock(EvictionConfiguration.class);
-        when(config1.getAppsExemptFromSystemDisruptionBudget()).thenReturn("app1.*");
+        when(config1.getAppsExemptFromSystemDisruptionWindow()).thenReturn("app1.*");
         SystemQuotaController systemQuotaController = mock(SystemQuotaController.class);
         when(systemQuotaController.consume(taskId)).thenReturn(ConsumptionResult.approved());
         JobQuotaController jobQuotaController = mock(JobQuotaController.class);
@@ -55,18 +55,18 @@ public class TitusQuotasManagerTest {
     }
 
     @Test
-    public void isJobExemptFromSystemDisruptionBudget() {
+    public void isJobExemptFromSystemDisruptionWindow() {
         Job<BatchJobExt> job1 = JobGenerator.oneBatchJob().but(withApplicationName("app1Test"));
 
         EvictionConfiguration config1 = mock(EvictionConfiguration.class);
-        when(config1.getAppsExemptFromSystemDisruptionBudget()).thenReturn("app1.*");
+        when(config1.getAppsExemptFromSystemDisruptionWindow()).thenReturn("app1.*");
         TitusQuotasManager titusQuotasManager = new TitusQuotasManager(null, null, null, null,
                 config1, null);
         boolean jobExemptFromSystemDisruptionBudget = titusQuotasManager.isJobExemptFromSystemDisruptionWindow(job1);
         assertThat(jobExemptFromSystemDisruptionBudget).isTrue();
 
         EvictionConfiguration config2 = mock(EvictionConfiguration.class);
-        when(config2.getAppsExemptFromSystemDisruptionBudget()).thenReturn("app2.*");
+        when(config2.getAppsExemptFromSystemDisruptionWindow()).thenReturn("app2.*");
         TitusQuotasManager titusQuotasManager2 = new TitusQuotasManager(null, null, null, null,
                 config2, null);
         boolean jobExemptFromSystemDisruptionBudget2 = titusQuotasManager2.isJobExemptFromSystemDisruptionWindow(job1);
