@@ -67,7 +67,7 @@ class TaskMigrationDescheduler {
     private final Map<String, Job<?>> jobsById;
     private final Map<String, Task> tasksById;
     private final Clock clock;
-    private final Function<String, Matcher> appsExemptFromSystemDisruptionBudgetMatcherFactory;
+    private final Function<String, Matcher> appsExemptFromSystemDisruptionWindowMatcherFactory;
 
     TaskMigrationDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans,
                              EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker,
@@ -81,8 +81,8 @@ class TaskMigrationDescheduler {
         this.evictionQuotaTracker = evictionQuotaTracker;
         this.jobsById = jobsById;
         this.tasksById = tasksById;
-        this.appsExemptFromSystemDisruptionBudgetMatcherFactory = RegExpExt.dynamicMatcher(evictionConfiguration::getAppsExemptFromSystemDisruptionBudget,
-                "titus.eviction.appsExemptFromSystemDisruptionBudget", Pattern.DOTALL, logger);
+        this.appsExemptFromSystemDisruptionWindowMatcherFactory = RegExpExt.dynamicMatcher(evictionConfiguration::getAppsExemptFromSystemDisruptionWindow,
+                "titus.eviction.appsExemptFromSystemDisruptionWindow", Pattern.DOTALL, logger);
         this.clock = titusRuntime.getClock();
     }
 
@@ -126,10 +126,6 @@ class TaskMigrationDescheduler {
     }
 
     Optional<Pair<Node, List<Task>>> nextBestMatch() {
-        if (evictionQuotaTracker.getSystemEvictionQuota() <= 0) {
-            return Optional.empty();
-        }
-
         return evacuatedAgentsAllocationTracker.getRemovableAgentsById().values().stream()
                 .map(i -> Pair.of(i, computeFitness(i)))
                 .filter(p -> p.getRight().getLeft() > 0)
@@ -203,7 +199,7 @@ class TaskMigrationDescheduler {
                 return FITNESS_RESULT_NONE;
             }
         } else {
-            // system window is closed, we'll need to inspect eligible jobs to pick up during closed window
+            // system window is closed, we'll need to inspect all eligible jobs during closed window
             availableTerminationLimit = tasks.size();
         }
 
@@ -268,6 +264,6 @@ class TaskMigrationDescheduler {
     }
 
     private boolean isJobExemptFromSystemDisruptionWindow(Job<?> job) {
-        return appsExemptFromSystemDisruptionBudgetMatcherFactory.apply(job.getJobDescriptor().getApplicationName()).matches();
+        return appsExemptFromSystemDisruptionWindowMatcherFactory.apply(job.getJobDescriptor().getApplicationName()).matches();
     }
 }

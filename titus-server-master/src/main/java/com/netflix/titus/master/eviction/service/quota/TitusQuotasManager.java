@@ -72,7 +72,7 @@ public class TitusQuotasManager {
     private final ConcurrentMap<String, JobQuotaController> jobQuotaControllersByJobId = new ConcurrentHashMap<>();
 
     private final Object lock = new Object();
-    private final Function<String, Matcher> appsExemptFromSystemDisruptionBudgetMatcherFactory;
+    private final Function<String, Matcher> appsExemptFromSystemDisruptionWindowMatcherFactory;
 
     private Disposable jobUpdateDisposable;
 
@@ -87,8 +87,8 @@ public class TitusQuotasManager {
         this.containerHealthService = containerHealthService;
         this.systemQuotaController = systemQuotaController;
         this.jobOperations = jobOperations;
-        this.appsExemptFromSystemDisruptionBudgetMatcherFactory = RegExpExt.dynamicMatcher(evictionConfiguration::getAppsExemptFromSystemDisruptionBudget,
-                "titus.eviction.appsExemptFromSystemDisruptionBudget", Pattern.DOTALL, logger);
+        this.appsExemptFromSystemDisruptionWindowMatcherFactory = RegExpExt.dynamicMatcher(evictionConfiguration::getAppsExemptFromSystemDisruptionWindow,
+                "titus.eviction.appsExemptFromSystemDisruptionWindow", Pattern.DOTALL, logger);
         this.titusRuntime = titusRuntime;
     }
 
@@ -160,7 +160,7 @@ public class TitusQuotasManager {
         synchronized (lock) {
             ConsumptionResult jobResult = jobQuotaController.consume(taskId);
             ConsumptionResult systemResult = systemQuotaController.consume(taskId);
-            if (isJobExemptFromSystemDisruptionBudget(job)) {
+            if (isJobExemptFromSystemDisruptionWindow(job)) {
                 if (!systemResult.isApproved() &&
                         systemResult.getRejectionReason().isPresent() &&
                         systemResult.getRejectionReason().get().equals(OUTSIDE_SYSTEM_TIME_WINDOW.getRejectionReason().get())) {
@@ -190,8 +190,8 @@ public class TitusQuotasManager {
     }
 
     @VisibleForTesting
-    boolean isJobExemptFromSystemDisruptionBudget(Job<?> job) {
+    boolean isJobExemptFromSystemDisruptionWindow(Job<?> job) {
         String applicationName = job.getJobDescriptor().getApplicationName();
-        return appsExemptFromSystemDisruptionBudgetMatcherFactory.apply(applicationName).matches();
+        return appsExemptFromSystemDisruptionWindowMatcherFactory.apply(applicationName).matches();
     }
 }

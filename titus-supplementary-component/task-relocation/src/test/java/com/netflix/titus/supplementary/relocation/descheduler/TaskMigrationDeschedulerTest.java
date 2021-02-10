@@ -140,7 +140,6 @@ public class TaskMigrationDeschedulerTest {
         List<Node> removableAgents = nodeDataResolver.resolve().values().stream()
                 .filter(n -> n.getServerGroupId().equals("removable1"))
                 .collect(Collectors.toList());
-        ;
         String agent1 = removableAgents.get(0).getId();
         String agent2 = removableAgents.get(1).getId();
         List<Task> tasksOfJob1 = jobOperations.getTasks("job1");
@@ -151,6 +150,24 @@ public class TaskMigrationDeschedulerTest {
         Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isPresent();
         assertThat(results.get().getLeft().getId()).isEqualTo(agent2);
+
+        EvictionQuotaTracker evictionQuotaTracker = mock(EvictionQuotaTracker.class);
+        when(evictionQuotaTracker.getSystemEvictionQuota()).thenReturn(0L);
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(true);
+        when(evictionQuotaTracker.getJobEvictionQuota("job1")).thenReturn(1L);
+
+        TaskMigrationDescheduler taskMigrationDescheduler = newDescheduler(evictionQuotaTracker, () -> "app1*");
+        Optional<Pair<Node, List<Task>>> results2 = taskMigrationDescheduler.nextBestMatch();
+        assertThat(results2).isNotPresent();
+
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(false);
+        Optional<Pair<Node, List<Task>>> results3 = taskMigrationDescheduler.nextBestMatch();
+        assertThat(results3).isPresent();
+        assertThat(results3.get().getLeft().getId()).isEqualTo(agent2);
+
+        // job1 (app1) not exempt from system disruption window
+        Optional<Pair<Node, List<Task>>> results4 = newDescheduler(evictionQuotaTracker, () -> "foo*").nextBestMatch();
+        assertThat(results4).isNotPresent();
     }
 
     @Test
@@ -192,13 +209,11 @@ public class TaskMigrationDeschedulerTest {
     public void testSystemQuotaExemption() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
         dataGenerator.place("active1", job1Task0);
-        dataGenerator.setQuota("job1", 1);
         dataGenerator.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
-
-        clock.advanceTime(Duration.ofSeconds(1));
 
         EvictionQuotaTracker evictionQuotaTracker = mock(EvictionQuotaTracker.class);
         when(evictionQuotaTracker.getSystemEvictionQuota()).thenReturn(0L);
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(false);
         when(evictionQuotaTracker.getJobEvictionQuota("job1")).thenReturn(1L);
 
         Map<String, DeschedulingResult> results = newDescheduler(evictionQuotaTracker, () -> "app2").findRequestedJobOrTaskMigrations();
@@ -206,6 +221,11 @@ public class TaskMigrationDeschedulerTest {
 
         Map<String, DeschedulingResult> results2 = newDescheduler(evictionQuotaTracker, () -> "app1").findRequestedJobOrTaskMigrations();
         assertThat(results2).isNotEmpty();
+
+        // system window open with quota = 0
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(true);
+        Map<String, DeschedulingResult> results3 = newDescheduler(evictionQuotaTracker, () -> "app1").findRequestedJobOrTaskMigrations();
+        assertThat(results3).isEmpty();
     }
 
     @Test
@@ -222,6 +242,7 @@ public class TaskMigrationDeschedulerTest {
 
     private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
         Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
+        //noinspection unchecked
         return new TaskMigrationDescheduler(
                 plannedAheadTaskRelocationPlans,
                 new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById),
@@ -234,6 +255,7 @@ public class TaskMigrationDeschedulerTest {
 
     private TaskMigrationDescheduler newDescheduler(EvictionQuotaTracker evictionQuotaTracker, EvictionConfiguration evictionConfiguration) {
         Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
+        //noinspection unchecked
         return new TaskMigrationDescheduler(
                 Collections.emptyMap(),
                 new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById),

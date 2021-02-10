@@ -62,14 +62,14 @@ public class TitusQuotasManagerTest {
         when(config1.getAppsExemptFromSystemDisruptionBudget()).thenReturn("app1.*");
         TitusQuotasManager titusQuotasManager = new TitusQuotasManager(null, null, null, null,
                 config1, null);
-        boolean jobExemptFromSystemDisruptionBudget = titusQuotasManager.isJobExemptFromSystemDisruptionBudget(job1);
+        boolean jobExemptFromSystemDisruptionBudget = titusQuotasManager.isJobExemptFromSystemDisruptionWindow(job1);
         assertThat(jobExemptFromSystemDisruptionBudget).isTrue();
 
         EvictionConfiguration config2 = mock(EvictionConfiguration.class);
         when(config2.getAppsExemptFromSystemDisruptionBudget()).thenReturn("app2.*");
         TitusQuotasManager titusQuotasManager2 = new TitusQuotasManager(null, null, null, null,
                 config2, null);
-        boolean jobExemptFromSystemDisruptionBudget2 = titusQuotasManager2.isJobExemptFromSystemDisruptionBudget(job1);
+        boolean jobExemptFromSystemDisruptionBudget2 = titusQuotasManager2.isJobExemptFromSystemDisruptionWindow(job1);
         assertThat(jobExemptFromSystemDisruptionBudget2).isFalse();
     }
 }

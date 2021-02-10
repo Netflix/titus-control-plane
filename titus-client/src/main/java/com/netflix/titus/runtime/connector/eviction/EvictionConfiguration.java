@@ -11,7 +11,7 @@ public interface EvictionConfiguration {
      * Pattern identifying application names that will be exempt from system disruption budget constraints
      */
     @DefaultValue("titusOps")
-    String getAppsExemptFromSystemDisruptionBudget();
+    String getAppsExemptFromSystemDisruptionWindow();
 }
 
 
