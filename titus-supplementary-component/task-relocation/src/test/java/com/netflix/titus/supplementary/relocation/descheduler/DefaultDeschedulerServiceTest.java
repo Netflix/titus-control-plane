@@ -34,6 +34,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
@@ -87,6 +88,7 @@ public class DefaultDeschedulerServiceTest {
             new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator, instance -> true,
                     mock(RelocationConfiguration.class),
                     TestDataFactory.mockKubeApiFacade()),
+            () -> "foo|bar",
             titusRuntime
     );
 

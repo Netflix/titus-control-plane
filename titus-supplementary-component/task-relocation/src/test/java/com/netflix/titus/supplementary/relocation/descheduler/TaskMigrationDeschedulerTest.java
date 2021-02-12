@@ -38,6 +38,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.RelocationAttributes;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
@@ -49,6 +50,7 @@ import org.junit.Test;
 
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withApplicationName;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withDisruptionBudget;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
@@ -59,6 +61,8 @@ import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobTestFunctions.toTaskMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TaskMigrationDeschedulerTest {
 
@@ -78,13 +82,14 @@ public class TaskMigrationDeschedulerTest {
     private final RelocationConnectorStubs dataGenerator = new RelocationConnectorStubs()
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("active1"), inState(InstanceGroupLifecycleState.Active)))
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("removable1"), inState(InstanceGroupLifecycleState.Removable)))
-            .addJob(jobGenerator.getValue().but(withJobId("job1")))
+            .addJob(jobGenerator.getValue().but(withJobId("job1")).but(withApplicationName("app1")))
             .addJob(jobGenerator.getValue().but(withJobId("job2")))
             .addJob(jobGenerator.getValue().but(withJobId("jobToMigrate")));
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
 
     private final NodeDataResolver nodeDataResolver = dataGenerator.getNodeDataResolver();
+
 
     @Test
     public void testImmediateMigrations() {
@@ -133,7 +138,7 @@ public class TaskMigrationDeschedulerTest {
     public void testFitness() {
         List<Node> removableAgents = nodeDataResolver.resolve().values().stream()
                 .filter(n -> n.getServerGroupId().equals("removable1"))
-                .collect(Collectors.toList());;
+                .collect(Collectors.toList());
         String agent1 = removableAgents.get(0).getId();
         String agent2 = removableAgents.get(1).getId();
         List<Task> tasksOfJob1 = jobOperations.getTasks("job1");
@@ -144,6 +149,24 @@ public class TaskMigrationDeschedulerTest {
         Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isPresent();
         assertThat(results.get().getLeft().getId()).isEqualTo(agent2);
+
+        EvictionQuotaTracker evictionQuotaTracker = mock(EvictionQuotaTracker.class);
+        when(evictionQuotaTracker.getSystemEvictionQuota()).thenReturn(0L);
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(true);
+        when(evictionQuotaTracker.getJobEvictionQuota("job1")).thenReturn(1L);
+
+        TaskMigrationDescheduler taskMigrationDescheduler = newDescheduler(evictionQuotaTracker, () -> "app1*");
+        Optional<Pair<Node, List<Task>>> results2 = taskMigrationDescheduler.nextBestMatch();
+        assertThat(results2).isNotPresent();
+
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(false);
+        Optional<Pair<Node, List<Task>>> results3 = taskMigrationDescheduler.nextBestMatch();
+        assertThat(results3).isPresent();
+        assertThat(results3.get().getLeft().getId()).isEqualTo(agent2);
+
+        // job1 (app1) not exempt from system disruption window
+        Optional<Pair<Node, List<Task>>> results4 = newDescheduler(evictionQuotaTracker, () -> "foo*").nextBestMatch();
+        assertThat(results4).isNotPresent();
     }
 
     @Test
@@ -182,6 +205,29 @@ public class TaskMigrationDeschedulerTest {
     }
 
     @Test
+    public void testSystemQuotaExemption() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+        dataGenerator.place("active1", job1Task0);
+        dataGenerator.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
+
+        EvictionQuotaTracker evictionQuotaTracker = mock(EvictionQuotaTracker.class);
+        when(evictionQuotaTracker.getSystemEvictionQuota()).thenReturn(0L);
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(false);
+        when(evictionQuotaTracker.getJobEvictionQuota("job1")).thenReturn(1L);
+
+        Map<String, DeschedulingResult> results = newDescheduler(evictionQuotaTracker, () -> "app2").findRequestedJobOrTaskMigrations();
+        assertThat(results).isEmpty();
+
+        Map<String, DeschedulingResult> results2 = newDescheduler(evictionQuotaTracker, () -> "app1").findRequestedJobOrTaskMigrations();
+        assertThat(results2).isNotEmpty();
+
+        // system window open with quota = 0
+        when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(true);
+        Map<String, DeschedulingResult> results3 = newDescheduler(evictionQuotaTracker, () -> "app1").findRequestedJobOrTaskMigrations();
+        assertThat(results3).isEmpty();
+    }
+
+    @Test
     public void testAgentInstanceRequiredMigration() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
         dataGenerator.place("active1", job1Task0);
@@ -195,13 +241,27 @@ public class TaskMigrationDeschedulerTest {
 
     private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
         Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
+        //noinspection unchecked
         return new TaskMigrationDescheduler(
                 plannedAheadTaskRelocationPlans,
                 new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById),
                 new EvictionQuotaTracker(dataGenerator.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
+                () -> "foo|bar",
                 jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
                 tasksById,
-                titusRuntime
-        );
+                titusRuntime);
+    }
+
+    private TaskMigrationDescheduler newDescheduler(EvictionQuotaTracker evictionQuotaTracker, EvictionConfiguration evictionConfiguration) {
+        Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
+        //noinspection unchecked
+        return new TaskMigrationDescheduler(
+                Collections.emptyMap(),
+                new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById),
+                evictionQuotaTracker,
+                evictionConfiguration,
+                jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
+                tasksById,
+                titusRuntime);
     }
 }

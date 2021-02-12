@@ -40,6 +40,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 
 import static com.netflix.titus.common.util.rx.ReactorRetriers.instrumentedRetryer;
+import static com.netflix.titus.master.eviction.service.quota.system.SystemQuotaConsumptionResults.OUTSIDE_SYSTEM_TIME_WINDOW;
+import static com.netflix.titus.master.eviction.service.quota.system.SystemQuotaConsumptionResults.QUOTA_LIMIT_EXCEEDED;
 
 @Singleton
 public class SystemQuotaController implements QuotaController<Void> {
@@ -50,10 +52,6 @@ public class SystemQuotaController implements QuotaController<Void> {
     private static final Duration DEFAULT_RETRY_INTERVAL = Duration.ofSeconds(5);
 
     private static final String NAME = "system";
-
-    private static final ConsumptionResult QUOTA_LIMIT_EXCEEDED = ConsumptionResult.rejected("System eviction quota limit exceeded");
-    private static final ConsumptionResult OUTSIDE_SYSTEM_TIME_WINDOW = ConsumptionResult.rejected("Outside system time window");
-
     private final TitusRuntime titusRuntime;
 
     private final SystemQuotaMetrics metrics;
