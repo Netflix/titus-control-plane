@@ -61,7 +61,6 @@ import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobTestFunctions.toTaskMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

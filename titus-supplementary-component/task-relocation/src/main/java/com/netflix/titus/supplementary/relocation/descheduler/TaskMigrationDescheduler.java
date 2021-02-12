@@ -115,7 +115,7 @@ class TaskMigrationDescheduler {
                     if (isSystemEvictionQuotaAvailable(job) && canTerminate(task)) {
                         long quota = evictionQuotaTracker.getJobEvictionQuota(task.getJobId());
                         if (quota > 0) {
-                            evictionQuotaTracker.consumeQuota(task.getJobId());
+                            evictionQuotaTracker.consumeQuota(task.getJobId(), isJobExemptFromSystemDisruptionWindow(job));
                             result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason.getRight()));
                         }
                     }
@@ -136,7 +136,13 @@ class TaskMigrationDescheduler {
 
                     tasks.forEach(task -> {
                         evacuatedAgentsAllocationTracker.descheduled(task);
-                        evictionQuotaTracker.consumeQuota(task.getJobId());
+                        Job<?> job = jobsById.get(task.getJobId());
+                        if (job != null) {
+                            evictionQuotaTracker.consumeQuota(task.getJobId(), isJobExemptFromSystemDisruptionWindow(job));
+                        } else {
+                            logger.warn("Missing job for ID = {}", task.getJobId());
+                            evictionQuotaTracker.consumeQuota(task.getJobId(), false);
+                        }
                     });
 
                     return Pair.of(agent, tasks);

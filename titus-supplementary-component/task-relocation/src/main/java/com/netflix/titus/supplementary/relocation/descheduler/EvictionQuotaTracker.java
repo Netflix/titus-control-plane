@@ -23,10 +23,13 @@ import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.model.reference.Reference;
+import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.runtime.connector.eviction.EvictionRejectionReasons;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class EvictionQuotaTracker {
-
+    private static final Logger logger = LoggerFactory.getLogger(EvictionConfiguration.class);
     private final Map<String, Long> jobEvictionQuotas = new HashMap<>();
     private long systemEvictionQuota;
     private boolean systemDisruptionWindowOpen = true;
@@ -41,9 +44,13 @@ class EvictionQuotaTracker {
                 systemDisruptionWindowOpen = false;
             }
         }
+        logger.debug("System Eviction Quota {}. System disruption window open ? {}", systemEvictionQuota, systemDisruptionWindowOpen);
 
-        jobs.forEach((id, job) ->
-                jobEvictionQuotas.put(id, evictionOperations.findEvictionQuota(Reference.job(id)).map(EvictionQuota::getQuota).orElse(0L))
+        jobs.forEach((id, job) -> {
+                    long jobEvictionQuota = evictionOperations.findEvictionQuota(Reference.job(id)).map(EvictionQuota::getQuota).orElse(0L);
+                    logger.debug("Job {} eviction quota {}", id, jobEvictionQuota);
+                    jobEvictionQuotas.put(id, jobEvictionQuota);
+                }
         );
     }
 
@@ -59,9 +66,11 @@ class EvictionQuotaTracker {
         return jobEvictionQuotas.getOrDefault(jobId, 0L);
     }
 
-    void consumeQuota(String jobId) {
+    void consumeQuota(String jobId, boolean isJobExemptFromSystemWindow) {
         if (systemEvictionQuota <= 0) {
-            throw DeschedulerException.noQuotaLeft("System quota is empty");
+            if (systemDisruptionWindowOpen || !isJobExemptFromSystemWindow) {
+                throw DeschedulerException.noQuotaLeft("System quota is empty");
+            }
         }
         if (!jobEvictionQuotas.containsKey(jobId)) {
             throw DeschedulerException.noQuotaLeft("Attempt to use quota for unknown job: jobId=%s", jobId);
@@ -75,7 +84,7 @@ class EvictionQuotaTracker {
     }
 
     /**
-     * An alternative version to {@link #consumeQuota(String)} which does not throw an exception if there is not
+     * An alternative version to {@link #consumeQuota(String, boolean)} which does not throw an exception if there is not
      * enough quota to relocate a task of a given job. This is used when the immediate relocation is required.
      */
     void consumeQuotaNoError(String jobId) {
