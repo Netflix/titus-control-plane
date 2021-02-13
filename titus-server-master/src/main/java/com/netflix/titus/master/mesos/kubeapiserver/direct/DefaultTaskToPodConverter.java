@@ -470,7 +470,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                             // The resource name matches the volume ID so that the resource is independent of the job.
                             .name(ebsVolume.getVolumeId())
                             .persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource()
-                                    .claimName(ebsVolume.getVolumeId()));
+                                    .claimName(KubeModelConverters.toPvcName(ebsVolume.getVolumeId(), task.getId())));
 
                     V1VolumeMount v1VolumeMount = new V1VolumeMount()
                             // The mount refers to the V1Volume being mounted

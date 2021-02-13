@@ -215,6 +215,7 @@ public class DefaultTaskToPodConverterTest {
                 .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName2)
                 .build();
 
+        String pvcName = KubeModelConverters.toPvcName(volName2, task.getId());
         assertThat(converter.buildV1VolumeInfo(job, task))
                 .isPresent()
                 .hasValueSatisfying(pair -> {
@@ -222,7 +223,7 @@ public class DefaultTaskToPodConverterTest {
                     V1VolumeMount v1VolumeMount = pair.getRight();
 
                     assertThat(v1Volume.getName()).isEqualTo(volName2);
-                    assertThat(v1Volume.getPersistentVolumeClaim().getClaimName()).isEqualTo(volName2);
+                    assertThat(v1Volume.getPersistentVolumeClaim().getClaimName()).isEqualTo(pvcName);
 
                     assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
                     assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);

@@ -41,9 +41,12 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPvEssentials;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 
+/**
+ * Garbage collects persistent volumes that are not associated with active/non-terminal jobs.
+ */
 @Singleton
 public class PersistentVolumeUnassociatedGcController extends BaseGcController<V1PersistentVolume> {
     private static final Logger logger = LoggerFactory.getLogger(PersistentVolumeUnassociatedGcController.class);
@@ -92,18 +95,15 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
                 .map(EbsVolume::getVolumeId)
                 .collect(Collectors.toSet());
         return kubeApiFacade.getPersistentVolumeInformer().getIndexer().list().stream()
+                // Only consider PVs that are available (i.e., not bound)
+                .filter(pv -> (pv.getStatus() == null ? "" : pv.getStatus().getPhase()).equalsIgnoreCase("Available"))
+                // Only consider PVs that are not associated with active jobs
                 .filter(pv -> isPersistentVolumeUnassociated(pv, currentEbsVolumes))
                 .collect(Collectors.toList());
     }
 
     @Override
     public boolean gcItem(V1PersistentVolume pv) {
-        // Delete the volume's PVC first
-        if (!gcPersistentVolumeClaim(pv)) {
-            // If we cannot delete the PVC then we did not successfully GC the volume.
-            // The PVC and PV will be part of a subsequent GC iteration.
-            return false;
-        }
         return gcPersistentVolume(pv);
     }
 
@@ -122,49 +122,17 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
                     null,
                     null
             );
-            logger.info("Successfully deleted persistent volume {}", volumeName);
+            logger.info("Successfully deleted persistent volume {}", formatPvEssentials(pv));
             return true;
         } catch (ApiException e) {
             if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
                 // If we did not find the PV return true as it is removed
-                logger.info("Delete for persistent volume {} not found", volumeName);
+                logger.info("Delete for persistent volume {} not found", formatPvEssentials(pv));
                 return true;
             }
-            logger.error("Failed to delete persistent volume: {} with error: ", volumeName, e);
+            logger.error("Failed to delete persistent volume: {} with error: ", formatPvEssentials(pv), e);
         } catch (Exception e) {
-            logger.error("Failed to delete persistent volume: {} with error: ", volumeName, e);
-        }
-        return false;
-    }
-
-    private boolean gcPersistentVolumeClaim(V1PersistentVolume pv) {
-        // We expect the PVCs name to match the PVs name
-        String volumeClaimName = KubeUtil.getMetadataName(pv.getMetadata());
-        try {
-            // If the PVC is deleted while still in use by a pod (though that is not expected), the PVC
-            // will not be removed until no pod is using it.
-            // https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPersistentVolumeClaim(
-                    volumeClaimName,
-                    DEFAULT_NAMESPACE,
-                    null,
-                    null,
-                    0,
-                    null,
-                    null,
-                    null
-            );
-            logger.info("Successfully deleted persistent volume claim {}", volumeClaimName);
-            return true;
-        } catch (ApiException e) {
-            if (e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
-                // If we did not find the PVC return true so that we proceed with deleting the PV
-                logger.info("Delete for persistent volume claim {} not found", volumeClaimName);
-                return true;
-            }
-            logger.error("Failed to delete persistent volume: {} with error: ", volumeClaimName, e);
-        } catch (Exception e) {
-            logger.error("Failed to delete persistent volume: {} with error: ", volumeClaimName, e);
+            logger.error("Failed to delete persistent volume: {} with error: ", formatPvEssentials(pv), e);
         }
         return false;
     }

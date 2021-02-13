@@ -17,10 +17,12 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1CSIPersistentVolumeSource;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
@@ -29,9 +31,10 @@ import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimSpec;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeSpec;
+import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.netflix.titus.common.util.StringExt.splitByDot;
 
 /**
  * A collection of helper functions to convert core and Kube objects to other Kube model objects.
@@ -78,14 +81,14 @@ public class KubeModelConverters {
                 .spec(v1PersistentVolumeSpec);
     }
 
-    public static V1PersistentVolumeClaim toV1PersistentVolumeClaim(V1PersistentVolume v1PersistentVolume) {
+    public static V1PersistentVolumeClaim toV1PersistentVolumeClaim(V1PersistentVolume v1PersistentVolume, V1Pod v1Pod) {
         String volumeName = Optional.ofNullable(v1PersistentVolume.getSpec().getCsi())
                 .orElseThrow(() -> new IllegalStateException(String.format("Expected CSI persistent volume for %s", v1PersistentVolume)))
                 .getVolumeHandle();
 
-        // The claim name should match the volume name as the claim is specific to this volume
+        // The claim name should be specific to this volume and task
         V1ObjectMeta v1ObjectMeta = new V1ObjectMeta()
-                .name(volumeName);
+                .name(KubeModelConverters.toPvcName(KubeUtil.getMetadataName(v1PersistentVolume.getMetadata()), KubeUtil.getMetadataName(v1Pod.getMetadata())));
 
         // The claim spec should be scoped to this specific volume
         V1PersistentVolumeClaimSpec v1PersistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
@@ -99,6 +102,17 @@ public class KubeModelConverters {
                 .apiVersion(KUBE_VOLUME_API_VERSION)
                 .metadata(v1ObjectMeta)
                 .spec(v1PersistentVolumeClaimSpec);
+    }
+
+    public static String toPvcName(String volumeName, String taskId) {
+        // Combine PV and task ID to create a unique PVC name
+        return volumeName + "." + taskId;
+    }
+
+    public static String getTaskIdFromPvc(V1PersistentVolumeClaim v1PersistentVolumeClaim) {
+        // We expect the volume ID to precede task ID and to be separated via a '.'
+        List<String> parts = splitByDot(KubeUtil.getMetadataName(v1PersistentVolumeClaim.getMetadata()));
+        return parts.size() < 2 ? "" : parts.get(1);
     }
 
     private static String volumeCapacityGiBToString(int capacityGiB) {

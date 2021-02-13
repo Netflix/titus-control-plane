@@ -248,7 +248,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         // Create a persistent volume followed by a claim for that volume
         // If the attempt to create the PVC fails, the PV will be subsequently garbage collected
         return launchEbsPersistentVolume(ebsVolume, coreV1Api)
-                .flatMap(v1PersistentVolume -> launchPersistentVolumeClaim(v1PersistentVolume, coreV1Api))
+                .flatMap(v1PersistentVolume -> launchPersistentVolumeClaim(v1PersistentVolume, v1Pod, coreV1Api))
                 .then();
     }
 
@@ -277,11 +277,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         });
     }
 
-    private Mono<V1PersistentVolumeClaim> launchPersistentVolumeClaim(V1PersistentVolume v1PersistentVolume, CoreV1Api coreV1Api) {
+    private Mono<V1PersistentVolumeClaim> launchPersistentVolumeClaim(V1PersistentVolume v1PersistentVolume, V1Pod v1Pod, CoreV1Api coreV1Api) {
         return Mono.defer(() -> {
             Stopwatch timer = Stopwatch.createStarted();
 
-            V1PersistentVolumeClaim v1PersistentVolumeClaim = KubeModelConverters.toV1PersistentVolumeClaim(v1PersistentVolume);
+            V1PersistentVolumeClaim v1PersistentVolumeClaim = KubeModelConverters.toV1PersistentVolumeClaim(v1PersistentVolume, v1Pod);
             logger.info("Creating persistent volume claim {}", v1PersistentVolumeClaim);
 
             try {
