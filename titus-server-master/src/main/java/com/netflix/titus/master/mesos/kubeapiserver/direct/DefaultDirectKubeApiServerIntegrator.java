@@ -43,6 +43,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.kubernetes.pod.PodFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
@@ -78,7 +79,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private final DirectKubeConfiguration configuration;
     private final KubeApiFacade kubeApiFacade;
 
-    private final TaskToPodConverter taskToPodConverter;
+    private final PodFactory podFactory;
     private final DefaultDirectKubeApiServerIntegratorMetrics metrics;
 
     private final PodCreateErrorToResultCodeResolver podCreateErrorToReasonCodeResolver;
@@ -103,11 +104,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
                                                 KubeApiFacade kubeApiFacade,
-                                                TaskToPodConverter taskToPodConverter,
+                                                PodFactory podFactory,
                                                 TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.kubeApiFacade = kubeApiFacade;
-        this.taskToPodConverter = taskToPodConverter;
+        this.podFactory = podFactory;
         this.podCreateErrorToReasonCodeResolver = new PodCreateErrorToResultCodeResolver(configuration);
         this.titusRuntime = titusRuntime;
 
@@ -150,7 +151,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     public Mono<V1Pod> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
             try {
-                V1Pod v1Pod = taskToPodConverter.apply(job, task);
+                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
                 logger.info("creating pod: {}", formatPodEssentials(v1Pod));
                 logger.debug("complete pod data: {}", v1Pod);
                 return v1Pod;

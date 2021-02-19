@@ -20,12 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.netflix.titus.api.jobmanager.JobAttributes;
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
-import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
@@ -107,15 +102,6 @@ public class KubeUtilTest {
         DateTime now = DateTime.now();
         pod.getStatus().getContainerStatuses().get(1).getState().getTerminated().finishedAt(now);
         assertThat(KubeUtil.findFinishedTimestamp(pod)).contains(now.getMillis());
-    }
-
-    @Test
-    public void testCreatePodAnnotationsFromJobParameters() {
-        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
-        job = JobFunctions.appendContainerAttribute(job, JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID, "myAccount");
-        job = JobFunctions.appendContainerAttribute(job, JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS, "subnet1,subnet2");
-        assertThat(KubeUtil.createPodAnnotationsFromJobParameters(job)).containsEntry(KubeConstants.POD_LABEL_ACCOUNT_ID, "myAccount");
-        assertThat(KubeUtil.createPodAnnotationsFromJobParameters(job)).containsEntry(KubeConstants.POD_LABEL_SUBNETS, "subnet1,subnet2");
     }
 
     private V1Node newNodeWithoutZone(V1Taint... taints) {
