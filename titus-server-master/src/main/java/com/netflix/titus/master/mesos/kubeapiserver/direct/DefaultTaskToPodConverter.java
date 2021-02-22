@@ -47,7 +47,9 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
@@ -181,8 +183,14 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .env(ContainerEnvs.toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
 
+        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
+        String kubeSchedulerName = configuration.getKubeSchedulerName();
+        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
+            kubeSchedulerName = configuration.getReservedCapacityKubeSchedulerName();
+        }
+
         V1PodSpec spec = new V1PodSpec()
-                .schedulerName(configuration.getKubeSchedulerName())
+                .schedulerName(kubeSchedulerName)
                 .containers(Collections.singletonList(container))
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
                 .restartPolicy(NEVER_RESTART_POLICY)

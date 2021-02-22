@@ -102,6 +102,9 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     @DefaultValue("default-scheduler")
     String getKubeSchedulerName();
 
+    @DefaultValue("titus-kube-scheduler-reserved")
+    String getReservedCapacityKubeSchedulerName();
+
     /**
      * Regular expression to match pod create errors for rejected pods.
      */
