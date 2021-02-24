@@ -267,6 +267,10 @@ public final class JobFunctions {
         return findConstraint(job.getJobDescriptor().getContainer().getHardConstraints(), name);
     }
 
+    public static <E extends JobDescriptorExt> Optional<String> findHardConstraint(JobDescriptor<E> jobDescriptor, String name) {
+        return findConstraint(jobDescriptor.getContainer().getHardConstraints(), name);
+    }
+
     /**
      * Constraint names are case insensitive.
      */

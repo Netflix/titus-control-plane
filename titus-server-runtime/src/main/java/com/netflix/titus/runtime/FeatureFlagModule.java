@@ -16,7 +16,10 @@
 
 package com.netflix.titus.runtime;
 
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -24,14 +27,18 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
 import com.netflix.titus.common.util.feature.FeatureGuards;
 import com.netflix.titus.common.util.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE;
@@ -40,6 +47,8 @@ import static com.netflix.titus.api.FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 
 public class FeatureFlagModule extends AbstractModule {
+
+    private static final Logger logger = LoggerFactory.getLogger(FeatureFlagModule.class);
 
     @Override
     protected void configure() {
@@ -176,6 +185,9 @@ public class FeatureFlagModule extends AbstractModule {
                 FeatureGuards.fromMap(p -> p.getLeft().getAttributes(), FeatureGuards.newWhiteListFromConfiguration(jobAttributeConfiguration).build())
         );
 
+        Function<String, Matcher> enabledMachineTypes = RegExpExt.dynamicMatcher(configuration::getEnabledMachineTypes,
+                "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "EnabledMachineTypes", Pattern.DOTALL, logger);
+
         return p -> {
             JobDescriptor<?> jobDescriptor = p.getLeft();
             ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
@@ -195,23 +207,10 @@ public class FeatureFlagModule extends AbstractModule {
                 return false;
             }
 
-            // Container is too large
-            if(configuration.isContainerSizeLimitEnabled()) {
-                if(resources.getCpu() > configuration.getCpuLimit()) {
-                    return false;
-                }
-                if(resources.getGpu() > configuration.getGpuLimit()) {
-                    return false;
-                }
-                if(resources.getMemoryMB() > configuration.getMemoryMBLimit()) {
-                    return false;
-                }
-                if(resources.getDiskMB() > configuration.getDiskMBLimit()) {
-                    return false;
-                }
-                if(resources.getNetworkMbps() > configuration.getNetworkMbpsLimit()) {
-                    return false;
-                }
+            // Check if the machine type is enabled
+            String machineType = JobFunctions.findHardConstraint(jobDescriptor, JobConstraints.MACHINE_TYPE).orElse(null);
+            if (machineType != null && !enabledMachineTypes.apply(machineType).matches()) {
+                return false;
             }
 
             return routingPredicate.test(p);
