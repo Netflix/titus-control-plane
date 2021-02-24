@@ -59,6 +59,7 @@ public class JooqJobActivityConnectorComponent {
         hikariConfig.setConnectionTimeout(10000);
         hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setLeakDetectionThreshold(3000);
+        hikariConfig.setDriverClassName("org.postgresql.Driver");
 
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
