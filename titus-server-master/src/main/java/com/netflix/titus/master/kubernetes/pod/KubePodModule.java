@@ -64,6 +64,7 @@ public class KubePodModule extends AbstractModule {
         return new PodResourcePoolResolverFeatureGuard(
                 configuration,
                 new PodResourcePoolResolverChain(Arrays.asList(
+                        new FenzoPodResourcePoolResolver(capacityGroupService),
                         new ExplicitJobPodResourcePoolResolver(),
                         new FarzonePodResourcePoolResolver(configuration),
                         new GpuPodResourcePoolResolver(configuration),
@@ -73,8 +74,7 @@ public class KubePodModule extends AbstractModule {
                                 capacityGroupService,
                                 titusRuntime
                         ),
-                        new TierPodResourcePoolResolver(capacityGroupService),
-                        new FenzoPodResourcePoolResolver(capacityGroupService)
+                        new TierPodResourcePoolResolver(capacityGroupService)
                 ))
         );
     }
