@@ -29,38 +29,9 @@ public interface KubeSchedulerFeatureConfiguration {
     boolean isGpuEnabled();
 
     /**
-     * Enable container size limit check. Containers large than the limit are not be assigned to KubeScheduler.
+     * Jobs with machine type hard constraint which request machine types not allowed by this regexp pattern, will be
+     * assigned to Fenzo.
      */
-    @DefaultValue("true")
-    boolean isContainerSizeLimitEnabled();
-
-    /**
-     * Maximum CPU allocation managed by KubeScheduler.
-     */
-    @DefaultValue("16")
-    int getCpuLimit();
-
-    /**
-     * Maximum GPU allocation managed by KubeScheduler.
-     */
-    @DefaultValue("1")
-    int getGpuLimit();
-
-    /**
-     * Maximum memory allocation managed by KubeScheduler.
-     */
-    @DefaultValue("131072")
-    int getMemoryMBLimit();
-
-    /**
-     * Maximum disk allocation managed by KubeScheduler.
-     */
-    @DefaultValue("262144")
-    int getDiskMBLimit();
-
-    /**
-     * Maximum network allocation managed by KubeScheduler.
-     */
-    @DefaultValue("4000")
-    int getNetworkMbpsLimit();
+    @DefaultValue(".*")
+    String getEnabledMachineTypes();
 }

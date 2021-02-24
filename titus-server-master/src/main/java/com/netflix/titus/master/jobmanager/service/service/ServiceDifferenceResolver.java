@@ -279,7 +279,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
-        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent() || kubeSchedulerPredicate.test(Pair.of(jobDescriptor, capacityGroupDescriptor))) {
+        if (JobManagerUtil.shouldAssignToKubeScheduler(refJobView.getJob(), capacityGroupDescriptor, kubeConfiguration, kubeSchedulerPredicate)) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
         }
 

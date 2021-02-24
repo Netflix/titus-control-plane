@@ -66,7 +66,6 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.SchedulingService;
@@ -257,8 +256,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
         JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
-        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent()
-                || kubeSchedulerPredicate.test(Pair.of(jobDescriptor, capacityGroupDescriptor))) {
+        if (JobManagerUtil.shouldAssignToKubeScheduler(refJobView.getJob(), capacityGroupDescriptor, kubeConfiguration, kubeSchedulerPredicate)) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
         }
 
