@@ -186,7 +186,7 @@ public class FeatureFlagModule extends AbstractModule {
         );
 
         Function<String, Matcher> enabledMachineTypes = RegExpExt.dynamicMatcher(configuration::getEnabledMachineTypes,
-                "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "EnabledMachineTypes", Pattern.DOTALL, logger);
+                "titus.features.jobManager.kubeSchedulerFeature.enabledMachineTypes", Pattern.DOTALL, logger);
 
         return p -> {
             JobDescriptor<?> jobDescriptor = p.getLeft();
