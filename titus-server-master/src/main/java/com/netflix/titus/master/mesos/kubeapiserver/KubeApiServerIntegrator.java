@@ -53,6 +53,11 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
+import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
+import com.netflix.titus.master.kubernetes.pod.PodFactory;
+import com.netflix.titus.master.kubernetes.pod.env.ContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.env.ContainerEnvs;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
@@ -62,8 +67,6 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
@@ -149,10 +152,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final MesosConfiguration mesosConfiguration;
     private final ApplicationSlaManagementService capacityGroupManagement;
     private final DirectKubeConfiguration directKubeConfiguration;
+    private final KubePodConfiguration kubePodConfiguration;
     private final Injector injector;
     private final KubeApiFacade kubeApiFacade;
     private final ContainerEnvFactory containerEnvFactory;
     private final ContainerResultCodeResolver containerResultCodeResolver;
+    private final PodFactory podFactory;
 
     private final Counter launchTaskCounter;
     private final Timer launchTasksTimer;
@@ -177,18 +182,22 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                                    MesosConfiguration mesosConfiguration,
                                    ApplicationSlaManagementService capacityGroupManagement,
                                    DirectKubeConfiguration directKubeConfiguration,
+                                   KubePodConfiguration kubePodConfiguration,
                                    Injector injector,
                                    KubeApiFacade kubeApiFacade,
                                    ContainerEnvFactory containerEnvFactory,
-                                   ContainerResultCodeResolver containerResultCodeResolver) {
+                                   ContainerResultCodeResolver containerResultCodeResolver,
+                                   PodFactory podFactory) {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.capacityGroupManagement = capacityGroupManagement;
         this.directKubeConfiguration = directKubeConfiguration;
+        this.kubePodConfiguration = kubePodConfiguration;
         this.injector = injector;
         this.kubeApiFacade = kubeApiFacade;
         this.containerEnvFactory = containerEnvFactory;
         this.containerResultCodeResolver = containerResultCodeResolver;
+        this.podFactory = podFactory;
 
         this.vmTaskStatusObserver = PublishSubject.create();
 
@@ -379,7 +388,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void nodeUpdated(V1Node node) {
         try {
-            boolean notOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(directKubeConfiguration.getFarzones(), node);
+            boolean notOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(kubePodConfiguration.getFarzones(), node);
             if (notOwnedByFenzo) {
                 String nodeName = KubeUtil.getMetadataName(node.getMetadata());
                 logger.debug("Ignoring node: {} as it is not owned by fenzo", nodeName);
@@ -546,10 +555,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private V1Pod taskInfoToPod(TaskInfoRequest taskInfoRequest) {
+        if (directKubeConfiguration.isKubeApiServerIntegratorOldPodCreationEnabled()) {
+            return oldTaskInfoToPod(taskInfoRequest);
+        }
+        return newTaskInfoToPod(taskInfoRequest);
+    }
+
+    private V1Pod newTaskInfoToPod(TaskInfoRequest taskInfoRequest) {
+        return podFactory.buildV1Pod(taskInfoRequest.getJob(), taskInfoRequest.getTask(), false);
+    }
+
+    private V1Pod oldTaskInfoToPod(TaskInfoRequest taskInfoRequest) {
         Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
-        Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
+        Map<String, String> annotations = KubePodUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
                 taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
                 mesosConfiguration.isJobDescriptorAnnotationEnabled());
 
@@ -569,7 +589,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1PodSpec spec = new V1PodSpec()
                 .nodeName(nodeName)
                 .containers(Collections.singletonList(container))
-                .terminationGracePeriodSeconds(directKubeConfiguration.getPodTerminationGracePeriodSeconds())
+                .terminationGracePeriodSeconds(kubePodConfiguration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY);
 
         return new V1Pod()

@@ -165,7 +165,11 @@ class TaskPlacementRecorder {
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(TaskInfoRequest.class).concatWith(Observable.fromCallable(() -> {
-                        return v3TaskInfoRequestFactory.newTaskInfo(fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap,
+                        Pair<Job<?>, Task> updatedJobTaskPair = v3JobOperations.findTaskById(v3Task.getId()).orElse(Pair.of(v3Job, v3Task));
+                        Job<?> updatedJob = updatedJobTaskPair.getLeft();
+                        Task updatedTask = updatedJobTaskPair.getRight();
+
+                        return v3TaskInfoRequestFactory.newTaskInfo(fenzoTask, updatedJob, updatedTask, lease.hostname(), attributesMap,
                                 lease.getOffer().getSlaveId(), consumeResult, executorUriOverrideOpt,
                                 opportunisticResourcesContext);
                     }

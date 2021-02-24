@@ -55,6 +55,7 @@ import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
+import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -90,6 +91,7 @@ public class JobsScenarioBuilder {
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
     private final DirectKubeConfiguration kubeConfiguration = Archaius2Ext.newConfiguration(DirectKubeConfiguration.class);
+    private final KubePodConfiguration kubePodConfiguration = Archaius2Ext.newConfiguration(KubePodConfiguration.class);
     private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
     private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
@@ -165,6 +167,7 @@ public class JobsScenarioBuilder {
                 configuration,
                 featureActivationConfiguration,
                 kubeConfiguration,
+                kubePodConfiguration,
                 kubeSchedulerPredicate,
                 capacityGroupService,
                 schedulingService,
@@ -182,6 +185,7 @@ public class JobsScenarioBuilder {
                 configuration,
                 featureActivationConfiguration,
                 kubeConfiguration,
+                kubePodConfiguration,
                 kubeSchedulerPredicate,
                 capacityGroupService,
                 schedulingService,

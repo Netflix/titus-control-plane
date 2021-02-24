@@ -44,6 +44,7 @@ import com.netflix.titus.master.health.HealthModule;
 import com.netflix.titus.master.jobactivity.service.JobActivityModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
+import com.netflix.titus.master.kubernetes.KubeModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
 import com.netflix.titus.master.mesos.MesosModule;
 import com.netflix.titus.master.scheduler.SchedulerModule;
@@ -92,6 +93,9 @@ public class TitusMasterModule extends AbstractModule {
 
         // Mesos
         install(new MesosModule());
+
+        // Kubernetes
+        install(new KubeModule());
 
         // Storage
         install(new StoreModule());

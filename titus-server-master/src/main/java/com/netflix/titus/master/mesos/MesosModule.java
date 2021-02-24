@@ -29,14 +29,14 @@ import com.netflix.runtime.health.guice.HealthModule;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeModule;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeOpportunisticResourceProvider;
+import com.netflix.titus.master.mesos.kubeapiserver.LegacyKubeModule;
 import com.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
 import com.netflix.titus.master.scheduler.opportunistic.NoOpportunisticCpus;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import reactor.core.scheduler.Schedulers;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeModule.MESOS_KUBE_ADAPTER;
+import static com.netflix.titus.master.mesos.kubeapiserver.LegacyKubeModule.MESOS_KUBE_ADAPTER;
 
 public class MesosModule extends AbstractModule {
 
@@ -59,7 +59,7 @@ public class MesosModule extends AbstractModule {
             }
         });
 
-        install(new KubeModule());
+        install(new LegacyKubeModule());
     }
 
     @Provides
