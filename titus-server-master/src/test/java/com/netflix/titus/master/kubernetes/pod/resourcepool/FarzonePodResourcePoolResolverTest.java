@@ -21,6 +21,7 @@ import java.util.List;
 
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
@@ -39,16 +40,18 @@ public class FarzonePodResourcePoolResolverTest {
 
     private final FarzonePodResourcePoolResolver resolver = new FarzonePodResourcePoolResolver(configuration);
 
+    private final Task task = JobGenerator.oneBatchTask();
+
     @Test
     public void testFarzoneJobAssignment() {
-        List<ResourcePoolAssignment> result = resolver.resolve(newJob(FARZONE_ID));
+        List<ResourcePoolAssignment> result = resolver.resolve(newJob(FARZONE_ID), task);
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC_FARZONE_PREFIX + FARZONE_ID);
     }
 
     @Test
     public void testNoneFarzoneJobAssignment() {
-        List<ResourcePoolAssignment> result = resolver.resolve(newJob("regularZone"));
+        List<ResourcePoolAssignment> result = resolver.resolve(newJob("regularZone"), task);
         assertThat(result).hasSize(0);
     }
 

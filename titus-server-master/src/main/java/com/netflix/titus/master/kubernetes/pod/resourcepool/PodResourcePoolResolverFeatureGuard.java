@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 
 public class PodResourcePoolResolverFeatureGuard implements PodResourcePoolResolver {
@@ -33,9 +34,9 @@ public class PodResourcePoolResolverFeatureGuard implements PodResourcePoolResol
     }
 
     @Override
-    public List<ResourcePoolAssignment> resolve(Job<?> job) {
+    public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
         if (configuration.isResourcePoolAffinityEnabled()) {
-            return delegate.resolve(job);
+            return delegate.resolve(job, task);
         }
         return Collections.emptyList();
     }

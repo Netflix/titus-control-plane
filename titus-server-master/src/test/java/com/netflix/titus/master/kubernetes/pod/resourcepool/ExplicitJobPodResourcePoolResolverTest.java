@@ -21,6 +21,7 @@ import java.util.List;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -31,9 +32,11 @@ public class ExplicitJobPodResourcePoolResolverTest {
 
     private final ExplicitJobPodResourcePoolResolver resolver = new ExplicitJobPodResourcePoolResolver();
 
+    private final Task task = JobGenerator.oneBatchTask();
+
     @Test
     public void testAssignment() {
-        List<ResourcePoolAssignment> result = resolver.resolve(newJob("myResourcePool"));
+        List<ResourcePoolAssignment> result = resolver.resolve(newJob("myResourcePool"), task);
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo("myResourcePool");
     }

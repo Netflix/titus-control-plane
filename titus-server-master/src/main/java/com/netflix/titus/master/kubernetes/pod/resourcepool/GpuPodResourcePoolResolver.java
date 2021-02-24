@@ -24,6 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class GpuPodResourcePoolResolver implements PodResourcePoolResolver {
     }
 
     @Override
-    public List<ResourcePoolAssignment> resolve(Job<?> job) {
+    public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
         return job.getJobDescriptor().getContainer().getContainerResources().getGpu() <= 0
                 ? Collections.emptyList()
                 : getCurrent();

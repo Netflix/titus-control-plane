@@ -21,6 +21,7 @@ import java.util.List;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
@@ -37,15 +38,17 @@ public class GpuPodResourcePoolResolverTest {
 
     private final GpuPodResourcePoolResolver resolver = new GpuPodResourcePoolResolver(configuration);
 
+    private final Task task = JobGenerator.oneBatchTask();
+
     @Test
     public void testNonGpuJob() {
-        assertThat(resolver.resolve(newJob(0))).isEmpty();
+        assertThat(resolver.resolve(newJob(0), task)).isEmpty();
     }
 
     @Test
     public void testGpuJob() {
         config.setProperty("titusMaster.kubernetes.pod.gpuResourcePoolNames", "gpu1,gpu2");
-        List<ResourcePoolAssignment> result = resolver.resolve(newJob(1));
+        List<ResourcePoolAssignment> result = resolver.resolve(newJob(1), task);
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo("gpu1");
         assertThat(result.get(1).getResourcePoolName()).isEqualTo("gpu2");

@@ -31,6 +31,7 @@ import com.netflix.titus.master.kubernetes.pod.env.UserProvidedContainerEnvFacto
 import com.netflix.titus.master.kubernetes.pod.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.FarzonePodResourcePoolResolver;
+import com.netflix.titus.master.kubernetes.pod.resourcepool.FenzoPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.GpuPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverChain;
@@ -72,7 +73,8 @@ public class KubePodModule extends AbstractModule {
                                 capacityGroupService,
                                 titusRuntime
                         ),
-                        new TierPodResourcePoolResolver(capacityGroupService)
+                        new TierPodResourcePoolResolver(capacityGroupService),
+                        new FenzoPodResourcePoolResolver(capacityGroupService)
                 ))
         );
     }

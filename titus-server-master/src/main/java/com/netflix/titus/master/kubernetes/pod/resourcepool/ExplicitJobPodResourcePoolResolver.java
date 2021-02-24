@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.StringExt;
 
 /**
@@ -29,7 +30,7 @@ import com.netflix.titus.common.util.StringExt;
  */
 public class ExplicitJobPodResourcePoolResolver implements PodResourcePoolResolver {
     @Override
-    public List<ResourcePoolAssignment> resolve(Job<?> job) {
+    public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
         List<String> resourcePoolNames = StringExt.splitByComma(
                 job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_PARAMETER_RESOURCE_POOLS)
         );

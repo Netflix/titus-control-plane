@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
@@ -57,6 +58,8 @@ public class CapacityGroupPodResourcePoolResolverTest {
             titusRuntime
     );
 
+    private final Task task = JobGenerator.oneBatchTask();
+
     @Before
     public void setUp() throws Exception {
         when(capacityGroupService.getApplicationSLA("myFlex")).thenReturn(ApplicationSLA.newBuilder()
@@ -78,12 +81,12 @@ public class CapacityGroupPodResourcePoolResolverTest {
     @Test
     public void testBasic() {
         // Map to elastic
-        List<ResourcePoolAssignment> result = resolver.resolve(newJob("myFlex"));
+        List<ResourcePoolAssignment> result = resolver.resolve(newJob("myFlex"), task);
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo("elastic");
 
         // Map to reserved
-        result = resolver.resolve(newJob("myCritical"));
+        result = resolver.resolve(newJob("myCritical"), task);
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo("reserved");
     }
@@ -94,7 +97,7 @@ public class CapacityGroupPodResourcePoolResolverTest {
         config.setProperty("anElastic", ".*Flex");
         clock.advanceTime(1, TimeUnit.HOURS);
 
-        List<ResourcePoolAssignment> result = resolver.resolve(newJob("myFlex"));
+        List<ResourcePoolAssignment> result = resolver.resolve(newJob("myFlex"), task);
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo("anElastic");
     }

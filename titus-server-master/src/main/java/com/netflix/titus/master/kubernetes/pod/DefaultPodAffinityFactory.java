@@ -223,7 +223,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
         }
 
         private void processResourcePoolConstraints() {
-            List<ResourcePoolAssignment> resourcePools = podResourcePoolResolver.resolve(job);
+            List<ResourcePoolAssignment> resourcePools = podResourcePoolResolver.resolve(job, task);
             if (resourcePools.isEmpty()) {
                 return;
             }

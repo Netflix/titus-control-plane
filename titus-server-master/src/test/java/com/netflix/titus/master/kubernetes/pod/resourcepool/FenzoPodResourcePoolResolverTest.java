@@ -34,11 +34,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TierPodResourcePoolResolverTest {
+public class FenzoPodResourcePoolResolverTest {
 
     private final ApplicationSlaManagementService capacityGroupService = mock(ApplicationSlaManagementService.class);
 
-    private final TierPodResourcePoolResolver resolver = new TierPodResourcePoolResolver(capacityGroupService);
+    private final FenzoPodResourcePoolResolver resolver = new FenzoPodResourcePoolResolver(capacityGroupService);
 
     @Before
     public void setUp() throws Exception {
@@ -58,17 +58,17 @@ public class TierPodResourcePoolResolverTest {
     public void testFlex() {
         List<ResourcePoolAssignment> result = resolver.resolve(newJob("myFlex"), newTask());
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC);
+        assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_FENZO_FLEX);
     }
 
     @Test
     public void testCritical() {
         List<ResourcePoolAssignment> result = resolver.resolve(newJob("myCritical"), newTask());
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED);
+        assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_FENZO_CRITICAL);
     }
 
-    private Job newJob(String capacityGroup) {
+    private Job<?> newJob(String capacityGroup) {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
         job = job.toBuilder()
                 .withJobDescriptor(job.getJobDescriptor().toBuilder()
@@ -82,7 +82,7 @@ public class TierPodResourcePoolResolverTest {
     private Task newTask() {
         Task task = JobGenerator.oneBatchTask();
         task = task.toBuilder()
-                .withTaskContext(Collections.singletonMap(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true"))
+                .withTaskContext(Collections.singletonMap(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "false"))
                 .build();
         return task;
     }

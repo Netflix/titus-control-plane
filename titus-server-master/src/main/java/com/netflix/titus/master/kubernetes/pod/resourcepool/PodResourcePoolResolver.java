@@ -19,11 +19,12 @@ package com.netflix.titus.master.kubernetes.pod.resourcepool;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 
 /**
  * {@link PodResourcePoolResolver} is an abstraction for resolving a set of resource pools in which a pod can be placed.
  */
 public interface PodResourcePoolResolver {
 
-    List<ResourcePoolAssignment> resolve(Job<?> job);
+    List<ResourcePoolAssignment> resolve(Job<?> job, Task task);
 }

@@ -27,34 +27,34 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
-public class TierPodResourcePoolResolver implements PodResourcePoolResolver {
+public class FenzoPodResourcePoolResolver implements PodResourcePoolResolver {
 
-    private static final ResourcePoolAssignment ASSIGNMENT_ELASTIC = ResourcePoolAssignment.newBuilder()
-            .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC)
-            .withRule("Flex tier assigned to elastic resource pool")
+    private static final ResourcePoolAssignment FENZO_FLEX = ResourcePoolAssignment.newBuilder()
+            .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_FENZO_FLEX)
+            .withRule("Fenzo task assigned to fenzo flex resource pool")
             .build();
 
-    private static final ResourcePoolAssignment ASSIGNMENT_RESERVED = ResourcePoolAssignment.newBuilder()
-            .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED)
-            .withRule("Critical tier assigned to reserved resource pool")
+    private static final ResourcePoolAssignment FENZO_CRITICAL = ResourcePoolAssignment.newBuilder()
+            .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_FENZO_CRITICAL)
+            .withRule("Fenzo task assigned to fenzo critical resource pool")
             .build();
 
     private final ApplicationSlaManagementService capacityGroupService;
 
-    public TierPodResourcePoolResolver(ApplicationSlaManagementService capacityGroupService) {
+    public FenzoPodResourcePoolResolver(ApplicationSlaManagementService capacityGroupService) {
         this.capacityGroupService = capacityGroupService;
     }
 
     @Override
     public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
-        if (!JobFunctions.isOwnedByKubeScheduler(task)) {
+        if (JobFunctions.isOwnedByKubeScheduler(task)) {
             return Collections.emptyList();
         }
 
         ApplicationSLA capacityGroup = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupService);
         if (capacityGroup == null || capacityGroup.getTier() != Tier.Critical) {
-            return Collections.singletonList(ASSIGNMENT_ELASTIC);
+            return Collections.singletonList(FENZO_FLEX);
         }
-        return Collections.singletonList(ASSIGNMENT_RESERVED);
+        return Collections.singletonList(FENZO_CRITICAL);
     }
 }

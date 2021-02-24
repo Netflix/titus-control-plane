@@ -25,4 +25,8 @@ public final class PodResourcePoolResolvers {
     public static final String RESOURCE_POOL_RESERVED = "reserved";
 
     public static final String RESOURCE_POOL_GPU_PREFIX = "elasticGpu";
+
+    public static final String RESOURCE_POOL_FENZO_FLEX = "fenzo-flex";
+
+    public static final String RESOURCE_POOL_FENZO_CRITICAL = "fenzo-critical";
 }

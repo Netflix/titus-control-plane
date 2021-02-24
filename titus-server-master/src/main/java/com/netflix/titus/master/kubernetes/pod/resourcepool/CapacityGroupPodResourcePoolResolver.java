@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.Iterators;
 import com.netflix.archaius.api.Config;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -61,7 +62,7 @@ public class CapacityGroupPodResourcePoolResolver implements PodResourcePoolReso
     }
 
     @Override
-    public List<ResourcePoolAssignment> resolve(Job<?> job) {
+    public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
         ApplicationSLA capacityGroup = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupService);
         if (capacityGroup == null) {
             return Collections.emptyList();

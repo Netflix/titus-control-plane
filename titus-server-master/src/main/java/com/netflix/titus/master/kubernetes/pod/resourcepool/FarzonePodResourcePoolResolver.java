@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 
@@ -35,7 +36,7 @@ public class FarzonePodResourcePoolResolver implements PodResourcePoolResolver {
     }
 
     @Override
-    public List<ResourcePoolAssignment> resolve(Job<?> job) {
+    public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
         return KubeUtil.findFarzoneId(configuration, job).map(farzone -> {
                     String resourcePoolName = PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC_FARZONE_PREFIX + farzone;
                     return Collections.singletonList(ResourcePoolAssignment.newBuilder()

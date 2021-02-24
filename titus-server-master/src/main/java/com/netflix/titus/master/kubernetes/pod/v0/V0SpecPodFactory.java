@@ -92,6 +92,7 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 @Singleton
 public class V0SpecPodFactory implements PodFactory {
 
+    private static final String FENZO_SCHEDULER = "fenzo-scheduler";
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
 
     /**
@@ -185,14 +186,18 @@ public class V0SpecPodFactory implements PodFactory {
                 .env(ContainerEnvs.toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
 
-        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
-        String kubeSchedulerName = configuration.getKubeSchedulerName();
-        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
-            kubeSchedulerName = configuration.getReservedCapacityKubeSchedulerName();
+        String schedulerName = FENZO_SCHEDULER;
+        if (useKubeScheduler) {
+            ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
+            if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
+                schedulerName = configuration.getReservedCapacityKubeSchedulerName();
+            } else {
+                schedulerName = configuration.getKubeSchedulerName();
+            }
         }
 
         V1PodSpec spec = new V1PodSpec()
-                .schedulerName(kubeSchedulerName)
+                .schedulerName(schedulerName)
                 .containers(Collections.singletonList(container))
                 .terminationGracePeriodSeconds(configuration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY)
@@ -200,6 +205,11 @@ public class V0SpecPodFactory implements PodFactory {
                 .affinity(affinityWithMetadata.getLeft())
                 .tolerations(taintTolerationFactory.buildV1Toleration(job, task, useKubeScheduler))
                 .topologySpreadConstraints(buildTopologySpreadConstraints(job));
+
+        //  If kube scheduler is not enabled then the node name needs to be explicitly set
+        if (!useKubeScheduler) {
+            spec.setNodeName(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
+        }
 
         Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
         if (optionalEbsVolumeInfo.isPresent()) {
