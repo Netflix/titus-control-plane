@@ -37,7 +37,9 @@ public class JooqConfiguration {
     }*/
 
     public String getDatabaseUrl() {
-        return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+        String string = SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+        System.err.println("DATABASE URL AMITA" + string);
+        return string;
     }
 
     public boolean isInMemoryDb() {
