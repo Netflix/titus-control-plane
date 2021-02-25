@@ -38,8 +38,7 @@ dependencies {
 
     // DB -  Drivers
     compile "org.postgresql:postgresql:${psql}"
-    // DB - Hikari Connection Pool
-    compile 'com.zaxxer:HikariCP:2.7.6'
+
     // DB - jOOQ
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.jooq:jooq-meta:${jooqVersion}"
