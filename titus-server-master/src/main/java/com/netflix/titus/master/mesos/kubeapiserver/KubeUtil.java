@@ -38,6 +38,7 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -254,6 +255,8 @@ public class KubeUtil {
                 id -> annotations.put(KubeConstants.OPPORTUNISTIC_ID, id)
         );
 
+        annotations.putAll(createEbsPodAnnotations(job, task));
+
         if (includeJobDescriptor) {
             JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(job.getJobDescriptor());
             try {
@@ -280,6 +283,25 @@ public class KubeUtil {
                 containerAttributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS),
                 accountId -> annotations.put(KubeConstants.POD_LABEL_SUBNETS, accountId)
         );
+        return annotations;
+    }
+
+    public static Map<String, String> createEbsPodAnnotations(Job<?> job, Task task) {
+        Map<String, String> annotations = new HashMap<>();
+
+        if (job.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        EbsVolume ebsVolume = job.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().get(0);
+
+        Evaluators.acceptNotNull(
+                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID),
+                volumeId -> annotations.put(KubeConstants.EBS_VOLUME_ID, volumeId)
+        );
+        annotations.put(KubeConstants.EBS_MOUNT_PERMISSIONS, ebsVolume.getMountPermissions().toString());
+        annotations.put(KubeConstants.EBS_MOUNT_PATH, ebsVolume.getMountPath());
+        annotations.put(KubeConstants.EBS_FS_TYPE, ebsVolume.getFsType());
+
         return annotations;
     }
 

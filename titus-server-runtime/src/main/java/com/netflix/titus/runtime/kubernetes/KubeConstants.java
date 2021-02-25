@@ -179,4 +179,13 @@ public final class KubeConstants {
      * Reconciler Event Constants
      */
     public static final String NODE_LOST = "NodeLost";
+
+    /**
+     * EBS pod annotations.
+     */
+    public static final String POD_EBS_DOMAIN = "ebs." + TITUS_POD_DOMAIN;
+    public static final String EBS_VOLUME_ID = POD_EBS_DOMAIN + "volumeId";
+    public static final String EBS_MOUNT_PERMISSIONS = POD_EBS_DOMAIN + "mountPerm";
+    public static final String EBS_MOUNT_PATH = POD_EBS_DOMAIN + "mountPath";
+    public static final String EBS_FS_TYPE = POD_EBS_DOMAIN + "fsType";
 }

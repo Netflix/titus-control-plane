@@ -182,4 +182,10 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      */
     @DefaultValue("false")
     boolean isBytePodResourceEnabled();
+
+    /**
+     * Set to true to enable EBS PV and PVC management.
+     */
+    @DefaultValue("false")
+    boolean isEbsVolumePvEnabled();
 }
