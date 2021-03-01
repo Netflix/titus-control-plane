@@ -191,4 +191,10 @@ public final class KubeConstants {
     public static final String EBS_MOUNT_PERMISSIONS = EBS_DOMAIN + "mount-perm";
     public static final String EBS_MOUNT_PATH = EBS_DOMAIN + "mount-path";
     public static final String EBS_FS_TYPE = EBS_DOMAIN + "fs-type";
+
+    /**
+     * Network annotations.
+     */
+    public static final String NETWORK_DOMAIN = "network." + NETFLIX_DOMAIN;
+    public static final String STATIC_IP_ALLOCATION_ID = NETWORK_DOMAIN + "static-ip-allocation-uuid";
 }
