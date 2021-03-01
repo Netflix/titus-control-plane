@@ -43,6 +43,8 @@ public final class KubeConstants {
     /**
      * Common prefix for Titus node annotations/labels and taints.
      */
+    public static final String NETFLIX_DOMAIN = "netflix.com/";
+
     public static final String TITUS_DOMAIN = "titus.netflix.com/";
 
     public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
@@ -179,4 +181,14 @@ public final class KubeConstants {
      * Reconciler Event Constants
      */
     public static final String NODE_LOST = "NodeLost";
+
+    /**
+     * Volume annotations.
+     */
+    public static final String VOLUME_DOMAIN = "volume." + NETFLIX_DOMAIN;
+    public static final String EBS_DOMAIN = "ebs." + VOLUME_DOMAIN;
+    public static final String EBS_VOLUME_ID = EBS_DOMAIN + "volumeId";
+    public static final String EBS_MOUNT_PERMISSIONS = EBS_DOMAIN + "mountPerm";
+    public static final String EBS_MOUNT_PATH = EBS_DOMAIN + "mountPath";
+    public static final String EBS_FS_TYPE = EBS_DOMAIN + "fsType";
 }

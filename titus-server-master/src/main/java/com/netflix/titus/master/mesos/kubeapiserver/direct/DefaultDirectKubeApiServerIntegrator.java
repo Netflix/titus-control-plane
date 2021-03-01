@@ -149,9 +149,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
+        boolean isEbsVolumePvEnabled = configuration.isEbsVolumePvEnabled();
         return Mono.fromCallable(() -> {
             try {
-                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
+                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true, isEbsVolumePvEnabled);
                 logger.info("creating pod: {}", formatPodEssentials(v1Pod));
                 logger.debug("complete pod data: {}", v1Pod);
                 return v1Pod;
@@ -160,8 +161,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
             }
         })
-                .flatMap(v1Pod -> launchEbsVolume(job, task, v1Pod, kubeApiFacade.getCoreV1Api())
-                        .then(Mono.just(v1Pod)))
+                .flatMap(v1Pod -> isEbsVolumePvEnabled
+                        ? launchEbsVolume(job, task, v1Pod, kubeApiFacade.getCoreV1Api()).then(Mono.just(v1Pod))
+                        : Mono.just(v1Pod))
                 .flatMap(v1Pod -> launchPod(task, v1Pod))
                 .subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
     }
