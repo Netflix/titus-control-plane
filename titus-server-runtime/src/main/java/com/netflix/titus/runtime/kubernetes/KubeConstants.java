@@ -187,8 +187,8 @@ public final class KubeConstants {
      */
     public static final String VOLUME_DOMAIN = "volume." + NETFLIX_DOMAIN;
     public static final String EBS_DOMAIN = "ebs." + VOLUME_DOMAIN;
-    public static final String EBS_VOLUME_ID = EBS_DOMAIN + "volumeId";
-    public static final String EBS_MOUNT_PERMISSIONS = EBS_DOMAIN + "mountPerm";
-    public static final String EBS_MOUNT_PATH = EBS_DOMAIN + "mountPath";
-    public static final String EBS_FS_TYPE = EBS_DOMAIN + "fsType";
+    public static final String EBS_VOLUME_ID = EBS_DOMAIN + "volume-id";
+    public static final String EBS_MOUNT_PERMISSIONS = EBS_DOMAIN + "mount-perm";
+    public static final String EBS_MOUNT_PATH = EBS_DOMAIN + "mount-path";
+    public static final String EBS_FS_TYPE = EBS_DOMAIN + "fs-type";
 }
