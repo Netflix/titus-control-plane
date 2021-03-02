@@ -17,7 +17,9 @@
 package com.netflix.titus.master.kubernetes.pod;
 
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -26,6 +28,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -64,6 +67,12 @@ public class KubePodUtil {
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION),
                 id -> annotations.put(KubeConstants.OPPORTUNISTIC_ID, id)
         );
+        Evaluators.acceptNotNull(
+                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID),
+                id -> annotations.put(KubeConstants.STATIC_IP_ALLOCATION_ID, id)
+        );
+
+        annotations.putAll(createEbsPodAnnotations(job, task));
 
         if (includeJobDescriptor) {
             JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(job.getJobDescriptor());
@@ -91,6 +100,29 @@ public class KubePodUtil {
                 containerAttributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS),
                 accountId -> annotations.put(KubeConstants.POD_LABEL_SUBNETS, accountId)
         );
+        return annotations;
+    }
+
+    public static Map<String, String> createEbsPodAnnotations(Job<?> job, Task task) {
+        Map<String, String> annotations = new HashMap<>();
+
+        List<EbsVolume> ebsVolumes = job.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes();
+        if (ebsVolumes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        EbsVolume ebsVolume = job.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().get(0);
+
+        String ebsVolumeId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID);
+        if (ebsVolumeId == null) {
+            logger.error("Expected to find assigned EBS volume ID to task {} from volumes {}", task.getId(), ebsVolumes);
+            return Collections.emptyMap();
+        }
+
+        annotations.put(KubeConstants.EBS_VOLUME_ID, ebsVolumeId);
+        annotations.put(KubeConstants.EBS_MOUNT_PERMISSIONS, ebsVolume.getMountPermissions().toString());
+        annotations.put(KubeConstants.EBS_MOUNT_PATH, ebsVolume.getMountPath());
+        annotations.put(KubeConstants.EBS_FS_TYPE, ebsVolume.getFsType());
+
         return annotations;
     }
 }

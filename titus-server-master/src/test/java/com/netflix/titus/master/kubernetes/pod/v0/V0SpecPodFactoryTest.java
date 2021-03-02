@@ -258,7 +258,7 @@ public class V0SpecPodFactoryTest {
         when(jobCoordinatorConfiguration.isContainerInfoEnvEnabled()).thenReturn(false);
         when(podAffinityFactory.buildV1Affinity(job, batchJobTask)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod v1Pod = podFactory.buildV1Pod(job, batchJobTask, true);
+        V1Pod v1Pod = podFactory.buildV1Pod(job, batchJobTask, true, false);
         String encodedContainerInfo = v1Pod.getMetadata().getAnnotations().get("containerInfo");
         ContainerInfo containerInfo = ContainerInfo.parseFrom(Base64.getDecoder().decode(encodedContainerInfo.getBytes()));
         assertThat(containerInfo.getUserProvidedEnvMap()).isEmpty();
@@ -282,7 +282,7 @@ public class V0SpecPodFactoryTest {
         );
 
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
 
         assertThat(pod.getMetadata().getLabels()).containsEntry(
                 KubeConstants.LABEL_CAPACITY_GROUP, "mygroup"

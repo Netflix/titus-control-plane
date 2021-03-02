@@ -562,7 +562,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private V1Pod newTaskInfoToPod(TaskInfoRequest taskInfoRequest) {
-        return podFactory.buildV1Pod(taskInfoRequest.getJob(), taskInfoRequest.getTask(), false);
+        return podFactory.buildV1Pod(taskInfoRequest.getJob(), taskInfoRequest.getTask(), false, directKubeConfiguration.isEbsVolumePvEnabled());
     }
 
     private V1Pod oldTaskInfoToPod(TaskInfoRequest taskInfoRequest) {
