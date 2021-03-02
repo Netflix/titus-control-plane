@@ -63,15 +63,12 @@ public class JooqJobActivityConnectorComponent {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
             return new JooqContext(jooqConfiguration, embeddedPostgresService.getDataSource(), embeddedPostgresService);
         } else {
-            HikariDataSource dataSource = new HikariDataSource(hikariConfig);
-            hikariConfig.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
-            System.err.println(jooqConfiguration.getDatabaseUrl());
-            System.err.println(dataSource.getJdbcUrl());
-            dataSource.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
+            HikariDataSource dataSource = new HikariDataSource(hikariConfig);
+
             return new JooqContext(jooqConfiguration, dataSource, embeddedPostgresService);
         }
     }
@@ -86,12 +83,10 @@ public class JooqJobActivityConnectorComponent {
         hikariConfig.setConnectionTimeout(10000);
         hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setLeakDetectionThreshold(3000);
-        hikariConfig.setDriverClassName("org.postgresql.Driver");
 
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
         } else {
-            hikariConfig.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());

@@ -1,14 +1,13 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-antlr:antlr:2.7.7
 aopalliance:aopalliance:1.0
 com.fasterxml.jackson.core:jackson-annotations:2.10.5
 com.fasterxml.jackson.core:jackson-core:2.10.5
 com.fasterxml.jackson.core:jackson-databind:2.10.5.1
 com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.8.4
 com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.10.5
-com.fasterxml:classmate:1.5.1
+com.fasterxml:classmate:1.3.1
 com.github.akarnokd:rxjava2-interop:0.13.7
 com.github.ben-manes.caffeine:caffeine:2.6.2
 com.github.fge:btf:1.2
@@ -38,7 +37,6 @@ com.google.truth.extensions:truth-liteproto-extension:0.34
 com.google.truth.extensions:truth-proto-extension:0.34
 com.google.truth:truth:0.34
 com.googlecode.libphonenumber:libphonenumber:6.2
-com.h2database:h2:1.4.200
 com.jcraft:jzlib:1.1.3
 com.netflix.archaius:archaius2-api:2.3.16
 com.netflix.archaius:archaius2-core:2.3.16
@@ -55,12 +53,10 @@ com.opentable.components:otj-pg-embedded:0.13.3
 com.squareup.okhttp3:logging-interceptor:3.14.9
 com.squareup.okhttp3:okhttp:3.14.9
 com.squareup.okio:okio:1.17.2
-com.sun.istack:istack-commons-runtime:3.0.7
 com.sun.jersey.contribs:jersey-guice:1.19.4
 com.sun.jersey:jersey-core:1.19.4
 com.sun.jersey:jersey-server:1.19.4
 com.sun.jersey:jersey-servlet:1.19.4
-com.sun.xml.fastinfoset:FastInfoset:1.2.15
 com.twitter:finagle-core_2.11:6.33.0
 com.twitter:finagle-http_2.11:6.33.0
 com.twitter:finagle-native_2.11:6.33.0
@@ -142,7 +138,6 @@ javax.annotation:javax.annotation-api:1.3.2
 javax.el:javax.el-api:3.0.1-b06
 javax.inject:javax.inject:1
 javax.mail:mailapi:1.4.3
-javax.persistence:javax.persistence-api:2.2
 javax.servlet:javax.servlet-api:3.1.0
 javax.validation:validation-api:1.1.0.Final
 javax.ws.rs:jsr311-api:1.1.1
@@ -150,7 +145,6 @@ javax.xml.bind:jaxb-api:2.3.1
 joda-time:joda-time:2.10.6
 junit:junit:4.12
 log4j:log4j:1.2.17
-net.bytebuddy:byte-buddy:1.10.2
 net.sf.jopt-simple:jopt-simple:4.6
 org.apache.commons:commons-collections4:4.4
 org.apache.commons:commons-compress:1.20
@@ -164,7 +158,6 @@ org.bouncycastle:bcprov-ext-jdk15on:1.66
 org.bouncycastle:bcprov-jdk15on:1.66
 org.checkerframework:checker-qual:2.0.0
 org.codehaus.mojo:animal-sniffer-annotations:1.17
-org.dom4j:dom4j:2.1.1
 org.eclipse.jetty:jetty-http:9.2.12.v20150709
 org.eclipse.jetty:jetty-io:9.2.12.v20150709
 org.eclipse.jetty:jetty-security:9.2.12.v20150709
@@ -173,26 +166,17 @@ org.eclipse.jetty:jetty-servlet:9.2.12.v20150709
 org.eclipse.jetty:jetty-util:9.2.12.v20150709
 org.eclipse.jetty:jetty-webapp:9.2.12.v20150709
 org.eclipse.jetty:jetty-xml:9.2.12.v20150709
-org.glassfish.jaxb:jaxb-runtime:2.3.1
-org.glassfish.jaxb:txw2:2.3.1
 org.glassfish:javax.el:3.0.1-b12
 org.hamcrest:hamcrest-core:1.3
 org.hdrhistogram:HdrHistogram:2.1.12
-org.hibernate.common:hibernate-commons-annotations:5.1.0.Final
-org.hibernate:hibernate-core:5.4.9.Final
 org.hibernate:hibernate-validator:5.4.3.Final
-org.javassist:javassist:3.24.0-GA
-org.jboss.logging:jboss-logging:3.3.2.Final
-org.jboss.spec.javax.transaction:jboss-transaction-api_1.2_spec:1.1.1.Final
-org.jboss:jandex:2.1.1.Final
+org.javassist:javassist:3.18.2-GA
+org.jboss.logging:jboss-logging:3.3.0.Final
 org.joda:joda-convert:2.2.1
 org.jooq:jooq-codegen:3.13.2
-org.jooq:jooq-meta-extensions:3.13.2
 org.jooq:jooq-meta:3.13.2
 org.jooq:jooq:3.13.2
 org.json:json:20090211
-org.jvnet.staxex:stax-ex:1.8
-org.liquibase:liquibase-core:3.8.0
 org.mock-server:mockserver-client-java:3.10.4
 org.mock-server:mockserver-core:3.10.4
 org.mock-server:mockserver-logging:3.10.4
