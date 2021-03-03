@@ -31,7 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.ext.jooqflyway.jobactivity.JooqUtils;
-import com.netflix.titus.ext.jooqflyway.activity.Activity;
+import com.netflix.titus.ext.jooqflyway.generated.activity.Activity;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.ext.jooqflyway.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.jooq.impl.DSL.max;
 
 /**
