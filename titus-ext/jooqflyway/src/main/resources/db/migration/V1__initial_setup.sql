@@ -35,13 +35,3 @@ CREATE TABLE IF NOT EXISTS jobactivity.tasks
     PRIMARY KEY (task_id)
 );
 
-CREATE SCHEMA IF NOT EXISTS activity;
-
-CREATE TABLE IF NOT EXISTS activity.activity_queue
-(
-    queue_index BIGINT,
-    event_type  SMALLINT,
-    serialized_event jsonb,
-    PRIMARY KEY (queue_index)
-);
-

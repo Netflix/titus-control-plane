@@ -38,7 +38,6 @@ public class JooqConfiguration {
 
     public String getDatabaseUrl() {
         String string = SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
-        System.err.println("DATABASE URL AMITA" + string);
         return string;
     }
 

@@ -66,6 +66,7 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
                 .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
                 .fetchOne();
+
     }
 
     @Override

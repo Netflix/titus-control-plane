@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.jobactivity.store;
+CREATE SCHEMA IF NOT EXISTS activity;
 
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-
-/*
-The consumer store consumes from the publisher queue
- */
-public interface JobActivityConsumerStore {
-    public void consumeJob(Job<?> Job);
-    public void consumeTask(Task Task);
-    public void consumeRecord();
-}
+CREATE TABLE IF NOT EXISTS activity.activity_queue
+(
+    queue_index BIGINT,
+    event_type  SMALLINT,
+    serialized_event jsonb,
+    PRIMARY KEY (queue_index),
+    CONSTRAINT pk_activity_queue_index PRIMARY KEY (queue_index)
+);

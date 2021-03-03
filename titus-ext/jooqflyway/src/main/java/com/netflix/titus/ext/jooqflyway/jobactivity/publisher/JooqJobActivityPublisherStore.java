@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooq.jobactivity;
+package com.netflix.titus.ext.jooqflyway.jobactivity.publisher;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,8 +30,8 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
-import com.netflix.titus.ext.jooq.JooqUtils;
-import com.netflix.titus.ext.jooq.activity.schema.JActivity;
+import com.netflix.titus.ext.jooqflyway.jobactivity.JooqUtils;
+import com.netflix.titus.ext.jooqflyway.activity.Activity;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.ext.jooq.activity.schema.tables.JActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooqflyway.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.jooq.impl.DSL.max;
 
 /**
@@ -92,7 +92,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     }
 
     private void createSchemaIfNotExist() {
-        dslContext.createSchemaIfNotExists(JActivity.ACTIVITY)
+        dslContext.createSchemaIfNotExists(Activity.ACTIVITY)
                 .execute();
 
         int rc = dslContext.createTableIfNotExists(ACTIVITY_QUEUE)
@@ -157,7 +157,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                             ACTIVITY_QUEUE.QUEUE_INDEX,
                             ACTIVITY_QUEUE.EVENT_TYPE,
                             ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                    .values(assignedQueueIndex, 
+                    .values(assignedQueueIndex,
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();

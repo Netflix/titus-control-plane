@@ -65,10 +65,18 @@ ext.jooq = null
 
 tasks {
     generateJooqClasses {
-        schemas = ['jobactivity', 'activity']
+        schemas = ['jobactivity']
         basePackageName = 'com.netflix.titus-ext.jooqflyway.generated'
         outputDirectory.set(project.layout.buildDirectory.dir("generated-jooq"))
         inputDirectory.setFrom(project.files("src/main/resources/db/migration"))
+        excludeFlywayTable = true
+    }
+
+    generateJooqClasses {
+        schemas = ['activity']
+        basePackageName = 'com.netflix.titus-ext.jooqflyway.generated'
+        outputDirectory.set(project.layout.buildDirectory.dir("generated-jooq"))
+        inputDirectory.setFrom(project.files("src/main/resources/publisher/db/migration"))
         excludeFlywayTable = true
     }
 }
