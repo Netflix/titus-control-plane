@@ -27,14 +27,9 @@ import org.springframework.core.env.Environment;
 public class JooqConfiguration {
 
     private static final String PREFIX = "titus.ext.jooqflyway.";
-    //private final Environment environment;
+
     @Autowired
     Environment environment;
-
-    /*@Inject
-    public JooqConfiguration(Environment environment) {
-        this.environment = environment;
-    }*/
 
     public String getDatabaseUrl() {
         String string = SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
@@ -42,7 +37,7 @@ public class JooqConfiguration {
     }
 
     public boolean isInMemoryDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", true);
     }
 
     public String getProducerDatatabaseUrl() {

@@ -44,12 +44,21 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
-    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration configuration) {
-        return new EmbeddedPostgresService(configuration);
+    @Primary
+    @Qualifier("jobActivityEmbeddedPostgresService")
+    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration jobActivityConfiguration) {
+        return new EmbeddedPostgresService(jobActivityConfiguration);
+    }
+
+    @Bean
+    @Qualifier("producerEmbeddedPostgresService")
+    public EmbeddedPostgresService getProducerEmbeddedPostgresService(JooqConfiguration producerConfiguration) {
+        return new EmbeddedPostgresService(producerConfiguration);
     }
 
     @Bean
     @Primary
+    @Qualifier("jobActivityJooqContext")
     public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
 
@@ -74,7 +83,8 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
-    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    @Qualifier("producerJooqContext")
+    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService producerEmbeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
 
         hikariConfig.setAutoCommit(true);
@@ -85,7 +95,7 @@ public class JooqJobActivityConnectorComponent {
         hikariConfig.setLeakDetectionThreshold(3000);
 
         if (jooqConfiguration.isInMemoryDb()) {
-            hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
+            hikariConfig.setDataSource(producerEmbeddedPostgresService.getDataSource());
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
@@ -93,19 +103,19 @@ public class JooqJobActivityConnectorComponent {
             hikariConfig.setJdbcUrl(jooqConfiguration.getProducerDatatabaseUrl());
         }
 
-        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
+        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), producerEmbeddedPostgresService);
     }
 
     @Bean
     @Primary
-    @Qualifier("jobActivityDSLContext")
-    public DSLContext getJobActivityDSLContext(JooqContext jooqContext) {
-        return jooqContext.getDslContext();
+    @Qualifier("jobActivityDslContext")
+    public DSLContext getJobActivityDSLContext(JooqContext jooqJobActivityContext) {
+        return jooqJobActivityContext.getDslContext();
     }
 
 
     @Bean
-    @Qualifier("producerDSLContext")
+    @Qualifier("producerDslContext")
     public DSLContext getProducerDSLContext(JooqContext jooqProducerContext) {
         return jooqProducerContext.getDslContext();
     }

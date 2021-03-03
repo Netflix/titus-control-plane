@@ -1,10 +1,9 @@
-package com.netflix.ext.jooqflyway.jobactivity;
+package com.netflix.titus.ext.jooqflyway.jobactivity;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
-import com.netflix.titus.ext.jooqflyway.jobactivity.JooqJobActivityConsumerStore;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
@@ -20,12 +19,11 @@ public class JooqJobActivityConsumerStoreTest {
 
     private JooqJobActivityConsumerStore consumer;
 
-    @Rule
-    private JooqResource jooqResource = new JooqResource();
+    //@Rule
+    //private JooqResource jooqResource = new JooqResource();
 
     @Before
     public void setUp() {
-        createJooq
     }
 
 }

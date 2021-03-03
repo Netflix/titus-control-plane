@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS activity.activity_queue
 (
     queue_index BIGINT,
     event_type  SMALLINT,
-    serialized_event jsonb,
+    serialized_event bytea,
     PRIMARY KEY (queue_index)
 );
 

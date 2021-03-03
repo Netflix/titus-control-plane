@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import static com.netflix.titus_ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.jooq.impl.DSL.max;
 
 @Singleton

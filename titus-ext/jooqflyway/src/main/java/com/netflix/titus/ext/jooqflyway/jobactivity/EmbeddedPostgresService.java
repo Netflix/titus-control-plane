@@ -16,6 +16,8 @@
 
 package com.netflix.titus.ext.jooqflyway.jobactivity;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import javax.inject.Inject;
 import javax.sql.DataSource;
 
@@ -23,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,6 +38,7 @@ public class EmbeddedPostgresService {
 
     private final EmbeddedPostgres embeddedPostgres;
     private final DataSource dataSource;
+    private final Connection connection;
 
     @Inject
     public EmbeddedPostgresService(JooqConfiguration configuration) {
@@ -43,7 +47,12 @@ public class EmbeddedPostgresService {
                 this.embeddedPostgres = EmbeddedPostgres.start();
 
                 DataSource defaultDataSource = embeddedPostgres.getDatabase(POSTGRES_USER, POSTGRES_DB_NAME);
-                defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW).prepareStatement("CREATE DATABASE integration").execute();
+                connection = defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW);
+                PreparedStatement statement = connection.prepareStatement("CREATE DATABASE integration");
+                // ignore result
+                statement.execute();
+                statement.close();
+                //defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW).prepareStatement("CREATE DATABASE integration").execute();
 
                 this.dataSource = this.embeddedPostgres.getDatabase(POSTGRES_USER, DB_NAME);
             } catch (Exception error) {
@@ -53,8 +62,10 @@ public class EmbeddedPostgresService {
         } else {
             this.embeddedPostgres = null;
             this.dataSource = null;
+            this.connection = null;
         }
     }
+
 
     public DataSource getDataSource() {
         Preconditions.checkNotNull(dataSource, "Embedded Postgres mode not enabled");
