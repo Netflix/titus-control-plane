@@ -1,5 +1,6 @@
 package com.netflix.titus.supplementary.taskspublisher;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,7 +11,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 public class TaskDocumentTest {
 
     @Test
-    public void sanitizeEnvMap() {
+    public void sanitizeMap() {
         Map<String, String> env = new HashMap<>();
         String key1 = ".FOO";
         String key2 = "foo.bar";
@@ -18,29 +19,42 @@ public class TaskDocumentTest {
         String key4 = "platform";
         String key5 = "foo.bar.";
         String key6 = "foo.bar...more";
+        String key7 = "";
+        String key8 = " leadingSpaceKey";
+        String key9 = "trailingSpaceKey ";
         env.put(key1, "bar");
         env.put(key2, "ok");
         env.put(key3, "notOk");
         env.put(key4, "titus");
         env.put(key5, "notGood");
         env.put(key6, "bad");
+        env.put(key7, "empty value");
+        env.put(key8, "some value");
+        env.put(key9, "cmb");
 
-        Map<String, String> sanitizeEnvMap = TaskDocument.sanitizeEnvMap(env);
+        Map<String, String> sanitizeEnvMap = TaskDocument.sanitizeMap(env);
         assertThat(sanitizeEnvMap).isNotNull();
-        assertThat(sanitizeEnvMap.size()).isEqualTo(2);
+        assertThat(sanitizeEnvMap.size()).isEqualTo(4);
         assertThat(sanitizeEnvMap.containsKey(key1)).isFalse();
         assertThat(sanitizeEnvMap.containsKey(key2)).isTrue();
         assertThat(sanitizeEnvMap.containsKey(key3)).isFalse();
         assertThat(sanitizeEnvMap.containsKey(key4)).isTrue();
         assertThat(sanitizeEnvMap.containsKey(key5)).isFalse();
         assertThat(sanitizeEnvMap.containsKey(key6)).isFalse();
+        assertThat(sanitizeEnvMap.containsKey(key7)).isFalse();
+        assertThat(sanitizeEnvMap.containsKey(key8.trim())).isTrue();
+        assertThat(sanitizeEnvMap.containsKey(key9.trim())).isTrue();
     }
 
     @Test
-    public void emptyEnvMap() {
-        Map<String, String> sanitizeEnvMap = TaskDocument.sanitizeEnvMap(null);
+    public void emptyMapCheck() {
+        Map<String, String> sanitizeEnvMap = TaskDocument.sanitizeMap(null);
         assertThat(sanitizeEnvMap).isNotNull();
         assertThat(sanitizeEnvMap.size()).isEqualTo(0);
+
+        Map<String, String> sanitizedMap2 = TaskDocument.sanitizeMap(Collections.emptyMap());
+        assertThat(sanitizedMap2).isNotNull();
+        assertThat(sanitizedMap2.size()).isEqualTo(0);
     }
 
 }

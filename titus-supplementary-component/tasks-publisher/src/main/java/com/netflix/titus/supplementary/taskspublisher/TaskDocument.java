@@ -66,7 +66,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_
 
 public class TaskDocument implements EsDoc {
     private static final Logger logger = LoggerFactory.getLogger(TaskDocument.class);
-    private static final Pattern INVALID_ENV_KEY_FORMAT = Pattern.compile("^[.]|[.]{2,}|[.]$");
+    private static final Pattern INVALID_KEY_FORMAT = Pattern.compile("^[.]|[.]{2,}|[.]$|^$");
 
     private String id;
     private String instanceId;
@@ -408,7 +408,7 @@ public class TaskDocument implements EsDoc {
         taskDocument.applicationName = image.getName();
         taskDocument.appName = jobDescriptor.getApplicationName();
         taskDocument.user = jobDescriptor.getOwner().getTeamEmail();
-        taskDocument.labels = container.getAttributes();
+        taskDocument.labels = sanitizeMap(container.getAttributes());
         taskDocument.version = image.getTag();
         taskDocument.digest = image.getDigest();
         taskDocument.entryPoint = StringExt.concatenate(container.getEntryPoint(), " ");
@@ -419,7 +419,7 @@ public class TaskDocument implements EsDoc {
         taskDocument.gpu = containerResources.getGpu();
         taskDocument.shm = containerResources.getShmMB();
         taskDocument.allocateIpAddress = containerResources.isAllocateIP();
-        taskDocument.env = sanitizeEnvMap(container.getEnv());
+        taskDocument.env = sanitizeMap(container.getEnv());
         taskDocument.iamProfile = container.getSecurityProfile().getIamRole();
         taskDocument.securityGroups = container.getSecurityProfile().getSecurityGroups();
         taskDocument.softConstraints = new ArrayList<>(container.getSoftConstraints().keySet());
@@ -460,7 +460,7 @@ public class TaskDocument implements EsDoc {
         taskDocument.instanceId = task.getId();
         taskDocument.jobId = task.getJobId();
         taskDocument.state = toV2TaskState(task.getStatus()).name();
-        taskDocument.jobLabels = job.getJobDescriptor().getAttributes();
+        taskDocument.jobLabels = sanitizeMap(job.getJobDescriptor().getAttributes());
         taskDocument.host = taskContext.get(TASK_ATTRIBUTES_AGENT_HOST);
         taskDocument.tier = taskContext.getOrDefault(TASK_ATTRIBUTES_TIER, "Unknown");
         taskDocument.computedFields = new ComputedFields();
@@ -572,17 +572,17 @@ public class TaskDocument implements EsDoc {
     }
 
     @VisibleForTesting
-    static Map<String, String> sanitizeEnvMap(Map<String, String> env) {
-        if (env == null) {
+    static Map<String, String> sanitizeMap(Map<String, String> map) {
+        if (map == null) {
             return Collections.emptyMap();
         }
-        return env.keySet().stream().filter(TaskDocument::isSafe).collect(Collectors.toMap(k -> k, env::get));
+        return map.keySet().stream().filter(TaskDocument::isSafe).collect(Collectors.toMap(String::trim, map::get));
     }
 
     private static boolean isSafe(String key) {
-        boolean isKeySafeForES = !INVALID_ENV_KEY_FORMAT.matcher(key).find();
+        boolean isKeySafeForES = !INVALID_KEY_FORMAT.matcher(key).find();
         if (!isKeySafeForES) {
-            logger.info("Removing invalid ENV \"{}\" from ES task document.", key);
+            logger.info("Removing invalid attribute \"{}\" from ES task document.", key);
         }
         return isKeySafeForES;
     }
