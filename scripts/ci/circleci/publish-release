@@ -12,12 +12,12 @@ fi
 
 case "$tag" in
 *-rc\.*)
-  ./gradlew -Prelease.useLastTag=true -PbintrayUser="${bintrayUser:-}" -PbintrayKey="${bintrayKey:-}" \
-    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" candidate -x test --stacktrace
+  ./gradlew -Prelease.useLastTag=true -PnetflixOssUsername="${netflixOssRepoUsername:-}" -PnetflixOssPassword="${netflixOssRepoPassword:-}" \
+    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" -PsigningKey="${sonatypeUsername:-}" -PsigningPassword="${sonatypePassword:-}" candidate -x test --stacktrace
   ;;
 *)
-  ./gradlew -Prelease.useLastTag=true -PbintrayUser="${bintrayUser:-}" -PbintrayKey="${bintrayKey:-}" \
-    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" final -x test --stacktrace
+  ./gradlew -Prelease.useLastTag=true -PnetflixOssUsername="${netflixOssRepoUsername:-}" -PnetflixOssPassword="${netflixOssRepoPassword:-}" \
+    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" -PsigningKey="${sonatypeUsername:-}" -PsigningPassword="${sonatypePassword:-}" final -x test --stacktrace
   ;;
 esac
 
