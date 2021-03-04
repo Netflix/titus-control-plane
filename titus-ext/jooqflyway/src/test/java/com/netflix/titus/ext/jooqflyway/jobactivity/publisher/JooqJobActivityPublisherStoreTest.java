@@ -58,19 +58,11 @@ public class JooqJobActivityPublisherStoreTest {
     private DSLContext producerDslContext;
 
     @Autowired
-    @Qualifier("jobActivityDslContext")
-    private DSLContext jobActivityDslContext;
-
-    @Autowired
     private JooqJobActivityPublisherStore publisher;
 
     @Autowired
     @Qualifier("producerJooqContext")
     private JooqContext producerJooqContext;
-
-    @Autowired
-    @Qualifier("jobActivityJooqContext")
-    private JooqContext jobActivityJooqContext;
 
     @Before
     public void  setUp() {

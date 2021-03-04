@@ -44,23 +44,16 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
-    @Primary
-    @Qualifier("jobActivityEmbeddedPostgresService")
-    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration jobActivityConfiguration) {
-        return new EmbeddedPostgresService(jobActivityConfiguration);
-    }
-
-    @Bean
-    @Qualifier("producerEmbeddedPostgresService")
-    public EmbeddedPostgresService getProducerEmbeddedPostgresService(JooqConfiguration producerConfiguration) {
-        return new EmbeddedPostgresService(producerConfiguration);
+    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration jooqConfiguration) {
+        return new EmbeddedPostgresService(jooqConfiguration);
     }
 
     @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    public JooqContext getJobActivityJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
+        System.out.println("CONSUMER");
 
         hikariConfig.setAutoCommit(true);
 
@@ -86,7 +79,7 @@ public class JooqJobActivityConnectorComponent {
     @Qualifier("producerJooqContext")
     public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService producerEmbeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
-
+        System.out.println("PRODUCER");
         hikariConfig.setAutoCommit(true);
 
         // Connection management

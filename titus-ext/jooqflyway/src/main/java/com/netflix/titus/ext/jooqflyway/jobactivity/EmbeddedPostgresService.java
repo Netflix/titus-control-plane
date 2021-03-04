@@ -42,6 +42,7 @@ public class EmbeddedPostgresService {
 
     @Inject
     public EmbeddedPostgresService(JooqConfiguration configuration) {
+        System.out.println("****configurationAMITA");
         if (configuration.isInMemoryDb()) {
             try {
                 this.embeddedPostgres = EmbeddedPostgres.start();
@@ -52,8 +53,6 @@ public class EmbeddedPostgresService {
                 // ignore result
                 statement.execute();
                 statement.close();
-                //defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW).prepareStatement("CREATE DATABASE integration").execute();
-
                 this.dataSource = this.embeddedPostgres.getDatabase(POSTGRES_USER, DB_NAME);
             } catch (Exception error) {
                 logger.error("Failed to start an instance of EmbeddedPostgres database", error);

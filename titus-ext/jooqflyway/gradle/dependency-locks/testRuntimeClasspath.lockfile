@@ -20,6 +20,9 @@ com.fasterxml.jackson.module:jackson-module-parameter-names:2.11.3
 com.fasterxml:classmate:1.3.1
 com.github.akarnokd:rxjava2-interop:0.13.7
 com.github.ben-manes.caffeine:caffeine:2.6.2
+com.github.docker-java:docker-java-api:3.2.7
+com.github.docker-java:docker-java-transport-zerodep:3.2.7
+com.github.docker-java:docker-java-transport:3.2.7
 com.github.fge:btf:1.2
 com.github.fge:jackson-coreutils:1.8
 com.github.fge:json-schema-core:1.2.5
@@ -33,7 +36,6 @@ com.github.jnr:jnr-ffi:2.0.7
 com.github.jnr:jnr-posix:3.0.27
 com.github.jnr:jnr-x86asm:1.0.2
 com.github.rholder:snowball-stemmer:1.3.0.581.1
-com.github.spotbugs:spotbugs-annotations:3.1.12
 com.github.spullara.cli-parser:cli-parser:1.1.1
 com.google.android:annotations:4.1.1.4
 com.google.api.grpc:proto-google-common-protos:1.12.0
@@ -79,7 +81,7 @@ com.netflix.runtime:health-core:1.1.4
 com.netflix.runtime:health-guice:1.1.4
 com.netflix.spectator:spectator-api:0.59.0
 com.ning:compress-lzf:0.8.4
-com.opentable.components:otj-pg-embedded:0.13.3
+com.opentable.components:otj-pg-embedded:0.11.4
 com.squareup.okhttp3:logging-interceptor:3.14.9
 com.squareup.okhttp3:okhttp:3.14.9
 com.squareup.okio:okio:1.17.2
@@ -188,7 +190,7 @@ junit:junit:4.13
 log4j:log4j:1.2.17
 net.bytebuddy:byte-buddy-agent:1.10.5
 net.bytebuddy:byte-buddy:1.10.5
-net.java.dev.jna:jna:4.1.0
+net.java.dev.jna:jna:5.5.0
 net.jpountz.lz4:lz4:1.3.0
 net.minidev:accessors-smart:1.2
 net.minidev:json-smart:2.3
@@ -273,10 +275,12 @@ org.ow2.asm:asm:5.0.4
 org.postgresql:postgresql:42.2.8
 org.reactivestreams:reactive-streams:1.0.3
 org.reflections:reflections:0.9.10
+org.rnorth.duct-tape:duct-tape:1.0.8
+org.rnorth.visible-assertions:visible-assertions:2.1.2
 org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4
 org.scala-lang:scala-library:2.11.7
 org.skyscreamer:jsonassert:1.5.0
-org.slf4j:jcl-over-slf4j:1.7.28
+org.slf4j:jcl-over-slf4j:1.7.25
 org.slf4j:jul-to-slf4j:1.7.30
 org.slf4j:slf4j-api:1.7.30
 org.slf4j:slf4j-log4j12:1.7.0
@@ -306,6 +310,10 @@ org.springframework:spring-webflux:5.2.11.RELEASE
 org.springframework:spring-webmvc:5.2.11.RELEASE
 org.synchronoss.cloud:nio-multipart-parser:1.1.0
 org.synchronoss.cloud:nio-stream-storage:1.1.3
+org.testcontainers:database-commons:1.15.2
+org.testcontainers:jdbc:1.15.2
+org.testcontainers:postgresql:1.15.2
+org.testcontainers:testcontainers:1.15.2
 org.tukaani:xz:1.5
 org.webjars:swagger-ui:2.1.4
 org.xerial.snappy:snappy-java:1.1.8.4
