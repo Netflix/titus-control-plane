@@ -5,14 +5,20 @@ import java.util.concurrent.TimeUnit;
 import javax.xml.ws.WebServiceRef;
 
 import com.google.common.base.Stopwatch;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
-import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.ext.jooqflyway.jobactivity.JooqContext;
 import com.netflix.titus.ext.jooqflyway.jobactivity.JooqJobActivityConnectorComponent;
+import com.netflix.titus.ext.jooqflyway.jobactivity.JooqTitusRuntime;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.jooq.DSLContext;
@@ -42,6 +48,9 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
         classes = {
                 JooqJobActivityPublisherStore.class,
                 JooqJobActivityConnectorComponent.class,
+                JooqTitusRuntime.class,
+                TitusRuntime.class,
+                EmptyLogStorageInfo.class,
         }
 )
 
@@ -59,6 +68,9 @@ public class JooqJobActivityPublisherStoreTest {
 
     @Autowired
     private JooqJobActivityPublisherStore publisher;
+
+    @Autowired
+    private TitusRuntime titusRuntime;
 
     @Autowired
     @Qualifier("producerJooqContext")
@@ -90,8 +102,61 @@ public class JooqJobActivityPublisherStoreTest {
                 .verifyComplete();
     }
 
+
+    @Test
+    public void testPublishTasks() {
+        int numTasks = 10;
+
+        StepVerifier.create(publishTasks(numTasks))
+                .verifyComplete();
+
+        StepVerifier.create(publisher.getSize())
+                .expectNext(numTasks)
+                .verifyComplete();
+    }
+
+    @Test
+    public void testActivityTableScan() {
+        StepVerifier.create(publishJobs(20)).verifyComplete();
+
+        StepVerifier.create(publisher
+                .getRecords())
+                .thenConsumeWhile(jobActivityPublisherRecord -> {
+                    if (jobActivityPublisherRecord.getRecordType() == JobActivityPublisherRecord.RecordType.JOB) {
+                        try {
+                            logger.info("Read back job {}", JobActivityPublisherRecordUtils.getJobFromRecord(jobActivityPublisherRecord));
+                        } catch (InvalidProtocolBufferException e) {
+                            return false;
+                        }
+                    } else if (jobActivityPublisherRecord.getRecordType() == JobActivityPublisherRecord.RecordType.TASK) {
+                        try {
+                            logger.info("Read back task {}", JobActivityPublisherRecordUtils.getTaskFromRecord(batchJobsGenerator.getValue(), jobActivityPublisherRecord));
+                        } catch (InvalidProtocolBufferException e) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                    return true;
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    public void testQueueIndexLoad() {
+        int numRecords = 20;
+
+        // Insert some records
+        StepVerifier.create(publishJobs(numRecords)).verifyComplete();
+
+        // Create a new publisher that will reload the queue index
+        createJooqPublisherStore();
+
+        assertThat(publisher.getQueueIndex()).isEqualTo(numRecords);
+    }
+
     private void createJooqPublisherStore() {
-        publisher = new JooqJobActivityPublisherStore(producerDslContext, TitusRuntimes.internal(), EmptyLogStorageInfo.empty());
+        publisher = new JooqJobActivityPublisherStore(producerDslContext, titusRuntime, EmptyLogStorageInfo.empty());
     }
 
     private Mono<Void> publishJobs(int count) {

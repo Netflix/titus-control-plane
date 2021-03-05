@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -42,7 +41,6 @@ public class EmbeddedPostgresService {
 
     @Inject
     public EmbeddedPostgresService(JooqConfiguration configuration) {
-        System.out.println("****configurationAMITA");
         if (configuration.isInMemoryDb()) {
             try {
                 this.embeddedPostgres = EmbeddedPostgres.start();

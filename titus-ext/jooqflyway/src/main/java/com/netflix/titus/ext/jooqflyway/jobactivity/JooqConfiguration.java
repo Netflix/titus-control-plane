@@ -37,7 +37,11 @@ public class JooqConfiguration {
     }
 
     public boolean isInMemoryDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", true);
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+    }
+
+    public boolean isLocalDb() {
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "localDb", true);
     }
 
     public String getProducerDatatabaseUrl() {

@@ -16,15 +16,11 @@
 
 package com.netflix.titus.ext.jooqflyway.jobactivity;
 
-import javax.sql.DataSource;
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 import org.postgresql.PGProperty;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -63,16 +59,15 @@ public class JooqJobActivityConnectorComponent {
         hikariConfig.setLeakDetectionThreshold(3000);
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
-            return new JooqContext(jooqConfiguration, embeddedPostgresService.getDataSource(), embeddedPostgresService);
+        } else if (jooqConfiguration.isLocalDb()) {
+            hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
-            HikariDataSource dataSource = new HikariDataSource(hikariConfig);
-
-            return new JooqContext(jooqConfiguration, dataSource, embeddedPostgresService);
         }
+        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
     }
 
     @Bean
@@ -89,13 +84,14 @@ public class JooqJobActivityConnectorComponent {
 
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(producerEmbeddedPostgresService.getDataSource());
+        } else if (jooqConfiguration.isLocalDb()) {
+            hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getProducerDatatabaseUrl());
         }
-
         return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), producerEmbeddedPostgresService);
     }
 
