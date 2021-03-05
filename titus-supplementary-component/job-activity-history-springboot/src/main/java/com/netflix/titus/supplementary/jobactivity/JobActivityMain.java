@@ -18,7 +18,6 @@ package com.netflix.titus.supplementary.jobactivity;
 
 import javax.inject.Named;
 
-import com.netflix.titus.common.runtime.InternalRuntimeComponent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
@@ -29,6 +28,7 @@ import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcServer;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
+import com.netflix.titus.supplementary.jobactivity.store.JobActivityConsumerStore;
 import io.grpc.Channel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -39,11 +39,13 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
 
 @SpringBootApplication
 @Import({
-        InternalRuntimeComponent.class,
+        JobActivityTitusRuntimeComponent.class,
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
         GrpcToReactorClientFactoryComponent.class,
         GrpcToReactorServerFactoryComponent.class,
+        JobActivityConsumerStore.class,
+        JobActivityConsumerWorker.class,
 
         // Job connector
         JobManagerConnectorComponent.class,

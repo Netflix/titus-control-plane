@@ -16,12 +16,25 @@
 
 package com.netflix.titus.ext.jooqflyway.jobactivity;
 
+import java.time.Duration;
+import java.util.List;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.framework.scheduler.ScheduleReference;
+import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.supplementary.jobactivity.JobActivityConsumerWorker;
 import com.netflix.titus.supplementary.jobactivity.store.JobActivityConsumerStore;
 import org.jooq.DSLContext;
 import org.jooq.Record1;
@@ -29,6 +42,8 @@ import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.jooq.impl.DSL.max;
@@ -39,35 +54,60 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
     private static final Logger logger = LoggerFactory.getLogger(JobActivityConsumerStore.class);
     private final DSLContext jobActivityDslContext;
     private final DSLContext producerDSLContext;
-
+    private final TitusRuntime titusRuntime;
+    private ScheduleReference schedulerRef;
+    private final Clock clock;
 
     @Inject
-    public JooqJobActivityConsumerStore( JooqContext jobActivityDSLContext,
+    public JooqJobActivityConsumerStore( TitusRuntime titusRuntime,
+                                         DSLContext jobActivityDSLContext,
                                          DSLContext producerDSLContext) {
-        this(jobActivityDSLContext.getDslContext(), producerDSLContext, true);
+        this(titusRuntime, jobActivityDSLContext, producerDSLContext, true);
     }
 
     @VisibleForTesting
-    public JooqJobActivityConsumerStore (DSLContext jobActivityDSLContext,
-                                        DSLContext producerDSLContext,
-                                        boolean createIfNotExists) {
+    public JooqJobActivityConsumerStore (TitusRuntime titusRuntime,
+                                         DSLContext jobActivityDSLContext,
+                                         DSLContext producerDSLContext,
+                                         boolean createIfNotExists) {
         this.jobActivityDslContext = jobActivityDSLContext;
         this.producerDSLContext = producerDSLContext;
+        this.titusRuntime = titusRuntime;
+        this.clock = titusRuntime.getClock();
         if (createIfNotExists) {
             // create schema
             logger.info("Creating database");
         }
     }
 
-    // Use titus local scheduler 
-    public void consumeRecord(){
-        // figure out how to get the schema here
-        Record1<Long> record = DSL.using(producerDSLContext.configuration())
+    @Activator
+    public void enterActiveMode() {
+        ScheduleDescriptor scheduleDescriptor = ScheduleDescriptor.newBuilder()
+                .withName("populateNewRecords")
+                .withDescription("Drain queue and populate new records")
+                .withTimeout(Duration.ofMinutes(5))
+                .build();
+
+        this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
+                scheduleDescriptor,
+                e -> consumeRecord(),
+                ExecutorsExt.namedSingleThreadExecutor(JooqJobActivityConsumerStore.class.getSimpleName())
+        );
+    }
+
+
+    // Use titus local scheduler
+/*    public Flux<JobActivityPublisherRecord> getRecords() {
+        List<JobActivityPublisherRecord> records = DSL.using(producerDSLContext.configuration())
                 .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
-                .fetchOne();
+                .fetchInto(JobActivityPublisherRecord.class);
+        return
+    }*/
 
-    }
+    public void readRecordFromPublisher() {}
+    public void writeRecordToJobActivity() {}
+    public void deleteRecordFromPublisher(){}
 
     @Override
     public void consumeJob(Job<?> Job) {
@@ -78,4 +118,17 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
     public void consumeTask(Task Task) {
         return;
     }
+
+    @Override
+    public void consumeRecord() {
+        return;
+    }
+
+
+    @Deactivator
+    @PreDestroy
+    public void shutdown() {
+        Evaluators.acceptNotNull(schedulerRef, ScheduleReference::cancel);
+    }
+
 }

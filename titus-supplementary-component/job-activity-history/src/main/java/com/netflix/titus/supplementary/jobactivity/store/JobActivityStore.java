@@ -16,5 +16,8 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+
 public interface JobActivityStore {
+
 }
