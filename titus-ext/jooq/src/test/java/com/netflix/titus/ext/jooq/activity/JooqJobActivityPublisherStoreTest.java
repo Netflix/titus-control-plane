@@ -1,80 +1,59 @@
-package com.netflix.titus.ext.jooqflyway.jobactivity.publisher;
+/*
+ * Copyright 2019 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.netflix.titus.ext.jooq.activity;
 
 import java.util.concurrent.TimeUnit;
-
-import javax.xml.ws.WebServiceRef;
 
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
-import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.ext.jooqflyway.jobactivity.JooqContext;
-import com.netflix.titus.ext.jooqflyway.jobactivity.JooqJobActivityConnectorComponent;
-import com.netflix.titus.ext.jooqflyway.jobactivity.JooqTitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.ext.jooq.jobactivity.JooqJobActivityPublisherStore;
+import com.netflix.titus.ext.jooq.relocation.JooqResource;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import org.jooq.DSLContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(
-        properties = {
-                "spring.application.name=test",
-        },
-        classes = {
-                JooqJobActivityPublisherStore.class,
-                JooqJobActivityConnectorComponent.class,
-                JooqTitusRuntime.class,
-                TitusRuntime.class,
-                EmptyLogStorageInfo.class,
-        }
-)
-
-@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqJobActivityPublisherStoreTest {
-
     private final static Logger logger = LoggerFactory.getLogger(JooqJobActivityPublisherStoreTest.class);
 
     private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
     private DataGenerator<BatchJobTask> batchTasksGenerator = JobGenerator.batchTasks(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
 
-    @Autowired
-    @Qualifier("producerDslContext")
-    private DSLContext producerDslContext;
+    @Rule
+    public final JooqResource jooqResource = new JooqResource();
 
-    @Autowired
     private JooqJobActivityPublisherStore publisher;
-
-    @Autowired
-    private TitusRuntime titusRuntime;
-
-    @Autowired
-    @Qualifier("producerJooqContext")
-    private JooqContext producerJooqContext;
 
     @Before
     public void  setUp() {
@@ -101,7 +80,6 @@ public class JooqJobActivityPublisherStoreTest {
                 .expectNext(numJobs)
                 .verifyComplete();
     }
-
 
     @Test
     public void testPublishTasks() {
@@ -156,7 +134,7 @@ public class JooqJobActivityPublisherStoreTest {
     }
 
     private void createJooqPublisherStore() {
-        publisher = new JooqJobActivityPublisherStore(producerDslContext, titusRuntime, EmptyLogStorageInfo.empty());
+        publisher = new JooqJobActivityPublisherStore(jooqResource.getDslContext(), TitusRuntimes.internal(), EmptyLogStorageInfo.empty());
     }
 
     private Mono<Void> publishJobs(int count) {
@@ -181,5 +159,4 @@ public class JooqJobActivityPublisherStoreTest {
     private Flux<BatchJobTask> observeTasks(int count) {
         return Flux.fromIterable(batchTasksGenerator.batch(count).getValue());
     }
-
 }
