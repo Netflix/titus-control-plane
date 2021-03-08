@@ -11,7 +11,6 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.ext.jooqflyway.generated.activity.Activity;
-import com.netflix.titus.ext.jooqflyway.jobactivity.publisher.JooqJobActivityPublisherStore;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
