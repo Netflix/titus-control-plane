@@ -38,7 +38,7 @@ ext.psql = '42.2.8'
 dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
-    compile project(':titus-supplementary-component-job-activity-history')
+
     implementation("org.jooq:jooq:${jooqVersion}")
     jdbc("org.postgresql:postgresql:${psql}")
 

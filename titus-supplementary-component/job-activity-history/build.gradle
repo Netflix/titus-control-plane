@@ -1,8 +1,60 @@
+buildscript {
+    dependencies {
+        classpath 'com.opentable.components:otj-pg-embedded:0.13.+'
+    }
+}
+
+plugins {
+    id "com.revolut.jooq-docker" version "0.3.3"
+    id 'org.flywaydb.flyway' version '5.2.4'
+}
+
+ext.flywayVersion = '6.1.+'
+ext.jooqVersion = '3.13.2'
+ext.psql = '42.2.8'
+
+
 dependencies {
     compile "org.springframework:spring-web:${springVersion}"
     compile "org.springframework.boot:spring-boot:${springBootVersion}"
+    compile project(':titus-common')
+    compile project(':titus-api')
 
+    implementation("org.jooq:jooq:${jooqVersion}")
+    jdbc("org.postgresql:postgresql:${psql}")
+
+    // DB -  Drivers
+    compile "org.postgresql:postgresql:${psql}"
+
+    // DB - jOOQ
+    compile "org.jooq:jooq:${jooqVersion}"
+    compile "org.jooq:jooq-meta:${jooqVersion}"
+    compile "org.jooq:jooq-codegen:${jooqVersion}"
+
+    compile 'com.opentable.components:otj-pg-embedded:0.13.+'
+    // Hikari DataSource for connection pooling to the DB
+    compile 'com.zaxxer:HikariCP:3.2.0'
     compile project(':titus-server-runtime')
 
     testCompile project(':titus-testkit')
+}
+
+// Begin: Jooq code generation using EmbeddedPostgres database and Flyway migration
+ext.dataSource = null
+ext.pg = null
+ext.jdbcUrl = ''
+ext.jdbcPort = -1
+ext.jdbcUser = 'activityuser'
+ext.jdbcPassword = 'activitypassword'
+ext.flyway = null
+ext.jooq = null
+
+tasks {
+    generateJooqClasses {
+        schemas = ['jobactivity', 'activity']
+        basePackageName = 'com.netflix.titus.ext.jooqflyway.generated'
+        outputDirectory.set(project.layout.buildDirectory.dir("generated"))
+        inputDirectory.setFrom(project.files("src/main/resources/"))
+        excludeFlywayTable = true
+    }
 }
