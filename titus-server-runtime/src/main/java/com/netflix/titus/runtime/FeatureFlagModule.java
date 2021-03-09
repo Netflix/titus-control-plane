@@ -190,11 +190,15 @@ public class FeatureFlagModule extends AbstractModule {
 
         return p -> {
             JobDescriptor<?> jobDescriptor = p.getLeft();
+            ApplicationSLA capacityGroup = p.getRight();
+
             ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
 
-            // Jobs with static IP addresses are not allowed.
+            // Check jobs with static IP addresses
             if (!CollectionsExt.isNullOrEmpty(resources.getSignedIpAddressAllocations())) {
-                return false;
+                if (!configuration.isStaticIpEnabled()) {
+                    return false;
+                }
             }
 
             // Job should not be scheduled by KubeScheduler
@@ -205,6 +209,12 @@ public class FeatureFlagModule extends AbstractModule {
             // Check GPU jobs
             if (!configuration.isGpuEnabled() && resources.getGpu() > 0) {
                 return false;
+            }
+
+            if (capacityGroup != null && capacityGroup.getSchedulerName() != null) {
+                if (capacityGroup.getSchedulerName().toLowerCase().contains("kube")) {
+                    return true;
+                }
             }
 
             // Check if the machine type is enabled

@@ -29,6 +29,12 @@ public interface KubeSchedulerFeatureConfiguration {
     boolean isGpuEnabled();
 
     /**
+     * Set to true to enable routing jobs with static IPs to KubeScheduler.
+     */
+    @DefaultValue("false")
+    boolean isStaticIpEnabled();
+
+    /**
      * Jobs with machine type hard constraint which request machine types not allowed by this regexp pattern, will be
      * assigned to Fenzo.
      */

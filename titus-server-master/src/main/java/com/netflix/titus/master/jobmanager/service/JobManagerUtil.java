@@ -269,11 +269,6 @@ public final class JobManagerUtil {
                                                       ApplicationSLA capacityGroupDescriptor,
                                                       KubePodConfiguration kubePodConfiguration,
                                                       Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate) {
-        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getSchedulerName() != null) {
-            if (capacityGroupDescriptor.getSchedulerName().toLowerCase().contains("kube")) {
-                return true;
-            }
-        }
         return KubeUtil.findFarzoneId(kubePodConfiguration, job).isPresent() || kubeSchedulerPredicate.test(Pair.of(job.getJobDescriptor(), capacityGroupDescriptor));
     }
 
