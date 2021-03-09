@@ -12,7 +12,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationConfiguration;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinator;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationStatus;
-import com.netflix.titus.supplementary.jobactivity.store.JobActivityConsumerStore;
+import com.netflix.titus.supplementary.jobactivity.store.JobActivityStore;
 
 import static com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinators.coordinatorWithLoggingCallback;
 import static com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinators.coordinatorWithSystemExitCallback;
@@ -24,10 +24,10 @@ public class JobActivityLeaderActivator implements LeaderActivationStatus {
 
     @Inject
     public JobActivityLeaderActivator(LeaderActivationConfiguration configuration,
-                                     JobActivityConsumerStore jobActivityConsumerStore,
+                                     JobActivityStore jobActivityStore,
                                      ClusterMembershipService membershipService,
                                      TitusRuntime titusRuntime) {
-        List<LeaderActivationListener> services = Arrays.asList(jobActivityConsumerStore);
+        List<LeaderActivationListener> services = Arrays.asList(jobActivityStore);
         this.coordinator = configuration.isSystemExitOnLeadershipLost()
                 ? coordinatorWithSystemExitCallback(configuration, services, membershipService, titusRuntime)
                 : coordinatorWithLoggingCallback(configuration, services, membershipService, titusRuntime);

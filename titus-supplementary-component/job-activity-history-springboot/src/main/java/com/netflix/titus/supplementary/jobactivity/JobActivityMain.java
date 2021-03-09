@@ -18,7 +18,14 @@ package com.netflix.titus.supplementary.jobactivity;
 
 import javax.inject.Named;
 
+import com.netflix.titus.api.health.HealthIndicator;
+import com.netflix.titus.api.health.HealthIndicators;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationComponent;
+import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipInMemoryConnectorComponent;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
+import com.netflix.titus.runtime.clustermembership.endpoint.rest.ClusterMembershipRestEndpointComponent;
+import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
@@ -28,7 +35,6 @@ import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcServer;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
-import com.netflix.titus.supplementary.jobactivity.store.JobActivityConsumerStore;
 import io.grpc.Channel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -44,15 +50,28 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
         ConfigurationLeaderResolverComponent.class,
         GrpcToReactorClientFactoryComponent.class,
         GrpcToReactorServerFactoryComponent.class,
-        JobActivityConsumerStore.class,
-        JobActivityConsumerWorker.class,
+
+        // Cluster membership service
+        ClusterMembershipInMemoryConnectorComponent.class,
+        ClusterMembershipServiceComponent.class,
+        ClusterMembershipGrpcEndpointComponent.class,
+        ClusterMembershipRestEndpointComponent.class,
+        LeaderActivationComponent.class,
 
         // Job connector
         JobManagerConnectorComponent.class,
+        JobActivityLeaderActivator.class,
+        JobActivityWorker.class,
 
         RestAddOnsComponent.class
 })
 public class JobActivityMain {
+
+    @Bean
+    public HealthIndicator getHealthIndicator() {
+        return HealthIndicators.alwaysHealthy();
+    }
+
 
     @Bean
     @Named(JobManagerConnectorComponent.JOB_MANAGER_CHANNEL)

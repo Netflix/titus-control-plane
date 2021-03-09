@@ -1,8 +1,5 @@
 package com.netflix.titus.ext.jooqflyway.jobactivity;
 
-import java.util.Collections;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -17,9 +14,7 @@ import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -31,7 +26,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import static com.netflix.titus.ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
@@ -43,7 +37,7 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
                 "spring.application.name=test",
         },
         classes = {
-                JooqJobActivityConsumerStore.class,
+                JooqJobActivityStore.class,
                 JooqJobActivityConnectorComponent.class,
                 JooqTitusRuntime.class,
                 TitusRuntime.class,
@@ -52,13 +46,13 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 )
 
 @DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
-public class JooqJobActivityConsumerStoreTest {
-    private final static Logger logger = LoggerFactory.getLogger(JooqJobActivityConsumerStoreTest.class);
+public class JooqJobActivityStoreTest {
+    private final static Logger logger = LoggerFactory.getLogger(JooqJobActivityStoreTest.class);
 
     private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
     private DataGenerator<BatchJobTask> batchTasksGenerator = JobGenerator.batchTasks(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
 
-    private JooqJobActivityConsumerStore consumer;
+    private JooqJobActivityStore consumer;
     public long queueIndex = 0;
 
     @Autowired
@@ -79,7 +73,7 @@ public class JooqJobActivityConsumerStoreTest {
     }
 
     private void createJooqConsumerStore() {
-        consumer = new JooqJobActivityConsumerStore(titusRuntime, jobActivityDslContext, producerDslContext);
+        consumer = new JooqJobActivityStore(titusRuntime, jobActivityDslContext, producerDslContext);
     }
 
     public void publishJobs() {

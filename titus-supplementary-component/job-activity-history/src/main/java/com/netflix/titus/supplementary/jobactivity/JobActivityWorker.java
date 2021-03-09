@@ -13,22 +13,22 @@ import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.supplementary.jobactivity.store.JobActivityConsumerStore;
+import com.netflix.titus.supplementary.jobactivity.store.JobActivityStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JobActivityConsumerWorker {
+public class JobActivityWorker {
     private ScheduleReference schedulerRef;
     private final Clock clock;
     private final TitusRuntime titusRuntime;
-    private JobActivityConsumerStore consumerStore;
+    private JobActivityStore consumerStore;
 
-    private static final Logger logger = LoggerFactory.getLogger(JobActivityConsumerWorker.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobActivityWorker.class);
 
 
     @Inject
-    public JobActivityConsumerWorker(TitusRuntime titusRuntime,
-                                     JobActivityConsumerStore consumerStore) {
+    public JobActivityWorker(TitusRuntime titusRuntime,
+                             JobActivityStore consumerStore) {
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
         this.consumerStore = consumerStore;
@@ -47,7 +47,7 @@ public class JobActivityConsumerWorker {
         this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
                 scheduleDescriptor,
                 e -> consume(),
-                ExecutorsExt.namedSingleThreadExecutor(JobActivityConsumerWorker.class.getSimpleName())
+                ExecutorsExt.namedSingleThreadExecutor(JobActivityWorker.class.getSimpleName())
         );
     }
 
