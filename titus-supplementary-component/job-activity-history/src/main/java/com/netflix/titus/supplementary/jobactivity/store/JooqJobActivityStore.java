@@ -31,6 +31,7 @@ import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.flywaydb.core.Flyway;
 
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Tables.ACTIVITY_QUEUE;
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobactivity.Jobactivity.JOBACTIVITY;
@@ -39,38 +40,42 @@ import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobac
 public class JooqJobActivityStore implements JobActivityStore {
 
     private static final Logger logger = LoggerFactory.getLogger(JobActivityStore.class);
-    private final DSLContext jobActivityDslContext;
-    private final DSLContext producerDSLContext;
+    private final JooqContext jobActivityJooqContext;
+    private final JooqContext producerJooqContext;
     private final TitusRuntime titusRuntime;
     private ScheduleReference schedulerRef;
     private final Clock clock;
 
+    private final DSLContext jobActivityDSLContext;
+    private final DSLContext producerDSLContext;
+
     @Inject
     public JooqJobActivityStore(TitusRuntime titusRuntime,
-                                DSLContext jobActivityDSLContext,
-                                DSLContext producerDSLContext) {
-        this(titusRuntime, jobActivityDSLContext, producerDSLContext, true);
+                                JooqContext jobActivityJooqContext,
+                                JooqContext producerJooqContext) {
+        this(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
     }
 
     @VisibleForTesting
     public JooqJobActivityStore(TitusRuntime titusRuntime,
-                                DSLContext jobActivityDSLContext,
-                                DSLContext producerDSLContext,
+                                JooqContext jobActivityJooqContext,
+                                JooqContext producerJooqContext,
                                 boolean createIfNotExists) {
-        this.jobActivityDslContext = jobActivityDSLContext;
-        this.producerDSLContext = producerDSLContext;
+        this.jobActivityJooqContext = jobActivityJooqContext;
+        this.producerJooqContext = producerJooqContext;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
-        if (createIfNotExists) {
-            // create schema
-            createSchemaIfNotExists();
-        }
+        this.jobActivityDSLContext = jobActivityJooqContext.getDslContext();
+        this.producerDSLContext = producerJooqContext.getDslContext();
+        initializeSchema(createIfNotExists);
     }
 
-    public void createSchemaIfNotExists() {
-        jobActivityDslContext.createSchemaIfNotExists(JOBACTIVITY);
-        jobActivityDslContext.createTableIfNotExists(JOBACTIVITY.JOBS);
-        jobActivityDslContext.createTableIfNotExists(JOBACTIVITY.TASKS);
+    public void initializeSchema(boolean createIfNotExists) {
+        if (createIfNotExists) {
+            logger.info("Creating/migrating JooqJobStore DB schema...");
+            Flyway flyway = Flyway.configure().dataSource(jobActivityJooqContext.getDataSource()).load();
+            flyway.migrate();
+        }
     }
 
     @Override
@@ -96,7 +101,7 @@ public class JooqJobActivityStore implements JobActivityStore {
                 .map(r -> {
                     try {
                         Job job = JobActivityPublisherRecordUtils.getJobFromRecord(r);
-                        jobActivityDslContext.insertInto(JOBACTIVITY.JOBS,
+                        jobActivityDSLContext.insertInto(JOBACTIVITY.JOBS,
                                 JOBACTIVITY.JOBS.JOB_ID).values(job.getId()).execute();
 //, new Timestamp(job.getStatus().getTimestamp())
                         producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(r.getQueueIndex())).execute();

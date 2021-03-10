@@ -25,9 +25,9 @@ The consumer store consumes from the publisher queue
  */
 
 public interface JobActivityStore extends LeaderActivationListener {
-    public void consumeJob(Job<?> Job);
+    void consumeJob(Job<?> Job);
 
-    public void consumeTask(Task Task);
+    void consumeTask(Task Task);
 
-    public void consumeRecords();
+    void consumeRecords();
 }

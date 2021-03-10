@@ -57,18 +57,20 @@ public class JooqJobActivityStoreTest {
     private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
 
     @Autowired
-    @Qualifier("jobActivityDslContext")
-    private DSLContext jobActivityDslContext;
+    @Qualifier("jobActivityJooqContext")
+    private JooqContext jobActivityJooqContext;
 
     @Autowired
-    @Qualifier("producerDslContext")
-    private DSLContext producerDslContext;
+    @Qualifier("producerJooqContext")
+    private JooqContext producerJooqContext;
 
+    private DSLContext producerDSLContext = producerJooqContext.getDslContext();
+    private DSLContext jobActivityDSLContext = jobActivityJooqContext.getDslContext();
 
     @Before
     public void setUp() {
+        createJooqJobActivityStore();
         publishJobs();
-        createJooqConsumerStore();
     }
 
     @After
@@ -76,29 +78,14 @@ public class JooqJobActivityStoreTest {
         jobActivityConnectorStubs.shutdown();
     }
 
-    private void createJooqConsumerStore() {
-        consumer = new JooqJobActivityStore(titusRuntime, jobActivityDslContext, producerDslContext, true);
+    private void createJooqJobActivityStore() {
+        consumer = new JooqJobActivityStore(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
     }
 
     public void publishJobs() {
-        producerDslContext.createSchemaIfNotExists(Activity.ACTIVITY)
-                .execute();
-
-        int rc = producerDslContext.createTableIfNotExists(ACTIVITY_QUEUE)
-                .column(ACTIVITY_QUEUE.QUEUE_INDEX)
-                .column(ACTIVITY_QUEUE.EVENT_TYPE)
-                .column(ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                .constraint(DSL.constraint("pk_activity_queue_index").primaryKey(ACTIVITY_QUEUE.QUEUE_INDEX))
-                .execute();
-        if (0 != rc) {
-            throw new RuntimeException(String.format("Unexpected table create return code %d", rc));
-        }
-        logger.info("Created schema and table with return code {}", rc);
-
         observeJobs(10)
                 .flatMap(batchJobExtJob -> publishJob(batchJobExtJob))
                 .then();
-
     }
 
     public Mono<Void> publishJob(Job<?> job) {
@@ -110,7 +97,7 @@ public class JooqJobActivityStoreTest {
         long assignedQueueIndex = queueIndex + 1;
         return JooqUtils.executeAsyncMono(() -> {
             long startTimeMs = System.currentTimeMillis();
-            int numInserts = producerDslContext
+            int numInserts = producerDSLContext
                     .insertInto(ACTIVITY_QUEUE,
                             ACTIVITY_QUEUE.QUEUE_INDEX,
                             ACTIVITY_QUEUE.EVENT_TYPE,
@@ -120,7 +107,7 @@ public class JooqJobActivityStoreTest {
                             serializedRecord)
                     .execute();
             return numInserts;
-        }, producerDslContext)
+        }, producerDSLContext)
                 .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException(recordId, e))
                 .then();
     }

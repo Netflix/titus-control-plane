@@ -32,6 +32,8 @@ dependencies {
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.jooq:jooq-meta:${jooqVersion}"
     compile "org.jooq:jooq-codegen:${jooqVersion}"
+    // Flyway
+    compile "org.flywaydb:flyway-core:${flywayVersion}"
 
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
     // Hikari DataSource for connection pooling to the DB
