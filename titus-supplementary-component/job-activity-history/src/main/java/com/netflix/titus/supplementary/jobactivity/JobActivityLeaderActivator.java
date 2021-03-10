@@ -24,9 +24,9 @@ public class JobActivityLeaderActivator implements LeaderActivationStatus {
 
     @Inject
     public JobActivityLeaderActivator(LeaderActivationConfiguration configuration,
-                                     JobActivityStore jobActivityStore,
-                                     ClusterMembershipService membershipService,
-                                     TitusRuntime titusRuntime) {
+                                      JobActivityStore jobActivityStore,
+                                      ClusterMembershipService membershipService,
+                                      TitusRuntime titusRuntime) {
         List<LeaderActivationListener> services = Arrays.asList(jobActivityStore);
         this.coordinator = configuration.isSystemExitOnLeadershipLost()
                 ? coordinatorWithSystemExitCallback(configuration, services, membershipService, titusRuntime)

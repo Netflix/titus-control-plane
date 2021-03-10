@@ -13,6 +13,7 @@ public class JooqContext {
     private final DataSource dataSource;
     private final EmbeddedPostgresService embeddedPostgresService;
     private final DefaultDSLContext dslContext;
+
     public JooqContext(JooqConfigurationBean jooqConfiguration,
                        DataSource dataSource,
                        EmbeddedPostgresService embeddedPostgresService) {

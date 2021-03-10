@@ -5,7 +5,6 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
-import org.springframework.mock.env.MockEnvironment;
 
 public class JobActivityConnectorStubs {
 

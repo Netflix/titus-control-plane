@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
-public class JobActivityWorker  {
+public class JobActivityWorker {
     private ScheduleReference schedulerRef;
     private final Clock clock;
     private final TitusRuntime titusRuntime;

@@ -16,7 +16,6 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
-import java.sql.Timestamp;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -95,17 +94,17 @@ public class JooqJobActivityStore implements JobActivityStore {
         records.stream()
                 .filter(r -> (r.getRecordType().equals(JobActivityPublisherRecord.RecordType.JOB)))
                 .map(r -> {
-                            try {
-                                Job job = JobActivityPublisherRecordUtils.getJobFromRecord(r);
-                                jobActivityDslContext.insertInto(JOBACTIVITY.JOBS,
-                                        JOBACTIVITY.JOBS.JOB_ID).values(job.getId()).execute();
+                    try {
+                        Job job = JobActivityPublisherRecordUtils.getJobFromRecord(r);
+                        jobActivityDslContext.insertInto(JOBACTIVITY.JOBS,
+                                JOBACTIVITY.JOBS.JOB_ID).values(job.getId()).execute();
 //, new Timestamp(job.getStatus().getTimestamp())
-                                producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(r.getQueueIndex())).execute();
-                            } catch(Exception e){
-                                logger.info("Something went wrong");
-                            }
-                            return null;
-                        });
+                        producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(r.getQueueIndex())).execute();
+                    } catch (Exception e) {
+                        logger.info("Something went wrong");
+                    }
+                    return null;
+                });
         return;
     }
 

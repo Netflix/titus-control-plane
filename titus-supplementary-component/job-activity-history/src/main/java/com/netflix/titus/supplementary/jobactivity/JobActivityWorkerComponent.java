@@ -1,6 +1,5 @@
 package com.netflix.titus.supplementary.jobactivity;
 
-import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.supplementary.jobactivity.store.JobActivityStore;
 import org.springframework.context.annotation.Bean;

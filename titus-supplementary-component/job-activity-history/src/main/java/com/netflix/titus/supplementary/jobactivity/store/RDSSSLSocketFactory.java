@@ -20,6 +20,6 @@ import org.postgresql.ssl.WrappedFactory;
 
 public class RDSSSLSocketFactory extends WrappedFactory {
     public RDSSSLSocketFactory() {
-            factory = RdsUtils.createRdsSSLSocketFactory();
+        factory = RdsUtils.createRdsSSLSocketFactory();
     }
 }

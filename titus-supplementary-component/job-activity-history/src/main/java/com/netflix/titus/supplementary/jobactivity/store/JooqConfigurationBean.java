@@ -16,8 +16,6 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
-import javax.inject.Inject;
-
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
