@@ -20,6 +20,7 @@ dependencies {
 
     compile project(':titus-common')
     compile project(':titus-api')
+    compile project(':titus-server-runtime')
 
     implementation("org.jooq:jooq:${jooqVersion}")
     jdbc("org.postgresql:postgresql:${psql}")

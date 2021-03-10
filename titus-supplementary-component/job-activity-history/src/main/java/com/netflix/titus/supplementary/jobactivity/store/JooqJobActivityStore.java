@@ -16,10 +16,8 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
-import java.time.Duration;
-import java.util.Collections;
+import java.sql.Timestamp;
 import java.util.List;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -28,22 +26,15 @@ import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
-import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.Evaluators;
-import com.netflix.titus.common.util.ExecutorsExt;
-import com.netflix.titus.common.util.guice.annotation.Activator;
-import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 
-import static org.jooq.impl.DSL.max;
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Tables.ACTIVITY_QUEUE;
-import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobactivity.Jobactivity.*;
+import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobactivity.Jobactivity.JOBACTIVITY;
 
 @Singleton
 public class JooqJobActivityStore implements JobActivityStore {
@@ -85,23 +76,41 @@ public class JooqJobActivityStore implements JobActivityStore {
 
     @Override
     public void consumeRecords() {
-        readRecordsFromPublisher();
+        writeRecordToJobActivity(readRecordsFromPublisher());
         return;
     }
 
-    public Flux<JobActivityPublisherRecord> readRecordsFromPublisher() {
-        return JooqUtils.executeAsyncMono(() -> {
-            long startTimeMs = System.currentTimeMillis();
-            List<JobActivityPublisherRecord> records = producerDSLContext
-                    .selectFrom(ACTIVITY_QUEUE)
-                    .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
-                    .fetchInto(JobActivityPublisherRecord.class);
-            return records;
-        }, producerDSLContext).flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
-
+    public List<JobActivityPublisherRecord> readRecordsFromPublisher() {
+        //return JooqUtils.executeAsyncMono(() -> {
+        //long startTimeMs = System.currentTimeMillis();
+        List<JobActivityPublisherRecord> records = producerDSLContext
+                .selectFrom(ACTIVITY_QUEUE)
+                .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
+                .fetchInto(JobActivityPublisherRecord.class);
+        return records;
+        //}, producerDSLContext).flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
     }
-    public void writeRecordToJobActivity() {}
-    public void deleteRecordFromPublisher(){}
+
+    public void writeRecordToJobActivity(List<JobActivityPublisherRecord> records) {
+        records.stream()
+                .filter(r -> (r.getRecordType().equals(JobActivityPublisherRecord.RecordType.JOB)))
+                .map(r -> {
+                            try {
+                                Job job = JobActivityPublisherRecordUtils.getJobFromRecord(r);
+                                jobActivityDslContext.insertInto(JOBACTIVITY.JOBS,
+                                        JOBACTIVITY.JOBS.JOB_ID).values(job.getId()).execute();
+//, new Timestamp(job.getStatus().getTimestamp())
+                                producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(r.getQueueIndex())).execute();
+                            } catch(Exception e){
+                                logger.info("Something went wrong");
+                            }
+                            return null;
+                        });
+        return;
+    }
+
+    public void deleteRecordFromPublisher() {
+    }
 
     @Override
     public void consumeJob(Job<?> Job) {
