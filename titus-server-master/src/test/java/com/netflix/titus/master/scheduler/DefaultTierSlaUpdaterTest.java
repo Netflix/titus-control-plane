@@ -71,7 +71,7 @@ public class DefaultTierSlaUpdaterTest {
         when(availableCapacityService.totalCapacityOf(Tier.Critical)).thenReturn(Optional.of(CRITICAL_CAPACITY));
         when(availableCapacityService.totalCapacityOf(Tier.Flex)).thenReturn(Optional.of(FLEX_CAPACITY));
 
-        when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(
+        when(applicationSlaManagementService.getApplicationSLAsForScheduler(ApplicationSLA.DEFAULT_SCHEDULER_NAME)).thenReturn(
                 asList(FLEX_CAPACITY_GROUP, CRITICAL_CAPACITY_GROUP)
         );
     }

@@ -84,7 +84,7 @@ public class DefaultTierSlaUpdater implements TierSlaUpdater {
     }
 
     private TieredQueueSlas recomputeSLAs() {
-        Collection<ApplicationSLA> applicationSLAs = applicationSlaManagementService.getApplicationSLAs();
+        Collection<ApplicationSLA> applicationSLAs = applicationSlaManagementService.getApplicationSLAsForScheduler(ApplicationSLA.DEFAULT_SCHEDULER_NAME);
 
         Map<Integer, ResAllocs> tierCapacities = new HashMap<>();
         Map<Integer, Map<String, ResAllocs>> slas = new HashMap<>();
