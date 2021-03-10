@@ -40,7 +40,7 @@ public class EmbeddedPostgresService {
     private final Connection connection;
 
     @Inject
-    public EmbeddedPostgresService(JooqConfiguration configuration) {
+    public EmbeddedPostgresService(JooqConfigurationBean configuration) {
         if (configuration.isInMemoryDb()) {
             try {
                 this.embeddedPostgres = EmbeddedPostgres.start();

@@ -6,7 +6,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -48,13 +47,9 @@ public class JobActivityWorker  {
 
         this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
                 scheduleDescriptor,
-                e -> consume(),
+                e -> jobActivityStore.consumeRecords(),
                 ExecutorsExt.namedSingleThreadExecutor(JobActivityWorker.class.getSimpleName())
         );
-    }
-
-    public void consume() {
-        System.out.println("Testing");
     }
 
     @Deactivator
@@ -62,6 +57,5 @@ public class JobActivityWorker  {
     public void shutdown() {
         Evaluators.acceptNotNull(schedulerRef, ScheduleReference::cancel);
     }
-
 
 }

@@ -1,7 +1,6 @@
 package com.netflix.titus.supplementary.jobactivity.store;
 
 
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.DSLContext;
@@ -13,17 +12,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @Configuration
-public class JooqJobActivityComponent {
-    @Bean
-    public JobActivityStore getJobActivityStore(TitusRuntime titusRuntime,
-                                                DSLContext jobActivityDSLContext,
-                                                DSLContext producerDSLContext) {
-        return new JooqJobActivityStore(titusRuntime, jobActivityDSLContext, producerDSLContext);
-    }
+public class JooqJobActivityContextComponent {
 
     @Bean
-    public JooqConfiguration getJooqPropertyConfiguration() {
-        return new JooqConfiguration();
+    public JooqConfigurationBean getJooqPropertyConfiguration() {
+        return new JooqConfigurationBean();
     }
 
     @Bean
@@ -32,9 +25,14 @@ public class JooqJobActivityComponent {
     }
 
     @Bean
+    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfigurationBean jooqConfiguration) {
+        return new EmbeddedPostgresService(jooqConfiguration);
+    }
+
+    @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    public JooqContext getJobActivityJooqContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
         System.out.println("CONSUMER");
 
@@ -59,10 +57,10 @@ public class JooqJobActivityComponent {
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService producerEmbeddedPostgresService) {
+    public JooqContext getJooqProducerContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
-        System.out.println("PRODUCER");
         hikariConfig.setAutoCommit(true);
+        System.err.println("PRODUCER");
 
         // Connection management
         hikariConfig.setConnectionTimeout(10000);
@@ -70,16 +68,19 @@ public class JooqJobActivityComponent {
         hikariConfig.setLeakDetectionThreshold(3000);
 
         if (jooqConfiguration.isInMemoryDb()) {
-            hikariConfig.setDataSource(producerEmbeddedPostgresService.getDataSource());
+            System.out.println("IN memory");
+            hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
         } else if (jooqConfiguration.isLocalDb()) {
+            System.err.println("LOCAL");
             hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
         } else {
+            System.err.println("NOT LOCAL");
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getProducerDatatabaseUrl());
         }
-        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), producerEmbeddedPostgresService);
+        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
     }
 
     @Bean
@@ -89,11 +90,9 @@ public class JooqJobActivityComponent {
         return jooqJobActivityContext.getDslContext();
     }
 
-
     @Bean
     @Qualifier("producerDslContext")
     public DSLContext getProducerDSLContext(JooqContext jooqProducerContext) {
         return jooqProducerContext.getDslContext();
     }
-
 }

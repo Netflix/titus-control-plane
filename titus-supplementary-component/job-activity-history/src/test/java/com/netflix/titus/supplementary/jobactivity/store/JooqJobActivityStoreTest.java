@@ -1,4 +1,4 @@
-package com.netflix.titus.ext.jooqflyway.jobactivity;
+package com.netflix.titus.supplementary.jobactivity.store;
 
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
@@ -7,13 +7,14 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.ext.jooqflyway.generated.activity.Activity;
-import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
+import com.netflix.titus.supplementary.jobactivity.JobActivityConnectorStubs;
+import com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Activity;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 
@@ -37,11 +38,7 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
                 "spring.application.name=test",
         },
         classes = {
-                JooqJobActivityStore.class,
-                JooqJobActivityConnectorComponent.class,
-                JooqTitusRuntime.class,
-                TitusRuntime.class,
-                EmptyLogStorageInfo.class,
+                JooqJobActivityContextComponent.class,
         }
 )
 
@@ -55,6 +52,10 @@ public class JooqJobActivityStoreTest {
     private JooqJobActivityStore consumer;
     public long queueIndex = 0;
 
+    JobActivityConnectorStubs jobActivityConnectorStubs = new JobActivityConnectorStubs();
+
+    private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
+
     @Autowired
     @Qualifier("jobActivityDslContext")
     private DSLContext jobActivityDslContext;
@@ -63,17 +64,20 @@ public class JooqJobActivityStoreTest {
     @Qualifier("producerDslContext")
     private DSLContext producerDslContext;
 
-    @Autowired
-    TitusRuntime titusRuntime;
 
     @Before
     public void setUp() {
-        createJooqConsumerStore();
         publishJobs();
+        createJooqConsumerStore();
+    }
+
+    @After
+    public void shutdown() {
+        jobActivityConnectorStubs.shutdown();
     }
 
     private void createJooqConsumerStore() {
-        consumer = new JooqJobActivityStore(titusRuntime, jobActivityDslContext, producerDslContext);
+        consumer = new JooqJobActivityStore(titusRuntime, jobActivityDslContext, producerDslContext, true);
     }
 
     public void publishJobs() {
@@ -89,9 +93,12 @@ public class JooqJobActivityStoreTest {
         if (0 != rc) {
             throw new RuntimeException(String.format("Unexpected table create return code %d", rc));
         }
+        logger.info("Created schema and table with return code {}", rc);
+
         observeJobs(10)
                 .flatMap(batchJobExtJob -> publishJob(batchJobExtJob))
                 .then();
+
     }
 
     public Mono<Void> publishJob(Job<?> job) {
@@ -120,7 +127,7 @@ public class JooqJobActivityStoreTest {
 
     @Test
     public void consumeRecord() {
-        consumer.consumeRecord();
+        consumer.consumeRecords();
         return;
     }
 
@@ -134,5 +141,4 @@ public class JooqJobActivityStoreTest {
     private Flux<BatchJobTask> observeTasks(int count) {
         return Flux.fromIterable(batchTasksGenerator.batch(count).getValue());
     }
-
 }

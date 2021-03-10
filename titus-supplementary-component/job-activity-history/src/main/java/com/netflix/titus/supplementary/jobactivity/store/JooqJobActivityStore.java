@@ -17,11 +17,14 @@
 package com.netflix.titus.supplementary.jobactivity.store;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
@@ -33,8 +36,14 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.time.Clock;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+
+import static org.jooq.impl.DSL.max;
+import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Tables.ACTIVITY_QUEUE;
+import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobactivity.Jobactivity.*;
 
 @Singleton
 public class JooqJobActivityStore implements JobActivityStore {
@@ -64,36 +73,33 @@ public class JooqJobActivityStore implements JobActivityStore {
         this.clock = titusRuntime.getClock();
         if (createIfNotExists) {
             // create schema
-            logger.info("Creating database");
+            createSchemaIfNotExists();
         }
     }
 
-    @Activator
-    public void enterActiveMode() {
-        ScheduleDescriptor scheduleDescriptor = ScheduleDescriptor.newBuilder()
-                .withName("populateNewRecords")
-                .withDescription("Drain queue and populate new records")
-                .withTimeout(Duration.ofMinutes(5))
-                .build();
-
-        this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
-                scheduleDescriptor,
-                e -> consumeRecord(),
-                ExecutorsExt.namedSingleThreadExecutor(JooqJobActivityStore.class.getSimpleName())
-        );
+    public void createSchemaIfNotExists() {
+        jobActivityDslContext.createSchemaIfNotExists(JOBACTIVITY);
+        jobActivityDslContext.createTableIfNotExists(JOBACTIVITY.JOBS);
+        jobActivityDslContext.createTableIfNotExists(JOBACTIVITY.TASKS);
     }
 
+    @Override
+    public void consumeRecords() {
+        readRecordsFromPublisher();
+        return;
+    }
 
-    // Use titus local scheduler
-/*    public Flux<JobActivityPublisherRecord> getRecords() {
-        List<JobActivityPublisherRecord> records = DSL.using(producerDSLContext.configuration())
-                .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
-                .from(ACTIVITY_QUEUE)
-                .fetchInto(JobActivityPublisherRecord.class);
-        return
-    }*/
+    public Flux<JobActivityPublisherRecord> readRecordsFromPublisher() {
+        return JooqUtils.executeAsyncMono(() -> {
+            long startTimeMs = System.currentTimeMillis();
+            List<JobActivityPublisherRecord> records = producerDSLContext
+                    .selectFrom(ACTIVITY_QUEUE)
+                    .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
+                    .fetchInto(JobActivityPublisherRecord.class);
+            return records;
+        }, producerDSLContext).flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
 
-    public void readRecordFromPublisher() {}
+    }
     public void writeRecordToJobActivity() {}
     public void deleteRecordFromPublisher(){}
 
@@ -107,16 +113,5 @@ public class JooqJobActivityStore implements JobActivityStore {
         return;
     }
 
-    @Override
-    public void consumeRecord() {
-        return;
-    }
-
-
-    @Deactivator
-    @PreDestroy
-    public void shutdown() {
-        Evaluators.acceptNotNull(schedulerRef, ScheduleReference::cancel);
-    }
 
 }

@@ -9,11 +9,11 @@ public class JooqContext {
 
     private static final SQLDialect DEFAULT_DIALECT = SQLDialect.POSTGRES;
 
-    private final JooqConfiguration jooqConfiguration;
+    private final JooqConfigurationBean jooqConfiguration;
     private final DataSource dataSource;
     private final EmbeddedPostgresService embeddedPostgresService;
     private final DefaultDSLContext dslContext;
-    public JooqContext(JooqConfiguration jooqConfiguration,
+    public JooqContext(JooqConfigurationBean jooqConfiguration,
                        DataSource dataSource,
                        EmbeddedPostgresService embeddedPostgresService) {
         this.jooqConfiguration = jooqConfiguration;
@@ -22,7 +22,7 @@ public class JooqContext {
         this.dslContext = new DefaultDSLContext(dataSource, DEFAULT_DIALECT);
     }
 
-    public JooqConfiguration getJooqConfiguration() {
+    public JooqConfigurationBean getJooqConfiguration() {
         return jooqConfiguration;
     }
 
