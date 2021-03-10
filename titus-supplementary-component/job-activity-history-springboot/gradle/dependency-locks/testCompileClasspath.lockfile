@@ -165,6 +165,7 @@ org.eclipse.jetty:jetty-servlet:9.4.34.v20201102
 org.eclipse.jetty:jetty-util:9.4.34.v20201102
 org.eclipse.jetty:jetty-webapp:9.4.34.v20201102
 org.eclipse.jetty:jetty-xml:9.4.34.v20201102
+org.flywaydb:flyway-core:6.4.4
 org.glassfish:jakarta.el:3.0.3
 org.glassfish:javax.el:3.0.1-b12
 org.hamcrest:hamcrest-core:1.3
