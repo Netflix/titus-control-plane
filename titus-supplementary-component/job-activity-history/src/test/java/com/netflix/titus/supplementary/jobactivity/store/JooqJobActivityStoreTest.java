@@ -1,5 +1,10 @@
 package com.netflix.titus.supplementary.jobactivity.store;
 
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -9,11 +14,9 @@ import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import com.netflix.titus.supplementary.jobactivity.JobActivityConnectorStubs;
-import com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Activity;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,8 +30,11 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
+import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Activity.ACTIVITY;
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 
@@ -49,8 +55,8 @@ public class JooqJobActivityStoreTest {
     private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
     private DataGenerator<BatchJobTask> batchTasksGenerator = JobGenerator.batchTasks(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
 
-    private JooqJobActivityStore consumer;
-    public long queueIndex = 0;
+    private JooqJobActivityStore jooqJobActivityStore;
+    public AtomicLong queueIndex = new AtomicLong(0);
 
     JobActivityConnectorStubs jobActivityConnectorStubs = new JobActivityConnectorStubs();
 
@@ -64,26 +70,25 @@ public class JooqJobActivityStoreTest {
     @Qualifier("producerJooqContext")
     private JooqContext producerJooqContext;
 
-    private DSLContext producerDSLContext = producerJooqContext.getDslContext();
-    private DSLContext jobActivityDSLContext = jobActivityJooqContext.getDslContext();
-
     @Before
     public void setUp() {
         createJooqJobActivityStore();
-        publishJobs();
     }
 
     @After
     public void shutdown() {
+        producerJooqContext.getDslContext().deleteFrom(ACTIVITY.ACTIVITY_QUEUE).execute();
+        //jobActivityJooqContext.getDslContext().dropTable(JOBACTIVITY.JOBS).execute();
+        //jobActivityJooqContext.getDslContext().dropTable(JOBACTIVITY.TASKS).execute();
         jobActivityConnectorStubs.shutdown();
     }
 
     private void createJooqJobActivityStore() {
-        consumer = new JooqJobActivityStore(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
+        jooqJobActivityStore = new JooqJobActivityStore(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
     }
 
-    public void publishJobs() {
-        observeJobs(10)
+    public Mono<Void> publishJobs() {
+        return observeJobs(10)
                 .flatMap(batchJobExtJob -> publishJob(batchJobExtJob))
                 .then();
     }
@@ -94,27 +99,34 @@ public class JooqJobActivityStoreTest {
     }
 
     public Mono<Void> publishByteString(JobActivityPublisherRecord.RecordType recordType, String recordId, byte[] serializedRecord) {
-        long assignedQueueIndex = queueIndex + 1;
+        long assignedQueueIndex = queueIndex.getAndIncrement();
+        DSLContext producerDslContext = producerJooqContext.getDslContext();
         return JooqUtils.executeAsyncMono(() -> {
-            long startTimeMs = System.currentTimeMillis();
-            int numInserts = producerDSLContext
+            int numInserts = producerDslContext
                     .insertInto(ACTIVITY_QUEUE,
                             ACTIVITY_QUEUE.QUEUE_INDEX,
                             ACTIVITY_QUEUE.EVENT_TYPE,
                             ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                    .values(queueIndex,
+                    .values(assignedQueueIndex,
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();
             return numInserts;
-        }, producerDSLContext)
-                .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException(recordId, e))
+        }, producerDslContext)
+                .onErrorMap(e -> {
+                    System.out.println("FAIL");
+                    return JobActivityStoreException.jobActivityUpdateRecordException(recordId, e);
+                })
                 .then();
     }
 
     @Test
     public void consumeRecord() {
-        consumer.consumeRecords();
+        System.out.println("Running consumer");
+        //publishJobs();
+        StepVerifier.create(publishJobs()).verifyComplete();
+        jooqJobActivityStore.consumeRecords();
+        //StepVerifier.create(jooqJobActivityStore.readRecordFromPublisherQueue()).verifyComplete();
         return;
     }
 

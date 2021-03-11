@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
+import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -26,15 +27,22 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.flywaydb.core.Flyway;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Tables.ACTIVITY_QUEUE;
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobactivity.Jobactivity.JOBACTIVITY;
+import static org.jooq.impl.DSL.min;
 
 @Singleton
 public class JooqJobActivityStore implements JobActivityStore {
@@ -48,6 +56,8 @@ public class JooqJobActivityStore implements JobActivityStore {
 
     private final DSLContext jobActivityDSLContext;
     private final DSLContext producerDSLContext;
+    private final DatabaseMetrics producerDatabaseMetrics;
+    private final DatabaseMetrics jobActivityDatabaseMetrics;
 
     @Inject
     public JooqJobActivityStore(TitusRuntime titusRuntime,
@@ -67,6 +77,9 @@ public class JooqJobActivityStore implements JobActivityStore {
         this.clock = titusRuntime.getClock();
         this.jobActivityDSLContext = jobActivityJooqContext.getDslContext();
         this.producerDSLContext = producerJooqContext.getDslContext();
+        this.producerDatabaseMetrics = new DatabaseMetrics(titusRuntime.getRegistry(), "titus", "JobActivityPublisher");
+        this.jobActivityDatabaseMetrics = new DatabaseMetrics(titusRuntime.getRegistry(), "titus", "JobActivityHistory");
+
         initializeSchema(createIfNotExists);
     }
 
@@ -80,23 +93,27 @@ public class JooqJobActivityStore implements JobActivityStore {
 
     @Override
     public void consumeRecords() {
-        writeRecordToJobActivity(readRecordsFromPublisher());
-        return;
+        readRecordFromPublisherQueue().subscribe(record -> System.out.println(record.getRecordType()));
     }
 
-    public List<JobActivityPublisherRecord> readRecordsFromPublisher() {
-        //return JooqUtils.executeAsyncMono(() -> {
-        //long startTimeMs = System.currentTimeMillis();
-        List<JobActivityPublisherRecord> records = producerDSLContext
-                .selectFrom(ACTIVITY_QUEUE)
-                .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
-                .fetchInto(JobActivityPublisherRecord.class);
-        return records;
-        //}, producerDSLContext).flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
+    public Mono<JobActivityPublisherRecord> readRecordFromPublisherQueue() {
+        return JooqUtils.executeAsyncMono(() -> {
+            long startTimeMs = System.currentTimeMillis();
+            List<JobActivityPublisherRecord> records = producerDSLContext
+                    .selectFrom(ACTIVITY_QUEUE)
+                    .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX.asc())
+                    .limit(1)
+                    .fetchInto(JobActivityPublisherRecord.class);
+            System.out.println(records.size());
+            if(records.size() != 0) {
+                return records.get(0);
+            } else { return null; }
+        }, producerDSLContext);
     }
 
-    public void writeRecordToJobActivity(List<JobActivityPublisherRecord> records) {
-        records.stream()
+    /*
+    public void writeRecordToJobActivity(JobActivityPublisherRecord record) {
+        record.stream()
                 .filter(r -> (r.getRecordType().equals(JobActivityPublisherRecord.RecordType.JOB)))
                 .map(r -> {
                     try {
@@ -112,7 +129,7 @@ public class JooqJobActivityStore implements JobActivityStore {
                 });
         return;
     }
-
+*/
     public void deleteRecordFromPublisher() {
     }
 
