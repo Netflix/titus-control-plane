@@ -16,28 +16,30 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
+import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.flywaydb.core.Flyway;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Tables.ACTIVITY_QUEUE;
@@ -92,8 +94,10 @@ public class JooqJobActivityStore implements JobActivityStore {
     }
 
     @Override
-    public void consumeRecords() {
-        readRecordFromPublisherQueue().subscribe(record -> System.out.println(record.getRecordType()));
+    public Mono<Void> processRecords() {
+        return readRecordFromPublisherQueue()
+                .flatMap(this::writeRecord)
+                .flatMap(this::deleteRecordFromPublisher);
     }
 
     public Mono<JobActivityPublisherRecord> readRecordFromPublisherQueue() {
@@ -104,40 +108,46 @@ public class JooqJobActivityStore implements JobActivityStore {
                     .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX.asc())
                     .limit(1)
                     .fetchInto(JobActivityPublisherRecord.class);
-            System.out.println(records.size());
             if(records.size() != 0) {
+                System.out.println(records.get(0).getRecordType());
                 return records.get(0);
-            } else { return null; }
-        }, producerDSLContext);
+            } else { System.out.println("no records"); return null; }
+        }, producerDSLContext).onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException("Read failed", e));
     }
 
-    /*
-    public void writeRecordToJobActivity(JobActivityPublisherRecord record) {
-        record.stream()
-                .filter(r -> (r.getRecordType().equals(JobActivityPublisherRecord.RecordType.JOB)))
-                .map(r -> {
-                    try {
-                        Job job = JobActivityPublisherRecordUtils.getJobFromRecord(r);
-                        jobActivityDSLContext.insertInto(JOBACTIVITY.JOBS,
-                                JOBACTIVITY.JOBS.JOB_ID).values(job.getId()).execute();
-//, new Timestamp(job.getStatus().getTimestamp())
-                        producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(r.getQueueIndex())).execute();
-                    } catch (Exception e) {
-                        logger.info("Something went wrong");
-                    }
-                    return null;
-                });
-        return;
+
+    public Mono<JobActivityPublisherRecord> writeRecord(JobActivityPublisherRecord jobActivityPublisherRecord) {
+        if (jobActivityPublisherRecord.getRecordType() == JobActivityPublisherRecord.RecordType.JOB) {
+            try {
+                Job job = JobActivityPublisherRecordUtils.getJobFromRecord(jobActivityPublisherRecord);
+                logger.info("Read back job {}", JobActivityPublisherRecordUtils.getJobFromRecord(jobActivityPublisherRecord));
+                return JooqUtils.executeAsyncMono( () ->  {
+                    int numInserts = jobActivityDSLContext
+                            .insertInto(JOBACTIVITY.JOBS, JOBACTIVITY.JOBS.JOB_ID, JOBACTIVITY.JOBS.RECORD_TIME)
+                            .values(job.getId(), LocalDateTime.ofEpochSecond(job.getStatus().getTimestamp(), 0, ZoneOffset.UTC))
+                            .execute();
+                    return jobActivityPublisherRecord;
+                }, jobActivityDSLContext)
+                        .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException("e", e));
+            } catch (InvalidProtocolBufferException e) {
+                System.out.println("Write failed");
+                return null;
+            }
+        }
+        return null;
     }
-*/
-    public void deleteRecordFromPublisher() {
+
+    public Mono<Void> deleteRecordFromPublisher(JobActivityPublisherRecord jobActivityPublisherRecord) {
+        return JooqUtils.executeAsyncMono( () -> {
+            try {
+                producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(jobActivityPublisherRecord.getQueueIndex())).execute();
+            } catch (Exception e){ System.out.println("didnt work");}
+           return null;
+        }, producerDSLContext).then();
     }
 
     @Override
-    public void consumeJob(Job<?> Job) {
-        return;
-    }
-
+    public Mono<Void> consumeJob(Job job) {return null;}
     @Override
     public void consumeTask(Task Task) {
         return;

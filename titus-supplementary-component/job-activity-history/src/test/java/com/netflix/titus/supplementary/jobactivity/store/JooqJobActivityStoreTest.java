@@ -1,10 +1,10 @@
 package com.netflix.titus.supplementary.jobactivity.store;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -77,7 +77,7 @@ public class JooqJobActivityStoreTest {
 
     @After
     public void shutdown() {
-        producerJooqContext.getDslContext().deleteFrom(ACTIVITY.ACTIVITY_QUEUE).execute();
+        //producerJooqContext.getDslContext().deleteFrom(ACTIVITY.ACTIVITY_QUEUE).execute();
         //jobActivityJooqContext.getDslContext().dropTable(JOBACTIVITY.JOBS).execute();
         //jobActivityJooqContext.getDslContext().dropTable(JOBACTIVITY.TASKS).execute();
         jobActivityConnectorStubs.shutdown();
@@ -123,11 +123,23 @@ public class JooqJobActivityStoreTest {
     @Test
     public void consumeRecord() {
         System.out.println("Running consumer");
+        int sizeBefore = producerJooqContext.getDslContext()
+                .selectCount()
+                .from(ACTIVITY_QUEUE)
+                .fetchOneInto(Integer.class);
         //publishJobs();
-        StepVerifier.create(publishJobs()).verifyComplete();
-        jooqJobActivityStore.consumeRecords();
-        //StepVerifier.create(jooqJobActivityStore.readRecordFromPublisherQueue()).verifyComplete();
-        return;
+        //JobActivityPublisherRecord tempRecord = new JobActivityPublisherRecord(9 , (short) 1, null);
+        StepVerifier
+                .create(jooqJobActivityStore.processRecords())
+                .verifyComplete();
+        int sizeAfter = producerJooqContext.getDslContext()
+                .selectCount()
+                .from(ACTIVITY_QUEUE)
+                .fetchOneInto(Integer.class);
+        System.out.println("Before: " + sizeBefore + " After: " + sizeAfter);
+        //jooqJobActivityStore.consumeRecords();
+
+
     }
 
     /**

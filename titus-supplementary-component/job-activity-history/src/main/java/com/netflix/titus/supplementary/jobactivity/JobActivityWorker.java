@@ -47,7 +47,7 @@ public class JobActivityWorker {
 
         this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
                 scheduleDescriptor,
-                e -> jobActivityStore.consumeRecords(),
+                e -> jobActivityStore.processRecords(),
                 ExecutorsExt.namedSingleThreadExecutor(JobActivityWorker.class.getSimpleName())
         );
     }
