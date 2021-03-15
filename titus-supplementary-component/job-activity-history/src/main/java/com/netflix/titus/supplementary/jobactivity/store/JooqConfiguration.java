@@ -14,6 +14,6 @@ public interface JooqConfiguration {
     @DefaultValue("jdbc://localhost")
     String getProducerDatatabaseUrl();
 
-    @DefaultValue("true")
+    @DefaultValue("false")
     boolean isLocalDb();
 }
