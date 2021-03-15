@@ -16,10 +16,8 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,19 +30,18 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
+import org.flywaydb.core.Flyway;
 import org.jooq.DSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.Flyway;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.supplementary.jobactivityhistory.generated.activity.Tables.ACTIVITY_QUEUE;
-import static com.netflix.titus.supplementary.jobactivityhistory.generated.jobactivity.Jobactivity.JOBACTIVITY;
-import static org.jooq.impl.DSL.min;
+import static org.jooq.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static org.jooq.generated.jobactivity.Jobactivity.JOBACTIVITY;
+
 
 @Singleton
 public class JooqJobActivityStore implements JobActivityStore {
