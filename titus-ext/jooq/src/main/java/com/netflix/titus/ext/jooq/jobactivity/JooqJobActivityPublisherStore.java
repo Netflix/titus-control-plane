@@ -157,7 +157,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                             ACTIVITY_QUEUE.QUEUE_INDEX,
                             ACTIVITY_QUEUE.EVENT_TYPE,
                             ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                    .values(assignedQueueIndex, 
+                    .values(assignedQueueIndex,
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();

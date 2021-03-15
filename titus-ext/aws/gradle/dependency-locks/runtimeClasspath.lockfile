@@ -2,15 +2,15 @@
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
 aopalliance:aopalliance:1.0
-com.amazonaws:aws-java-sdk-applicationautoscaling:1.11.965
-com.amazonaws:aws-java-sdk-autoscaling:1.11.965
-com.amazonaws:aws-java-sdk-cloudwatch:1.11.965
-com.amazonaws:aws-java-sdk-core:1.11.965
-com.amazonaws:aws-java-sdk-ec2:1.11.965
-com.amazonaws:aws-java-sdk-elasticloadbalancingv2:1.11.965
-com.amazonaws:aws-java-sdk-iam:1.11.965
-com.amazonaws:aws-java-sdk-sts:1.11.965
-com.amazonaws:jmespath-java:1.11.965
+com.amazonaws:aws-java-sdk-applicationautoscaling:1.11.946
+com.amazonaws:aws-java-sdk-autoscaling:1.11.946
+com.amazonaws:aws-java-sdk-cloudwatch:1.11.946
+com.amazonaws:aws-java-sdk-core:1.11.946
+com.amazonaws:aws-java-sdk-ec2:1.11.946
+com.amazonaws:aws-java-sdk-elasticloadbalancingv2:1.11.946
+com.amazonaws:aws-java-sdk-iam:1.11.946
+com.amazonaws:aws-java-sdk-sts:1.11.946
+com.amazonaws:jmespath-java:1.11.946
 com.fasterxml.jackson.core:jackson-annotations:2.10.5
 com.fasterxml.jackson.core:jackson-core:2.10.5
 com.fasterxml.jackson.core:jackson-databind:2.10.5.1
