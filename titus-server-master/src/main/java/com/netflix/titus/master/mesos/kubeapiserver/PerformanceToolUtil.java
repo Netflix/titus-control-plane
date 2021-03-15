@@ -25,13 +25,22 @@ import java.util.regex.Pattern;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.unit.TimeUnitExt;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
 
+import static com.netflix.titus.api.jobmanager.JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX;
+
 public class PerformanceToolUtil {
 
     private static final Pattern TASK_STATE_RULES_RE = Pattern.compile("(launched|startInitiated|started|killInitiated)\\s*:\\s*delay=(\\d+(ms|s|m|h|d))");
+
+    // Mock VK titus job parameters
+    static final String MOCK_VK_PROPERTY_PREFIX = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "mockVK.";
+    static final String MOCK_VK_PROPERTY_PREPARE_TIME = MOCK_VK_PROPERTY_PREFIX + "prepareTime";
+    static final String MOCK_VK_PROPERTY_RUN_TIME = MOCK_VK_PROPERTY_PREFIX + "runTime";
+    static final String MOCK_VK_PROPERTY_KILL_TIME = MOCK_VK_PROPERTY_PREFIX + "killTime";
 
     static final String PREPARE_TIME = "github.com.netflix.titus.executor/prepareTime";
     static final String RUN_TIME = "github.com.netflix.titus.executor/runTime";
@@ -48,22 +57,31 @@ public class PerformanceToolUtil {
         } catch (InvalidProtocolBufferException e) {
             return Collections.emptyMap();
         }
-        return findTaskLifecycleEnv(containerInfo.getUserProvidedEnvMap())
-                .map(PerformanceToolUtil::toAnnotations)
+        return findLegacyTaskLifecycleEnv(containerInfo.getUserProvidedEnvMap())
+                .map(PerformanceToolUtil::toLegacyAnnotations)
                 .orElse(Collections.emptyMap());
     }
 
     public static Map<String, String> toAnnotations(Job job) {
-        return findTaskLifecycleEnv(job.getJobDescriptor().getContainer().getEnv())
-                .map(PerformanceToolUtil::toAnnotations)
+        Map<String, String> attributes = job.getJobDescriptor().getAttributes();
+        if (attributes.containsKey(MOCK_VK_PROPERTY_PREPARE_TIME) || attributes.containsKey(MOCK_VK_PROPERTY_RUN_TIME) || attributes.containsKey(MOCK_VK_PROPERTY_KILL_TIME)) {
+            Map<String, String> annotations = new HashMap<>();
+            Evaluators.acceptNotNull(attributes.get(MOCK_VK_PROPERTY_PREPARE_TIME), value -> annotations.put(PREPARE_TIME, value));
+            Evaluators.acceptNotNull(attributes.get(MOCK_VK_PROPERTY_RUN_TIME), value -> annotations.put(RUN_TIME, value));
+            Evaluators.acceptNotNull(attributes.get(MOCK_VK_PROPERTY_KILL_TIME), value -> annotations.put(KILL_TIME, value));
+            return annotations;
+        }
+        // Legacy
+        return findLegacyTaskLifecycleEnv(job.getJobDescriptor().getContainer().getEnv())
+                .map(PerformanceToolUtil::toLegacyAnnotations)
                 .orElse(Collections.emptyMap());
     }
 
-    private static Optional<String> findTaskLifecycleEnv(Map<String, String> env) {
+    private static Optional<String> findLegacyTaskLifecycleEnv(Map<String, String> env) {
         return env.keySet().stream().filter(k -> k.startsWith("TASK_LIFECYCLE")).map(env::get).findFirst();
     }
 
-    private static Map<String, String> toAnnotations(String envValue) {
+    private static Map<String, String> toLegacyAnnotations(String envValue) {
         Map<String, String> annotations = new HashMap<>();
 
         Matcher matcher = TASK_STATE_RULES_RE.matcher(envValue);
