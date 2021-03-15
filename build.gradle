@@ -16,7 +16,7 @@ plugins {
     id 'nebula.ospackage' version '8.5.6'
 }
 
-ext.useMavenLocal = project.hasProperty('useMavenLocal') ? project.getProperty('useMavenLocal').toBoolean() : true
+ext.useMavenLocal = project.hasProperty('useMavenLocal') ? project.getProperty('useMavenLocal').toBoolean() : false
 ext.integrationTestScope = project.hasProperty('integrationTestScope') ? project.getProperty('integrationTestScope') : ""
 
 allprojects {
