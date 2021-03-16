@@ -39,8 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import static org.jooq.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
-import static org.jooq.generated.jobactivity.Jobactivity.JOBACTIVITY;
+import static com.netflix.titus.supplementary.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.supplementary.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
 
 
 @Singleton
