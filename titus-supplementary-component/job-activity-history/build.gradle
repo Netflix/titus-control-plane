@@ -13,7 +13,6 @@ ext.flywayVersion = '6.1.+'
 ext.jooqVersion = '3.13.2'
 ext.psql = '42.2.8'
 
-
 dependencies {
     compile "org.springframework:spring-web:${springVersion}"
     compile "org.springframework.boot:spring-boot:${springBootVersion}"
@@ -52,6 +51,12 @@ ext.jdbcUser = 'activityuser'
 ext.jdbcPassword = 'activitypassword'
 ext.flyway = null
 ext.jooq = null
+
+jooq {
+    db {
+        hostOverride = "localhost"
+    }
+}
 
 tasks {
     generateJooqClasses {
