@@ -512,6 +512,30 @@ public final class JobFunctions {
         return input.toBuilder().withJobDescriptor(jobDescriptor.toBuilder().withAttributes(updatedAttributes).build()).build();
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> appendJobSecurityAttributes(JobDescriptor<E> input, Map<String, String> attributes) {
+        SecurityProfile securityProfile = input.getContainer().getSecurityProfile();
+        Map<String, String> updatedAttributes = CollectionsExt.merge(securityProfile.getAttributes(), attributes);
+        return input.toBuilder()
+                .withContainer(input.getContainer().toBuilder()
+                        .withSecurityProfile(securityProfile.toBuilder()
+                                .withAttributes(updatedAttributes)
+                                .build())
+                        .build())
+                .build();
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> deleteJobSecurityAttributes(JobDescriptor<E> input, Set<String> keys) {
+        SecurityProfile securityProfile = input.getContainer().getSecurityProfile();
+        Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(securityProfile.getAttributes(), keys);
+        return input.toBuilder()
+                .withContainer(input.getContainer().toBuilder()
+                        .withSecurityProfile(securityProfile.toBuilder()
+                                .withAttributes(updatedAttributes)
+                                .build())
+                        .build())
+                .build();
+    }
+
     public static Optional<Long> getTimeInState(Task task, TaskState checkedState, Clock clock) {
         return findTaskStatus(task, checkedState).map(checkedStatus -> {
             TaskState currentState = task.getStatus().getState();

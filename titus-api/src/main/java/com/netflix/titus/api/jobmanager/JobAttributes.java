@@ -141,6 +141,20 @@ public final class JobAttributes {
      */
     public static final String JOB_PARAMETER_TERMINATE_ON_BAD_AGENT = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "terminateContainerOnBadAgent";
 
+    /*
+     * Job security attributes.
+     */
+
+    /**
+     * Prefix for attributes derived from Job Metatron details.
+     */
+    public static final String METATRON_ATTRIBUTE_PREFIX = "metatron.";
+
+    /**
+     * The Metatron auth context received from Metatron for the metatron signed job.
+     */
+    public static final String JOB_SECURITY_ATTRIBUTE_METATRON_AUTH_CONTEXT = METATRON_ATTRIBUTE_PREFIX + "authContext";
+
     // Container Attributes
 
     /**

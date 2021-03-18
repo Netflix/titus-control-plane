@@ -22,11 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.common.util.Evaluators;
@@ -75,7 +77,8 @@ public class KubePodUtil {
         annotations.putAll(createEbsPodAnnotations(job, task));
 
         if (includeJobDescriptor) {
-            JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(job.getJobDescriptor());
+            com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> filteredJobDescriptor = filterPodJobDescriptor(job.getJobDescriptor());
+            JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(filteredJobDescriptor);
             try {
                 String jobDescriptorJson = grpcJsonPrinter.print(grpcJobDescriptor);
                 annotations.put("jobDescriptor", StringExt.gzipAndBase64Encode(jobDescriptorJson));
@@ -124,5 +127,14 @@ public class KubePodUtil {
         annotations.put(KubeConstants.EBS_FS_TYPE, ebsVolume.getFsType());
 
         return annotations;
+    }
+
+    /**
+     * Returns a job descriptor with fields unnecessary for inclusion on the pod removed.
+     */
+    @VisibleForTesting
+    static  com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> filterPodJobDescriptor(com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
+        // Metatron auth context is not needed on the pod.
+        return JobFunctions.deleteJobSecurityAttributes(jobDescriptor, Collections.singleton(JobAttributes.JOB_SECURITY_ATTRIBUTE_METATRON_AUTH_CONTEXT));
     }
 }
