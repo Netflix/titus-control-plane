@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
+package com.netflix.titus.master.kubernetes.watcher;
 
-import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
-import io.kubernetes.client.openapi.models.V1Pod;
+import com.google.inject.AbstractModule;
 
-public class PodAddedEvent extends PodEvent {
-
-    PodAddedEvent(V1Pod pod) {
-        super(pod);
-    }
-
+public class KubeWatcherModule extends AbstractModule {
     @Override
-    public String toString() {
-        return "PodAddedEvent{" +
-                "taskId=" + taskId +
-                ", sequenceNumber=" + sequenceNumber +
-                ", pod=" + KubeObjectFormatter.formatPodEssentials(pod) +
-                '}';
+    protected void configure() {
+        bind(KubeAndJobServiceSyncStatusWatcher.class).asEagerSingleton();
     }
 }

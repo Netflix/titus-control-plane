@@ -23,10 +23,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
+import com.netflix.spectator.api.Gauge;
+import com.netflix.spectator.api.Timer;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -38,10 +44,13 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
@@ -61,6 +70,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION;
@@ -77,68 +88,115 @@ public class KubeNotificationProcessor {
     private static final Logger logger = LoggerFactory.getLogger(KubeNotificationProcessor.class);
     private static final CallMetadata KUBE_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Kube").build();
 
-    private final JobManagerConfiguration configuration;
+    private static final String METRICS_ROOT = MetricConstants.METRIC_JOB_MANAGER + "kubeNotificationProcessor.";
+
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final KubeJobManagementReconciler kubeJobManagementReconciler;
     private final V3JobOperations v3JobOperations;
     private final ContainerResultCodeResolver containerResultCodeResolver;
     private final TitusRuntime titusRuntime;
 
+    private final Timer metricsProcessed;
+    private final Gauge metricsRunning;
+    private final Gauge metricsLag;
+
+    private ExecutorService notificationHandlerExecutor;
+    private Scheduler scheduler;
     private Disposable subscription;
 
     @Inject
-    public KubeNotificationProcessor(JobManagerConfiguration configuration,
-                                     DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+    public KubeNotificationProcessor(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                      KubeJobManagementReconciler kubeJobManagementReconciler,
                                      V3JobOperations v3JobOperations,
                                      ContainerResultCodeResolver containerResultCodeResolver,
                                      TitusRuntime titusRuntime) {
-        this.configuration = configuration;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.kubeJobManagementReconciler = kubeJobManagementReconciler;
         this.v3JobOperations = v3JobOperations;
         this.containerResultCodeResolver = containerResultCodeResolver;
         this.titusRuntime = titusRuntime;
+
+        this.metricsProcessed = titusRuntime.getRegistry().timer(METRICS_ROOT + "processed");
+        this.metricsRunning = titusRuntime.getRegistry().gauge(METRICS_ROOT + "running");
+        this.metricsLag = titusRuntime.getRegistry().gauge(METRICS_ROOT + "lag");
     }
 
     @Activator
     public void enterActiveMode() {
+        this.scheduler = initializeNotificationScheduler();
+        AtomicLong pendingCounter = new AtomicLong();
         this.subscription = kubeApiServerIntegrator.events().mergeWith(kubeJobManagementReconciler.getPodEventSource())
-                .flatMap(event -> {
-                    Pair<Job<?>, Task> jobAndTask = v3JobOperations.findTaskById(event.getTaskId()).orElse(null);
-                    if (jobAndTask == null) {
-                        logger.warn("Got Kube notification about unknown task: {}", event.getTaskId());
-                        return Mono.empty();
-                    }
-
-                    Task task = jobAndTask.getRight();
-                    if (!JobFunctions.isOwnedByKubeScheduler(task)) {
-                        logger.debug("Ignoring notification for task managed via Mesos adapter: taskId={}", task.getId());
-                        return Mono.empty();
-                    }
-
-                    if (event instanceof PodNotFoundEvent) {
-                        return handlePodNotFoundEvent((PodNotFoundEvent) event);
-                    }
-                    // We depend in this flatmap on the fact that the task update event is added by the source thread to
-                    // the job reconciler queue. This guarantees the right order of the execution.
-                    // TODO Implement flatMapWithSequentialSubscription operator
-                    return handlePodUpdatedEvent(event, jobAndTask.getLeft(), task);
-                }, Math.max(1, configuration.getKubeEventConcurrencyLimit()))
-                .ignoreElements()
+                .subscribeOn(scheduler)
+                .publishOn(scheduler)
                 .doOnError(error -> logger.warn("Kube integration event stream terminated with an error (retrying soon)", error))
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)))
                 .subscribe(
-                        next -> {
-                            // Nothing
+                        event -> {
+                            Stopwatch stopwatch = Stopwatch.createStarted();
+                            pendingCounter.getAndIncrement();
+
+                            metricsRunning.set(pendingCounter.get());
+                            metricsLag.set(PodEvent.nextSequence() - event.getSequenceNumber());
+
+                            logger.info("New event [pending={}, lag={}]: {}", pendingCounter.get(), PodEvent.nextSequence() - event.getSequenceNumber(), event);
+                            processEvent(event)
+                                    .doAfterTerminate(() -> {
+                                        pendingCounter.decrementAndGet();
+                                        long elapsed = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                        metricsProcessed.record(elapsed, TimeUnit.MILLISECONDS);
+                                        metricsRunning.set(pendingCounter.get());
+                                        logger.info("Event processed [pending={}]: event={}, elapsed={}", pendingCounter.get(), event, elapsed);
+                                    })
+                                    .subscribe(
+                                            next -> {
+                                                // nothing
+                                            },
+                                            error -> {
+                                                logger.info("Kube notification event state update error: event={}, error={}", event, error.getMessage());
+                                                logger.debug("Stack trace", error);
+                                            },
+                                            () -> {
+                                                // nothing
+                                            }
+                                    );
                         },
                         e -> logger.error("Event stream terminated"),
                         () -> logger.info("Event stream completed")
                 );
     }
 
+    @VisibleForTesting
+    protected Scheduler initializeNotificationScheduler() {
+        this.notificationHandlerExecutor = ExecutorsExt.namedSingleThreadExecutor(KubeNotificationProcessor.class.getSimpleName());
+        return Schedulers.fromExecutor(notificationHandlerExecutor);
+    }
+
+    private Mono<Void> processEvent(PodEvent event) {
+        Pair<Job<?>, Task> jobAndTask = v3JobOperations.findTaskById(event.getTaskId()).orElse(null);
+        if (jobAndTask == null) {
+            logger.warn("Got Kube notification about unknown task: {}", event.getTaskId());
+            return Mono.empty();
+        }
+
+        Task task = jobAndTask.getRight();
+        if (!JobFunctions.isOwnedByKubeScheduler(task)) {
+            logger.debug("Ignoring notification for task managed via Mesos adapter: taskId={}", task.getId());
+            return Mono.empty();
+        }
+
+        if (event instanceof PodNotFoundEvent) {
+            return handlePodNotFoundEvent((PodNotFoundEvent) event);
+        }
+        // We depend in this flatmap on the fact that the task update event is added by the source thread to
+        // the job reconciler queue. This guarantees the right order of the execution.
+        // TODO Implement flatMapWithSequentialSubscription operator
+        return handlePodUpdatedEvent(event, jobAndTask.getLeft(), task);
+    }
+
     public void shutdown() {
         ReactorExt.safeDispose(subscription);
+        Evaluators.acceptNotNull(scheduler, Scheduler::dispose);
+        Evaluators.acceptNotNull(notificationHandlerExecutor, ExecutorService::shutdown);
     }
 
     private Mono<Void> handlePodUpdatedEvent(PodEvent event, Job job, Task task) {
@@ -170,10 +228,10 @@ public class KubeNotificationProcessor {
 
         TaskStatus newTaskStatus = newTaskStatusOrError.getValue();
         if (TaskStatus.areEquivalent(task.getStatus(), newTaskStatus)) {
-            logger.info("Pod change notification does not change task status: taskId={}, status={}", task.getId (), newTaskStatus);
+            logger.info("Pod change notification does not change task status: taskId={}, status={}, eventSequenceNumber={}", task.getId(), newTaskStatus, event.getSequenceNumber());
         } else {
-            logger.info("Pod notification changes task status: taskId={}, fromStatus={}, toStatus={}", task.getId(),
-                    task.getStatus(), newTaskStatus);
+            logger.info("Pod notification changes task status: taskId={}, fromStatus={}, toStatus={}, eventSequenceNumber={}", task.getId(),
+                    task.getStatus(), newTaskStatus, event.getSequenceNumber());
         }
 
         Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
@@ -182,7 +240,7 @@ public class KubeNotificationProcessor {
                 task.getId(),
                 current -> updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current),
                 V3JobOperations.Trigger.Kube,
-                "Pod status updated from kubernetes node (k8s pod phase is now '" + event.getPod().getStatus().getPhase() + "')",
+                "Pod status updated from kubernetes node (k8phase='" + event.getPod().getStatus().getPhase() + "', taskState=" + task.getStatus().getState() + ")",
                 KUBE_CALL_METADATA
         ));
     }
