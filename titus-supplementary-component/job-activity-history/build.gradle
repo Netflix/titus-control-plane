@@ -9,6 +9,8 @@ plugins {
     id 'org.flywaydb.flyway' version '5.2.4'
 }
 
+apply plugin: "com.revolut.jooq-docker"
+
 ext.flywayVersion = '6.1.+'
 ext.jooqVersion = '3.13.2'
 ext.psql = '42.2.8'

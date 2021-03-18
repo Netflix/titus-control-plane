@@ -50,8 +50,6 @@ public class JooqJobActivityContextComponent {
     @Qualifier("jobActivityJooqContext")
     public JooqContext getJobActivityJooqContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
-        System.out.println("CONSUMER");
-
         hikariConfig.setAutoCommit(true);
 
         // Connection management
@@ -76,7 +74,6 @@ public class JooqJobActivityContextComponent {
     public JooqContext getJooqProducerContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
-        System.err.println("PRODUCER");
 
         // Connection management
         hikariConfig.setConnectionTimeout(10000);
@@ -84,13 +81,10 @@ public class JooqJobActivityContextComponent {
         hikariConfig.setLeakDetectionThreshold(3000);
 
         if (jooqConfiguration.isInMemoryDb()) {
-            System.out.println("IN memory");
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
         } else if (jooqConfiguration.isLocalDb()) {
-            System.err.println("LOCAL");
             hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
         } else {
-            System.err.println("NOT LOCAL");
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
