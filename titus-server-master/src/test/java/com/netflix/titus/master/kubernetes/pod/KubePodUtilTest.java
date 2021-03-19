@@ -18,8 +18,10 @@ package com.netflix.titus.master.kubernetes.pod;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -37,4 +39,14 @@ public class KubePodUtilTest {
         assertThat(KubePodUtil.createPodAnnotationsFromJobParameters(job)).containsEntry(KubeConstants.POD_LABEL_SUBNETS, "subnet1,subnet2");
     }
 
+    @Test
+    public void testFilterPodAnnotations() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        JobDescriptor<BatchJobExt> jobDescriptor = JobFunctions.appendJobSecurityAttributes(
+                job.getJobDescriptor(),
+                CollectionsExt.asMap(JobAttributes.JOB_SECURITY_ATTRIBUTE_METATRON_AUTH_CONTEXT, "someAuthContext")
+        );
+        assertThat(KubePodUtil.filterPodJobDescriptor(jobDescriptor).getContainer().getSecurityProfile().getAttributes().containsKey(JobAttributes.JOB_SECURITY_ATTRIBUTE_METATRON_AUTH_CONTEXT))
+                .isFalse();
+    }
 }
