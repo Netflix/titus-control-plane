@@ -66,7 +66,8 @@ public class PodNotFoundEvent extends PodEvent {
     @Override
     public String toString() {
         return "PodNotFoundEvent{" +
-                "task=" + task +
+                "taskId=" + task.getId() +
+                ", sequenceNumber=" + sequenceNumber +
                 ", finalTaskStatus=" + finalTaskStatus +
                 '}';
     }

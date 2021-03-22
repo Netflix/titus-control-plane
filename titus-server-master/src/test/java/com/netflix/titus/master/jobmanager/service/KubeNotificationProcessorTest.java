@@ -59,6 +59,8 @@ import org.mockito.MockitoAnnotations;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import rx.Completable;
 
 import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andIpAddress;
@@ -76,7 +78,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,13 +109,17 @@ public class KubeNotificationProcessorTest {
         podEvents = DirectProcessor.create();
         reconcilerPodEvents = DirectProcessor.create();
         reconcilerContainerEvents = DirectProcessor.create();
-        processor = new KubeNotificationProcessor(mock(JobManagerConfiguration.class),
-                new FakeDirectKube(),
+        processor = new KubeNotificationProcessor(new FakeDirectKube(),
                 new FakeReconciler(),
                 jobOperations,
                 containerResultCodeResolver,
                 titusRuntime
-        );
+        ) {
+            @Override
+            protected Scheduler initializeNotificationScheduler() {
+                return Schedulers.immediate();
+            }
+        };
         processor.enterActiveMode();
 
         when(jobOperations.findTaskById(eq(TASK.getId()))).thenReturn(Optional.of(Pair.of(JOB, TASK)));
@@ -141,7 +146,7 @@ public class KubeNotificationProcessorTest {
         podEvents.onNext(PodEvent.onUpdate(oldPod, updatedPod, Optional.empty()));
 
         verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
-                eq("Pod status updated from kubernetes node (k8s pod phase is now 'Pending')"), any());
+                eq("Pod status updated from kubernetes node (k8phase='Pending', taskState=Accepted)"), any());
 
         Function<Task, Optional<Task>> changeFunction = changeFunctionCaptor.getValue();
         assertThat(changeFunction).isNotNull();
@@ -207,7 +212,7 @@ public class KubeNotificationProcessorTest {
         podEvents.onNext(PodEvent.onAdd(pod));
 
         verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
-                eq("Pod status updated from kubernetes node (k8s pod phase is now 'Failed')"), any());
+                eq("Pod status updated from kubernetes node (k8phase='Failed', taskState=Accepted)"), any());
     }
 
     @Test

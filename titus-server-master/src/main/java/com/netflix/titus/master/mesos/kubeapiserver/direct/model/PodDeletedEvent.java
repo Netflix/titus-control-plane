@@ -19,6 +19,7 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 
@@ -66,7 +67,8 @@ public class PodDeletedEvent extends PodEvent {
     public String toString() {
         return "PodDeletedEvent{" +
                 "taskId='" + taskId + '\'' +
-                ", pod=" + pod +
+                ", sequenceNumber=" + sequenceNumber +
+                ", pod=" + KubeObjectFormatter.formatPodEssentials(pod) +
                 ", deletedFinalStateUnknown=" + deletedFinalStateUnknown +
                 ", node=" + node.map(n -> n.getMetadata().getName()).orElse("<not_assigned>") +
                 '}';

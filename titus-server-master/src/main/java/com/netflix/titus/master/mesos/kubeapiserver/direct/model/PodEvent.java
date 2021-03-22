@@ -18,20 +18,26 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 public abstract class PodEvent {
 
+    private static final AtomicLong SEQUENCE_NUMBER = new AtomicLong();
+
     protected final String taskId;
     protected final V1Pod pod;
+    protected final long sequenceNumber;
 
     protected PodEvent(V1Pod pod) {
         this.taskId = pod.getMetadata().getName();
         this.pod = pod;
+        this.sequenceNumber = SEQUENCE_NUMBER.getAndIncrement();
     }
 
     public String getTaskId() {
@@ -40,6 +46,10 @@ public abstract class PodEvent {
 
     public V1Pod getPod() {
         return pod;
+    }
+
+    public long getSequenceNumber() {
+        return sequenceNumber;
     }
 
     @Override
@@ -51,21 +61,25 @@ public abstract class PodEvent {
             return false;
         }
         PodEvent podEvent = (PodEvent) o;
-        return Objects.equals(taskId, podEvent.taskId) &&
-                Objects.equals(pod, podEvent.pod);
+        return sequenceNumber == podEvent.sequenceNumber && Objects.equals(taskId, podEvent.taskId) && Objects.equals(pod, podEvent.pod);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, pod);
+        return Objects.hash(taskId, pod, sequenceNumber);
     }
 
     @Override
     public String toString() {
         return "PodEvent{" +
                 "taskId='" + taskId + '\'' +
-                ", pod=" + pod +
+                ", sequenceNumber=" + sequenceNumber +
+                ", pod=" + KubeObjectFormatter.formatPodEssentials(pod) +
                 '}';
+    }
+
+    public static long nextSequence() {
+        return SEQUENCE_NUMBER.get();
     }
 
     public static PodAddedEvent onAdd(V1Pod pod) {

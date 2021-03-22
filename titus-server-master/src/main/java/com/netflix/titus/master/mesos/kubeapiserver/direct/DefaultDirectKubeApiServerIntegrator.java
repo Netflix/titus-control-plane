@@ -45,7 +45,9 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
@@ -333,52 +335,75 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             ResourceEventHandler<V1Pod> handler = new ResourceEventHandler<V1Pod>() {
                 @Override
                 public void onAdd(V1Pod pod) {
-                    if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
-                        return;
-                    }
-                    logger.info("Pod Added: {}", formatPodEssentials(pod));
-                    logger.debug("complete pod data: {}", pod);
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    try {
+                        if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                            return;
+                        }
+                        String taskId = pod.getSpec().getContainers().get(0).getName();
 
-                    String taskId = pod.getSpec().getContainers().get(0).getName();
+                        V1Pod old = pods.get(taskId);
+                        pods.put(taskId, pod);
 
-                    V1Pod old = pods.get(taskId);
-                    pods.put(taskId, pod);
+                        PodEvent podEvent;
+                        if (old != null) {
+                            podEvent = PodEvent.onUpdate(old, pod, findNode(pod));
+                            metrics.onUpdate(pod);
+                        } else {
+                            podEvent = PodEvent.onAdd(pod);
+                            metrics.onAdd(pod);
+                        }
+                        sink.next(podEvent);
 
-                    if (old != null) {
-                        metrics.onUpdate(pod);
-                        sink.next(PodEvent.onUpdate(old, pod, findNode(pod)));
-                    } else {
-                        metrics.onAdd(pod);
-                        sink.next(PodEvent.onAdd(pod));
+                        logger.info("Pod Added: pod={}, sequenceNumber={}", formatPodEssentials(pod), podEvent.getSequenceNumber());
+                        logger.debug("complete pod data: {}", pod);
+                    } finally {
+                        logger.info("Pod informer onAdd: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
                     }
                 }
 
                 @Override
                 public void onUpdate(V1Pod oldPod, V1Pod newPod) {
-                    if (!KubeUtil.isOwnedByKubeScheduler(newPod)) {
-                        return;
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    try {
+                        if (!KubeUtil.isOwnedByKubeScheduler(newPod)) {
+                            return;
+                        }
+
+                        metrics.onUpdate(newPod);
+
+                        pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
+
+                        PodUpdatedEvent podEvent = PodEvent.onUpdate(oldPod, newPod, findNode(newPod));
+                        sink.next(podEvent);
+
+                        logger.info("Pod Updated: old={}, new={}, sequenceNumber={}", formatPodEssentials(oldPod), formatPodEssentials(newPod), podEvent.getSequenceNumber());
+                        logger.debug("Complete pod data: old={}, new={}", oldPod, newPod);
+                    } finally {
+                        logger.info("Pod informer onUpdate: pod={}, elapsedMs={}", newPod.getMetadata().getName(), stopwatch.elapsed().toMillis());
                     }
-
-                    logger.info("Pod Updated: old={}, new={}", formatPodEssentials(oldPod), formatPodEssentials(newPod));
-                    logger.debug("Complete pod data: old={}, new={}", oldPod, newPod);
-                    metrics.onUpdate(newPod);
-
-                    pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
-                    sink.next(PodEvent.onUpdate(oldPod, newPod, findNode(newPod)));
                 }
 
                 @Override
                 public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
-                    if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
-                        return;
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    try {
+                        if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                            return;
+                        }
+
+                        metrics.onDelete(pod);
+
+                        pods.remove(pod.getSpec().getContainers().get(0).getName());
+
+                        PodDeletedEvent podEvent = PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod));
+                        sink.next(podEvent);
+
+                        logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}, sequenceNumber={}", formatPodEssentials(pod), deletedFinalStateUnknown, podEvent.getSequenceNumber());
+                        logger.debug("complete pod data: {}", pod);
+                    } finally {
+                        logger.info("Pod informer onDelete: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
                     }
-
-                    logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}", formatPodEssentials(pod), deletedFinalStateUnknown);
-                    logger.debug("complete pod data: {}", pod);
-                    metrics.onDelete(pod);
-
-                    pods.remove(pod.getSpec().getContainers().get(0).getName());
-                    sink.next(PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod)));
                 }
             };
             kubeApiFacade.getPodInformer().addEventHandler(handler);
