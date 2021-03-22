@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.testkit.model.PrimitiveValueGenerators;
@@ -67,5 +70,9 @@ public class JobEbsVolumeGenerator {
         ebsAttributes.put(JobAttributes.JOB_ATTRIBUTES_EBS_FS_TYPE, ebsVolumes.stream().findFirst().map(EbsVolume::getFsType).orElse("xfs"));
 
         return ebsAttributes;
+    }
+
+    public static Task appendEbsVolumeAttribute(Task task, String ebsVolumeId) {
+        return JobFunctions.appendTaskContext(task, TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, ebsVolumeId);
     }
 }

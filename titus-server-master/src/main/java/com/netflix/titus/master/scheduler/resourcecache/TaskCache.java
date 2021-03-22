@@ -29,11 +29,10 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
+import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocationUtils;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -127,11 +126,11 @@ public class TaskCache {
                     // Get an IP allocation ID that has been assigned to this task. If present,
                     // check if the task is running and if so, mark the IP allocation as in use.
                     // In addition, resolve the IP allocation ID's zone ID and cache that as well.
-                    getIpAllocationId(task).ifPresent(ipAllocationId -> {
+                    IpAddressAllocationUtils.getIpAllocationId(task).ifPresent(ipAllocationId -> {
                         if (TaskState.isRunning(task.getStatus().getState())) {
                             assignedIpAllocations.put(ipAllocationId, task.getId());
                         }
-                        getIpAllocationZone(ipAllocationId, jobAndTask.getLeft().getJobDescriptor()).ifPresent(zoneIdForIpAllocation ->
+                        IpAddressAllocationUtils.getIpAllocationZoneForId(ipAllocationId, jobAndTask.getLeft().getJobDescriptor(), codeInvariants()).ifPresent(zoneIdForIpAllocation ->
                                 ipAllocationIdToZoneId.put(ipAllocationId, zoneIdForIpAllocation));
                     });
 
@@ -143,17 +142,6 @@ public class TaskCache {
                 }
                 zoneBalanceCountersByJobId.put(jobAndTask.getLeft().getId(), jobZoneBalancing);
             }
-        }
-
-        private Optional<String> getIpAllocationZone(String ipAllocationId, JobDescriptor<?> jobDescriptor) {
-            for (SignedIpAddressAllocation signedIpAddressAllocation : jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations()) {
-                if (signedIpAddressAllocation.getIpAddressAllocation().getAllocationId().equals(ipAllocationId)) {
-                    return Optional.of(signedIpAddressAllocation.getIpAddressAllocation().getIpAddressLocation().getAvailabilityZone());
-                }
-            }
-            codeInvariants().inconsistent("Unable to find zone for IP allocation ID {} in job allocations {}",
-                    ipAllocationId, jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations());
-            return Optional.empty();
         }
 
         private Optional<OpportunisticCpuAllocation> getOpportunisticCpuAllocation(Task task) {
@@ -186,10 +174,6 @@ public class TaskCache {
 
     private static String getZoneId(Task task) {
         return task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE);
-    }
-
-    private static Optional<String> getIpAllocationId(Task task) {
-        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID));
     }
 
 }

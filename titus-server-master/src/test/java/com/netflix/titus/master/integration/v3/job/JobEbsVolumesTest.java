@@ -17,6 +17,7 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -201,24 +202,17 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
     }
 
     private static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> batchOfSizeAndEbsVolumes(int size) {
+        List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(size).toList();
+        Map<String, String> ebsVolumeAttributes = JobEbsVolumeGenerator.jobEbsVolumesToAttributes(ebsVolumes);
         return jd -> JobFunctions.changeBatchJobSize(jd, size)
-                .but(JobEbsVolumesTest::jobWithEbsVolumes);
+                .but(jdb -> JobFunctions.jobWithEbsVolumes(jdb, ebsVolumes, ebsVolumeAttributes));
     }
 
     private static Function<JobDescriptor<ServiceJobExt>, JobDescriptor<ServiceJobExt>> serviceOfSizeAndEbsVolumes(int size) {
+        List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(size).toList();
+        Map<String, String> ebsVolumeAttributes = JobEbsVolumeGenerator.jobEbsVolumesToAttributes(ebsVolumes);
         return jd -> JobFunctions.changeServiceJobCapacity(jd, size)
-                .but(JobEbsVolumesTest::jobWithEbsVolumes);
-    }
-
-    private static  JobDescriptor<?> jobWithEbsVolumes(JobDescriptor<?> jd) {
-        int size = jd.getExtensions() instanceof ServiceJobExt
-                ? ((ServiceJobExt) jd.getExtensions()).getCapacity().getMax()
-                : ((BatchJobExt) jd.getExtensions()).getSize();
-        List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(size).getValues(size);
-        return jd
-                .but(j -> j.getContainer()
-                        .but(c -> c.getContainerResources().toBuilder().withEbsVolumes(ebsVolumes).build()))
-                .but(j -> JobEbsVolumeGenerator.jobEbsVolumesToAttributes(ebsVolumes));
+                .but(jdb -> JobFunctions.jobWithEbsVolumes(jdb, ebsVolumes, ebsVolumeAttributes));
     }
 
     private static Predicate<List<TaskScenarioBuilder>> sameEbsVolumePredicate() {
