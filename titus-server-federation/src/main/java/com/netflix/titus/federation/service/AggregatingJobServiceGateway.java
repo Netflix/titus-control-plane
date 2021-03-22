@@ -122,29 +122,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
-        Cell cell = router.routeKey(jobDescriptor).orElse(null);
-        if (cell == null) {
-            // This should never happen in a correctly setup system.
-            return Observable.error(new IllegalStateException("Internal system error. Routing rule not found"));
-        }
-        logger.debug("Routing JobDescriptor {} to Cell {}", jobDescriptor, cell);
-
-        Optional<JobManagementServiceStub> optionalClient = CellConnectorUtil.toStub(cell, connector, JobManagementServiceGrpc::newStub);
-        if (!optionalClient.isPresent()) {
-            return Observable.error(TitusServiceException.cellNotFound(cell.getName()));
-        }
-        JobManagementServiceStub client = optionalClient.get();
-
-        JobDescriptor withStackName = addStackName(jobDescriptor);
-        return createRequestObservable(emitter -> {
-            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
-                    emitter,
-                    jobId -> emitter.onNext(jobId.getId()),
-                    emitter::onError,
-                    emitter::onCompleted
-            );
-            wrap(client, callMetadata).createJob(withStackName, streamObserver);
-        }, grpcConfiguration.getRequestTimeoutMs());
+        throw new RuntimeException("I MADE A CHANGE!!!");
     }
 
     @Override
