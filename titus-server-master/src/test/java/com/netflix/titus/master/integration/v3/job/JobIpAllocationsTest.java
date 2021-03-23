@@ -18,6 +18,7 @@ package com.netflix.titus.master.integration.v3.job;
 
 import java.util.AbstractMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -26,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -284,15 +286,15 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
     }
 
     private static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> batchOfSizeAndIps(int size) {
+        List<SignedIpAddressAllocation> ipAllocations = JobIpAllocationGenerator.jobIpAllocations(size).toList();
         return jd -> JobFunctions.changeBatchJobSize(jd, size)
-                .but(j -> j.getContainer()
-                        .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(JobIpAllocationGenerator.jobIpAllocations(size).getValues(size)).build()));
+                .but(d -> JobFunctions.jobWithIpAllocations(d, ipAllocations));
     }
 
     private static Function<JobDescriptor<ServiceJobExt>, JobDescriptor<ServiceJobExt>> serviceOfSizeAndIps(int size) {
+        List<SignedIpAddressAllocation> ipAllocations = JobIpAllocationGenerator.jobIpAllocations(size).toList();
         return jd -> JobFunctions.changeServiceJobCapacity(jd, size)
-                .but(j -> j.getContainer()
-                        .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(JobIpAllocationGenerator.jobIpAllocations(size).getValues(size)).build()));
+                .but(d -> JobFunctions.jobWithIpAllocations(d, ipAllocations));
     }
 
     private static String getIpAllocationIdFromJob(int idx, JobDescriptor<?> jobDescriptor) {

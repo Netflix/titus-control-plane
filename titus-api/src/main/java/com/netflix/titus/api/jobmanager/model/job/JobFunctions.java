@@ -34,12 +34,14 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHeal
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
@@ -293,6 +295,12 @@ public final class JobFunctions {
     public static Task appendTaskAttribute(Task task, String attributeName, Object attributeValue) {
         return task.toBuilder()
                 .withAttributes(CollectionsExt.copyAndAdd(task.getAttributes(), attributeName, "" + attributeValue))
+                .build();
+    }
+
+    public static Task appendTaskContext(Task task, String contextName, Object contextValue) {
+        return task.toBuilder()
+                .withTaskContext(CollectionsExt.copyAndAdd(task.getTaskContext(), contextName, "" + contextValue))
                 .build();
     }
 
@@ -662,5 +670,18 @@ public final class JobFunctions {
             capacityGroup = job.getJobDescriptor().getApplicationName();
         }
         return StringExt.isEmpty(capacityGroup) ? DEFAULT_APPLICATION : capacityGroup;
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> jobWithEbsVolumes(JobDescriptor<E> jd, List<EbsVolume> ebsVolumes, Map<String, String> ebsVolumeAttributes) {
+        return jd
+                .but(d -> d.getContainer()
+                        .but(c -> c.getContainerResources().toBuilder().withEbsVolumes(ebsVolumes).build()))
+                .but(j -> ebsVolumeAttributes);
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> jobWithIpAllocations(JobDescriptor<E> jd, List<SignedIpAddressAllocation> ipAllocations) {
+        return jd
+                .but(j -> j.getContainer()
+                        .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(ipAllocations).build()));
     }
 }

@@ -31,6 +31,8 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
+import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocationUtils;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolver;
@@ -59,12 +61,15 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
     private final KubePodConfiguration configuration;
     private final PodResourcePoolResolver podResourcePoolResolver;
+    private final TitusRuntime titusRuntime;
 
     @Inject
     public DefaultPodAffinityFactory(KubePodConfiguration configuration,
-                                     PodResourcePoolResolver podResourcePoolResolver) {
+                                     PodResourcePoolResolver podResourcePoolResolver,
+                                     TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.podResourcePoolResolver = podResourcePoolResolver;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -247,11 +252,26 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                 return;
             }
 
-            // If there is an EBS volume, it defaults to placement in the volume's zone
-            Optional<EbsVolume> optionalEbsVolume = EbsVolumeUtils.getEbsVolumeForTask(job, task);
-            if (optionalEbsVolume.isPresent()) {
-                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_ZONE, optionalEbsVolume.get().getVolumeAvailabilityZone(), true);
-                return;
+            // If there is a Static IP allocation, get its zone
+            Optional<String> optionalIpAllocationZone = IpAddressAllocationUtils.getIpAllocationZoneForTask(job.getJobDescriptor(), task, titusRuntime.getCodeInvariants());
+
+            // If there is an EBS volume, get its zone
+            Optional<String> optionalEbsVolumeZone = EbsVolumeUtils.getEbsVolumeForTask(job, task)
+                    .map(EbsVolume::getVolumeAvailabilityZone);
+
+            if (optionalIpAllocationZone.isPresent() && optionalEbsVolumeZone.isPresent()) {
+                String ipAllocationZone = optionalIpAllocationZone.get();
+                String ebsVolumeZone = optionalEbsVolumeZone.get();
+                // If the zones for the two assigned resources do not match we do not assign either.
+                if (ebsVolumeZone.equals(ipAllocationZone)) {
+                    addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_ZONE, ebsVolumeZone, true);
+                } else {
+                    titusRuntime.getCodeInvariants().inconsistent("Task %s has assigned Static IP in zone %s but assigned EBS Volume in zone %s", task.getId(), ipAllocationZone, ebsVolumeZone);
+                }
+            } else if (optionalIpAllocationZone.isPresent()) {
+                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_ZONE, optionalIpAllocationZone.get(), true);
+            } else {
+                optionalEbsVolumeZone.ifPresent(ebsVolumeZone -> addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_ZONE, ebsVolumeZone, true));
             }
 
             // If there is no zone hard constraint, it defaults to placement in the primary availability zones

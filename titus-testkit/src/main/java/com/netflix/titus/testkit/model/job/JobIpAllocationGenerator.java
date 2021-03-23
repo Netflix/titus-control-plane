@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -75,5 +78,9 @@ public final class JobIpAllocationGenerator {
                     .build());
         }
         return DataGenerator.items(signedIpAddressAllocationList);
+    }
+
+    public static Task appendIpAllocationAttribute(Task task, String ipAllocationId) {
+        return JobFunctions.appendTaskContext(task, TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId);
     }
 }

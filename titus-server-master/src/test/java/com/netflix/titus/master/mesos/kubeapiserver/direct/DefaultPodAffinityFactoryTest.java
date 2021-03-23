@@ -17,6 +17,7 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
@@ -25,13 +26,18 @@ import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.DefaultPodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
+import com.netflix.titus.testkit.model.job.JobEbsVolumeGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
+import com.netflix.titus.testkit.model.job.JobIpAllocationGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1NodeSelector;
 import io.kubernetes.client.openapi.models.V1NodeSelectorRequirement;
@@ -49,7 +55,7 @@ public class DefaultPodAffinityFactoryTest {
 
     private final KubePodConfiguration configuration = Mockito.mock(KubePodConfiguration.class);
 
-    private final DefaultPodAffinityFactory factory = new DefaultPodAffinityFactory(configuration, new ExplicitJobPodResourcePoolResolver());
+    private final DefaultPodAffinityFactory factory = new DefaultPodAffinityFactory(configuration, new ExplicitJobPodResourcePoolResolver(), TitusRuntimes.test());
 
     @Before
     public void setUp() throws Exception {
@@ -119,6 +125,33 @@ public class DefaultPodAffinityFactoryTest {
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getKey()).isEqualTo(KubeConstants.NODE_LABEL_RESOURCE_POOL);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo("elastic");
+    }
+
+    @Test
+    public void testEbsVolumeAzAffinity() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(1).toList();
+        Map<String, String> ebsVolumeAttributes = JobEbsVolumeGenerator.jobEbsVolumesToAttributes(ebsVolumes);
+        job = job.toBuilder().withJobDescriptor(JobFunctions.jobWithEbsVolumes(job.getJobDescriptor(), ebsVolumes, ebsVolumeAttributes)).build();
+
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(job, JobEbsVolumeGenerator.appendEbsVolumeAttribute(JobGenerator.oneBatchTask(), ebsVolumes.get(0).getVolumeId()));
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
+        assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getKey()).isEqualTo(KubeConstants.NODE_LABEL_ZONE);
+        assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo(ebsVolumes.get(0).getVolumeAvailabilityZone());
+    }
+
+    @Test
+    public void testIpAllocationAzAffinity() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        List<SignedIpAddressAllocation> ipAddressAllocations = JobIpAllocationGenerator.jobIpAllocations(1).toList();
+        job = job.toBuilder().withJobDescriptor(JobFunctions.jobWithIpAllocations(job.getJobDescriptor(), ipAddressAllocations)).build();
+
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(job, JobIpAllocationGenerator.appendIpAllocationAttribute(JobGenerator.oneBatchTask(), ipAddressAllocations.get(0).getIpAddressAllocation().getAllocationId()));
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
+        assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getKey()).isEqualTo(KubeConstants.NODE_LABEL_ZONE);
+        assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo(ipAddressAllocations.get(0).getIpAddressAllocation().getIpAddressLocation().getAvailabilityZone());
     }
 
     private Job<BatchJobExt> newJobWithHardConstraint(String name, String value) {
