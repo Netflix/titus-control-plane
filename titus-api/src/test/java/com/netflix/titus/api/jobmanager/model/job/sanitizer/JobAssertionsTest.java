@@ -17,11 +17,16 @@
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.Image;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.testkit.model.job.JobEbsVolumeGenerator;
+import com.netflix.titus.testkit.model.job.JobIpAllocationGenerator;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,6 +86,53 @@ public class JobAssertionsTest {
                 .withDigest("sha256:XYZ")
                 .build();
         Map<String, String> violations = jobAssertions.validateImage(image);
+        assertThat(violations).hasSize(1);
+    }
+
+    @Test
+    public void testEbsAndIpZoneMatchValidation() {
+        int size = 4;
+        List<String> availabilityZones = JobEbsVolumeGenerator.availabilityZones().getValues(size);
+        List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(size).toList();
+        List<SignedIpAddressAllocation> ipAddressAllocations = JobIpAllocationGenerator.jobIpAllocations(size).toList();
+
+        for (int i = 0; i < size; i++) {
+            String az = availabilityZones.get(i);
+            EbsVolume updatedEbsVolume = ebsVolumes.get(i).toBuilder()
+                    .withVolumeAvailabilityZone(az)
+                    .build();
+            ebsVolumes.set(i, updatedEbsVolume);
+
+            SignedIpAddressAllocation updatedIpAllocation = ipAddressAllocations.get(i).toBuilder()
+                    .withIpAddressAllocation(ipAddressAllocations.get(i).getIpAddressAllocation().toBuilder()
+                            .withIpAddressLocation(ipAddressAllocations.get(i).getIpAddressAllocation().getIpAddressLocation().toBuilder()
+                                    .withAvailabilityZone(az)
+                                    .build())
+                            .build())
+                    .build();
+            ipAddressAllocations.set(i, updatedIpAllocation);
+        }
+
+        Map<String, String> violations = jobAssertions.matchingEbsAndIpZones(ebsVolumes, ipAddressAllocations);
+        assertThat(violations).hasSize(0);
+    }
+
+    @Test
+    public void testEbsAndIpZoneDoNotMatchValidation() {
+        int size = 4;
+        List<String> availabilityZones = JobEbsVolumeGenerator.availabilityZones().getValues(size);
+        List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(size).toList();
+        List<SignedIpAddressAllocation> ipAddressAllocations = JobIpAllocationGenerator.jobIpAllocations(size).toList();
+
+        for (int i = 0; i < size; i++) {
+            String az = availabilityZones.get(i);
+            EbsVolume updatedEbsVolume = ebsVolumes.get(i).toBuilder()
+                    .withVolumeAvailabilityZone(az)
+                    .build();
+            ebsVolumes.set(i, updatedEbsVolume);
+        }
+
+        Map<String, String> violations = jobAssertions.matchingEbsAndIpZones(ebsVolumes, ipAddressAllocations);
         assertThat(violations).hasSize(1);
     }
 }

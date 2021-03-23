@@ -31,8 +31,11 @@ import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
@@ -229,6 +232,37 @@ public class JobAssertions {
                 : ((BatchJobExt) extension).getSize();
         if (numEbsVolumes > 0 && numInstances > numEbsVolumes) {
             return Collections.singletonMap("container.containerResources.ebsVolumes", "Above number of max task instances " + numInstances);
+        }
+
+        return Collections.emptyMap();
+    }
+
+    public Map<String, String> matchingDeleteMe(List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
+        return Collections.emptyMap();
+    }
+
+    public Map<String, String> matchingEbsAndIpZones(List<EbsVolume> ebsVolumes, List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
+        if (ebsVolumes == null || ipSignedAddressAllocations == null) {
+            return Collections.emptyMap();
+        }
+
+        if (ebsVolumes.isEmpty() || ipSignedAddressAllocations.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        int numElements = Math.min(ebsVolumes.size(), ipSignedAddressAllocations.size());
+        for (int i = 0; i < numElements; i++) {
+            EbsVolume ebsVolume = ebsVolumes.get(i);
+            IpAddressAllocation ipAddressAllocation = ipSignedAddressAllocations.get(i).getIpAddressAllocation();
+            if (!ebsVolume.getVolumeAvailabilityZone().equals(ipAddressAllocation.getIpAddressLocation().getAvailabilityZone())) {
+                return Collections.singletonMap(
+                        "containerResources.ebsVolumes",
+                        String.format(
+                                "EBS volume %s zone %s conflicts with Static IP %s zone %s",
+                                ebsVolume.getVolumeId(), ebsVolume.getVolumeAvailabilityZone(), ipAddressAllocation.getAllocationId(), ipAddressAllocation.getIpAddressLocation().getAvailabilityZone()
+                        )
+                );
+            }
         }
 
         return Collections.emptyMap();
