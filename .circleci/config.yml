@@ -48,6 +48,8 @@ jobs:
     executor: java
     steps:
       - checkout
+      - setup_remote_docker
+        version: postgres:11.2-alpine
       - restore_cache:
           keys:
             - v3-gradle-cache
