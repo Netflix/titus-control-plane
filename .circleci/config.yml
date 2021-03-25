@@ -4,11 +4,17 @@ executors:
   java:
     docker:
       - image: circleci/openjdk:8-jdk-stretch
+      - image: circleci/postgres:12-alpine
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
     resource_class: xlarge
     working_directory: "~/workspace/titus-control-plane"
     environment:
       DEBIAN_FRONTEND: noninteractive
       _JAVA_OPTIONS: "-Xmx2g -Xms1g -XX:MaxPermSize=512m -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+      POSTGRES_USER: postgres
+      POSTGRES_DB: circle_test
 
 commands:
   run_tests:
@@ -39,14 +45,6 @@ commands:
 
 jobs:
   build:
-    - image: circleci/postgres:9.6.5-alpine-ram
-      auth:
-        username: mydockerhub-user
-       # password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
-      environment:
-        POSTGRES_USER: root
-        POSTGRES_DB: circle_test
-        POSTGRES_PASSWORD: ""
     executor: java
     steps:
       - checkout
