@@ -97,6 +97,9 @@ public class AggregatingJobServiceGatewayTest {
     private static final long GRPC_REQUEST_TIMEOUT_MS = 1_000L;
 
     @Rule
+    public final GrpcServerRule federation = new GrpcServerRule().directExecutor();
+
+    @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
     private final PublishSubject<JobChangeNotification> cellOneUpdates = PublishSubject.create();
 
@@ -120,6 +123,7 @@ public class AggregatingJobServiceGatewayTest {
 
         TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getStack()).thenReturn(stackName);
+        when(titusFederationConfiguration.getFederationEndpoint()).thenReturn("federation=hostname:7501");
         when(titusFederationConfiguration.getCells()).thenReturn("one=1;two=2");
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("one=(app1.*|app2.*);two=(app3.*)");
 
@@ -131,20 +135,24 @@ public class AggregatingJobServiceGatewayTest {
                 cells.get(1), cellTwo
         );
 
-        CellConnector connector = mock(CellConnector.class);
-        when(connector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
+        FederationConnector fedConnector = mock(FederationConnector.class);
+        when(fedConnector.getChannel()).thenReturn(Optional.of(federation.getChannel()));
+
+        CellConnector cellConnector = mock(CellConnector.class);
+        when(cellConnector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, cellPairEntry -> cellPairEntry.getValue().getChannel()))
         );
-        when(connector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
+        when(cellConnector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
                 Optional.ofNullable(cellToServiceMap.get(invocation.<Cell>getArgument(0)))
                         .map(GrpcServerRule::getChannel)
         );
 
-        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
+        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(cellConnector);
         service = new AggregatingJobServiceGateway(
                 grpcConfiguration,
                 titusFederationConfiguration,
-                connector,
+                fedConnector,
+                cellConnector,
                 cellRouter,
                 aggregatingCellClient,
                 new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration)

@@ -16,12 +16,7 @@
 
 package com.netflix.titus.federation.service;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -30,6 +25,7 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.api.federation.model.Federation;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -72,7 +68,10 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import io.grpc.ManagedChannel;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import io.grpc.util.RoundRobinLoadBalancerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -80,7 +79,7 @@ import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static com.netflix.titus.api.jobmanager.JobAttributes.*;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
@@ -99,6 +98,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     private final GrpcConfiguration grpcConfiguration;
     private final TitusFederationConfiguration federationConfiguration;
+    private final FederationConnector fedConnector;
     private final CellConnector connector;
     private final AggregatingCellClient aggregatingClient;
     private AggregatingJobManagementServiceHelper jobManagementServiceHelper;
@@ -107,14 +107,16 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     @Inject
     public AggregatingJobServiceGateway(GrpcConfiguration grpcConfiguration,
                                         TitusFederationConfiguration federationConfiguration,
-                                        CellConnector connector,
+                                        FederationConnector fedConnector,
+                                        CellConnector cellConnector,
                                         CellRouter router,
                                         AggregatingCellClient aggregatingClient,
                                         AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
 
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
-        this.connector = connector;
+        this.fedConnector = fedConnector;
+        this.connector = cellConnector;
         this.router = router;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
@@ -122,7 +124,33 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
-        throw new RuntimeException("I MADE A CHANGE!!!");
+        Cell cell = router.routeKey(jobDescriptor).orElse(null);
+        if (cell == null) {
+            // This should never happen in a correctly setup system.
+            return Observable.error(new IllegalStateException("Internal system error. Routing rule not found"));
+        }
+        logger.debug("Routing JobDescriptor {} to Cell {}", jobDescriptor, cell);
+
+        Optional<JobManagementServiceStub> optionalFedClient = fedConnector.getChannel().map(JobManagementServiceGrpc::newStub);
+        if (!optionalFedClient.isPresent()) {
+            return Observable.error(TitusServiceException.cellNotFound(cell.getName()));
+        }
+        JobManagementServiceStub client = optionalFedClient.get();
+
+        String fedJobId = UUID.randomUUID().toString();
+        JobDescriptor withStackName = addStackName(jobDescriptor);
+        JobDescriptor withJobId = addJobId(withStackName, fedJobId);
+        JobDescriptor withRoutingCell = addRoutingCell(withJobId, cell);
+        logger.info("Routing Job {} to Cell {}, but not really, it's going to fedv2", fedJobId, cell);
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                    emitter,
+                    jobId -> emitter.onNext(jobId.getId()),
+                    error -> logger.error("failure: {}", error),
+                    emitter::onCompleted
+            );
+            wrap(client, callMetadata).createJob(withRoutingCell, streamObserver);
+        }, grpcConfiguration.getRequestTimeoutMs());
     }
 
     @Override
@@ -440,6 +468,18 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     private JobDescriptor addStackName(JobDescriptor jobDescriptor) {
         return jobDescriptor.toBuilder()
                 .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
+                .build();
+    }
+
+    private JobDescriptor addJobId(JobDescriptor jobDescriptor, String jobId) {
+        return jobDescriptor.toBuilder()
+                .putAttributes(JOB_ATTRIBUTES_JOB_ID, jobId)
+                .build();
+    }
+
+    private JobDescriptor addRoutingCell(JobDescriptor jobDescriptor, Cell cell) {
+        return jobDescriptor.toBuilder()
+                .putAttributes(JOB_ATTRIBUTES_ROUTING_CELL, cell.getName())
                 .build();
     }
 

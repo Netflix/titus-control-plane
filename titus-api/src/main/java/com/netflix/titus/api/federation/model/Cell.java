@@ -18,7 +18,7 @@ package com.netflix.titus.api.federation.model;
 
 import java.util.Objects;
 
-public final class Cell implements Comparable<Cell> {
+public class Cell implements Comparable<Cell> {
     private final String name;
     private final String address;
 

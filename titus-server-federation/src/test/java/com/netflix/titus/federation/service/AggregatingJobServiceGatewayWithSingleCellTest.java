@@ -64,6 +64,9 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
     @Rule
     public final GrpcServerRule cell = new GrpcServerRule().directExecutor();
 
+    @Rule
+    public final GrpcServerRule federation = new GrpcServerRule().directExecutor();
+
     private String stackName;
     private AggregatingJobServiceGateway service;
     private Map<Cell, GrpcServerRule> cellToServiceMap;
@@ -87,21 +90,25 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
         List<Cell> cells = cellInfoResolver.resolve();
         cellToServiceMap = ImmutableMap.of(cells.get(0), cell);
 
-        CellConnector connector = mock(CellConnector.class);
-        when(connector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
+        FederationConnector fedConnector = mock(FederationConnector.class);
+        when(fedConnector.getChannel()).thenReturn(Optional.of(federation.getChannel()));
+
+        CellConnector cellConnector = mock(CellConnector.class);
+        when(cellConnector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, cellPairEntry -> cellPairEntry.getValue().getChannel()))
         );
-        when(connector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
+        when(cellConnector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
                 Optional.ofNullable(cellToServiceMap.get(invocation.<Cell>getArgument(0)))
                         .map(GrpcServerRule::getChannel)
         );
 
-        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
+        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(cellConnector);
         final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         service = new AggregatingJobServiceGateway(
                 grpcClientConfiguration,
                 titusFederationConfiguration,
-                connector,
+                fedConnector,
+                cellConnector,
                 cellRouter,
                 aggregatingCellClient,
                 new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration)

@@ -40,6 +40,13 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_STACK = TITUS_ATTRIBUTE_PREFIX + "stack";
 
     /**
+     * Federated job id. The federated job id is inherited by its child jobs in each cell.
+     */
+    public static final String JOB_ATTRIBUTES_JOB_ID= TITUS_ATTRIBUTE_PREFIX + "jobId";
+
+    public static final String JOB_ATTRIBUTES_ROUTING_CELL = TITUS_ATTRIBUTE_PREFIX + "routingCell";
+
+    /**
      * Unique Cell name for a deployment that the Job has been assigned to.
      */
     public static final String JOB_ATTRIBUTES_CELL = TITUS_ATTRIBUTE_PREFIX + "cell";
