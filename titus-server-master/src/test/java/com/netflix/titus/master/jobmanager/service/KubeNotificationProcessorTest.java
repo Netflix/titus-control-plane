@@ -177,7 +177,8 @@ public class KubeNotificationProcessorTest {
                         "resourceId123"
                 ))),
                 Optional.of(node),
-                TASK
+                TASK,
+                false
         ).orElse(null);
 
         Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
@@ -198,7 +199,8 @@ public class KubeNotificationProcessorTest {
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.empty(),
                 Optional.of(node),
-                TASK
+                TASK,
+                false
         ).orElse(null);
 
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "192.0.2.0");
@@ -224,7 +226,8 @@ public class KubeNotificationProcessorTest {
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.empty(),
                 Optional.of(newNode()),
-                JobFunctions.changeTaskStatus(TASK, TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
+                JobFunctions.changeTaskStatus(TASK, TaskStatus.newBuilder().withState(TaskState.KillInitiated).build()),
+                false
         ).orElse(null);
         assertThat(updatedTask).isNull();
     }
