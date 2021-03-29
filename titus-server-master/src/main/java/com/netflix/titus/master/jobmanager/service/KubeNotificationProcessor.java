@@ -31,6 +31,7 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Timer;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -99,6 +100,8 @@ public class KubeNotificationProcessor {
     private final Timer metricsProcessed;
     private final Gauge metricsRunning;
     private final Gauge metricsLag;
+    private final Counter metricsChangesApplied;
+    private final Counter metricsNoChangesApplied;
 
     private ExecutorService notificationHandlerExecutor;
     private Scheduler scheduler;
@@ -119,6 +122,8 @@ public class KubeNotificationProcessor {
         this.metricsProcessed = titusRuntime.getRegistry().timer(METRICS_ROOT + "processed");
         this.metricsRunning = titusRuntime.getRegistry().gauge(METRICS_ROOT + "running");
         this.metricsLag = titusRuntime.getRegistry().gauge(METRICS_ROOT + "lag");
+        this.metricsChangesApplied = titusRuntime.getRegistry().counter(METRICS_ROOT + "changes", "changed", "true");
+        this.metricsNoChangesApplied = titusRuntime.getRegistry().counter(METRICS_ROOT + "changes", "changed", "false");
     }
 
     @Activator
@@ -203,6 +208,7 @@ public class KubeNotificationProcessor {
         // This is basic sanity check. If it fails, we have a major problem with pod state.
         if (event.getPod() == null || event.getPod().getStatus() == null || event.getPod().getStatus().getPhase() == null) {
             logger.warn("Pod notification with pod without status or phase set: taskId={}, pod={}", task.getId(), event.getPod());
+            metricsNoChangesApplied.increment();
             return Mono.empty();
         }
 
@@ -223,6 +229,7 @@ public class KubeNotificationProcessor {
         ).getNewTaskStatus();
         if (newTaskStatusOrError.hasError()) {
             logger.info(newTaskStatusOrError.getError());
+            metricsNoChangesApplied.increment();
             return Mono.empty();
         }
 
@@ -260,6 +267,8 @@ public class KubeNotificationProcessor {
                             .withStatusHistory(newHistory)
                             .build();
 
+                    metricsChangesApplied.increment();
+
                     return Optional.of(updatedTask);
                 },
                 V3JobOperations.Trigger.Kube,
@@ -269,11 +278,11 @@ public class KubeNotificationProcessor {
     }
 
     @VisibleForTesting
-    static Optional<Task> updateTaskStatus(PodWrapper podWrapper,
-                                           TaskStatus newTaskStatus,
-                                           Optional<TitusExecutorDetails> executorDetailsOpt,
-                                           Optional<V1Node> node,
-                                           Task currentTask) {
+    Optional<Task> updateTaskStatus(PodWrapper podWrapper,
+                                    TaskStatus newTaskStatus,
+                                    Optional<TitusExecutorDetails> executorDetailsOpt,
+                                    Optional<V1Node> node,
+                                    Task currentTask) {
 
         // This may happen as we build 'newTaskStatus' outside of the reconciler transaction. A real example:
         // 1. a job is terminated by a user
@@ -288,6 +297,7 @@ public class KubeNotificationProcessor {
             logger.info("Ignoring an attempt to move the task state to the earlier one: taskId={}, attempt={}, current={}",
                     currentTask.getId(), newTaskStatus.getState(), currentTask.getStatus().getState()
             );
+            metricsNoChangesApplied.increment();
             return Optional.empty();
         }
 
@@ -312,6 +322,13 @@ public class KubeNotificationProcessor {
         Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
         Task taskWithAnnotations = addMissingAttributes(podWrapper, taskWithNodeMetadata);
 
+        if (areTasksEquivalent(currentTask, taskWithAnnotations)) {
+            logger.debug("Ignoring the pod event as the update results in the identical task object as the current one: taskId={}", currentTask.getId());
+            metricsNoChangesApplied.increment();
+            return Optional.empty();
+        }
+
+        metricsChangesApplied.increment();
         return Optional.of(taskWithAnnotations);
     }
 
@@ -448,5 +465,28 @@ public class KubeNotificationProcessor {
         updatedCpus.ifPresent(cpus -> builder.addToTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, cpus));
         updatedAllocation.ifPresent(id -> builder.addToTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, id));
         return builder.build();
+    }
+
+    /**
+     * 'updatedTask' is a modified copy of 'currentTask' (or exactly the same version of the object if nothing changed).
+     */
+    @VisibleForTesting
+    static boolean areTasksEquivalent(Task currentTask, Task updatedTask) {
+        if (currentTask == updatedTask) {
+            return true;
+        }
+        if (!TaskStatus.areEquivalent(currentTask.getStatus(), updatedTask.getStatus())) {
+            return false;
+        }
+        if (!currentTask.getAttributes().equals(updatedTask.getAttributes())) {
+            return false;
+        }
+        if (!currentTask.getTaskContext().equals(updatedTask.getTaskContext())) {
+            return false;
+        }
+        if (currentTask.getTwoLevelResources().equals(updatedTask.getTwoLevelResources())) {
+            return false;
+        }
+        return true;
     }
 }
