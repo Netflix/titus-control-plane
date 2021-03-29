@@ -233,16 +233,16 @@ public class KubeNotificationProcessorTest {
     public void testAreTasksEquivalent_Same() {
         BatchJobTask first = JobGenerator.oneBatchTask();
         BatchJobTask second = first.toBuilder().build();
-        assertThat(first).isEqualTo(second);
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).isEmpty();
     }
 
     @Test
-    public void testAreTasksEquivalent_DifferentState() {
+    public void testAreTasksEquivalent_DifferentStatus() {
         BatchJobTask first = JobGenerator.oneBatchTask();
         BatchJobTask second = first.toBuilder()
                 .withStatus(first.getStatus().toBuilder().withReasonMessage("my important change").build())
                 .build();
-        assertThat(first).isNotEqualTo(second);
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task status");
     }
 
     @Test
@@ -251,7 +251,7 @@ public class KubeNotificationProcessorTest {
         BatchJobTask second = first.toBuilder()
                 .withAttributes(Collections.singletonMap("testAreTasksEquivalent_DifferentAttributes", "true"))
                 .build();
-        assertThat(first).isNotEqualTo(second);
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task attributes");
     }
 
     @Test
@@ -260,7 +260,7 @@ public class KubeNotificationProcessorTest {
         BatchJobTask second = first.toBuilder()
                 .withTaskContext(Collections.singletonMap("testAreTasksEquivalent_DifferentAttributes", "true"))
                 .build();
-        assertThat(first).isNotEqualTo(second);
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task context");
     }
 
     @Test
@@ -269,7 +269,7 @@ public class KubeNotificationProcessorTest {
         BatchJobTask second = first.toBuilder()
                 .withTwoLevelResources(TwoLevelResource.newBuilder().withName("fakeResource").build())
                 .build();
-        assertThat(first).isNotEqualTo(second);
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task two level resources");
     }
 
     private class FakeDirectKube implements DirectKubeApiServerIntegrator {

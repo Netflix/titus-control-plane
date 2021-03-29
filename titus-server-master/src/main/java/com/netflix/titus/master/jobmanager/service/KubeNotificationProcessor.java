@@ -322,11 +322,14 @@ public class KubeNotificationProcessor {
         Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
         Task taskWithAnnotations = addMissingAttributes(podWrapper, taskWithNodeMetadata);
 
-        if (areTasksEquivalent(currentTask, taskWithAnnotations)) {
+        Optional<String> difference = areTasksEquivalent(currentTask, taskWithAnnotations);
+        if (!difference.isPresent()) {
             logger.debug("Ignoring the pod event as the update results in the identical task object as the current one: taskId={}", currentTask.getId());
             metricsNoChangesApplied.increment();
             return Optional.empty();
         }
+
+        logger.info("Tasks are different: difference='{}', current={}, updated={}", difference.get(), currentTask, taskWithAnnotations);
 
         metricsChangesApplied.increment();
         return Optional.of(taskWithAnnotations);
@@ -471,22 +474,22 @@ public class KubeNotificationProcessor {
      * 'updatedTask' is a modified copy of 'currentTask' (or exactly the same version of the object if nothing changed).
      */
     @VisibleForTesting
-    static boolean areTasksEquivalent(Task currentTask, Task updatedTask) {
+    static Optional<String> areTasksEquivalent(Task currentTask, Task updatedTask) {
         if (currentTask == updatedTask) {
-            return true;
+            return Optional.empty();
         }
         if (!TaskStatus.areEquivalent(currentTask.getStatus(), updatedTask.getStatus())) {
-            return false;
+            return Optional.of("different task status");
         }
         if (!currentTask.getAttributes().equals(updatedTask.getAttributes())) {
-            return false;
+            return Optional.of("different task attributes");
         }
         if (!currentTask.getTaskContext().equals(updatedTask.getTaskContext())) {
-            return false;
+            return Optional.of("different task context");
         }
-        if (currentTask.getTwoLevelResources().equals(updatedTask.getTwoLevelResources())) {
-            return false;
+        if (!currentTask.getTwoLevelResources().equals(updatedTask.getTwoLevelResources())) {
+            return Optional.of("different task two level resources");
         }
-        return true;
+        return Optional.empty();
     }
 }
