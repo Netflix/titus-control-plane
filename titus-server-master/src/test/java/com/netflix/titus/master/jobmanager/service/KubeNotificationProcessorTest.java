@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -164,7 +165,7 @@ public class KubeNotificationProcessorTest {
                 TITUS_NODE_DOMAIN + "ami", "ami123",
                 TITUS_NODE_DOMAIN + "stack", "myStack"
         ));
-        Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
+        Task updatedTask = processor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.of(new TitusExecutorDetails(Collections.emptyMap(), new TitusExecutorDetails.NetworkConfiguration(
@@ -192,7 +193,7 @@ public class KubeNotificationProcessorTest {
         when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
         V1Pod pod = newPod(TASK.getId(), andRunning(), andPodIp("192.0.2.0"));
         V1Node node = newNode(andIpAddress("2.2.2.2"), andNodeAnnotations(TITUS_NODE_DOMAIN + "ami", "ami123"));
-        Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
+        Task updatedTask = processor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.empty(),
@@ -218,7 +219,7 @@ public class KubeNotificationProcessorTest {
     @Test
     public void testTaskStateDoesNotMoveBack() {
         V1Pod pod = newPod(TASK.getId(), andRunning());
-        Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
+        Task updatedTask = processor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.empty(),
@@ -226,6 +227,49 @@ public class KubeNotificationProcessorTest {
                 JobFunctions.changeTaskStatus(TASK, TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
         ).orElse(null);
         assertThat(updatedTask).isNull();
+    }
+
+    @Test
+    public void testAreTasksEquivalent_Same() {
+        BatchJobTask first = JobGenerator.oneBatchTask();
+        BatchJobTask second = first.toBuilder().build();
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).isEmpty();
+    }
+
+    @Test
+    public void testAreTasksEquivalent_DifferentStatus() {
+        BatchJobTask first = JobGenerator.oneBatchTask();
+        BatchJobTask second = first.toBuilder()
+                .withStatus(first.getStatus().toBuilder().withReasonMessage("my important change").build())
+                .build();
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task status");
+    }
+
+    @Test
+    public void testAreTasksEquivalent_DifferentAttributes() {
+        BatchJobTask first = JobGenerator.oneBatchTask();
+        BatchJobTask second = first.toBuilder()
+                .withAttributes(Collections.singletonMap("testAreTasksEquivalent_DifferentAttributes", "true"))
+                .build();
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task attributes");
+    }
+
+    @Test
+    public void testAreTasksEquivalent_DifferentContext() {
+        BatchJobTask first = JobGenerator.oneBatchTask();
+        BatchJobTask second = first.toBuilder()
+                .withTaskContext(Collections.singletonMap("testAreTasksEquivalent_DifferentAttributes", "true"))
+                .build();
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task context");
+    }
+
+    @Test
+    public void testAreTasksEquivalent_DifferentTwoLevelResource() {
+        BatchJobTask first = JobGenerator.oneBatchTask();
+        BatchJobTask second = first.toBuilder()
+                .withTwoLevelResources(TwoLevelResource.newBuilder().withName("fakeResource").build())
+                .build();
+        assertThat(KubeNotificationProcessor.areTasksEquivalent(first, second)).contains("different task two level resources");
     }
 
     private class FakeDirectKube implements DirectKubeApiServerIntegrator {
