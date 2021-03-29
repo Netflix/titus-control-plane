@@ -22,12 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
@@ -80,6 +82,7 @@ import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
@@ -135,7 +138,16 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
         JobManagementServiceStub client = optionalClient.get();
 
-        JobDescriptor withStackName = addStackName(jobDescriptor);
+        JobDescriptor enrichedJobDescriptor;
+        if (federationConfiguration.isFederationJobIdCreationEnabled()) {
+            String federatedJobId = UUID.randomUUID().toString();
+            enrichedJobDescriptor = addJobAttributes(jobDescriptor,
+                    ImmutableMap.of(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack(),
+                            JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId));
+        } else {
+            enrichedJobDescriptor = addStackName(jobDescriptor);
+        }
+
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -143,7 +155,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                     emitter::onError,
                     emitter::onCompleted
             );
-            wrap(client, callMetadata).createJob(withStackName, streamObserver);
+            wrap(client, callMetadata).createJob(enrichedJobDescriptor, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
@@ -447,6 +459,13 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                         (client, streamObserver) -> client.moveTask(taskMoveRequest, streamObserver),
                         callMetadata));
         return result.toCompletable();
+    }
+
+    private JobDescriptor addJobAttributes(JobDescriptor jobDescriptor, Map<String, String> attributes) {
+        if (attributes != null) {
+            return jobDescriptor.toBuilder().putAllAttributes(attributes).build();
+        }
+        return jobDescriptor;
     }
 
     private JobQueryResult addStackName(JobQueryResult result) {

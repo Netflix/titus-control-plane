@@ -66,6 +66,7 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ProtobufExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -570,13 +571,15 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {
+        String federatedJobId = jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID);
+        String jobId = (StringExt.isNotEmpty(federatedJobId) ? federatedJobId : UUID.randomUUID().toString());
         return Job.<E>newBuilder()
-                .withId(UUID.randomUUID().toString())
+                .withId(jobId)
                 .withJobDescriptor(jobDescriptor)
                 .withStatus(JobStatus.newBuilder()
-                                .withState(JobState.Accepted)
-                                .withReasonMessage("New Job created. Next tasks will be launched.")
-                                .build())
+                        .withState(JobState.Accepted)
+                        .withReasonMessage("New Job created. Next tasks will be launched.")
+                        .build())
                 .build();
     }
 
