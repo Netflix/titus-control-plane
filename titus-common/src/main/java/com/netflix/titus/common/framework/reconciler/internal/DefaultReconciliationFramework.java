@@ -59,13 +59,12 @@ import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
 
 public class DefaultReconciliationFramework<EVENT> implements ReconciliationFramework<EVENT> {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationFramework.class);
 
-    private static final String ROOT_METRIC_NAME = "titus.reconciliation.framework.";
+    static final String ROOT_METRIC_NAME = "titus.reconciliation.framework.";
     private static final String LOOP_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "executionTime";
     private static final String LAST_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "lastExecutionTime";
     private static final String LAST_FULL_CYCLE_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "lastFullCycleExecutionTime";
@@ -90,9 +89,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private volatile boolean runnable = true;
     private volatile boolean started = false;
 
-    private final PublishSubject<Observable<EVENT>> eventsMergeSubject = PublishSubject.create();
-    private final Observable<EVENT> eventsObservable;
-    private final Subscription internalEventSubscription;
+    private final EventDistributor<EVENT> eventDistributor;
 
     private final Timer loopExecutionTime;
     private volatile long lastFullCycleExecutionTimeMs; // Probed by a polled meter.
@@ -129,18 +126,8 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         }
 
         this.worker = scheduler.createWorker();
-        this.eventsObservable = Observable.merge(eventsMergeSubject).share();
 
-        // Supplementary subscription to detect cases when the event publisher gets broken.
-        eventsMergeSubject
-                .doOnError(error -> logger.error("Reconciliation even publisher terminated with an error", error))
-                .doOnTerminate(() -> {
-                    logger.info("Reconciliation even publisher terminated; eventsMergeSubject: hasCompleted={}, hasThrowable={}, hasObservers={}",
-                            eventsMergeSubject.hasCompleted(), eventsMergeSubject.hasThrowable(), eventsMergeSubject.hasObservers());
-                }).subscribe(ObservableExt.silentSubscriber());
-
-        // To keep eventsObservable permanently active.
-        this.internalEventSubscription = eventsObservable.subscribe(ObservableExt.silentSubscriber());
+        this.eventDistributor = new EventDistributor<>(registry);
 
         this.loopExecutionTime = registry.timer(LOOP_EXECUTION_TIME_METRIC);
         this.lastFullCycleExecutionTimeMs = scheduler.now() - idleTimeoutMs;
@@ -149,7 +136,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         PolledMeter.using(registry).withName(LAST_FULL_CYCLE_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastFullCycleExecutionTimeMs);
 
         engines.addAll(bootstrapEngines);
-        bootstrapEngines.forEach(engine -> eventsMergeSubject.onNext(engine.events()));
+        bootstrapEngines.forEach(eventDistributor::connectReconciliationEngine);
 
         updateIndexSet();
     }
@@ -157,6 +144,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     @Override
     public void start() {
         Preconditions.checkArgument(!started, "Framework already started");
+        eventDistributor.start();
         started = true;
         doSchedule(0);
     }
@@ -181,7 +169,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         });
         ExceptionExt.silent(() -> latch.await(timeoutMs, TimeUnit.MILLISECONDS));
 
-        internalEventSubscription.unsubscribe();
+        eventDistributor.stop(timeoutMs);
 
         if (executor != null) {
             executor.shutdownNow();
@@ -274,7 +262,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
     @Override
     public Observable<EVENT> events() {
-        return ObservableExt.protectFromMissingExceptionHandlers(eventsObservable, logger);
+        return Observable.create(eventDistributor::connectEmitter, Emitter.BackpressureMode.ERROR);
     }
 
     @Override
@@ -351,7 +339,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
             InternalReconciliationEngine<EVENT> newEngine = pair.getLeft();
             engines.add(newEngine);
             mustRunEngines.add(newEngine);
-            eventsMergeSubject.onNext(newEngine.events());
+            eventDistributor.connectReconciliationEngine(newEngine);
         });
 
         // Remove engines.
@@ -417,6 +405,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
                 ((DefaultReconciliationEngine) e).shutdown();
             }
             engines.remove(e);
+            eventDistributor.removeReconciliationEngine(e);
         });
     }
 
