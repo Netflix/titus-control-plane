@@ -79,7 +79,7 @@ class EventDistributor<EVENT> {
     void start() {
         Preconditions.checkState(!shutdown, "Already shutdown");
         if (eventLoopThread == null) {
-            this.eventLoopThread = new Thread(EventDistributor.class.getSimpleName()) {
+            this.eventLoopThread = new Thread("event-distributor") {
                 @Override
                 public void run() {
                     doLoop();
