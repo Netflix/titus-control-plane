@@ -44,6 +44,7 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -128,7 +129,7 @@ public class DefaultReconciliationFrameworkTest {
         AssertableSubscriber<SimpleReconcilerEvent> eventSubscriber = framework.events().test();
 
         eventSubject.onNext(new SimpleReconcilerEvent(EventType.Changed, "test", Optional.empty()));
-        eventSubscriber.assertValueCount(1);
+        await().timeout(30, TimeUnit.SECONDS).until(() -> eventSubscriber.assertValueCount(1));
     }
 
     @Test
@@ -290,7 +291,7 @@ public class DefaultReconciliationFrameworkTest {
     }
 
     @Test
-    public void testEventsPublishing() {
+    public void testEventsPublishing() throws Exception {
         framework.newEngine(EntityHolder.newRoot("myRoot1", "myEntity1")).subscribe();
         framework.newEngine(EntityHolder.newRoot("myRoot2", "myEntity2")).subscribe();
         testScheduler.triggerActions();
@@ -299,12 +300,12 @@ public class DefaultReconciliationFrameworkTest {
         framework.events().subscribe(eventSubscriber);
 
         engine1Events.onNext(newEvent("event1"));
-        assertThat(eventSubscriber.takeNext().getMessage()).isEqualTo("event1");
+        assertThat(eventSubscriber.takeNext(30, TimeUnit.SECONDS).getMessage()).isEqualTo("event1");
         engine1Events.onCompleted();
         assertThat(eventSubscriber.isUnsubscribed()).isFalse();
 
         engine2Events.onNext(newEvent("event2"));
-        assertThat(eventSubscriber.takeNext().getMessage()).isEqualTo("event2");
+        assertThat(eventSubscriber.takeNext(30, TimeUnit.SECONDS).getMessage()).isEqualTo("event2");
     }
 
     private SimpleReconcilerEvent newEvent(String message) {

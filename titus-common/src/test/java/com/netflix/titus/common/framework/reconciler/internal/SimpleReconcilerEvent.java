@@ -19,6 +19,7 @@ package com.netflix.titus.common.framework.reconciler.internal;
 import java.util.Optional;
 
 /**
+ *
  */
 public class SimpleReconcilerEvent {
 
@@ -68,5 +69,9 @@ public class SimpleReconcilerEvent {
                 ", message='" + message + '\'' +
                 error.map(e -> ", error=" + e.getMessage() + '\'').orElse("") +
                 '}';
+    }
+
+    public static SimpleReconcilerEvent newChange(String changedValue) {
+        return new SimpleReconcilerEvent(EventType.Changed, changedValue, Optional.empty());
     }
 }
