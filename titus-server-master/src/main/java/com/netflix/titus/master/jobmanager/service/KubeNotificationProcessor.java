@@ -243,9 +243,16 @@ public class KubeNotificationProcessor {
 
         Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
 
+        // Check if the task is changed early before creating change action in the job service. If there is no material
+        // change to the task, return immediately. If there are differences, we will check again in the change action
+        // against most up to date task version.
+        if (!updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, task, true).isPresent()) {
+            return Mono.empty();
+        }
+
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
-                current -> updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current),
+                current -> updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current, false),
                 V3JobOperations.Trigger.Kube,
                 "Pod status updated from kubernetes node (k8phase='" + event.getPod().getStatus().getPhase() + "', taskState=" + task.getStatus().getState() + ")",
                 KUBE_CALL_METADATA
@@ -282,7 +289,8 @@ public class KubeNotificationProcessor {
                                     TaskStatus newTaskStatus,
                                     Optional<TitusExecutorDetails> executorDetailsOpt,
                                     Optional<V1Node> node,
-                                    Task currentTask) {
+                                    Task currentTask,
+                                    boolean precheck) {
 
         // This may happen as we build 'newTaskStatus' outside of the reconciler transaction. A real example:
         // 1. a job is terminated by a user
@@ -294,8 +302,8 @@ public class KubeNotificationProcessor {
         // 7. the pod transaction is taken off the queue and is executed, and writes new task state 'Started'
         // 8. in the next reconciliation loop a task is moved again to 'KillInitiated' state.
         if (TaskState.isBefore(newTaskStatus.getState(), currentTask.getStatus().getState())) {
-            logger.info("Ignoring an attempt to move the task state to the earlier one: taskId={}, attempt={}, current={}",
-                    currentTask.getId(), newTaskStatus.getState(), currentTask.getStatus().getState()
+            logger.info("[precheck={}] Ignoring an attempt to move the task state to the earlier one: taskId={}, attempt={}, current={}",
+                    precheck, currentTask.getId(), newTaskStatus.getState(), currentTask.getStatus().getState()
             );
             metricsNoChangesApplied.increment();
             return Optional.empty();
@@ -324,14 +332,17 @@ public class KubeNotificationProcessor {
 
         Optional<String> difference = areTasksEquivalent(currentTask, taskWithAnnotations);
         if (!difference.isPresent()) {
-            logger.debug("Ignoring the pod event as the update results in the identical task object as the current one: taskId={}", currentTask.getId());
+            logger.debug("[precheck={}] Ignoring the pod event as the update results in the identical task object as the current one: taskId={}",
+                    precheck, currentTask.getId());
             metricsNoChangesApplied.increment();
             return Optional.empty();
         }
 
-        logger.info("Tasks are different: difference='{}', current={}, updated={}", difference.get(), currentTask, taskWithAnnotations);
-
-        metricsChangesApplied.increment();
+        if (!precheck) {
+            logger.info("[precheck={}] Tasks are different: difference='{}', current={}, updated={}",
+                    precheck, difference.get(), currentTask, taskWithAnnotations);
+            metricsChangesApplied.increment();
+        }
         return Optional.of(taskWithAnnotations);
     }
 
