@@ -16,10 +16,14 @@
 
 package com.netflix.titus.master.jobmanager.service.integration;
 
+import java.util.UUID;
+
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
@@ -39,6 +43,27 @@ public class JobSchedulingCommonTest {
     @Test
     public void testServiceJobWithTaskInAcceptedStateNotScheduledYet() {
         testJobWithTaskInAcceptedStateNotScheduledYet(JobDescriptorGenerator.oneTaskServiceJobDescriptor());
+    }
+
+    @Test
+    public void testBatchJobWithFederatedJobId() {
+        String federatedJobId = UUID.randomUUID().toString();
+        testJobWithTaskInAcceptedStateNotScheduledYetWithFederatedJobId(JobDescriptorGenerator.oneTaskBatchJobDescriptorWithAttributes(
+                CollectionsExt.<String, String>newHashMap().entry(JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId).build()),
+                federatedJobId);
+    }
+
+    @Test
+    public void testServiceJobWithFederatedJobId() {
+        String federatedJobId = UUID.randomUUID().toString();
+        testJobWithTaskInAcceptedStateNotScheduledYetWithFederatedJobId(JobDescriptorGenerator.oneTaskServiceJobDescriptorWithAttributes(
+                CollectionsExt.<String, String>newHashMap().entry(JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId).build()),
+                federatedJobId);
+    }
+
+    private void testJobWithTaskInAcceptedStateNotScheduledYetWithFederatedJobId(JobDescriptor<?> oneTaskJobDescriptor, String federatedJobId) {
+        jobsScenarioBuilder.scheduleJob(oneTaskJobDescriptor, jobScenario ->
+                jobScenario.expectJobEvent(job -> assertThat(job.getId()).isEqualTo(federatedJobId)));
     }
 
     /**
