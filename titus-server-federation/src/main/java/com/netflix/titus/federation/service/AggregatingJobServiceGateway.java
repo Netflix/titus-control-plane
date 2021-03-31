@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
@@ -84,6 +83,7 @@ import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
@@ -138,14 +138,13 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
         JobManagementServiceStub client = optionalClient.get();
 
+        JobDescriptor jobDescriptorWithStackName = addStackName(jobDescriptor);
         JobDescriptor enrichedJobDescriptor;
         if (federationConfiguration.isFederationJobIdCreationEnabled()) {
             String federatedJobId = UUID.randomUUID().toString();
-            enrichedJobDescriptor = addJobAttributes(jobDescriptor,
-                    ImmutableMap.of(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack(),
-                            JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId));
+            enrichedJobDescriptor = addFederationAttributes(jobDescriptorWithStackName, federatedJobId, cell.getName());
         } else {
-            enrichedJobDescriptor = addStackName(jobDescriptor);
+            enrichedJobDescriptor = removeFederationAttributes(jobDescriptorWithStackName);
         }
 
         return createRequestObservable(emitter -> {
@@ -461,11 +460,19 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toCompletable();
     }
 
-    private JobDescriptor addJobAttributes(JobDescriptor jobDescriptor, Map<String, String> attributes) {
-        if (attributes != null) {
-            return jobDescriptor.toBuilder().putAllAttributes(attributes).build();
-        }
-        return jobDescriptor;
+    private JobDescriptor addFederationAttributes(JobDescriptor jobDescriptor, String federatedJobId, String routingCell) {
+        return jobDescriptor.toBuilder().putAllAttributes(CollectionsExt.<String, String>newHashMap()
+                .entry(JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId)
+                .entry(JOB_ATTRIBUTE_ROUTING_CELL, routingCell)
+                .toMap())
+                .build();
+    }
+
+    private JobDescriptor removeFederationAttributes(JobDescriptor jobDescriptor) {
+        return jobDescriptor.toBuilder()
+                .removeAttributes(JOB_ATTRIBUTES_FEDERATED_JOB_ID)
+                .removeAttributes(JOB_ATTRIBUTE_ROUTING_CELL)
+                .build();
     }
 
     private JobQueryResult addStackName(JobQueryResult result) {
