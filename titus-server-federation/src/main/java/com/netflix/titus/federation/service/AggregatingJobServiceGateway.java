@@ -138,15 +138,14 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
         JobManagementServiceStub client = optionalClient.get();
 
-        JobDescriptor jobDescriptorWithStackName = addStackName(jobDescriptor);
-        JobDescriptor enrichedJobDescriptor;
+        JobDescriptor.Builder jobDescriptorBuilder = addStackName(jobDescriptor.toBuilder());
         if (federationConfiguration.isFederationJobIdCreationEnabled()) {
             String federatedJobId = UUID.randomUUID().toString();
-            enrichedJobDescriptor = addFederationAttributes(jobDescriptorWithStackName, federatedJobId, cell.getName());
+            jobDescriptorBuilder = addFederationAttributes(jobDescriptorBuilder, federatedJobId, cell.getName());
         } else {
-            enrichedJobDescriptor = removeFederationAttributes(jobDescriptorWithStackName);
+            jobDescriptorBuilder = removeFederationAttributes(jobDescriptorBuilder);
         }
-
+        JobDescriptor enrichedJobDescriptor = jobDescriptorBuilder.build();
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -460,19 +459,17 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toCompletable();
     }
 
-    private JobDescriptor addFederationAttributes(JobDescriptor jobDescriptor, String federatedJobId, String routingCell) {
-        return jobDescriptor.toBuilder().putAllAttributes(CollectionsExt.<String, String>newHashMap()
+    private JobDescriptor.Builder addFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder, String federatedJobId, String routingCell) {
+        return jobDescriptorBuilder.putAllAttributes(CollectionsExt.<String, String>newHashMap()
                 .entry(JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId)
                 .entry(JOB_ATTRIBUTE_ROUTING_CELL, routingCell)
-                .toMap())
-                .build();
+                .toMap());
     }
 
-    private JobDescriptor removeFederationAttributes(JobDescriptor jobDescriptor) {
-        return jobDescriptor.toBuilder()
+    private JobDescriptor.Builder removeFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder) {
+        return jobDescriptorBuilder
                 .removeAttributes(JOB_ATTRIBUTES_FEDERATED_JOB_ID)
-                .removeAttributes(JOB_ATTRIBUTE_ROUTING_CELL)
-                .build();
+                .removeAttributes(JOB_ATTRIBUTE_ROUTING_CELL);
     }
 
     private JobQueryResult addStackName(JobQueryResult result) {
@@ -485,10 +482,12 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toBuilder().clearItems().addAllItems(withStackName).build();
     }
 
+    private JobDescriptor.Builder addStackName(JobDescriptor.Builder jobDescriptorBuilder) {
+        return jobDescriptorBuilder.putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack());
+    }
+
     private JobDescriptor addStackName(JobDescriptor jobDescriptor) {
-        return jobDescriptor.toBuilder()
-                .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
-                .build();
+        return addStackName(jobDescriptor.toBuilder()).build();
     }
 
     private Job addStackName(Job job) {
