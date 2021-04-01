@@ -24,12 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -51,6 +56,7 @@ import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
@@ -152,6 +158,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final TitusRuntime titusRuntime;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final Scheduler observeJobsScheduler;
+    private final DefaultJobManagementServiceGrpcMetrics metrics;
 
     @Inject
     public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
@@ -184,6 +191,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.schedulingService = schedulingService;
         this.observeJobsScheduler = Schedulers.from(ExecutorsExt.instrumentedFixedSizeThreadPool(
                 titusRuntime.getRegistry(), "observeJobs", configuration.getServerStreamsThreadPoolSize()));
+        this.metrics = new DefaultJobManagementServiceGrpcMetrics(titusRuntime);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        metrics.shutdown();
     }
 
     @Override
@@ -602,6 +615,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void observeJobs(ObserveJobsQuery query, StreamObserver<JobChangeNotification> responseObserver) {
+        Stopwatch start = Stopwatch.createStarted();
+
+        String trxId = UUID.randomUUID().toString();
+        CallMetadata callMetadata = callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA);
+        metrics.observeJobsStarted(trxId, callMetadata);
+
         JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria = toJobQueryCriteria(query);
         V3JobQueryCriteriaEvaluator jobsPredicate = new V3JobQueryCriteriaEvaluator(criteria, titusRuntime);
         V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
@@ -619,15 +638,32 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .map(this::addTaskContextToJobChangeNotification)
                 .doOnError(e -> logger.error("Unexpected error in jobs event stream", e));
 
-        Subscription subscription = eventStream.subscribe(
-                responseObserver::onNext,
-                e -> responseObserver.onError(
-                        new StatusRuntimeException(Status.INTERNAL
-                                .withDescription("All jobs monitoring stream terminated with an error")
-                                .withCause(e))
-                ),
-                responseObserver::onCompleted
-        );
+        AtomicBoolean closingProcessed = new AtomicBoolean();
+        Subscription subscription = eventStream
+                .doOnUnsubscribe(() -> {
+                    if (!closingProcessed.getAndSet(true)) {
+                        metrics.observeJobsUnsubscribed(trxId, start.elapsed(TimeUnit.MILLISECONDS));
+                    }
+                })
+                .subscribe(
+                        responseObserver::onNext,
+                        e -> {
+                            if (!closingProcessed.getAndSet(true)) {
+                                metrics.observeJobsError(trxId, start.elapsed(TimeUnit.MILLISECONDS), e);
+                            }
+                            responseObserver.onError(
+                                    new StatusRuntimeException(Status.INTERNAL
+                                            .withDescription("All jobs monitoring stream terminated with an error")
+                                            .withCause(e))
+                            );
+                        },
+                        () -> {
+                            if (!closingProcessed.getAndSet(true)) {
+                                metrics.observeJobsCompleted(trxId, start.elapsed(TimeUnit.MILLISECONDS));
+                            }
+                            responseObserver.onCompleted();
+                        }
+                );
 
         ServerCallStreamObserver<JobChangeNotification> serverObserver = (ServerCallStreamObserver<JobChangeNotification>) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);

@@ -150,7 +150,7 @@ class EventDistributor<EVENT> {
             eventQueue.drainTo(events);
             eventQueueDepth.accumulateAndGet(events.size(), (current, delta) -> current - delta);
 
-            addNewEmitters();
+            removeUnsubscribedAndAddNewEmitters();
             processEvents(events);
             metricEmittedEvents.increment(events.size());
 
@@ -158,7 +158,17 @@ class EventDistributor<EVENT> {
         }
     }
 
-    private void addNewEmitters() {
+    private void removeUnsubscribedAndAddNewEmitters() {
+        // First remove emitters that
+        Set<String> cancelled = new HashSet<>();
+        activeEmitters.forEach((id, holder) -> {
+            if (holder.isCancelled()) {
+                cancelled.add(id);
+            }
+        });
+        activeEmitters.keySet().removeAll(cancelled);
+
+        // Now add new emitters
         ArrayList<EmitterHolder> newEmitters = new ArrayList<>();
         emitterQueue.drainTo(newEmitters);
         newEmitters.forEach(holder -> activeEmitters.put(holder.getId(), holder));
@@ -177,7 +187,7 @@ class EventDistributor<EVENT> {
     }
 
     private void completeEmitters() {
-        addNewEmitters();
+        removeUnsubscribedAndAddNewEmitters();
         Throwable error = new IllegalStateException("Reconciler framework stream closed");
         activeEmitters.forEach((id, holder) -> holder.onError(error));
         activeEmitters.clear();
@@ -197,6 +207,10 @@ class EventDistributor<EVENT> {
 
         private String getId() {
             return id;
+        }
+
+        private boolean isCancelled() {
+            return cancelled;
         }
 
         private boolean onNext(EVENT event) {
