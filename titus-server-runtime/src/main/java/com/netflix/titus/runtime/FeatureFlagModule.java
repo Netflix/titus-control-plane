@@ -201,6 +201,12 @@ public class FeatureFlagModule extends AbstractModule {
                 }
             }
 
+            if (!CollectionsExt.isNullOrEmpty(resources.getEbsVolumes())) {
+                if (!configuration.isEbsVolumeEnabled()) {
+                    return false;
+                }
+            }
+
             // Job should not be scheduled by KubeScheduler
             if (FeatureFlagUtil.isNoKubeSchedulerMigration(jobDescriptor)) {
                 return false;
