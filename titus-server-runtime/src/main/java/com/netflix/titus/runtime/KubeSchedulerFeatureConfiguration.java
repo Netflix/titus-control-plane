@@ -40,4 +40,10 @@ public interface KubeSchedulerFeatureConfiguration {
      */
     @DefaultValue(".*")
     String getEnabledMachineTypes();
+
+    /**
+     * Set to true to enable routing jobs with EBS volume configuration to KubeScheduler.
+     */
+    @DefaultValue("false")
+    boolean isEbsVolumeEnabled();
 }
