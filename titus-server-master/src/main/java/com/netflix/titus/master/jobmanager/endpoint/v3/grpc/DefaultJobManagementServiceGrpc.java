@@ -109,6 +109,8 @@ import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCache;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCacheConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobComparators;
@@ -159,6 +161,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final TitusRuntime titusRuntime;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final Scheduler observeJobsScheduler;
+    private final GrpcObjectsCache grpcObjectsCache;
     private final DefaultJobManagementServiceGrpcMetrics metrics;
 
     @Inject
@@ -175,7 +178,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            CellInfoResolver cellInfoResolver,
                                            AuthorizationService authorizationService,
                                            TitusRuntime titusRuntime,
-                                           SchedulingService<? extends TaskRequest> schedulingService) {
+                                           SchedulingService<? extends TaskRequest> schedulingService,
+                                           GrpcObjectsCacheConfiguration grpcObjectsCacheConfiguration) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
         this.capacityGroupService = capacityGroupService;
@@ -192,6 +196,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.schedulingService = schedulingService;
         this.observeJobsScheduler = Schedulers.from(ExecutorsExt.instrumentedFixedSizeThreadPool(
                 titusRuntime.getRegistry(), "observeJobs", configuration.getServerStreamsThreadPoolSize()));
+
+        this.grpcObjectsCache = new GrpcObjectsCache(jobOperations, titusRuntime, grpcObjectsCacheConfiguration, logStorageInfo);
         this.metrics = new DefaultJobManagementServiceGrpcMetrics(titusRuntime);
     }
 
@@ -272,7 +278,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             );
             List<Job> grpcJobs = new ArrayList<>();
             for (com.netflix.titus.api.jobmanager.model.job.Job<?> job : queryResult.getLeft()) {
-                Job toGrpcJob = GrpcJobManagementModelConverters.toGrpcJob(job);
+                Job toGrpcJob = grpcObjectsCache.getJob(job);
                 grpcJobs.add(toGrpcJob);
             }
 
@@ -302,7 +308,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         try {
             jobOperations.getJob(id)
-                    .map(j -> Observable.just(GrpcJobManagementModelConverters.toGrpcJob(j)))
+                    .map(j -> Observable.just(grpcObjectsCache.getJob(j)))
                     .orElseGet(() -> Observable.error(JobManagerException.jobNotFound(id)))
                     .subscribe(
                             responseObserver::onNext,
@@ -342,9 +348,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
             List<Task> grpcTasks = new ArrayList<>();
             for (com.netflix.titus.api.jobmanager.model.job.Task task : queryResult.getLeft()) {
-                Task toGrpcTask = GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo);
-                Task addTaskContextToTask = addTaskContextToTask(toGrpcTask);
-                grpcTasks.add(addTaskContextToTask);
+                Task toGrpcTask = grpcObjectsCache.getTask(task);
+                grpcTasks.add(toGrpcTask);
             }
 
             TaskQueryResult grpcQueryResult;
