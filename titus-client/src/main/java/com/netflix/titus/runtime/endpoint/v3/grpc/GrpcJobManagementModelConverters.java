@@ -1079,19 +1079,19 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, LogStorageInfo<Task> logStorageInfo) {
+    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, GrpcObjectsCache grpcObjectsCache) {
         if (event instanceof JobUpdateEvent) {
             JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
             return JobChangeNotification.newBuilder()
                     .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder()
-                            .setJob(toGrpcJob(jobUpdateEvent.getCurrent()))
+                            .setJob(grpcObjectsCache.getJob(jobUpdateEvent.getCurrent()))
                     ).build();
         }
 
         TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
         return JobChangeNotification.newBuilder().setTaskUpdate(
                 JobChangeNotification.TaskUpdate.newBuilder()
-                        .setTask(toGrpcTask(taskUpdateEvent.getCurrent(), logStorageInfo))
+                        .setTask(grpcObjectsCache.getTask(taskUpdateEvent.getCurrent()))
                         .setMovedFromAnotherJob(taskUpdateEvent.isMovedFromAnotherJob())
         ).build();
     }

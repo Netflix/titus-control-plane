@@ -2,7 +2,6 @@ package com.netflix.titus.runtime.endpoint.v3.grpc;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -19,14 +18,14 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class GrpcObjectsCacheTest {
+public class DefaultGrpcObjectsCacheTest {
 
     private void verifyTasksCacheBehavior(boolean isEnabled, int numCoreTasks) {
         V3JobOperations v3JobOperations = mock(V3JobOperations.class);
         GrpcObjectsCacheConfiguration configuration = mock(GrpcObjectsCacheConfiguration.class);
         when(configuration.isGrpcObjectsCacheEnabled()).thenReturn(isEnabled);
         LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo = EmptyLogStorageInfo.empty();
-        GrpcObjectsCache grpcObjectsCache = new GrpcObjectsCache(v3JobOperations, TitusRuntimes.internal(), configuration, logStorageInfo);
+        DefaultGrpcObjectsCache grpcObjectsCache = new DefaultGrpcObjectsCache(v3JobOperations, TitusRuntimes.internal(), configuration, logStorageInfo);
 
         List<Task> coreTasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -56,7 +55,7 @@ public class GrpcObjectsCacheTest {
         GrpcObjectsCacheConfiguration configuration = mock(GrpcObjectsCacheConfiguration.class);
         when(configuration.isGrpcObjectsCacheEnabled()).thenReturn(isEnabled);
         LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo = mock(LogStorageInfo.class);
-        GrpcObjectsCache grpcObjectsCache = new GrpcObjectsCache(v3JobOperations, TitusRuntimes.internal(), configuration, logStorageInfo);
+        DefaultGrpcObjectsCache grpcObjectsCache = new DefaultGrpcObjectsCache(v3JobOperations, TitusRuntimes.internal(), configuration, logStorageInfo);
 
         List<Job<?>> coreJobs = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
