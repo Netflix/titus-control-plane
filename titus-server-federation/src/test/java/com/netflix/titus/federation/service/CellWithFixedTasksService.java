@@ -72,7 +72,7 @@ class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementSe
                 getTasksList(),
                 JobManagerCursors.taskCursorOrderComparator(),
                 JobManagerCursors::taskIndexOf,
-                JobManagerCursors::newCursorFrom
+                JobManagerCursors::newTaskCursorFrom
         );
         Set<String> fieldsFilter = new HashSet<>(request.getFieldsList());
         if (!fieldsFilter.isEmpty()) {

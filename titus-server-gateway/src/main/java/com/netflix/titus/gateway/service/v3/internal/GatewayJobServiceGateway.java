@@ -315,7 +315,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 tasks,
                 JobManagerCursors.taskCursorOrderComparator(),
                 JobManagerCursors::taskIndexOf,
-                JobManagerCursors::newCursorFrom
+                JobManagerCursors::newTaskCursorFrom
         );
 
         // Fix pagination result, as the total items count does not include all active tasks.

@@ -16,6 +16,8 @@
 
 package com.netflix.titus.master.jobmanager.service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -299,27 +301,62 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public List<Job<?>> findJobs(Predicate<Pair<Job<?>, List<Task>>> queryPredicate, int offset, int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+
         List<EntityHolder> jobHolders = reconciliationFramework.orderedView(IndexKind.StatusCreationTime);
-        return jobHolders.stream().map(this::toJobTasksPair)
-                .filter(queryPredicate)
-                .skip(offset)
-                .limit(limit)
-                .map(Pair::getLeft)
-                .collect(Collectors.toList());
+
+        List<Job<?>> result = new ArrayList<>();
+        int toDrop = offset;
+        int toTake = limit;
+        for (EntityHolder holder : jobHolders) {
+            Pair<Job<?>, List<Task>> jobTasksPair = toJobTasksPair(holder);
+            if (queryPredicate.test(jobTasksPair)) {
+                if (toDrop > 0) {
+                    toDrop--;
+                } else {
+                    result.add(jobTasksPair.getLeft());
+                    toTake--;
+                    if (toTake <= 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     @Override
     public List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+
         List<EntityHolder> jobHolders = reconciliationFramework.orderedView(IndexKind.StatusCreationTime);
-        return jobHolders.stream()
-                .filter(jobHolder -> !jobHolder.getChildren().isEmpty())
-                .flatMap(jobHolder -> jobHolder.getChildren().stream().map(
-                        taskHolder -> Pair.<Job<?>, Task>of(jobHolder.getEntity(), taskHolder.getEntity())
-                ))
-                .filter(queryPredicate)
-                .skip(offset)
-                .limit(limit)
-                .collect(Collectors.toList());
+        List<Pair<Job<?>, Task>> result = new ArrayList<>();
+        long toDrop = offset;
+        long toTake = limit;
+        OUTER:
+        for (EntityHolder jobHolder : jobHolders) {
+            if (!jobHolder.getChildren().isEmpty()) {
+                for (EntityHolder taskHolder : jobHolder.getChildren()) {
+                    Pair<Job<?>, Task> jobTaskPair = Pair.of(jobHolder.getEntity(), taskHolder.getEntity());
+                    if (queryPredicate.test(jobTaskPair)) {
+                        if (toDrop > 0) {
+                            toDrop--;
+                        } else {
+                            result.add(jobTaskPair);
+                            toTake--;
+                            if (toTake <= 0) {
+                                break OUTER;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     @Override
@@ -574,9 +611,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 .withId(UUID.randomUUID().toString())
                 .withJobDescriptor(jobDescriptor)
                 .withStatus(JobStatus.newBuilder()
-                                .withState(JobState.Accepted)
-                                .withReasonMessage("New Job created. Next tasks will be launched.")
-                                .build())
+                        .withState(JobState.Accepted)
+                        .withReasonMessage("New Job created. Next tasks will be launched.")
+                        .build())
                 .build();
     }
 

@@ -105,6 +105,7 @@ import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
+import com.netflix.titus.runtime.jobmanager.JobComparators;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -249,14 +250,18 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     Integer.MAX_VALUE / 2
             );
 
-            Pair<List<com.netflix.titus.api.jobmanager.model.job.Job<?>>, Pagination> queryResult = PaginationUtil.takePageWithCursor(
+            Pair<List<com.netflix.titus.api.jobmanager.model.job.Job<?>>, Pagination> queryResult = PaginationUtil.takePageWithCursorAndKeyExtractor(
                     toPage(jobQuery.getPage()),
                     allFilteredJobs,
-                    JobManagerCursors.coreJobCursorOrderComparator(),
+                    JobComparators::createJobKeyOf,
                     JobManagerCursors::coreJobIndexOf,
-                    JobManagerCursors::newCoreCursorFrom
+                    JobManagerCursors::newJobCoreCursorFrom
             );
-            List<Job> grpcJobs = queryResult.getLeft().stream().map(GrpcJobManagementModelConverters::toGrpcJob).collect(Collectors.toList());
+            List<Job> grpcJobs = new ArrayList<>();
+            for (com.netflix.titus.api.jobmanager.model.job.Job<?> job : queryResult.getLeft()) {
+                Job toGrpcJob = GrpcJobManagementModelConverters.toGrpcJob(job);
+                grpcJobs.add(toGrpcJob);
+            }
 
             JobQueryResult grpcQueryResult;
             if (jobQuery.getFieldsList().isEmpty()) {
@@ -264,7 +269,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             } else {
                 Set<String> fields = new HashSet<>(jobQuery.getFieldsList());
                 fields.addAll(JOB_MINIMUM_FIELD_SET);
-                grpcQueryResult = toJobQueryResult(grpcJobs.stream().map(j -> ProtobufExt.copy(j, fields)).collect(Collectors.toList()), queryResult.getRight());
+                List<Job> list = new ArrayList<>();
+                for (Job j : grpcJobs) {
+                    list.add(ProtobufExt.copy(j, fields));
+                }
+                grpcQueryResult = toJobQueryResult(list, queryResult.getRight());
             }
 
             responseObserver.onNext(grpcQueryResult);
@@ -300,24 +309,30 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         try {
             // We need to find all tasks to get the total number of them.
-            List<com.netflix.titus.api.jobmanager.model.job.Task> allFilteredTasks = jobOperations.findTasks(
+            List<com.netflix.titus.api.jobmanager.model.job.Task> allFilteredTasks = new ArrayList<>();
+            for (Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task> jobTaskPair : jobOperations.findTasks(
                     new V3TaskQueryCriteriaEvaluator(toJobQueryCriteria(taskQuery), titusRuntime),
                     0,
                     Integer.MAX_VALUE / 2
-            ).stream().map(Pair::getRight).collect(Collectors.toList());
+            )) {
+                com.netflix.titus.api.jobmanager.model.job.Task right = jobTaskPair.getRight();
+                allFilteredTasks.add(right);
+            }
 
-            Pair<List<com.netflix.titus.api.jobmanager.model.job.Task>, Pagination> queryResult = PaginationUtil.takePageWithCursor(
+            Pair<List<com.netflix.titus.api.jobmanager.model.job.Task>, Pagination> queryResult = PaginationUtil.takePageWithCursorAndKeyExtractor(
                     toPage(taskQuery.getPage()),
                     allFilteredTasks,
-                    JobManagerCursors.coreTaskCursorOrderComparator(),
+                    JobComparators::createTaskKeyOf,
                     JobManagerCursors::coreTaskIndexOf,
-                    JobManagerCursors::newCoreCursorFrom
+                    JobManagerCursors::newTaskCoreCursorFrom
             );
 
-            List<Task> grpcTasks = queryResult.getLeft().stream()
-                    .map(t -> GrpcJobManagementModelConverters.toGrpcTask(t, logStorageInfo))
-                    .map(this::addTaskContextToTask)
-                    .collect(Collectors.toList());
+            List<Task> grpcTasks = new ArrayList<>();
+            for (com.netflix.titus.api.jobmanager.model.job.Task task : queryResult.getLeft()) {
+                Task toGrpcTask = GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo);
+                Task addTaskContextToTask = addTaskContextToTask(toGrpcTask);
+                grpcTasks.add(addTaskContextToTask);
+            }
 
             TaskQueryResult grpcQueryResult;
             if (taskQuery.getFieldsList().isEmpty()) {
@@ -325,7 +340,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             } else {
                 Set<String> fields = new HashSet<>(taskQuery.getFieldsList());
                 fields.addAll(TASK_MINIMUM_FIELD_SET);
-                grpcQueryResult = toTaskQueryResult(grpcTasks.stream().map(t -> ProtobufExt.copy(t, fields)).collect(Collectors.toList()), queryResult.getRight());
+                List<Task> filtered = new ArrayList<>();
+                for (Task t : grpcTasks) {
+                    filtered.add(ProtobufExt.copy(t, fields));
+                }
+                grpcQueryResult = toTaskQueryResult(filtered, queryResult.getRight());
             }
 
             responseObserver.onNext(grpcQueryResult);
