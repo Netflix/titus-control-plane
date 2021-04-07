@@ -94,19 +94,6 @@ public final class JobManagerCursors {
     }
 
     /**
-     * Compare two task entities by the creation time (first), and a task id (second).
-     */
-    public static Comparator<com.netflix.titus.api.jobmanager.model.job.Task> coreTaskCursorOrderComparator() {
-        return (first, second) -> {
-            int cmp = Long.compare(getCoreCursorTimestamp(first), getCoreCursorTimestamp(second));
-            if (cmp != 0) {
-                return cmp;
-            }
-            return first.getId().compareTo(second.getId());
-        };
-    }
-
-    /**
      * Find an index of the element pointed to by the cursor, or if not found, the element immediately preceding it.
      * <p>
      * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
@@ -188,7 +175,7 @@ public final class JobManagerCursors {
                     .withId(taskId)
                     .withStatus(com.netflix.titus.api.jobmanager.model.job.TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(timestamp).build())
                     .build();
-            int idx = Collections.binarySearch(tasks, referenceTask, coreTaskCursorOrderComparator());
+            int idx = Collections.binarySearch(tasks, referenceTask, JobComparators.getTaskTimestampComparator());
             if (idx >= 0) {
                 return idx;
             }
@@ -200,16 +187,16 @@ public final class JobManagerCursors {
         return encode(job.getId(), getCursorTimestamp(job));
     }
 
-    public static String newCoreCursorFrom(com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
+    public static String newJobCoreCursorFrom(com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
         return encode(job.getId(), getCoreCursorTimestamp(job));
     }
 
-    public static String newCursorFrom(Task task) {
+    public static String newTaskCursorFrom(Task task) {
         return encode(task.getId(), getCursorTimestamp(task));
     }
 
-    public static String newCoreCursorFrom(com.netflix.titus.api.jobmanager.model.job.Task task) {
-        return encode(task.getId(), getCoreCursorTimestamp(task));
+    public static String newTaskCoreCursorFrom(com.netflix.titus.api.jobmanager.model.job.Task task) {
+        return encode(task.getId(), JobComparators.getTaskCreateTimestamp(task));
     }
 
     private static long getCursorTimestamp(Job job) {
@@ -240,10 +227,6 @@ public final class JobManagerCursors {
         }
         // Fallback, in case Accepted state is not found which should never happen.
         return task.getStatus().getTimestamp();
-    }
-
-    private static long getCoreCursorTimestamp(com.netflix.titus.api.jobmanager.model.job.Task task) {
-        return JobFunctions.findTaskStatus(task, TaskState.Accepted).orElse(task.getStatus()).getTimestamp();
     }
 
     private static String encode(String id, long timestamp) {

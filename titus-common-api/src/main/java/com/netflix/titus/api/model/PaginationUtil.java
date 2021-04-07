@@ -56,14 +56,30 @@ public final class PaginationUtil {
         List<T> itemsCopy = new ArrayList<>(items);
         itemsCopy.sort(cursorComparator);
 
+        return takePageWithCursorInternal(page, cursorIndexOf, cursorFactory, itemsCopy);
+    }
+
+    public static <T> Pair<List<T>, Pagination> takePageWithCursorAndKeyExtractor(Page page,
+                                                                                  List<T> items,
+                                                                                  Function<T, PaginableEntityKey<T>> keyExtractor,
+                                                                                  CursorIndexOf<T> cursorIndexOf,
+                                                                                  Function<T, String> cursorFactory) {
+        List<T> itemsCopy = PaginableEntityKey.sort(items, keyExtractor);
+        return takePageWithCursorInternal(page, cursorIndexOf, cursorFactory, itemsCopy);
+    }
+
+    private static <T> Pair<List<T>, Pagination> takePageWithCursorInternal(Page page,
+                                                                            CursorIndexOf<T> cursorIndexOf,
+                                                                            Function<T, String> cursorFactory,
+                                                                            List<T> sortedItems) {
         if (StringExt.isEmpty(page.getCursor())) {
-            return takePageWithoutCursor(page, itemsCopy, cursorFactory);
+            return takePageWithoutCursor(page, sortedItems, cursorFactory);
         }
 
-        int offset = cursorIndexOf.apply(itemsCopy, page.getCursor())
+        int offset = cursorIndexOf.apply(sortedItems, page.getCursor())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid cursor: " + page.getCursor())) + 1;
 
-        int totalItems = itemsCopy.size();
+        int totalItems = sortedItems.size();
         boolean isEmptyResult = offset >= totalItems;
         boolean hasMore = totalItems > (offset + page.getPageSize());
         int endOffset = Math.min(totalItems, offset + page.getPageSize());
@@ -76,11 +92,11 @@ public final class PaginationUtil {
                 hasMore,
                 numberOfPages,
                 totalItems,
-                totalItems == 0 ? "" : cursorFactory.apply(itemsCopy.get(cursorPosition)),
+                totalItems == 0 ? "" : cursorFactory.apply(sortedItems.get(cursorPosition)),
                 totalItems == 0 ? 0 : cursorPosition
         );
 
-        List<T> pageItems = isEmptyResult ? Collections.emptyList() : itemsCopy.subList(offset, endOffset);
+        List<T> pageItems = isEmptyResult ? Collections.emptyList() : sortedItems.subList(offset, endOffset);
         return Pair.of(pageItems, pagination);
     }
 

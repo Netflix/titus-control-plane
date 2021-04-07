@@ -95,7 +95,7 @@ class NeedsMigrationQueryHandler {
                 matchingTasks,
                 JobManagerCursors.taskCursorOrderComparator(),
                 JobManagerCursors::taskIndexOf,
-                JobManagerCursors::newCursorFrom
+                JobManagerCursors::newTaskCursorFrom
         );
 
         return PageResult.pageOf(paginationPair.getLeft(), paginationPair.getRight());

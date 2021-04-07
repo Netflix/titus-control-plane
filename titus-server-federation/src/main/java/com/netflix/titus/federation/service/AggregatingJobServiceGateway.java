@@ -382,7 +382,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                             combinedResults.getItemsList(),
                             combinedResults.getPagination(),
                             JobManagerCursors.taskCursorOrderComparator(),
-                            JobManagerCursors::newCursorFrom
+                            JobManagerCursors::newTaskCursorFrom
                     );
 
                     if (!CollectionsExt.isNullOrEmpty(fields)) {
