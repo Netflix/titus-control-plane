@@ -101,6 +101,7 @@ public class JobObserveTest extends BaseIntegrationTest {
                 }
             }
         }
+        subscriber.cancel();
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_MS)

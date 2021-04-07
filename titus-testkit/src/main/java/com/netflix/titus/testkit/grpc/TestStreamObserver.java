@@ -27,18 +27,19 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.google.rpc.BadRequest;
-import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.ServerCallStreamObserver;
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 
 /**
  * GRPC {@link io.grpc.stub.StreamObserver} implementation for testing.
  */
-public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
+public class TestStreamObserver<T> implements ClientResponseObserver<Object, T> {
 
     private static final Object EOS_MARKER = new Object();
 
@@ -52,8 +53,7 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
     private volatile RuntimeException mappedError;
     private volatile boolean completed;
 
-    private Runnable onCancelHandler;
-    private boolean cancelled;
+    private ClientCallStreamObserver<T> clientCallStreamObserver;
 
     @Override
     public void onNext(T value) {
@@ -164,45 +164,14 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
     }
 
     @Override
-    public boolean isReady() {
-        return true;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    @Override
-    public void setOnCancelHandler(Runnable onCancelHandler) {
-        this.onCancelHandler = onCancelHandler;
-    }
-
-    @Override
-    public void setCompression(String compression) {
-    }
-
-    @Override
-    public void setOnReadyHandler(Runnable onReadyHandler) {
-    }
-
-    @Override
-    public void disableAutoInboundFlowControl() {
+    public void beforeStart(ClientCallStreamObserver clientCallStreamObserver) {
+        this.clientCallStreamObserver = clientCallStreamObserver;
     }
 
     public void cancel() {
-        this.cancelled = true;
-        if (onCancelHandler != null) {
-            onCancelHandler.run();
+        if (clientCallStreamObserver != null) {
+            clientCallStreamObserver.cancel("client unsubscribed", null);
         }
-    }
-
-    @Override
-    public void request(int count) {
-    }
-
-    @Override
-    public void setMessageCompression(boolean enable) {
     }
 
     private RuntimeException exceptionMapper(Throwable error) {
