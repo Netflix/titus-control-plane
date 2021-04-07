@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -80,7 +81,9 @@ import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
@@ -135,7 +138,14 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
         JobManagementServiceStub client = optionalClient.get();
 
-        JobDescriptor withStackName = addStackName(jobDescriptor);
+        JobDescriptor.Builder jobDescriptorBuilder = addStackName(jobDescriptor.toBuilder());
+        if (federationConfiguration.isFederationJobIdCreationEnabled()) {
+            String federatedJobId = UUID.randomUUID().toString();
+            jobDescriptorBuilder = addFederationAttributes(jobDescriptorBuilder, federatedJobId, cell.getName());
+        } else {
+            jobDescriptorBuilder = removeFederationAttributes(jobDescriptorBuilder);
+        }
+        JobDescriptor enrichedJobDescriptor = jobDescriptorBuilder.build();
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -143,7 +153,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                     emitter::onError,
                     emitter::onCompleted
             );
-            wrap(client, callMetadata).createJob(withStackName, streamObserver);
+            wrap(client, callMetadata).createJob(enrichedJobDescriptor, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
@@ -449,6 +459,19 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toCompletable();
     }
 
+    private JobDescriptor.Builder addFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder, String federatedJobId, String routingCell) {
+        return jobDescriptorBuilder.putAllAttributes(CollectionsExt.<String, String>newHashMap()
+                .entry(JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId)
+                .entry(JOB_ATTRIBUTE_ROUTING_CELL, routingCell)
+                .toMap());
+    }
+
+    private JobDescriptor.Builder removeFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder) {
+        return jobDescriptorBuilder
+                .removeAttributes(JOB_ATTRIBUTES_FEDERATED_JOB_ID)
+                .removeAttributes(JOB_ATTRIBUTE_ROUTING_CELL);
+    }
+
     private JobQueryResult addStackName(JobQueryResult result) {
         List<Job> withStackName = result.getItemsList().stream().map(this::addStackName).collect(Collectors.toList());
         return result.toBuilder().clearItems().addAllItems(withStackName).build();
@@ -459,10 +482,12 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toBuilder().clearItems().addAllItems(withStackName).build();
     }
 
+    private JobDescriptor.Builder addStackName(JobDescriptor.Builder jobDescriptorBuilder) {
+        return jobDescriptorBuilder.putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack());
+    }
+
     private JobDescriptor addStackName(JobDescriptor jobDescriptor) {
-        return jobDescriptor.toBuilder()
-                .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
-                .build();
+        return addStackName(jobDescriptor.toBuilder()).build();
     }
 
     private Job addStackName(Job job) {

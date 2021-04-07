@@ -45,6 +45,17 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_CELL = TITUS_ATTRIBUTE_PREFIX + "cell";
 
     /**
+     * This attribute specifies the destination cell the federation is configured to route the API request to.
+     */
+    public static final String JOB_ATTRIBUTE_ROUTING_CELL = TITUS_ATTRIBUTE_PREFIX + "routingCell";
+
+    /**
+     * Job id. When this attribute is present it signals the control plane that the id was created by federation
+     * and should be used instead of minting a new value for any CreateJob API calls.
+     */
+    public static final String JOB_ATTRIBUTES_FEDERATED_JOB_ID = TITUS_ATTRIBUTE_PREFIX + "federatedJobId";
+
+    /**
      * Set to true when sanitization for iam roles fails open
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.iam";

@@ -33,4 +33,7 @@ public interface TitusFederationConfiguration {
 
     @DefaultValue("cell1=(gpu.*)")
     String getInstanceTypeRoutingRules();
+
+    @DefaultValue("false")
+    boolean isFederationJobIdCreationEnabled();
 }

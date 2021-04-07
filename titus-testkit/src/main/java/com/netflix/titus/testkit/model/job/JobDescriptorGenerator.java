@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.model.job;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -176,6 +177,14 @@ public final class JobDescriptorGenerator {
 
     public static JobDescriptor<BatchJobExt> batchJobDescriptor(int desired) {
         return JobFunctions.changeBatchJobSize(oneTaskBatchJobDescriptor(), desired);
+    }
+
+    public static JobDescriptor<BatchJobExt> oneTaskBatchJobDescriptorWithAttributes(Map<String, String> attributes) {
+        return JobFunctions.appendJobDescriptorAttributes(oneTaskBatchJobDescriptor(), attributes);
+    }
+
+    public static JobDescriptor<ServiceJobExt> oneTaskServiceJobDescriptorWithAttributes(Map<String, String> attributes) {
+        return JobFunctions.appendJobDescriptorAttributes(oneTaskServiceJobDescriptor(), attributes);
     }
 
     public static JobDescriptor<BatchJobExt> oneTaskBatchJobDescriptor() {
