@@ -29,4 +29,10 @@ public interface GrpcObjectsCacheConfiguration {
      */
     @DefaultValue("60000")
     long getCacheRefreshTimeoutMs();
+
+    /**
+     * @return time to wait before an expired value is removed from the cache.
+     */
+    @DefaultValue("60000")
+    long getCacheCleanupDelayMs();
 }

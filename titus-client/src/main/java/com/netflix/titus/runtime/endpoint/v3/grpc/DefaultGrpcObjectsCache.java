@@ -2,28 +2,21 @@ package com.netflix.titus.runtime.endpoint.v3.grpc;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.protobuf.GeneratedMessageV3;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.common.framework.scheduler.ScheduleReference;
-import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
-import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import org.slf4j.Logger;
@@ -31,71 +24,68 @@ import org.slf4j.LoggerFactory;
 
 @Singleton
 public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
+
     private static final Logger logger = LoggerFactory.getLogger(DefaultGrpcObjectsCache.class);
 
-    private static final int MAX_CACHE_SIZE_JOBS = 50_000;
-    private static final int MAX_CACHE_SIZE_TASKS = 50_000;
+    protected ProtobufCache<com.netflix.titus.api.jobmanager.model.job.Job<?>, Job> jobCache;
+    protected ProtobufCache<com.netflix.titus.api.jobmanager.model.job.Task, Task> taskCache;
 
-    protected final LoadingCache<com.netflix.titus.api.jobmanager.model.job.Job<?>, Job> jobs;
-    protected final LoadingCache<com.netflix.titus.api.jobmanager.model.job.Task, Task> tasks;
-
-    private ScheduleReference schedulerRef;
-    private ExecutorService executorService;
     private final V3JobOperations jobOperations;
-    private final TitusRuntime titusRuntime;
     private final GrpcObjectsCacheConfiguration configuration;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
+    private final TitusRuntime titusRuntime;
 
     @Inject
-    public DefaultGrpcObjectsCache(V3JobOperations jobOperations, TitusRuntime titusRuntime,
+    public DefaultGrpcObjectsCache(V3JobOperations jobOperations,
                                    GrpcObjectsCacheConfiguration configuration,
-                                   LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo) {
+                                   LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
+                                   TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
         this.configuration = configuration;
         this.logStorageInfo = logStorageInfo;
         this.jobOperations = jobOperations;
-
-        // Initialize cache
-        jobs = Caffeine.newBuilder()
-                .maximumSize(MAX_CACHE_SIZE_JOBS)
-                .build(this::toGrpcJob);
-
-        tasks = Caffeine.newBuilder()
-                .maximumSize(MAX_CACHE_SIZE_TASKS)
-                .build(this::toGrpcTask);
     }
 
     @Activator
     public void activate() {
-        ScheduleDescriptor gcScheduleDescriptor = ScheduleDescriptor.newBuilder()
-                .withName("")
-                .withDescription("")
-                .withInitialDelay(Duration.ofMillis(configuration.getCacheRefreshInitialDelayMs()))
-                .withInterval(Duration.ofMillis(configuration.getCacheRefreshIntervalMs()))
-                .withTimeout(Duration.ofMillis(configuration.getCacheRefreshTimeoutMs()))
-                .build();
-        executorService = ExecutorsExt.namedSingleThreadExecutor("GrpcObjectsCacheRefresh");
-        schedulerRef = titusRuntime.getLocalScheduler().schedule(gcScheduleDescriptor, e -> refreshCache(), executorService);
-    }
+        // Initialize cache
+        this.jobCache = new ProtobufCache<>(
+                "jobs",
+                this::toGrpcJob,
+                () -> {
+                    List<com.netflix.titus.api.jobmanager.model.job.Job> allJobs = jobOperations.getJobs();
+                    Set<String> knownJobIds = new HashSet<>();
+                    allJobs.forEach(job -> knownJobIds.add(job.getId()));
+                    return job -> !knownJobIds.contains(job.getId());
+                },
+                configuration,
+                titusRuntime
+        );
 
-
-    private void refreshCache() {
-        logger.debug("Refreshing cache");
-        Set<com.netflix.titus.api.jobmanager.model.job.Job> activeJobs = new HashSet<>(jobOperations.getJobs());
-        List<com.netflix.titus.api.jobmanager.model.job.Job<?>> inActiveJobs = jobs.asMap().keySet().stream().filter(job -> !activeJobs.contains(job)).collect(Collectors.toList());
-        inActiveJobs.forEach(jobs::invalidate);
+        this.taskCache = new ProtobufCache<>(
+                "tasks",
+                this::toGrpcTask,
+                () -> {
+                    List<com.netflix.titus.api.jobmanager.model.job.Task> allTasks = jobOperations.getTasks();
+                    Set<String> knownTasksIds = new HashSet<>();
+                    allTasks.forEach(task -> knownTasksIds.add(task.getId()));
+                    return task -> !knownTasksIds.contains(task.getId());
+                },
+                configuration,
+                titusRuntime
+        );
     }
 
     @Deactivator
     @PreDestroy
     public void shutdown() {
-        Evaluators.acceptNotNull(executorService, ExecutorService::shutdown);
-        Evaluators.acceptNotNull(schedulerRef, ScheduleReference::cancel);
+        Evaluators.acceptNotNull(jobCache, ProtobufCache::shutdown);
+        Evaluators.acceptNotNull(taskCache, ProtobufCache::shutdown);
     }
 
     public Job getJob(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob) {
         if (configuration.isGrpcObjectsCacheEnabled()) {
-            return jobs.get(coreJob);
+            return jobCache.get(coreJob.getId(), coreJob);
         } else {
             return toGrpcJob(coreJob);
         }
@@ -103,7 +93,7 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
 
     public Task getTask(com.netflix.titus.api.jobmanager.model.job.Task coreTask) {
         if (configuration.isGrpcObjectsCacheEnabled()) {
-            return tasks.get(coreTask);
+            return taskCache.get(coreTask.getId(), coreTask);
         } else {
             return toGrpcTask(coreTask);
         }
