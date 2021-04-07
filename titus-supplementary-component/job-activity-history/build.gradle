@@ -54,11 +54,11 @@ ext.jdbcPassword = 'activitypassword'
 ext.flyway = null
 ext.jooq = null
 
-/*jooq {
+jooq {
     db {
-        hostOverride = "localhost"
+        hostOverride = "localhost:5432"
     }
-}*/
+}
 
 tasks {
     generateJooqClasses {
