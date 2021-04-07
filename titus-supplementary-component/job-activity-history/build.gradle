@@ -57,7 +57,6 @@ ext.jooq = null
 jooq {
     db {
         hostOverride = "localhost"
-        portOverride = '5432'
     }
 }
 
