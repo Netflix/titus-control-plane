@@ -4,9 +4,6 @@ executors:
   java:
     docker:
       - image: circleci/openjdk:8-jdk-stretch
-      - image: circleci/postgres:12-alpine
-        environment:
-          POSTGRES_USER: postgres
     resource_class: xlarge
     working_directory: "~/workspace/titus-control-plane"
     environment:
