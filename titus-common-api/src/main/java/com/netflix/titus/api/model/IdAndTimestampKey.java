@@ -16,6 +16,8 @@
 
 package com.netflix.titus.api.model;
 
+import java.util.Objects;
+
 import com.google.common.base.Preconditions;
 
 public class IdAndTimestampKey<T> implements PaginableEntityKey<T> {
@@ -48,7 +50,7 @@ public class IdAndTimestampKey<T> implements PaginableEntityKey<T> {
 
     @Override
     public int compareTo(PaginableEntityKey<T> other) {
-        Preconditions.checkArgument(other instanceof IdAndTimestampKey);
+        Preconditions.checkArgument(other instanceof IdAndTimestampKey, "Key of a different type passed to the comparator");
 
         IdAndTimestampKey<T> otherKey = (IdAndTimestampKey<T>) other;
         int cmp = Long.compare(timestamp, otherKey.timestamp);
@@ -56,5 +58,30 @@ public class IdAndTimestampKey<T> implements PaginableEntityKey<T> {
             return cmp;
         }
         return id.compareTo(otherKey.id);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IdAndTimestampKey<?> that = (IdAndTimestampKey<?>) o;
+        return timestamp == that.timestamp && Objects.equals(entity, that.entity) && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(entity, id, timestamp);
+    }
+
+    @Override
+    public String toString() {
+        return "IdAndTimestampKey{" +
+                "id='" + id + '\'' +
+                ", timestamp=" + timestamp +
+                '}';
     }
 }
