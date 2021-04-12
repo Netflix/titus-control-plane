@@ -16,15 +16,18 @@
 
 package com.netflix.titus.common.util.archaius2;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.common.util.CollectionsExt;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SpringProxyInvocationHandlerTest {
@@ -36,14 +39,14 @@ public class SpringProxyInvocationHandlerTest {
     @Before
     public void setUp() {
         environment.setProperty("annotationPrefix.intWithNoDefault", "11");
-        this.configuration = Archaius2Ext.newConfiguration(SomeConfiguration.class, environment);
+        this.configuration = Archaius2Ext.newConfiguration(SomeConfiguration.class, environment, 1);
     }
 
     @Test
     public void testInt() {
         assertThat(configuration.getInt()).isEqualTo(1);
         environment.setProperty("annotationPrefix.int", "123");
-        assertThat(configuration.getInt()).isEqualTo(123);
+        await().until(() -> configuration.getInt() == 123);
 
         assertThat(configuration.getIntWithNoDefault()).isEqualTo(11);
     }
@@ -52,35 +55,36 @@ public class SpringProxyInvocationHandlerTest {
     public void testLong() {
         assertThat(configuration.getLong()).isEqualTo(2L);
         environment.setProperty("annotationPrefix.long", "123");
-        assertThat(configuration.getLong()).isEqualTo(123);
+        await().until(() -> configuration.getLong() == 123);
     }
 
     @Test
     public void testDouble() {
         assertThat(configuration.getDouble()).isEqualTo(3.3D);
         environment.setProperty("annotationPrefix.double", "4.4");
-        assertThat(configuration.getDouble()).isEqualTo(4.4);
+        await().until(() -> configuration.getDouble() == 4.4);
     }
 
     @Test
     public void testFloat() {
         assertThat(configuration.getFloat()).isEqualTo(4.5F);
         environment.setProperty("annotationPrefix.float", "5.5");
-        assertThat(configuration.getFloat()).isEqualTo(5.5F);
+        await().until(() -> configuration.getFloat() == 5.5F);
     }
 
     @Test
     public void testBoolean() {
         assertThat(configuration.getBoolean()).isTrue();
         environment.setProperty("annotationPrefix.boolean", "false");
-        assertThat(configuration.getBoolean()).isFalse();
+        await().until(() -> !configuration.getBoolean());
     }
 
     @Test
     public void testList() {
         assertThat(configuration.getList()).containsExactly("a", "b", "c");
         environment.setProperty("annotationPrefix.list", "A,B,C");
-        assertThat(configuration.getList()).containsExactly("A", "B", "C");
+        List<String> expected = Arrays.asList("A", "B", "C");
+        await().until(() -> configuration.getList().equals(expected));
     }
 
     @Test
@@ -92,7 +96,8 @@ public class SpringProxyInvocationHandlerTest {
     public void testSet() {
         assertThat(configuration.getSet()).containsExactly("d", "e", "f");
         environment.setProperty("annotationPrefix.set", "D,E,F");
-        assertThat(configuration.getSet()).containsExactly("D", "E", "F");
+        Set<String> expected = CollectionsExt.asSet("D", "E", "F");
+        await().until(() -> configuration.getSet().containsAll(expected));
     }
 
     @Test
@@ -104,7 +109,7 @@ public class SpringProxyInvocationHandlerTest {
     public void testNullValue() {
         assertThat(configuration.getInteger()).isNull();
         environment.setProperty("annotationPrefix.integer", "1");
-        assertThat(configuration.getInteger()).isEqualTo(1);
+        await().until(() -> configuration.getInteger() != null && configuration.getInteger() == 1);
     }
 
     @Test(expected = IllegalArgumentException.class)

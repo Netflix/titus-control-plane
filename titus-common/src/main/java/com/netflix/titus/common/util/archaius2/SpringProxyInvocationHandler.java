@@ -44,6 +44,8 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SpringProxyInvocationHandler.class);
 
+    private static final long DEFAULT_REFRESH_INTERVAL_MS = 1_000;
+
     private interface MethodHandler {
         Object get() throws Throwable;
     }
@@ -51,13 +53,15 @@ class SpringProxyInvocationHandler implements InvocationHandler {
     private final Class<?> apiInterface;
     private final String prefix;
     private final Environment environment;
+    private final long refreshIntervalMs;
 
     private final Map<Method, MethodHandler> methodWrappers;
 
-    SpringProxyInvocationHandler(Class<?> apiInterface, String prefix, Environment environment) {
+    SpringProxyInvocationHandler(Class<?> apiInterface, String prefix, Environment environment, long refreshIntervalMs) {
         Preconditions.checkArgument(apiInterface.isInterface(), "Not interface: %s", apiInterface);
 
         this.apiInterface = apiInterface;
+        this.refreshIntervalMs = refreshIntervalMs;
 
         String effectivePrefix = prefix;
         if (prefix == null) {
@@ -67,6 +71,7 @@ class SpringProxyInvocationHandler implements InvocationHandler {
         this.prefix = StringExt.isEmpty(effectivePrefix) ? "" : (effectivePrefix.endsWith(".") ? effectivePrefix : effectivePrefix + '.');
         this.environment = environment;
 
+        long expiryTime = System.currentTimeMillis() + refreshIntervalMs;
         Map<Method, MethodHandler> methodWrappers = new HashMap<>();
         for (Method method : apiInterface.getMethods()) {
             Preconditions.checkArgument(
@@ -74,7 +79,7 @@ class SpringProxyInvocationHandler implements InvocationHandler {
                     "Method with no parameters expected or a default method"
             );
             if (!method.isDefault()) {
-                methodWrappers.put(method, new PropertyMethodHandler(method));
+                methodWrappers.put(method, new PropertyMethodHandler(method, expiryTime));
             }
         }
         this.methodWrappers = methodWrappers;
@@ -110,11 +115,15 @@ class SpringProxyInvocationHandler implements InvocationHandler {
     }
 
     static <I> I newProxy(Class<I> apiInterface, String prefix, Environment environment) {
+        return newProxy(apiInterface, prefix, environment, DEFAULT_REFRESH_INTERVAL_MS);
+    }
+
+    static <I> I newProxy(Class<I> apiInterface, String prefix, Environment environment, long refreshIntervalMs) {
         Preconditions.checkArgument(apiInterface.isInterface(), "Java interface expected");
         return (I) Proxy.newProxyInstance(
                 apiInterface.getClassLoader(),
                 new Class[]{apiInterface},
-                new SpringProxyInvocationHandler(apiInterface, prefix, environment)
+                new SpringProxyInvocationHandler(apiInterface, prefix, environment, refreshIntervalMs)
         );
     }
 
@@ -127,7 +136,7 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         private volatile ValueHolder valueHolder;
 
-        private PropertyMethodHandler(Method method) {
+        private PropertyMethodHandler(Method method, long expiryTime) {
             this.method = method;
             this.key = buildKeyName(method);
             this.baseKeyName = buildKeyBaseName(key);
@@ -135,17 +144,25 @@ class SpringProxyInvocationHandler implements InvocationHandler {
             DefaultValue defaultAnnotation = method.getAnnotation(DefaultValue.class);
             this.defaultValue = defaultAnnotation == null ? null : defaultAnnotation.value();
 
-            this.valueHolder = new ValueHolder(method, environment.getProperty(key, defaultValue));
+            this.valueHolder = new ValueHolder(method, environment.getProperty(key, defaultValue), expiryTime);
         }
 
         @Override
         public Object get() {
+            long now = System.currentTimeMillis();
+
+            if (refreshIntervalMs > 0) {
+                if (valueHolder.getExpiryTime() > now) {
+                    return valueHolder.getValue();
+                }
+            }
+
             String currentString = environment.getProperty(key, defaultValue);
             if (Objects.equals(currentString, valueHolder.getStringValue())) {
                 return valueHolder.getValue();
             }
             try {
-                this.valueHolder = new ValueHolder(method, currentString);
+                this.valueHolder = new ValueHolder(method, currentString, now + refreshIntervalMs);
             } catch (Exception e) {
                 // Do not propagate exception. Return the previous result.
                 logger.debug("Bad property value: key={}, value={}", key, currentString);
@@ -182,12 +199,14 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         private final String stringValue;
         private final Object value;
+        private final long expiryTime;
 
-        private ValueHolder(Method method, String stringValue) {
+        private ValueHolder(Method method, String stringValue, long expiryTime) {
             Class<?> valueType = method.getReturnType();
             Preconditions.checkArgument(!valueType.isPrimitive() || stringValue != null, "Configuration value cannot be null for primitive types");
 
             this.stringValue = stringValue;
+            this.expiryTime = expiryTime;
 
             if (stringValue == null) {
                 if (List.class.isAssignableFrom(valueType)) {
@@ -226,6 +245,10 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         private Object getValue() {
             return value;
+        }
+
+        private long getExpiryTime() {
+            return expiryTime;
         }
 
         private List<String> parseList(Type elementType, String stringValue) {
