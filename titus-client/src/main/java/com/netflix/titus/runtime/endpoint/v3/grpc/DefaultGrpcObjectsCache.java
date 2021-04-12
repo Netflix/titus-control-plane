@@ -16,7 +16,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import org.slf4j.Logger;
@@ -51,7 +50,13 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
         // Initialize cache
         this.jobCache = new ProtobufCache<>(
                 "jobs",
-                this::toGrpcJob,
+                coreJob -> {
+                    Job job = GrpcJobManagementModelConverters.toGrpcJob(coreJob);
+                    // Need to serialize it once since GeneratedMessageV3 isn't entirely immutable.
+                    // It needs to initialize memoizedSize field (non-volatile) before being used from multiple threads
+                    serializeGrpcObject(job);
+                    return job;
+                },
                 () -> {
                     List<com.netflix.titus.api.jobmanager.model.job.Job> allJobs = jobOperations.getJobs();
                     Set<String> knownJobIds = new HashSet<>();
@@ -64,7 +69,13 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
 
         this.taskCache = new ProtobufCache<>(
                 "tasks",
-                this::toGrpcTask,
+                coreTask -> {
+                    Task task = GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo);
+                    // Need to serialize it once since GeneratedMessageV3 isn't entirely immutable.
+                    // It needs to initialize memoizedSize field (non-volatile) before being used from multiple threads
+                    serializeGrpcObject(task);
+                    return task;
+                },
                 () -> {
                     List<com.netflix.titus.api.jobmanager.model.job.Task> allTasks = jobOperations.getTasks();
                     Set<String> knownTasksIds = new HashSet<>();
@@ -87,7 +98,7 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
         if (configuration.isGrpcObjectsCacheEnabled()) {
             return jobCache.get(coreJob.getId(), coreJob);
         } else {
-            return toGrpcJob(coreJob);
+            return GrpcJobManagementModelConverters.toGrpcJob(coreJob);
         }
     }
 
@@ -95,24 +106,8 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
         if (configuration.isGrpcObjectsCacheEnabled()) {
             return taskCache.get(coreTask.getId(), coreTask);
         } else {
-            return toGrpcTask(coreTask);
+            return GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo);
         }
-    }
-
-    private Task toGrpcTask(com.netflix.titus.api.jobmanager.model.job.Task coreTask) {
-        Task task = GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo);
-        // Need to serialize it once since GeneratedMessageV3 isn't entirely immutable.
-        // It needs to initialize memoizedSize field (non-volatile) before being used from multiple threads
-        serializeGrpcObject(task);
-        return task;
-    }
-
-    private Job toGrpcJob(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob) {
-        Job job = GrpcJobManagementModelConverters.toGrpcJob(coreJob);
-        // Need to serialize it once since GeneratedMessageV3 isn't entirely immutable.
-        // It needs to initialize memoizedSize field (non-volatile) before being used from multiple threads
-        serializeGrpcObject(job);
-        return job;
     }
 
     private <T extends GeneratedMessageV3> void serializeGrpcObject(T msg) {
