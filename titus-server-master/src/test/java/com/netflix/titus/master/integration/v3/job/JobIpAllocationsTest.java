@@ -45,6 +45,7 @@ import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import com.netflix.titus.testkit.model.job.JobIpAllocationGenerator;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -185,6 +186,7 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a job waiting for an in use IP allocation has updated task context fields.
      */
     @Test(timeout = 30_000)
+    @Ignore // TODO Read static IP allocation status from pod message field, and add it to the task context.
     public void testWaitingTaskContext() throws Exception {
         JobDescriptor<ServiceJobExt> firstIpJobDescriptor = ONE_TASK_SERVICE_JOB;
         JobDescriptor<ServiceJobExt> secondIpJobDescriptor = firstIpJobDescriptor.but(j -> j.getJobGroupInfo().toBuilder().withSequence("v001"));
