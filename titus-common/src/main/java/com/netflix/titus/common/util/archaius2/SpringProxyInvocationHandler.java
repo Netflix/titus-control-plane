@@ -179,7 +179,7 @@ class SpringProxyInvocationHandler implements InvocationHandler {
             PropertyName propertyNameAnnotation = method.getAnnotation(PropertyName.class);
             if (propertyNameAnnotation != null) {
                 Preconditions.checkNotNull(propertyNameAnnotation, "Property name cannot be null: method=%s", method.getName());
-                return propertyNameAnnotation.name();
+                return StringExt.isEmpty(prefix) ? propertyNameAnnotation.name() : prefix + propertyNameAnnotation.name();
             }
 
             Either<String, IllegalArgumentException> baseName = StringExt.nameFromJavaBeanGetter(method.getName());
