@@ -120,6 +120,10 @@ public final class Archaius2Ext {
         return factory.newProxy(configType, prefix);
     }
 
+    public static <C> C newConfiguration(Class<C> configType, Environment environment, long refreshIntervalMs) {
+        return SpringProxyInvocationHandler.newProxy(configType, null, environment, refreshIntervalMs);
+    }
+
     public static <C> C newConfiguration(Class<C> configType, Environment environment) {
         return SpringProxyInvocationHandler.newProxy(configType, null, environment);
     }
@@ -128,6 +132,10 @@ public final class Archaius2Ext {
      * Archaius2 dynamic proxy for Spring environment. This implementation supports only features used in Titus.
      * To check what is, and what is not supported please check SpringProxyInvocationHandlerTest.
      */
+    public static <C> C newConfiguration(Class<C> configType, String prefix, Environment environment, long refreshIntervalMs) {
+        return SpringProxyInvocationHandler.newProxy(configType, prefix, environment, refreshIntervalMs);
+    }
+
     public static <C> C newConfiguration(Class<C> configType, String prefix, Environment environment) {
         return SpringProxyInvocationHandler.newProxy(configType, prefix, environment);
     }
@@ -176,7 +184,7 @@ public final class Archaius2Ext {
         return PeriodicallyRefreshingObjectConfigurationResolver.newInstance(
                 new SpringConfig(formattedPrefix, environment),
                 selectorFieldAccessor,
-                root -> newConfiguration(configType, formattedPrefix + root, environment),
+                root -> newConfiguration(configType, formattedPrefix + root, environment, 0),
                 defaultConfig,
                 updateTrigger
         );
