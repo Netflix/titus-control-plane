@@ -184,7 +184,7 @@ public final class Archaius2Ext {
         return PeriodicallyRefreshingObjectConfigurationResolver.newInstance(
                 new SpringConfig(formattedPrefix, environment),
                 selectorFieldAccessor,
-                root -> newConfiguration(configType, formattedPrefix + root, environment),
+                root -> newConfiguration(configType, formattedPrefix + root, environment, 0),
                 defaultConfig,
                 updateTrigger
         );

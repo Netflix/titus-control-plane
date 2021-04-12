@@ -36,7 +36,7 @@ public class PeriodicallyRefreshingObjectConfigurationResolverTest {
             configuration,
             MyObject::getName,
             MyObjectConfig.class,
-            Archaius2Ext.newConfiguration(MyObjectConfig.class, "default", configuration),
+            Archaius2Ext.newConfiguration(MyObjectConfig.class, "default", configuration, 0),
             updateTrigger
     );
 
