@@ -26,6 +26,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.CollectionsExt;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,7 +49,7 @@ public class JooqTaskRelocationResultStoreTest {
 
     @Test
     public void testRelocationStatusStoreCrud() {
-        List<TaskRelocationStatus> statusList = newRelocationStatuses(1);
+        List<TaskRelocationStatus> statusList = newRelocationStatuses("task", 1, System.currentTimeMillis());
         TaskRelocationStatus status = statusList.get(0);
 
         // Create
@@ -79,7 +80,7 @@ public class JooqTaskRelocationResultStoreTest {
 
     @Test
     public void testStoringLargeAmountOfStatuses() {
-        List<TaskRelocationStatus> statusList = newRelocationStatuses(10_000);
+        List<TaskRelocationStatus> statusList = newRelocationStatuses("task", 10_000, System.currentTimeMillis());
 
         // Create
         Map<String, Optional<Throwable>> result = store.createTaskRelocationStatuses(statusList).block();
@@ -88,18 +89,38 @@ public class JooqTaskRelocationResultStoreTest {
         assertThat(failures).isZero();
     }
 
+    @Test
+    public void testGC() {
+        long now = System.currentTimeMillis();
+        List<TaskRelocationStatus> statusList = CollectionsExt.merge(
+                newRelocationStatuses("old", 1, now - 3_600_000),
+                newRelocationStatuses("new", 1, now - 60_000)
+        );
+        store.createTaskRelocationStatuses(statusList).block();
+
+        int removed = store.removeExpiredData(now - 3_000_000);
+        assertThat(removed).isEqualTo(1);
+
+        List<TaskRelocationStatus> oldTaskStatus = store.getTaskRelocationStatusList("old0").block();
+        assertThat(oldTaskStatus).isEmpty();
+
+        List<TaskRelocationStatus> newTaskStatus = store.getTaskRelocationStatusList("new0").block();
+        assertThat(newTaskStatus).hasSize(1);
+    }
+
     private JooqTaskRelocationResultStore newStore() {
         return new JooqTaskRelocationResultStore(jooqResource.getDslContext(), titusRuntime);
     }
 
-    private List<TaskRelocationStatus> newRelocationStatuses(int count) {
+    private List<TaskRelocationStatus> newRelocationStatuses(String taskPrefix, int count, long executionTime) {
         List<TaskRelocationStatus> result = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             result.add(TaskRelocationStatus.newBuilder()
-                    .withTaskId("task" + i)
+                    .withTaskId(taskPrefix + i)
                     .withState(TaskRelocationStatus.TaskRelocationState.Success)
                     .withStatusCode("status123")
                     .withStatusMessage("statusMessage123")
+                    .withTimestamp(executionTime)
                     .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
                             .withTaskId("task" + i)
                             .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)

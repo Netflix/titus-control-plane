@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.archaius2;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -77,6 +78,13 @@ public class SpringProxyInvocationHandlerTest {
         assertThat(configuration.getBoolean()).isTrue();
         environment.setProperty("annotationPrefix.boolean", "false");
         await().until(() -> !configuration.getBoolean());
+    }
+
+    @Test
+    public void testDuration() {
+        assertThat(configuration.getDuration()).isEqualTo(Duration.ofSeconds(60));
+        environment.setProperty("annotationPrefix.duration", "24h");
+        assertThat(configuration.getDuration()).isEqualTo(Duration.ofDays(1));
     }
 
     @Test
@@ -160,6 +168,9 @@ public class SpringProxyInvocationHandlerTest {
 
         @DefaultValue("true")
         boolean getBoolean();
+
+        @DefaultValue("60s")
+        Duration getDuration();
 
         @DefaultValue("a,b,c")
         List<String> getList();

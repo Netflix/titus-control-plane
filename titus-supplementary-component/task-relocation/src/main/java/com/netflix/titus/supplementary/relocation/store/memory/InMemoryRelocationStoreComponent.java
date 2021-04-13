@@ -18,6 +18,7 @@ package com.netflix.titus.supplementary.relocation.store.memory;
 
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationStoreActivator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,5 +35,11 @@ public class InMemoryRelocationStoreComponent {
     @Bean
     public TaskRelocationResultStore getTaskRelocationResultStore() {
         return new InMemoryTaskRelocationResultStore();
+    }
+
+    @Bean
+    public TaskRelocationStoreActivator getTaskRelocationStoreActivator() {
+        return new TaskRelocationStoreActivator() {
+        };
     }
 }

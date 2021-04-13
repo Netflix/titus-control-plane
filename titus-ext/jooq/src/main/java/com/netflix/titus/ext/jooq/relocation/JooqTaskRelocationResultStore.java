@@ -17,6 +17,8 @@
 package com.netflix.titus.ext.jooq.relocation;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -87,16 +89,16 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
     public Mono<Map<String, Optional<Throwable>>> createTaskRelocationStatuses(List<TaskRelocationStatus> taskRelocationStatuses) {
         return Mono.defer(() -> {
             CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() -> {
-                        loadToCache(findNotCached(taskRelocationStatuses), dslContext.configuration());
+                loadToCache(findNotCached(taskRelocationStatuses), dslContext.configuration());
 
-                        List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
-                                .map(this::newCreateOrUpdateQuery)
-                                .collect(Collectors.toList());
+                List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
+                        .map(this::newCreateOrUpdateQuery)
+                        .collect(Collectors.toList());
 
-                        return dslContext
-                                .batch(queries)
-                                .execute();
-                    }, dslContext);
+                return dslContext
+                        .batch(queries)
+                        .execute();
+            }, dslContext);
 
             MonoProcessor<Map<String, Optional<Throwable>>> callerProcessor = MonoProcessor.create();
             asyncAction.handle((result, error) -> {
@@ -144,6 +146,24 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
 
             return callerProcessor;
         });
+    }
+
+    /**
+     * Removes all entries older than the given time threshold.
+     */
+    int removeExpiredData(long timeThreshold) {
+        int removedFromDb = dslContext.delete(RELOCATION_STATUS)
+                .where(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold))))
+                .execute();
+
+        List<TaskRelocationStatus> cached = new ArrayList<>(statusesByTaskId.asMap().values());
+        cached.forEach(entry -> {
+            if (entry.getTimestamp() < timeThreshold) {
+                statusesByTaskId.invalidate(entry.getTaskId());
+            }
+        });
+
+        return removedFromDb;
     }
 
     private Set<String> findNotCached(List<TaskRelocationStatus> taskRelocationStatuses) {
