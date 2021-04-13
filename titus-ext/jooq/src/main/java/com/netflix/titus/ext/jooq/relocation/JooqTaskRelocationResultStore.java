@@ -182,6 +182,7 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                                 .withState(TaskRelocationStatus.TaskRelocationState.valueOf(record.getRelocationState()))
                                 .withStatusCode(record.getStatusCode())
                                 .withStatusMessage(record.getStatusMessage())
+                                .withTimestamp(record.getRelocationExecutionTime().getTime())
                                 .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
                                         .withTaskId(record.getTaskId())
                                         .withReason(TaskRelocationPlan.TaskRelocationReason.valueOf(record.getReasonCode()))

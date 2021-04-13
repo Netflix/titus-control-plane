@@ -29,6 +29,7 @@ import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
@@ -55,6 +56,7 @@ public class TaskEvictionStep {
     private final CodeInvariants invariants;
     private final RelocationTransactionLogger transactionLog;
     private final Scheduler scheduler;
+    private final Clock clock;
     private final StepMetrics metrics;
 
     public TaskEvictionStep(EvictionServiceClient evictionServiceClient,
@@ -65,6 +67,7 @@ public class TaskEvictionStep {
         this.transactionLog = transactionLog;
         this.scheduler = scheduler;
         this.invariants = titusRuntime.getCodeInvariants();
+        this.clock = titusRuntime.getClock();
         this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
     }
 
@@ -103,6 +106,7 @@ public class TaskEvictionStep {
                             .withState(TaskRelocationState.Failure)
                             .withStatusCode(TaskRelocationStatus.STATUS_SYSTEM_ERROR)
                             .withStatusMessage("Unexpected error: " + ExceptionExt.toMessageChain(e))
+                            .withTimestamp(clock.wallTime())
                             .build()
                     )
                     .collect(Collectors.toMap(TaskRelocationStatus::getTaskId, s -> s));
@@ -121,6 +125,7 @@ public class TaskEvictionStep {
                             .withStatusCode(TaskRelocationStatus.STATUS_CODE_TERMINATED)
                             .withStatusMessage("Task terminated successfully")
                             .withTaskRelocationPlan(plan)
+                            .withTimestamp(clock.wallTime())
                             .build();
                 } else {
                     status = TaskRelocationStatus.newBuilder()
@@ -129,6 +134,7 @@ public class TaskEvictionStep {
                             .withStatusCode(TaskRelocationStatus.STATUS_EVICTION_ERROR)
                             .withStatusMessage(evictionResult.get().getMessage())
                             .withTaskRelocationPlan(plan)
+                            .withTimestamp(clock.wallTime())
                             .build();
                 }
             } else {
@@ -140,6 +146,7 @@ public class TaskEvictionStep {
                         .withStatusCode(TaskRelocationStatus.STATUS_SYSTEM_ERROR)
                         .withStatusMessage("Eviction result missing")
                         .withTaskRelocationPlan(plan)
+                        .withTimestamp(clock.wallTime())
                         .build();
             }
             results.put(taskId, status);
