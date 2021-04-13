@@ -30,6 +30,9 @@ public interface JooqRelocationConfiguration {
     @DefaultValue("14d")
     Duration getRetentionTime();
 
-    @DefaultValue("30m")
+    @DefaultValue("5m")
     Duration getGcInterval();
+
+    @DefaultValue("1000")
+    int getGcRowLimit();
 }

@@ -17,7 +17,6 @@
 package com.netflix.titus.ext.jooq.relocation;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -149,21 +148,15 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
     }
 
     /**
-     * Removes all entries older than the given time threshold.
+     * Remove from cache all entries older than the given time threshold.
      */
-    int removeExpiredData(long timeThreshold) {
-        int removedFromDb = dslContext.delete(RELOCATION_STATUS)
-                .where(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold))))
-                .execute();
-
+    void removeFromCache(long timeThreshold) {
         List<TaskRelocationStatus> cached = new ArrayList<>(statusesByTaskId.asMap().values());
         cached.forEach(entry -> {
             if (entry.getTimestamp() < timeThreshold) {
                 statusesByTaskId.invalidate(entry.getTaskId());
             }
         });
-
-        return removedFromDb;
     }
 
     private Set<String> findNotCached(List<TaskRelocationStatus> taskRelocationStatuses) {

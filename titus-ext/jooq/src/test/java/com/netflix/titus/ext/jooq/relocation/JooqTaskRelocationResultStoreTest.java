@@ -27,9 +27,11 @@ import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.mock.env.MockEnvironment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,6 +41,8 @@ public class JooqTaskRelocationResultStoreTest {
 
     @Rule
     public final JooqResource jooqResource = new JooqResource();
+
+    private final JooqRelocationConfiguration configuration = Archaius2Ext.newConfiguration(JooqRelocationConfiguration.class, new MockEnvironment());
 
     private JooqTaskRelocationResultStore store;
 
@@ -98,7 +102,8 @@ public class JooqTaskRelocationResultStoreTest {
         );
         store.createTaskRelocationStatuses(statusList).block();
 
-        int removed = store.removeExpiredData(now - 3_000_000);
+        JooqTaskRelocationGC gc = new JooqTaskRelocationGC(configuration, jooqResource.getDslContext(), store, titusRuntime);
+        int removed = gc.removeExpiredData(now - 3_000_000);
         assertThat(removed).isEqualTo(1);
 
         List<TaskRelocationStatus> oldTaskStatus = store.getTaskRelocationStatusList("old0").block();
