@@ -9,8 +9,6 @@ executors:
     environment:
       DEBIAN_FRONTEND: noninteractive
       _JAVA_OPTIONS: "-Xmx2g -Xms1g -XX:MaxPermSize=512m -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
-
-
 commands:
   run_tests:
     description: "Run some of the tests in this repo"
@@ -43,7 +41,6 @@ jobs:
     executor: java
     steps:
       - checkout
-      - setup_remote_docker
       - restore_cache:
           keys:
             - v3-gradle-cache
