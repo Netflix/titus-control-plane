@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -121,7 +122,7 @@ public class JooqJobActivityStore implements JobActivityStore {
                 return JooqUtils.executeAsyncMono( () ->  {
                     int numInserts = jobActivityDSLContext
                             .insertInto(JOBACTIVITY.JOBS, JOBACTIVITY.JOBS.JOB_ID, JOBACTIVITY.JOBS.RECORD_TIME)
-                            .values(job.getId(), LocalDateTime.ofEpochSecond(job.getStatus().getTimestamp(), 0, ZoneOffset.UTC))
+                            .values(job.getId(), Timestamp.valueOf(LocalDateTime.ofEpochSecond(job.getStatus().getTimestamp(), 0, ZoneOffset.UTC)))
                             .execute();
                     return jobActivityPublisherRecord;
                 }, jobActivityDSLContext)

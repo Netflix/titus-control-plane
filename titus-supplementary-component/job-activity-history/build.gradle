@@ -73,12 +73,12 @@ ext.jdbcPassword = 'jobactivitypassword'
 ext.flyway = null
 ext.jooq = null
 
-def startEmbeddedPostgresDatabase(boolean uselocalPostgres) {
+def startEmbeddedPostgresDatabase(boolean useLocal) {
     println 'Starting embedded Postgresql DB...'
 
-    if (uselocalPostgres) {
+    if (useLocal) {
         jdbcPort = 5432
-        jdbcUrl = 'jdbc:postgresql://localhost:' + jdbcPort + '/postgres'
+        jdbcUrl = 'jdbc:postgresql://localhost:' + jdbcPort + '/jobactivity'
         jdbcUser = 'postgres'
         jdbcPassword = 'postgres'
     } else {
@@ -103,7 +103,11 @@ task startDb {
     group 'Embedded Postgresql DB'
     description 'Starts an instance of Embedded Postgresql DB'
     doFirst {
-        startEmbeddedPostgresDatabase(false)
+        def useLocal = false
+        if (project.hasProperty('useLocalPostgres')) {
+            useLocal = Boolean.parseBoolean(project.property('useLocalPostgres'))
+        }
+        startEmbeddedPostgresDatabase(useLocal)
         flyway {
             driver = 'org.postgresql.Driver'
             url = project.property('jdbcUrl')
