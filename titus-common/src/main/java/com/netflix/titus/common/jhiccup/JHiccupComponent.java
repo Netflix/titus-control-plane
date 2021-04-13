@@ -17,6 +17,7 @@
 package com.netflix.titus.common.jhiccup;
 
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -31,6 +32,6 @@ public class JHiccupComponent {
 
     @Bean
     public HiccupRecorderConfiguration getHiccupRecorderConfiguration(Environment environment) {
-        return new HiccupRecorderConfigurationBean(environment);
+        return Archaius2Ext.newConfiguration(HiccupRecorderConfiguration.class, environment);
     }
 }

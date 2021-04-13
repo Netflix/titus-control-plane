@@ -21,12 +21,21 @@ import com.netflix.titus.common.jhiccup.HiccupRecorderConfiguration;
 
 abstract class AbstractHiccupSensor implements HiccupSensor {
 
-    protected final HiccupRecorderConfiguration configuration;
+    /*
+     * Store configuration in object, instead of calling HiccupRecorderConfiguration on each invocation
+     * which may be expensive (especially for Spring Environment).
+     */
+    protected final long reportingIntervalMs;
+    protected final long startDelayMs;
+    protected final long taskExecutionDeadlineMs;
+
     protected final Registry registry;
 
     protected AbstractHiccupSensor(HiccupRecorderConfiguration configuration,
                                    Registry registry) {
-        this.configuration = configuration;
+        this.reportingIntervalMs = configuration.getReportingIntervalMs();
+        this.startDelayMs = configuration.getStartDelayMs();
+        this.taskExecutionDeadlineMs = configuration.getTaskExecutionDeadlineMs();
         this.registry = registry;
     }
 }

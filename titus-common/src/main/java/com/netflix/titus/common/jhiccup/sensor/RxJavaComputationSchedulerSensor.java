@@ -273,7 +273,7 @@ public class RxJavaComputationSchedulerSensor extends AbstractHiccupSensor {
         private void checkProgress() {
             workerTaskSchedulers.forEach(ts -> {
                 long taskRunningTime = ts.getPendingTaskRunningTime();
-                if (taskRunningTime > configuration.getTaskExecutionDeadlineMs()) {
+                if (taskRunningTime > taskExecutionDeadlineMs) {
                     Long lastReport = blockedTasks.get(ts);
                     long pendingTaskStartTimeNs = ts.getPendingTaskStartTimeNs();
                     if (lastReport == null || lastReport != pendingTaskStartTimeNs) {
