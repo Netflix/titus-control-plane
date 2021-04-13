@@ -24,4 +24,7 @@ public interface GrpcConfiguration {
 
     @DefaultValue("10000")
     long getRequestTimeoutMs();
+
+    @DefaultValue("1000")
+    long getPrimaryFallbackTimeoutMs();
 }

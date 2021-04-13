@@ -22,6 +22,9 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.federation")
 public interface TitusFederationConfiguration {
 
+    @DefaultValue("hostName1:7001")
+    String getRemoteFederation();
+
     @DefaultValue("cell1=hostName1:7001;cell2=hostName2:7002")
     String getCells();
 
@@ -36,4 +39,7 @@ public interface TitusFederationConfiguration {
 
     @DefaultValue("false")
     boolean isFederationJobIdCreationEnabled();
+
+    @DefaultValue("false")
+    boolean isRemoteFederationEnabled();
 }
