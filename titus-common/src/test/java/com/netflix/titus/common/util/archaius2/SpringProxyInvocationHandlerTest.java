@@ -22,6 +22,7 @@ import java.util.Set;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
 import com.netflix.titus.common.util.CollectionsExt;
 import org.junit.Before;
 import org.junit.Test;
@@ -131,6 +132,13 @@ public class SpringProxyInvocationHandlerTest {
     }
 
     @Test
+    public void testPropertyNameOverride() {
+        assertThat(configuration.getMyStrangeName()).isEqualTo("strangeDefault");
+        environment.setProperty("annotationPrefix.my.strange.name", "abc");
+        assertThat(configuration.getMyStrangeName()).isEqualTo("abc");
+    }
+
+    @Test
     public void testToString() {
         String[] expectedParts = {"float=4.5", "boolean=true", "double=3.3", "intWithNoDefault=11", "list=[a, b, c]", "set=[d, e, f]", "int=1", "long=2"};
         String actual = configuration.toString();
@@ -170,6 +178,10 @@ public class SpringProxyInvocationHandlerTest {
         List<String> getSet();
 
         Set<String> getEmptySet();
+
+        @DefaultValue("strangeDefault")
+        @PropertyName(name = "my.strange.name")
+        String getMyStrangeName();
 
         default long getNumber(boolean returnLong) {
             return returnLong ? getLong() : getInt();
