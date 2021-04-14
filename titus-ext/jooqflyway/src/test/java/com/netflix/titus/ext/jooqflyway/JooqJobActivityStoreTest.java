@@ -45,7 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static com.netflix.titus.supplementary.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooqflyway.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 

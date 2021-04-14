@@ -64,6 +64,8 @@ public class JooqJobActivityContextComponent {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
         } else if (jooqConfiguration.isLocalDb()) {
             hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
+            hikariConfig.setUsername("postgres");
+            hikariConfig.setPassword("postgres");
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
@@ -88,6 +90,8 @@ public class JooqJobActivityContextComponent {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
         } else if (jooqConfiguration.isLocalDb()) {
             hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
+            hikariConfig.setUsername("postgres");
+            hikariConfig.setPassword("postgres");
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");

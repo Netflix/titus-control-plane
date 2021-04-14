@@ -223,7 +223,7 @@ org.eclipse.jetty:jetty-servlet:9.2.12.v20150709
 org.eclipse.jetty:jetty-util:9.2.12.v20150709
 org.eclipse.jetty:jetty-webapp:9.2.12.v20150709
 org.eclipse.jetty:jetty-xml:9.2.12.v20150709
-org.flywaydb:flyway-core:6.1.4
+org.flywaydb:flyway-core:6.5.7
 org.fusesource:sigar:1.6.4
 org.glassfish:jakarta.el:3.0.3
 org.glassfish:javax.el:3.0.1-b12
