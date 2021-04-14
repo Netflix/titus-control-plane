@@ -17,10 +17,11 @@
 package com.netflix.titus.ext.jooqflyway;
 
 
-import com.netflix.titus.ext.jooqflyway.EmbeddedPostgresService;
-import com.netflix.titus.ext.jooqflyway.JooqConfigurationBean;
-import com.netflix.titus.ext.jooqflyway.JooqContext;
-import com.netflix.titus.ext.jooqflyway.RDSSSLSocketFactory;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.ext.jooq.EmbeddedPostgresService;
+import com.netflix.titus.ext.jooq.JooqConfiguration;
+import com.netflix.titus.ext.jooq.JooqContext;
+import com.netflix.titus.ext.jooq.RDSSSLSocketFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.DSLContext;
@@ -30,13 +31,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 
 @Configuration
 public class JooqJobActivityContextComponent {
 
     @Bean
-    public JooqConfigurationBean getJooqPropertyConfiguration() {
-        return new JooqConfigurationBean();
+    public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
+        return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobactivity", environment);
     }
 
     @Bean
@@ -45,14 +47,14 @@ public class JooqJobActivityContextComponent {
     }
 
     @Bean
-    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfigurationBean jooqConfiguration) {
+    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration jooqConfiguration) {
         return new EmbeddedPostgresService(jooqConfiguration);
     }
 
     @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    public JooqContext getJobActivityJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
 
@@ -77,7 +79,7 @@ public class JooqJobActivityContextComponent {
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
 

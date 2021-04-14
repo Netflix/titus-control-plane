@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jooq;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EmbeddedPostgresService {
+
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedPostgresService.class);
 
     private static final String DB_NAME = "integration";
@@ -40,7 +41,7 @@ public class EmbeddedPostgresService {
     private final Connection connection;
 
     @Inject
-    public EmbeddedPostgresService(JooqConfigurationBean configuration) {
+    public EmbeddedPostgresService(JooqConfiguration configuration) {
         if (configuration.isInMemoryDb()) {
             try {
                 this.embeddedPostgres = EmbeddedPostgres.start();

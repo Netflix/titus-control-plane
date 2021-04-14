@@ -1,0 +1,49 @@
+/*
+* Copyright 2021 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+ext.flywayVersion = '6.5.+'
+ext.jooqVersion = '3.13.2'
+ext.psql = '42.2.8'
+
+dependencies {
+    compile "org.springframework:spring-web:${springVersion}"
+    compile "org.springframework.boot:spring-boot:${springBootVersion}"
+
+    compile project(':titus-common')
+    compile project(':titus-api')
+    compile project(':titus-server-runtime')
+
+    implementation("org.jooq:jooq:${jooqVersion}")
+
+    // DB -  Drivers
+    compile "org.postgresql:postgresql:${psql}"
+
+    // DB - jOOQ
+    compile "org.jooq:jooq:${jooqVersion}"
+    compile "org.jooq:jooq-meta:${jooqVersion}"
+    compile "org.jooq:jooq-codegen:${jooqVersion}"
+
+    // Flyway
+    compile "org.flywaydb:flyway-core:${flywayVersion}"
+
+    compile 'com.opentable.components:otj-pg-embedded:0.13.+'
+
+    // Hikari DataSource for connection pooling to the DB
+    compile 'com.zaxxer:HikariCP:3.2.0'
+    compile project(':titus-server-runtime')
+
+    testCompile project(':titus-testkit')
+}

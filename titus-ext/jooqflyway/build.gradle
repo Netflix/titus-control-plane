@@ -40,6 +40,7 @@ dependencies {
     compile project(':titus-api')
     compile project(':titus-server-runtime')
     compile project(':titus-supplementary-component-job-activity-history')
+    compile project(':titus-ext-jooq-common')
 
     implementation("org.jooq:jooq:${jooqVersion}")
 
