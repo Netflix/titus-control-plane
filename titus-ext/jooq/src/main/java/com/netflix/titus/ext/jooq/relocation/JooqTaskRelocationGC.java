@@ -121,7 +121,7 @@ public class JooqTaskRelocationGC implements LeaderActivationListener {
                 RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold)))
         );
         logger.info("Expired rows in 'relocation_status' table: {}", expiredCount);
-        expiredRowsGauge.set(allCount);
+        expiredRowsGauge.set(expiredCount);
 
         if (expiredCount <= 0) {
             return 0;
@@ -158,9 +158,9 @@ public class JooqTaskRelocationGC implements LeaderActivationListener {
         int removedFromDb = dslContext.delete(RELOCATION_STATUS).where(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.le(lastToRemove)).execute();
 
         logger.info("Removed expired rows from 'relocation_status' table: {}", removedFromDb);
-        gcCounter.increment(allCount);
+        gcCounter.increment(removedFromDb);
 
-        relocationResultStore.removeFromCache(timeThreshold);
+        relocationResultStore.removeFromCache(toRemoveSet);
 
         return removedFromDb;
     }

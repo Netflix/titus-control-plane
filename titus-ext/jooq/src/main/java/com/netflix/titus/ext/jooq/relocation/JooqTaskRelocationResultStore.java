@@ -17,7 +17,6 @@
 package com.netflix.titus.ext.jooq.relocation;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +33,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.cache.Cache;
 import com.netflix.titus.common.util.cache.Caches;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.jooq.JooqUtils;
 import com.netflix.titus.ext.jooq.relocation.schema.JRelocation;
 import com.netflix.titus.ext.jooq.relocation.schema.tables.records.JRelocationStatusRecord;
@@ -148,13 +148,15 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
     }
 
     /**
-     * Remove from cache all entries older than the given time threshold.
+     * Remove from cache garbage collected entries.
      */
-    void removeFromCache(long timeThreshold) {
-        List<TaskRelocationStatus> cached = new ArrayList<>(statusesByTaskId.asMap().values());
-        cached.forEach(entry -> {
-            if (entry.getTimestamp() < timeThreshold) {
-                statusesByTaskId.invalidate(entry.getTaskId());
+    void removeFromCache(List<Pair<String, Long>> toRemove) {
+        toRemove.forEach(p -> {
+            String taskId = p.getLeft();
+            long timestamp = p.getRight();
+            TaskRelocationStatus status = statusesByTaskId.getIfPresent(taskId);
+            if (status != null && status.getTimestamp() == timestamp) {
+                statusesByTaskId.invalidate(taskId);
             }
         });
     }
