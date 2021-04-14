@@ -37,7 +37,12 @@ public class HiccupMeter {
 
     private static final Logger logger = LoggerFactory.getLogger(HiccupMeter.class);
 
-    private final HiccupRecorderConfiguration configuration;
+    /*
+     * Store configuration in object, instead of calling HiccupRecorderConfiguration on each invocation
+     * which may be expensive (especially for Spring Environment).
+     */
+    private final long reportingIntervalMs;
+    private final long startDelayMs;
 
     private final HiccupMeterController controller;
     private volatile boolean doRun = true;
@@ -46,8 +51,9 @@ public class HiccupMeter {
 
     @Inject
     public HiccupMeter(HiccupRecorderConfiguration configuration, Registry registry) {
-        this.configuration = configuration;
-        this.sensors = Arrays.<HiccupSensor>asList(
+        this.reportingIntervalMs = configuration.getReportingIntervalMs();
+        this.startDelayMs = configuration.getStartDelayMs();
+        this.sensors = Arrays.asList(
                 new JvmHiccupSensor(configuration, registry),
                 new RxJavaComputationSchedulerSensor(configuration, registry)
         );
@@ -65,7 +71,6 @@ public class HiccupMeter {
             } catch (InterruptedException e) {
                 logger.warn("HiccupMeter terminate/join interrupted");
             }
-
         }
     }
 
@@ -80,8 +85,8 @@ public class HiccupMeter {
         public void run() {
             try {
                 // Warmup
-                if (configuration.getStartDelayMs() > 0) {
-                    Thread.sleep(configuration.getStartDelayMs());
+                if (startDelayMs > 0) {
+                    Thread.sleep(startDelayMs);
                 }
 
                 // Main loop
@@ -97,12 +102,12 @@ public class HiccupMeter {
             sensors.forEach(HiccupSensor::reset);
 
             long now = System.currentTimeMillis();
-            long nextReportingTime = now + configuration.getReportingIntervalMs();
+            long nextReportingTime = now + reportingIntervalMs;
 
             while (doRun) {
                 waitTillNextReporting(nextReportingTime);
                 sensors.forEach(HiccupSensor::report);
-                nextReportingTime += configuration.getReportingIntervalMs();
+                nextReportingTime += reportingIntervalMs;
             }
         }
 
