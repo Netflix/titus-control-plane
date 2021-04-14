@@ -35,7 +35,6 @@ import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcServer;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
-import com.netflix.titus.supplementary.jobactivity.store.JooqJobActivityContextComponent;
 import io.grpc.Channel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -61,9 +60,6 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
 
         // Job connector
         JobManagerConnectorComponent.class,
-
-        // Store
-        JooqJobActivityContextComponent.class,
 
         RestAddOnsComponent.class
 })

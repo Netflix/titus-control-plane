@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.jobactivity.store;
+package com.netflix.titus.ext.jooqflyway;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -33,15 +33,18 @@ import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.ext.jooqflyway.JooqContext;
+import com.netflix.titus.ext.jooqflyway.JooqUtils;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
+import com.netflix.titus.supplementary.jobactivity.store.JobActivityStore;
 import org.flywaydb.core.Flyway;
 import org.jooq.DSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.supplementary.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
-import static com.netflix.titus.supplementary.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
+import static com.netflix.titus.ext.jooqflyway.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooqflyway.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
 
 
 @Singleton

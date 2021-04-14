@@ -1,8 +1,10 @@
-package com.netflix.titus.supplementary.jobactivity.store;
+package com.netflix.titus.ext.jooqflyway;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.netflix.titus.supplementary.jobactivity.store.JobActivityStore;
+
 
 @Configuration
 public class JooqJobActivityStoreComponent {

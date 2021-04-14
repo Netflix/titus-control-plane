@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.jobactivity.store;
+package com.netflix.titus.ext.jooqflyway;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
@@ -28,8 +25,8 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.ext.jooqflyway.JobActivityConnectorStubs;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
-import com.netflix.titus.supplementary.jobactivity.JobActivityConnectorStubs;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.jooq.DSLContext;

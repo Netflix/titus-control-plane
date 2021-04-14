@@ -16,7 +16,6 @@ com.github.fge:json-schema-core:1.2.5
 com.github.fge:json-schema-validator:2.2.6
 com.github.fge:msg-simple:1.1
 com.github.fge:uri-template:0.9
-com.github.spotbugs:spotbugs-annotations:3.1.12
 com.google.android:annotations:4.1.1.4
 com.google.api.grpc:proto-google-common-protos:1.12.0
 com.google.code.findbugs:annotations:2.0.1
@@ -49,7 +48,6 @@ com.netflix.governator:governator-providers:1.15.11
 com.netflix.governator:governator-servlet:1.15.11
 com.netflix.numerus:numerus:1.1
 com.netflix.spectator:spectator-api:0.59.0
-com.opentable.components:otj-pg-embedded:0.13.3
 com.squareup.okhttp3:logging-interceptor:3.14.9
 com.squareup.okhttp3:okhttp:3.14.9
 com.squareup.okio:okio:1.17.2
@@ -73,7 +71,6 @@ com.twitter:util-lint_2.11:6.32.0
 com.twitter:util-logging_2.11:6.32.0
 com.twitter:util-registry_2.11:6.32.0
 com.twitter:util-stats_2.11:6.32.0
-com.zaxxer:HikariCP:3.2.0
 commons-codec:commons-codec:1.14
 commons-collections:commons-collections:3.2.1
 commons-io:commons-io:2.8.0
@@ -133,7 +130,6 @@ io.zipkin.reporter2:zipkin-reporter:2.16.3
 io.zipkin.zipkin2:zipkin:2.23.2
 janino:janino:2.5.10
 javax.activation:activation:1.1
-javax.activation:javax.activation-api:1.2.0
 javax.annotation:javax.annotation-api:1.3.2
 javax.el:javax.el-api:3.0.1-b06
 javax.inject:javax.inject:1
@@ -141,7 +137,6 @@ javax.mail:mailapi:1.4.3
 javax.servlet:javax.servlet-api:3.1.0
 javax.validation:validation-api:1.1.0.Final
 javax.ws.rs:jsr311-api:1.1.1
-javax.xml.bind:jaxb-api:2.3.1
 joda-time:joda-time:2.10.6
 junit:junit:4.12
 log4j:log4j:1.2.17
@@ -166,7 +161,6 @@ org.eclipse.jetty:jetty-servlet:9.2.12.v20150709
 org.eclipse.jetty:jetty-util:9.2.12.v20150709
 org.eclipse.jetty:jetty-webapp:9.2.12.v20150709
 org.eclipse.jetty:jetty-xml:9.2.12.v20150709
-org.flywaydb:flyway-core:6.1.4
 org.glassfish:javax.el:3.0.1-b12
 org.hamcrest:hamcrest-core:1.3
 org.hdrhistogram:HdrHistogram:2.1.12
@@ -174,22 +168,17 @@ org.hibernate:hibernate-validator:5.4.3.Final
 org.javassist:javassist:3.18.2-GA
 org.jboss.logging:jboss-logging:3.3.0.Final
 org.joda:joda-convert:2.2.1
-org.jooq:jooq-codegen:3.13.2
-org.jooq:jooq-meta:3.13.2
-org.jooq:jooq:3.13.2
 org.json:json:20090211
 org.mock-server:mockserver-client-java:3.10.4
 org.mock-server:mockserver-core:3.10.4
 org.mock-server:mockserver-logging:3.10.4
 org.mock-server:mockserver-netty:3.10.4
 org.mozilla:rhino:1.7R4
-org.postgresql:postgresql:42.2.8
 org.reactivestreams:reactive-streams:1.0.3
 org.reflections:reflections:0.9.10
 org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4
 org.scala-lang:scala-library:2.11.7
 org.skyscreamer:jsonassert:1.2.3
-org.slf4j:jcl-over-slf4j:1.7.28
 org.slf4j:slf4j-api:1.7.30
 org.slf4j:slf4j-log4j12:1.7.0
 org.springframework.boot:spring-boot-autoconfigure:2.3.6.RELEASE
@@ -205,7 +194,6 @@ org.springframework:spring-jcl:5.2.11.RELEASE
 org.springframework:spring-web:5.2.11.RELEASE
 org.springframework:spring-webflux:5.2.11.RELEASE
 org.springframework:spring-webmvc:5.2.11.RELEASE
-org.tukaani:xz:1.5
 org.xerial.snappy:snappy-java:1.1.8.4
 org.yaml:snakeyaml:1.27
 xerces:xerces:2.4.0

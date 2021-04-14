@@ -1,0 +1,203 @@
+/*
+* Copyright 2021 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+import com.opentable.db.postgres.embedded.EmbeddedPostgres
+
+import java.sql.Connection
+import java.sql.ResultSet
+import java.sql.Statement
+buildscript { dependencies { classpath 'com.opentable.components:otj-pg-embedded:0.13.+' } }
+
+plugins {
+    id 'nu.studer.jooq' version '3.0.2'
+    id 'org.flywaydb.flyway' version '5.2.4'
+}
+
+apply plugin: 'nu.studer.jooq'
+apply plugin: 'org.flywaydb.flyway'
+
+ext.flywayVersion = '6.1.+'
+ext.jooqVersion = '3.13.2'
+ext.psql = '42.2.8'
+
+dependencies {
+    compile "org.springframework:spring-web:${springVersion}"
+    compile "org.springframework.boot:spring-boot:${springBootVersion}"
+
+    compile project(':titus-common')
+    compile project(':titus-api')
+    compile project(':titus-server-runtime')
+    compile project(':titus-supplementary-component-job-activity-history')
+
+    implementation("org.jooq:jooq:${jooqVersion}")
+
+    // DB -  Drivers
+    compile "org.postgresql:postgresql:${psql}"
+
+    // DB - jOOQ
+    compile "org.jooq:jooq:${jooqVersion}"
+    compile "org.jooq:jooq-meta:${jooqVersion}"
+    compile "org.jooq:jooq-codegen:${jooqVersion}"
+
+    // Flyway
+    compile "org.flywaydb:flyway-core:${flywayVersion}"
+
+    compile 'com.opentable.components:otj-pg-embedded:0.13.+'
+    jooqRuntime 'org.postgresql:postgresql:42.2.4'
+
+    // Hikari DataSource for connection pooling to the DB
+    compile 'com.zaxxer:HikariCP:3.2.0'
+    compile project(':titus-server-runtime')
+
+    testCompile project(':titus-testkit')
+}
+
+// Begin: Jooq code generation using EmbeddedPostgres database and Flyway migration
+ext.dataSource = null
+ext.pg = null
+ext.jdbcUrl = ''
+ext.jdbcPort = -1
+ext.jdbcUser = 'jobactivityuser'
+ext.jdbcPassword = 'jobactivitypassword'
+ext.flyway = null
+ext.jooq = null
+
+def startEmbeddedPostgresDatabase(boolean useLocal) {
+    println 'Starting embedded Postgresql DB...'
+
+    if (useLocal) {
+        jdbcPort = 5432
+        jdbcUrl = 'jdbc:postgresql://localhost:' + jdbcPort + '/jobactivity'
+        jdbcUser = 'postgres'
+        jdbcPassword = 'postgres'
+    } else {
+        pg = EmbeddedPostgres.start()
+        jdbcUser = 'postgres'
+        jdbcPassword = 'postgres'
+        jdbcPort = pg.getPort()
+        jdbcUrl = 'jdbc:postgresql://localhost:' + pg.getPort() + '/postgres'
+        println 'Postgres ' + jdbcUrl
+        dataSource = pg.getPostgresDatabase()
+        // The following code checks we are able to run a test query to the DB
+        Connection connection = dataSource.getConnection()
+        Statement statement = connection.createStatement()
+        ResultSet rs = statement.executeQuery("SELECT 1")
+        assert rs.next()
+        assert rs.getInt(1) == 1
+    }
+    println 'Embedded Postgresql DB started on port: ' + jdbcPort
+}
+
+task startDb {
+    group 'Embedded Postgresql DB'
+    description 'Starts an instance of Embedded Postgresql DB'
+    doFirst {
+        def useLocal = false
+        if (project.hasProperty('useLocalPostgres')) {
+            useLocal = Boolean.parseBoolean(project.property('useLocalPostgres'))
+        }
+        startEmbeddedPostgresDatabase(useLocal)
+        flyway {
+            driver = 'org.postgresql.Driver'
+            url = project.property('jdbcUrl')
+            user = project.property('jdbcUser')
+            password = project.property('jdbcPassword')
+            schemas = ['jobactivity', 'activity']
+            println 'Flyway Configuration for migrating job activity tables'
+            println '=========================================='
+            println 'jdbcUrl:  ' + url
+            println 'user      ' + user
+            println 'password: ' + password
+            println 'schemas:  ' + schemas
+            println '=========================================='
+        }
+        jooq {
+            println 'Setting up JOOQ Configuration'
+            println '============================='
+            version = '3.13.2'
+            activity(sourceSets.main) {
+                jdbc {
+                    url = project.property('jdbcUrl')
+                    user = project.property('jdbcUser')
+                    password = project.property('jdbcPassword')
+                }
+                generator {
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        includes = '(jobactivity|activity).*'
+                        excludes = ''
+                        recordVersionFields = 'rec_version'
+                    }
+                    target {
+                        packageName = 'com.netflix.titus.ext.jooqflyway.jobactivity'
+                        //outputDirectory.set(project.layout.buildDirectory.dir("generated"))
+                        //inputDirectory.setFrom(project.files("src/main/resources/"))
+                    }
+                    generate {
+                        daos = true
+                        interfaces = true
+                        immutablePojos = false
+                        fluentSetters = true
+                        pojosEqualsAndHashCode = true
+                    }
+                    strategy {
+                        name = null
+                        matchers {
+                            tables {
+                                table {
+                                    pojoClass {
+                                        transform = 'PASCAL'
+                                        // All Jooq Pojo Classess will suffixed with JooqPojo
+                                        expression = '\$0_Jooq_Pojo'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+task stopDb {
+    group 'Embedded Postgresql DB'
+    description 'Stops a running instance of Embedded Postgresql DB'
+    doLast {
+        // If you need the embedded DB to still be running for debugging code generation or DB migration,
+        // comment the following lines out so the DB is active. Connect to the port number in the output using your local postgres client.
+        // Alternatively, grep the process list (ps) for the word "embedded-pg" to get the postgresql command line arguments.
+        // You will need to manually terminate the postgresql instances running locally.
+        println 'Stopping embedded Postgresql DB running on port ' + jdbcPort
+        if (pg != null) pg.close()
+    }
+}
+
+// This partial configuration is needed so gradle recognizes jooq -> generateActivityJooqSchemaSource task for dev environments
+jooq {
+    println 'setup first'
+    version = '3.13.2'
+    activity(sourceSets.main) {
+        // ... This will be populated in the startDb method
+    }
+}
+
+// Setup dependence graph such that DB is up before migration and JOOQ code generation is attempted and the DB is shutdown as cleanup.
+flywayInfo.dependsOn startDb
+flywayMigrate.dependsOn flywayInfo
+flywayMigrate.finalizedBy stopDb
+flywayInfo.finalizedBy stopDb
+generateActivityJooqSchemaSource.dependsOn flywayMigrate
+generateActivityJooqSchemaSource.finalizedBy stopDb

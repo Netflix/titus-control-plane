@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.jobactivity.store;
+package com.netflix.titus.ext.jooqflyway;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.jobactivity.store;
+package com.netflix.titus.ext.jooqflyway;
 
 
+import com.netflix.titus.ext.jooqflyway.EmbeddedPostgresService;
+import com.netflix.titus.ext.jooqflyway.JooqConfigurationBean;
+import com.netflix.titus.ext.jooqflyway.JooqContext;
+import com.netflix.titus.ext.jooqflyway.RDSSSLSocketFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.DSLContext;
