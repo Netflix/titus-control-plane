@@ -149,8 +149,6 @@ public class JooqJobActivityStoreTest {
                 .fetchOneInto(Integer.class);
         System.out.println("Before: " + sizeBefore + " After: " + sizeAfter);
         //jooqJobActivityStore.consumeRecords();
-
-
     }
 
     /**

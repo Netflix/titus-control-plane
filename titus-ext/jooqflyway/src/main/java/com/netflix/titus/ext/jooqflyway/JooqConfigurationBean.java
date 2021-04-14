@@ -39,7 +39,7 @@ public class JooqConfigurationBean implements JooqConfiguration {
     }
 
     public boolean isLocalDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "localDb", true);
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "localDb", false);
     }
 
     public String getProducerDatatabaseUrl() {
