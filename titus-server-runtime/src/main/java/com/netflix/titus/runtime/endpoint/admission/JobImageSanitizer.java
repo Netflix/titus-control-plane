@@ -68,7 +68,11 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
                 .map(JobImageSanitizer::setImageFunction)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable -> isAllowedException(throwable, image), JobImageSanitizer::skipSanitization);
+                .onErrorReturn(throwable -> isAllowedException(throwable, image), JobImageSanitizer::skipSanitization)
+                .onErrorMap(Exception.class, error -> new IllegalArgumentException(String.format(
+                        "Image validation error: image=%s, cause=%s",
+                        image, error.getMessage()
+                ), error));
     }
 
     private static UnaryOperator<JobDescriptor> setImageFunction(Image image) {
