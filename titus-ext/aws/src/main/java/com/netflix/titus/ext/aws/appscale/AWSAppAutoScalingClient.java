@@ -242,7 +242,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
             putScalingPolicyRequest.setTargetTrackingScalingPolicyConfiguration(targetTrackingConfigAws);
         } else {
             return Observable.error(new UnsupportedOperationException(String.format(
-                    "Scaling policy type not supported: jobId=%s, policyId=%s, type=%s",
+                    "Scaling policy type not supported: jobId=%s, policyRefId=%s, type=%s",
                     jobId, policyRefId, policyConfiguration.getPolicyType().name()
             )));
         }
@@ -251,7 +251,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 Observable.create(emitter -> awsAppAutoScalingClientAsync.putScalingPolicyAsync(putScalingPolicyRequest, new AsyncHandler<PutScalingPolicyRequest, PutScalingPolicyResult>() {
                     @Override
                     public void onError(Exception exception) {
-                        logger.error("Exception creating scaling policy: jobId={}, policyId={}", jobId, policyRefId, exception);
+                        logger.error("Exception creating scaling policy: jobId={}, policyRefId={}", jobId, policyRefId, exception);
                         awsAppAutoScalingMetrics.registerAwsCreatePolicyError(exception);
                         if (exception instanceof ValidationException) {
                             emitter.onError(AutoScalePolicyException.invalidScalingPolicy(policyRefId, exception.getMessage()));
