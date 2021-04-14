@@ -4,5 +4,6 @@ dependencies {
 
     compile project(':titus-server-runtime')
 
+    testCompile "org.springframework:spring-test:${springVersion}"
     testCompile project(':titus-testkit')
 }

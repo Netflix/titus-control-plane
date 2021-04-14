@@ -16,5 +16,19 @@
 
 package com.netflix.titus.supplementary.jobactivity.store;
 
-public interface JobActivityStore {
+import com.netflix.titus.api.common.LeaderActivationListener;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import reactor.core.publisher.Mono;
+
+/*
+The consumer store consumes from the publisher queue
+ */
+
+public interface JobActivityStore extends LeaderActivationListener {
+    Mono<Void> consumeJob(Job<?> Job);
+
+    void consumeTask(Task Task);
+
+    Mono<Void> processRecords();
 }

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway.jobactivity;
+package com.netflix.titus.ext.jooqflyway;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import javax.inject.Inject;
 import javax.sql.DataSource;
 
@@ -35,16 +37,20 @@ public class EmbeddedPostgresService {
 
     private final EmbeddedPostgres embeddedPostgres;
     private final DataSource dataSource;
+    private final Connection connection;
 
     @Inject
-    public EmbeddedPostgresService(JooqConfiguration configuration) {
+    public EmbeddedPostgresService(JooqConfigurationBean configuration) {
         if (configuration.isInMemoryDb()) {
             try {
                 this.embeddedPostgres = EmbeddedPostgres.start();
 
                 DataSource defaultDataSource = embeddedPostgres.getDatabase(POSTGRES_USER, POSTGRES_DB_NAME);
-                defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW).prepareStatement("CREATE DATABASE integration").execute();
-
+                connection = defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW);
+                PreparedStatement statement = connection.prepareStatement("CREATE DATABASE integration");
+                // ignore result
+                statement.execute();
+                statement.close();
                 this.dataSource = this.embeddedPostgres.getDatabase(POSTGRES_USER, DB_NAME);
             } catch (Exception error) {
                 logger.error("Failed to start an instance of EmbeddedPostgres database", error);
@@ -53,8 +59,10 @@ public class EmbeddedPostgresService {
         } else {
             this.embeddedPostgres = null;
             this.dataSource = null;
+            this.connection = null;
         }
     }
+
 
     public DataSource getDataSource() {
         Preconditions.checkNotNull(dataSource, "Embedded Postgres mode not enabled");

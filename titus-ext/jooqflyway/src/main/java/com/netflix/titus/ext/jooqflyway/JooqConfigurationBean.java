@@ -14,34 +14,32 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway.jobactivity;
-
-import javax.inject.Inject;
+package com.netflix.titus.ext.jooqflyway;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
-@Configuration(prefix = "titus.ext.jooqflyway")
-public class JooqConfiguration {
+@Configuration(prefix = "titus.ext.supplementary.jobactivity")
+public class JooqConfigurationBean implements JooqConfiguration {
 
-    private static final String PREFIX = "titus.ext.jooqflyway.";
-    //private final Environment environment;
+    private static final String PREFIX = "titus.ext.supplementary.jobactivity.";
+
     @Autowired
     Environment environment;
 
-    /*@Inject
-    public JooqConfiguration(Environment environment) {
-        this.environment = environment;
-    }*/
-
     public String getDatabaseUrl() {
-        return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+        String string = SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+        return string;
     }
 
     public boolean isInMemoryDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", true);
+    }
+
+    public boolean isLocalDb() {
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "localDb", false);
     }
 
     public String getProducerDatatabaseUrl() {

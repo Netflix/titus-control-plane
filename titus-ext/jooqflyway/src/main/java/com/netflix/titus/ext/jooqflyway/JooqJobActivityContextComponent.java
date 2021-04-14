@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,29 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway.jobactivity;
+package com.netflix.titus.ext.jooqflyway;
 
-import javax.sql.DataSource;
 
+import com.netflix.titus.ext.jooqflyway.EmbeddedPostgresService;
+import com.netflix.titus.ext.jooqflyway.JooqConfigurationBean;
+import com.netflix.titus.ext.jooqflyway.JooqContext;
+import com.netflix.titus.ext.jooqflyway.RDSSSLSocketFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 import org.postgresql.PGProperty;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @Configuration
-public class JooqJobActivityConnectorComponent {
+public class JooqJobActivityContextComponent {
 
     @Bean
-    public JooqConfiguration getJooqPropertyConfiguration() {
-        return new JooqConfiguration();
+    public JooqConfigurationBean getJooqPropertyConfiguration() {
+        return new JooqConfigurationBean();
     }
 
     @Bean
@@ -44,38 +45,40 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
-    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration configuration) {
-        return new EmbeddedPostgresService(configuration);
+    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfigurationBean jooqConfiguration) {
+        return new EmbeddedPostgresService(jooqConfiguration);
     }
 
     @Bean
     @Primary
-    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    @Qualifier("jobActivityJooqContext")
+    public JooqContext getJobActivityJooqContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
-
         hikariConfig.setAutoCommit(true);
 
         // Connection management
         hikariConfig.setConnectionTimeout(10000);
         hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setLeakDetectionThreshold(3000);
-
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
+        } else if (jooqConfiguration.isLocalDb()) {
+            hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
+            hikariConfig.setUsername("postgres");
+            hikariConfig.setPassword("postgres");
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
         }
-
         return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
     }
 
     @Bean
-    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    @Qualifier("producerJooqContext")
+    public JooqContext getJooqProducerContext(JooqConfigurationBean jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
-
         hikariConfig.setAutoCommit(true);
 
         // Connection management
@@ -85,26 +88,28 @@ public class JooqJobActivityConnectorComponent {
 
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
+        } else if (jooqConfiguration.isLocalDb()) {
+            hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
+            hikariConfig.setUsername("postgres");
+            hikariConfig.setPassword("postgres");
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getProducerDatatabaseUrl());
         }
-
         return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
     }
 
     @Bean
     @Primary
-    @Qualifier("jobActivityDSLContext")
-    public DSLContext getJobActivityDSLContext(JooqContext jooqContext) {
-        return jooqContext.getDslContext();
+    @Qualifier("jobActivityDslContext")
+    public DSLContext getJobActivityDSLContext(JooqContext jooqJobActivityContext) {
+        return jooqJobActivityContext.getDslContext();
     }
 
-
     @Bean
-    @Qualifier("producerDSLContext")
+    @Qualifier("producerDslContext")
     public DSLContext getProducerDSLContext(JooqContext jooqProducerContext) {
         return jooqProducerContext.getDslContext();
     }

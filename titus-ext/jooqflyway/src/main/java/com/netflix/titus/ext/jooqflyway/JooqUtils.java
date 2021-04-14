@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway.jobactivity;
+package com.netflix.titus.ext.jooqflyway;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;

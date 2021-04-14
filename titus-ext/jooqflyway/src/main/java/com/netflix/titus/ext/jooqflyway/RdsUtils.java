@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway.jobactivity;
+package com.netflix.titus.ext.jooqflyway;
 
 import java.io.InputStream;
 import java.security.KeyStore;

@@ -18,8 +18,14 @@ package com.netflix.titus.supplementary.jobactivity;
 
 import javax.inject.Named;
 
-import com.netflix.titus.common.runtime.InternalRuntimeComponent;
+import com.netflix.titus.api.health.HealthIndicator;
+import com.netflix.titus.api.health.HealthIndicators;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationComponent;
+import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipInMemoryConnectorComponent;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
+import com.netflix.titus.runtime.clustermembership.endpoint.rest.ClusterMembershipRestEndpointComponent;
+import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
@@ -39,11 +45,18 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
 
 @SpringBootApplication
 @Import({
-        InternalRuntimeComponent.class,
+        JobActivityTitusRuntimeComponent.class,
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
         GrpcToReactorClientFactoryComponent.class,
         GrpcToReactorServerFactoryComponent.class,
+
+        // Cluster membership service
+        ClusterMembershipInMemoryConnectorComponent.class,
+        ClusterMembershipServiceComponent.class,
+        ClusterMembershipGrpcEndpointComponent.class,
+        ClusterMembershipRestEndpointComponent.class,
+        LeaderActivationComponent.class,
 
         // Job connector
         JobManagerConnectorComponent.class,
@@ -51,6 +64,12 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
         RestAddOnsComponent.class
 })
 public class JobActivityMain {
+
+    @Bean
+    public HealthIndicator getHealthIndicator() {
+        return HealthIndicators.alwaysHealthy();
+    }
+
 
     @Bean
     @Named(JobManagerConnectorComponent.JOB_MANAGER_CHANNEL)

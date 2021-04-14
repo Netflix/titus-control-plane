@@ -24,7 +24,6 @@ dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
     compile project(':titus-supplementary-component-task-relocation')
-    compile project(':titus-supplementary-component-job-activity-history')
 
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.postgresql:postgresql:${postgresqlVersion}"

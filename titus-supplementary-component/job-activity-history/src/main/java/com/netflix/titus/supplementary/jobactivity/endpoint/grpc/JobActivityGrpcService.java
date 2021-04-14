@@ -19,9 +19,9 @@ package com.netflix.titus.supplementary.jobactivity.endpoint.grpc;
 import javax.inject.Singleton;
 
 import com.netflix.titus.grpc.protogen.JobActivityQueryResult;
+import com.netflix.titus.grpc.protogen.JobActivityServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.TaskActivityQueryResult;
-import com.netflix.titus.grpc.protogen.JobActivityServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.supplementary.jobactivity.endpoint.TestData;
 import io.grpc.stub.StreamObserver;
