@@ -91,8 +91,10 @@ public class JobImageSanitizerTest {
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
                 .expectErrorSatisfies(throwable -> {
-                    assertThat(throwable).isInstanceOf(TitusRegistryException.class);
-                    assertThat(((TitusRegistryException) throwable).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
+                    assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
+                    Throwable cause = throwable.getCause();
+                    assertThat(cause).isInstanceOf(TitusRegistryException.class);
+                    assertThat(((TitusRegistryException) cause).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
                 })
                 .verify();
     }
