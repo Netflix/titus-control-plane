@@ -35,7 +35,7 @@ public class JooqConfigurationBean implements JooqConfiguration {
     }
 
     public boolean isInMemoryDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", true);
     }
 
     public boolean isLocalDb() {

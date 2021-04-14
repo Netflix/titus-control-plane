@@ -74,6 +74,9 @@ public class JooqJobActivityStoreTest {
     private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
 
     @Autowired
+    private EmbeddedPostgresService embeddedPostgresService;
+
+    @Autowired
     @Qualifier("jobActivityJooqContext")
     private JooqContext jobActivityJooqContext;
 
