@@ -18,16 +18,14 @@ package com.netflix.titus.ext.jooqflyway;
 
 
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
-import com.netflix.titus.ext.jooq.EmbeddedPostgresService;
 import com.netflix.titus.ext.jooq.JooqConfiguration;
 import com.netflix.titus.ext.jooq.JooqContext;
-import com.netflix.titus.ext.jooq.RDSSSLSocketFactory;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import com.netflix.titus.ext.jooq.ProductionJooqContext;
+import com.netflix.titus.ext.jooq.embedded.EmbeddedJooqContext;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
-import org.postgresql.PGProperty;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -47,60 +45,22 @@ public class JooqJobActivityContextComponent {
     }
 
     @Bean
-    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration jooqConfiguration) {
-        return new EmbeddedPostgresService(jooqConfiguration);
-    }
-
-    @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
-        HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setAutoCommit(true);
-
-        // Connection management
-        hikariConfig.setConnectionTimeout(10000);
-        hikariConfig.setMaximumPoolSize(10);
-        hikariConfig.setLeakDetectionThreshold(3000);
+    public JooqContext getJobActivityJooqContext(JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
-            hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
-        } else if (jooqConfiguration.isLocalDb()) {
-            hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
-            hikariConfig.setUsername("postgres");
-            hikariConfig.setPassword("postgres");
-        } else {
-            hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
-            hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
-            hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
-            hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
+            return new EmbeddedJooqContext(applicationContext, "jobActivityJooqContext");
         }
-        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
+        return new ProductionJooqContext(jooqConfiguration);
     }
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
-        HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setAutoCommit(true);
-
-        // Connection management
-        hikariConfig.setConnectionTimeout(10000);
-        hikariConfig.setMaximumPoolSize(10);
-        hikariConfig.setLeakDetectionThreshold(3000);
-
+    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
-            hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
-        } else if (jooqConfiguration.isLocalDb()) {
-            hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres");
-            hikariConfig.setUsername("postgres");
-            hikariConfig.setPassword("postgres");
-        } else {
-            hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
-            hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
-            hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
-            hikariConfig.setJdbcUrl(jooqConfiguration.getProducerDatatabaseUrl());
+            return new EmbeddedJooqContext(applicationContext, "producerJooqContext");
         }
-        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
+        return new ProductionJooqContext(jooqConfiguration);
     }
 
     @Bean

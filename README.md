@@ -35,6 +35,29 @@ For reference, check some of the scripts commonly used by committers in the `scr
 ./gradlew testAll
 ```
 
+### Test databases
+
+By default, the database tests are executed with an embedded Postgres service. This can be modified by setting
+database profiles in `~/.titus-jooq.yaml` file:
+```yaml
+profiles:
+  relocation:
+    name: relocation
+    databaseUrl: jdbc:postgresql://localhost:5432/postgres
+    user: titus
+    password: 123
+  jobActivityJooqContext:
+    name: jobActivityJooqContext
+    databaseUrl: jdbc:postgresql://localhost:5432/postgres
+    user: postgres
+    password: postgres
+  producerJooqContext:
+    name: producerJooqContext
+    databaseUrl: jdbc:postgresql://localhost:5432/postgres
+    user: postgres
+    password: postgres
+```
+
 ## Extensions
 
 There are several extensions in the `titus-ext` folder for integrations with various systems. In order to use

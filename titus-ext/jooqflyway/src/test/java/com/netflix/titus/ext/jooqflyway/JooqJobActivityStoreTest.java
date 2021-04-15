@@ -25,7 +25,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.ext.jooq.EmbeddedPostgresService;
 import com.netflix.titus.ext.jooq.JooqContext;
 import com.netflix.titus.ext.jooq.JooqUtils;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
@@ -55,6 +54,7 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 @SpringBootTest(
         properties = {
                 "spring.application.name=test",
+                "titus.ext.supplementary.jobactivity.inMemoryDb=true"
         },
         classes = {
                 JooqJobActivityContextComponent.class,
@@ -74,9 +74,6 @@ public class JooqJobActivityStoreTest {
     JobActivityConnectorStubs jobActivityConnectorStubs = new JobActivityConnectorStubs();
 
     private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
-
-    @Autowired
-    private EmbeddedPostgresService embeddedPostgresService;
 
     @Autowired
     @Qualifier("jobActivityJooqContext")
