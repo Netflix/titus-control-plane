@@ -112,7 +112,7 @@ subprojects {
 
         // Test
         junitVersion = '4.+'
-        mockitoVersion = '3.3.3'
+        mockitoVersion = '3.4.0'
         hamcrestVersion = '1.3'
         awaitilityVersion = '1.7.0'
         assertjVersion = '3.8.0'
