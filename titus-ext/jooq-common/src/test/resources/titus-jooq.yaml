@@ -1,0 +1,6 @@
+profiles:
+  relocation:
+    name: relocation
+    databaseUrl: jdbc:postgresql://localhost:5432/postgres
+    user: titus
+    password: 123

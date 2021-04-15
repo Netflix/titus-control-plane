@@ -36,7 +36,7 @@ include 'titus-common',\
     project(":$projectName").projectDir = new File(extRoot, "$it")
 }
 
-['aws', 'cassandra', 'cassandra-testkit', 'eureka', 'job-validator', 'jooq', 'jooqflyway', 'zookeeper'].each {
+['aws', 'cassandra', 'cassandra-testkit', 'eureka', 'job-validator', 'jooq-common', 'jooq', 'jooqflyway', 'zookeeper'].each {
     def projectName = "titus-ext-$it"
     include projectName
 

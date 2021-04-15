@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jooq.embedded;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.sql.DataSource;
 
 import com.google.common.base.Preconditions;
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
-@Service
+@Singleton
 public class EmbeddedPostgresService {
+
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedPostgresService.class);
 
     private static final String DB_NAME = "integration";
@@ -40,33 +41,25 @@ public class EmbeddedPostgresService {
     private final Connection connection;
 
     @Inject
-    public EmbeddedPostgresService(JooqConfigurationBean configuration) {
-        if (configuration.isInMemoryDb()) {
-            try {
-                this.embeddedPostgres = EmbeddedPostgres.start();
+    public EmbeddedPostgresService() {
+        try {
+            this.embeddedPostgres = EmbeddedPostgres.start();
 
-                DataSource defaultDataSource = embeddedPostgres.getDatabase(POSTGRES_USER, POSTGRES_DB_NAME);
-                connection = defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW);
-                PreparedStatement statement = connection.prepareStatement("CREATE DATABASE integration");
-                // ignore result
-                statement.execute();
-                statement.close();
-                this.dataSource = this.embeddedPostgres.getDatabase(POSTGRES_USER, DB_NAME);
-            } catch (Exception error) {
-                logger.error("Failed to start an instance of EmbeddedPostgres database", error);
-                throw new IllegalStateException(error);
-            }
-        } else {
-            this.embeddedPostgres = null;
-            this.dataSource = null;
-            this.connection = null;
+            DataSource defaultDataSource = embeddedPostgres.getDatabase(POSTGRES_USER, POSTGRES_DB_NAME);
+            connection = defaultDataSource.getConnection(POSTGRES_USER, POSTGRES_PW);
+            PreparedStatement statement = connection.prepareStatement("CREATE DATABASE integration");
+            // ignore result
+            statement.execute();
+            statement.close();
+            this.dataSource = this.embeddedPostgres.getDatabase(POSTGRES_USER, DB_NAME);
+        } catch (Exception error) {
+            logger.error("Failed to start an instance of EmbeddedPostgres database", error);
+            throw new IllegalStateException(error);
         }
     }
-
 
     public DataSource getDataSource() {
         Preconditions.checkNotNull(dataSource, "Embedded Postgres mode not enabled");
         return dataSource;
     }
-
 }
