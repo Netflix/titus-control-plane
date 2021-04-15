@@ -33,6 +33,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.cache.Cache;
 import com.netflix.titus.common.util.cache.Caches;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.jooq.JooqUtils;
 import com.netflix.titus.ext.jooq.relocation.schema.JRelocation;
 import com.netflix.titus.ext.jooq.relocation.schema.tables.records.JRelocationStatusRecord;
@@ -87,16 +88,16 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
     public Mono<Map<String, Optional<Throwable>>> createTaskRelocationStatuses(List<TaskRelocationStatus> taskRelocationStatuses) {
         return Mono.defer(() -> {
             CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() -> {
-                        loadToCache(findNotCached(taskRelocationStatuses), dslContext.configuration());
+                loadToCache(findNotCached(taskRelocationStatuses), dslContext.configuration());
 
-                        List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
-                                .map(this::newCreateOrUpdateQuery)
-                                .collect(Collectors.toList());
+                List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
+                        .map(this::newCreateOrUpdateQuery)
+                        .collect(Collectors.toList());
 
-                        return dslContext
-                                .batch(queries)
-                                .execute();
-                    }, dslContext);
+                return dslContext
+                        .batch(queries)
+                        .execute();
+            }, dslContext);
 
             MonoProcessor<Map<String, Optional<Throwable>>> callerProcessor = MonoProcessor.create();
             asyncAction.handle((result, error) -> {
@@ -146,6 +147,20 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
         });
     }
 
+    /**
+     * Remove from cache garbage collected entries.
+     */
+    void removeFromCache(List<Pair<String, Long>> toRemove) {
+        toRemove.forEach(p -> {
+            String taskId = p.getLeft();
+            long timestamp = p.getRight();
+            TaskRelocationStatus status = statusesByTaskId.getIfPresent(taskId);
+            if (status != null && status.getTimestamp() == timestamp) {
+                statusesByTaskId.invalidate(taskId);
+            }
+        });
+    }
+
     private Set<String> findNotCached(List<TaskRelocationStatus> taskRelocationStatuses) {
         return taskRelocationStatuses.stream()
                 .map(TaskRelocationStatus::getTaskId)
@@ -162,6 +177,7 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                                 .withState(TaskRelocationStatus.TaskRelocationState.valueOf(record.getRelocationState()))
                                 .withStatusCode(record.getStatusCode())
                                 .withStatusMessage(record.getStatusMessage())
+                                .withTimestamp(record.getRelocationExecutionTime().getTime())
                                 .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
                                         .withTaskId(record.getTaskId())
                                         .withReason(TaskRelocationPlan.TaskRelocationReason.valueOf(record.getReasonCode()))

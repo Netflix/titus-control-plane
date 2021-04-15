@@ -17,16 +17,26 @@
 package com.netflix.titus.ext.jooq.relocation;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationStoreActivator;
 import org.jooq.DSLContext;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 @Configuration
+@Import({JooqTaskRelocationGC.class})
 @ConditionalOnProperty(name = "titus.ext.jooq.relocation.enabled", havingValue = "true", matchIfMissing = true)
 public class JooqRelocationComponent {
+
+    @Bean
+    public JooqRelocationConfiguration getJooqRelocationConfiguration(Environment environment) {
+        return Archaius2Ext.newConfiguration(JooqRelocationConfiguration.class, environment);
+    }
 
     @Bean
     public TaskRelocationStore getTaskRelocationStore(DSLContext dslContext) {
@@ -37,5 +47,17 @@ public class JooqRelocationComponent {
     public TaskRelocationResultStore getTaskRelocationResultStore(DSLContext dslContext,
                                                                   TitusRuntime titusRuntime) {
         return new JooqTaskRelocationResultStore(dslContext, titusRuntime);
+    }
+
+    @Bean
+    public TaskRelocationStoreActivator getTaskRelocationStoreActivator(JooqTaskRelocationStore relocationStore,
+                                                                        JooqTaskRelocationGC relocationGC) {
+        return new TaskRelocationStoreActivator() {
+            @Override
+            public void activate() {
+                relocationStore.activate();
+                relocationGC.activate();
+            }
+        };
     }
 }

@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import com.netflix.archaius.api.annotations.PropertyName;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
+import com.netflix.titus.common.util.unit.TimeUnitExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -228,6 +230,9 @@ class SpringProxyInvocationHandler implements InvocationHandler {
                 this.value = Float.parseFloat(stringValue);
             } else if (Boolean.class.equals(valueType) || boolean.class.equals(valueType)) {
                 this.value = Boolean.parseBoolean(stringValue);
+            } else if (Duration.class.equals(valueType)) {
+                long intervalMs = TimeUnitExt.toMillis(stringValue).orElseThrow(() -> new IllegalArgumentException("Invalid time interval: " + stringValue));
+                this.value = Duration.ofMillis(intervalMs);
             } else if (List.class.isAssignableFrom(valueType)) {
                 ParameterizedType genericReturnType = (ParameterizedType) method.getGenericReturnType();
                 this.value = parseList(genericReturnType.getActualTypeArguments()[0], stringValue);

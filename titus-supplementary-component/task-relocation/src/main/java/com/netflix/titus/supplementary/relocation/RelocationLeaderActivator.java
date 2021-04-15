@@ -28,7 +28,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationConfiguration;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinator;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationStatus;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationStoreActivator;
 import com.netflix.titus.supplementary.relocation.workflow.NodeConditionController;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 
@@ -42,12 +42,12 @@ public class RelocationLeaderActivator implements LeaderActivationStatus {
 
     @Inject
     public RelocationLeaderActivator(LeaderActivationConfiguration configuration,
-                                     TaskRelocationStore relocationStore,
+                                     TaskRelocationStoreActivator relocationStoreActivator,
                                      RelocationWorkflowExecutor workflowExecutor,
                                      NodeConditionController nodeConditionController,
                                      ClusterMembershipService membershipService,
                                      TitusRuntime titusRuntime) {
-        List<LeaderActivationListener> services = Arrays.asList(relocationStore, workflowExecutor, nodeConditionController);
+        List<LeaderActivationListener> services = Arrays.asList(relocationStoreActivator, workflowExecutor, nodeConditionController);
         this.coordinator = configuration.isSystemExitOnLeadershipLost()
                 ? coordinatorWithSystemExitCallback(configuration, services, membershipService, titusRuntime)
                 : coordinatorWithLoggingCallback(configuration, services, membershipService, titusRuntime);
