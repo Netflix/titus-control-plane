@@ -68,6 +68,10 @@ public class BasicServiceJobActions {
 
                     Capacity newCapacity = newCapacityBuilder.build();
 
+                    if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(newCapacity)) {
+                        return Observable.empty();
+                    }
+
                     // model validation for capacity
                     Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
                     if (!violations.isEmpty()) {
@@ -78,10 +82,6 @@ public class BasicServiceJobActions {
                     if (isDesiredCapacityInvalid(newCapacity, serviceJob)) {
                         return Observable.error(JobManagerException.invalidDesiredCapacity(serviceJob.getId(), newCapacity.getDesired(),
                                 serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
-                    }
-
-                    if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(newCapacity)) {
-                        return Observable.empty();
                     }
 
                     // ready to update job capacity
