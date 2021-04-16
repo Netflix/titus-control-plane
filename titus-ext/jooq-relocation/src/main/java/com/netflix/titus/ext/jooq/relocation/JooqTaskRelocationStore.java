@@ -30,21 +30,18 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.ext.jooq.JooqUtils;
-import com.netflix.titus.ext.jooq.relocation.schema.JRelocation;
-import com.netflix.titus.ext.jooq.relocation.schema.tables.records.JRelocationPlanRecord;
+import com.netflix.titus.ext.jooq.relocation.tables.records.RelocationPlanRecord;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.jooq.DSLContext;
 import org.jooq.Delete;
 import org.jooq.Result;
 import org.jooq.StoreQuery;
-import org.jooq.impl.DSL;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
-
-import static com.netflix.titus.ext.jooq.relocation.schema.tables.JRelocationPlan.RELOCATION_PLAN;
 
 @Singleton
 public class JooqTaskRelocationStore implements TaskRelocationStore {
@@ -56,7 +53,6 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
     @Inject
     public JooqTaskRelocationStore(DSLContext dslContext) {
         this.dslContext = dslContext;
-        createSchemaIfNotExist();
     }
 
     @Override
@@ -64,21 +60,14 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
         load();
     }
 
-    private void createSchemaIfNotExist() {
-        dslContext.createSchemaIfNotExists(JRelocation.RELOCATION).execute();
-        dslContext.createTableIfNotExists(RELOCATION_PLAN)
-                .column(RELOCATION_PLAN.TASK_ID)
-                .column(RELOCATION_PLAN.REASON_CODE)
-                .column(RELOCATION_PLAN.REASON_MESSAGE)
-                .column(RELOCATION_PLAN.DECISION_TIME)
-                .column(RELOCATION_PLAN.RELOCATION_TIME)
-                .constraint(DSL.constraint("pk_relocation_plan_task_id").primaryKey(RELOCATION_PLAN.TASK_ID))
-                .execute();
+    @VisibleForTesting
+    Mono<Void> clearStore() {
+        return JooqUtils.executeAsyncMono(() -> dslContext.truncateTable(Relocation.RELOCATION.RELOCATION_PLAN).execute(), dslContext).then();
     }
 
     private void load() {
-        Result<JRelocationPlanRecord> allRows = dslContext.selectFrom(RELOCATION_PLAN).fetch();
-        for (JRelocationPlanRecord record : allRows) {
+        Result<RelocationPlanRecord> allRows = dslContext.selectFrom(Relocation.RELOCATION.RELOCATION_PLAN).fetch();
+        for (RelocationPlanRecord record : allRows) {
             plansByTaskId.put(
                     record.getTaskId(),
                     TaskRelocationPlan.newBuilder()
@@ -99,7 +88,7 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
         }
 
         return Mono.defer(() -> {
-            List<StoreQuery<JRelocationPlanRecord>> queries = taskRelocationPlans.stream().map(this::newCreateOrUpdateQuery).collect(Collectors.toList());
+            List<StoreQuery<RelocationPlanRecord>> queries = taskRelocationPlans.stream().map(this::newCreateOrUpdateQuery).collect(Collectors.toList());
             CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() ->
                     dslContext.batch(queries).execute(), dslContext);
 
@@ -135,7 +124,7 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
         }
 
         return Mono.defer(() -> {
-            List<Delete<JRelocationPlanRecord>> deletes = toRemove.stream()
+            List<Delete<RelocationPlanRecord>> deletes = toRemove.stream()
                     .filter(plansByTaskId::containsKey)
                     .map(this::newDelete)
                     .collect(Collectors.toList());
@@ -160,25 +149,25 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
         });
     }
 
-    private StoreQuery<JRelocationPlanRecord> newCreateOrUpdateQuery(TaskRelocationPlan relocationPlan) {
-        StoreQuery<JRelocationPlanRecord> storeQuery;
+    private StoreQuery<RelocationPlanRecord> newCreateOrUpdateQuery(TaskRelocationPlan relocationPlan) {
+        StoreQuery<RelocationPlanRecord> storeQuery;
 
         if (plansByTaskId.containsKey(relocationPlan.getTaskId())) {
-            storeQuery = dslContext.updateQuery(RELOCATION_PLAN);
+            storeQuery = dslContext.updateQuery(Relocation.RELOCATION.RELOCATION_PLAN);
         } else {
-            storeQuery = dslContext.insertQuery(RELOCATION_PLAN);
-            storeQuery.addValue(RELOCATION_PLAN.TASK_ID, relocationPlan.getTaskId());
+            storeQuery = dslContext.insertQuery(Relocation.RELOCATION.RELOCATION_PLAN);
+            storeQuery.addValue(Relocation.RELOCATION.RELOCATION_PLAN.TASK_ID, relocationPlan.getTaskId());
         }
 
-        storeQuery.addValue(RELOCATION_PLAN.REASON_CODE, relocationPlan.getReason().name());
-        storeQuery.addValue(RELOCATION_PLAN.REASON_MESSAGE, relocationPlan.getReasonMessage());
-        storeQuery.addValue(RELOCATION_PLAN.DECISION_TIME, new Timestamp(relocationPlan.getDecisionTime()));
-        storeQuery.addValue(RELOCATION_PLAN.RELOCATION_TIME, new Timestamp(relocationPlan.getRelocationTime()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_PLAN.REASON_CODE, relocationPlan.getReason().name());
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_PLAN.REASON_MESSAGE, relocationPlan.getReasonMessage());
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_PLAN.DECISION_TIME, new Timestamp(relocationPlan.getDecisionTime()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_PLAN.RELOCATION_TIME, new Timestamp(relocationPlan.getRelocationTime()));
 
         return storeQuery;
     }
 
-    private Delete<JRelocationPlanRecord> newDelete(String taskId) {
-        return dslContext.delete(RELOCATION_PLAN).where(RELOCATION_PLAN.TASK_ID.eq(taskId));
+    private Delete<RelocationPlanRecord> newDelete(String taskId) {
+        return dslContext.delete(Relocation.RELOCATION.RELOCATION_PLAN).where(Relocation.RELOCATION.RELOCATION_PLAN.TASK_ID.eq(taskId));
     }
 }

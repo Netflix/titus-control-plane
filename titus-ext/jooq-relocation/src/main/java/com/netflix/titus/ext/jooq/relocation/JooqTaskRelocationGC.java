@@ -36,13 +36,12 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import org.jooq.DSLContext;
 import org.jooq.Record2;
 import org.jooq.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.netflix.titus.ext.jooq.relocation.schema.tables.JRelocationStatus.RELOCATION_STATUS;
 
 /**
  * Task relocation garbage collector. Removes entries from the relocation status table older than a configurable
@@ -69,11 +68,11 @@ public class JooqTaskRelocationGC implements LeaderActivationListener {
     @Inject
     public JooqTaskRelocationGC(JooqRelocationConfiguration configuration,
                                 DSLContext dslContext,
-                                JooqTaskRelocationResultStore relocationResultStore,
+                                TaskRelocationResultStore relocationResultStore,
                                 TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.dslContext = dslContext;
-        this.relocationResultStore = relocationResultStore;
+        this.relocationResultStore = (JooqTaskRelocationResultStore) relocationResultStore;
         this.titusRuntime = titusRuntime;
         this.allRowsGauge = titusRuntime.getRegistry().gauge(METRIC_ROOT + "allRows", "table", "relocation_status");
         this.expiredRowsGauge = titusRuntime.getRegistry().gauge(METRIC_ROOT + "expiredRows", "table", "relocation_status");
@@ -112,13 +111,13 @@ public class JooqTaskRelocationGC implements LeaderActivationListener {
     @VisibleForTesting
     int removeExpiredData(long timeThreshold) {
         // Count all items
-        int allCount = dslContext.fetchCount(RELOCATION_STATUS);
+        int allCount = dslContext.fetchCount(Relocation.RELOCATION.RELOCATION_STATUS);
         logger.info("All rows in 'relocation_status' table: {}", allCount);
         allRowsGauge.set(allCount);
 
         int expiredCount = dslContext.fetchCount(
-                RELOCATION_STATUS,
-                RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold)))
+                Relocation.RELOCATION.RELOCATION_STATUS,
+                Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold)))
         );
         logger.info("Expired rows in 'relocation_status' table: {}", expiredCount);
         expiredRowsGauge.set(expiredCount);
@@ -128,10 +127,10 @@ public class JooqTaskRelocationGC implements LeaderActivationListener {
         }
 
         // Locate timestamp from which to remove.
-        Result<Record2<String, Timestamp>> timestampRow = dslContext.select(RELOCATION_STATUS.TASK_ID, RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
-                .from(RELOCATION_STATUS)
-                .where(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold))))
-                .orderBy(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.asc())
+        Result<Record2<String, Timestamp>> timestampRow = dslContext.select(Relocation.RELOCATION.RELOCATION_STATUS.TASK_ID, Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
+                .from(Relocation.RELOCATION.RELOCATION_STATUS)
+                .where(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.lt(Timestamp.from(Instant.ofEpochMilli(timeThreshold))))
+                .orderBy(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.asc())
                 .limit(configuration.getGcRowLimit())
                 .fetch();
 
@@ -139,23 +138,23 @@ public class JooqTaskRelocationGC implements LeaderActivationListener {
             logger.info("No expired data found");
             return 0;
         }
-        Timestamp lastToRemove = timestampRow.get(timestampRow.size() - 1).getValue(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME);
+        Timestamp lastToRemove = timestampRow.get(timestampRow.size() - 1).getValue(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME);
 
         // Load all data up to the given timestamp. This could be more data than above (and more than the GC limit when
         // there are records with the lastToRemove timestamp, which were not returned due to the limit constraint.
         // This is fine, as we do not expect that there are too many like this.
-        Result<Record2<String, Timestamp>> toRemoveRows = dslContext.select(RELOCATION_STATUS.TASK_ID, RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
-                .from(RELOCATION_STATUS)
-                .where(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.le(lastToRemove))
-                .orderBy(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.asc())
+        Result<Record2<String, Timestamp>> toRemoveRows = dslContext.select(Relocation.RELOCATION.RELOCATION_STATUS.TASK_ID, Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
+                .from(Relocation.RELOCATION.RELOCATION_STATUS)
+                .where(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.le(lastToRemove))
+                .orderBy(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.asc())
                 .fetch();
 
         List<Pair<String, Long>> toRemoveSet = toRemoveRows.stream()
-                .map(r -> Pair.of(r.get(RELOCATION_STATUS.TASK_ID), r.get(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME).getTime()))
+                .map(r -> Pair.of(r.get(Relocation.RELOCATION.RELOCATION_STATUS.TASK_ID), r.get(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME).getTime()))
                 .collect(Collectors.toList());
         logger.info("Records to remove: {}", toRemoveSet);
 
-        int removedFromDb = dslContext.delete(RELOCATION_STATUS).where(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.le(lastToRemove)).execute();
+        int removedFromDb = dslContext.delete(Relocation.RELOCATION.RELOCATION_STATUS).where(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME.le(lastToRemove)).execute();
 
         logger.info("Removed expired rows from 'relocation_status' table: {}", removedFromDb);
         gcCounter.increment(removedFromDb);

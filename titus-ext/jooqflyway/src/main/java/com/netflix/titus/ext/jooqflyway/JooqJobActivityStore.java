@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.ext.jooqflyway.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooq.activity.Tables.ACTIVITY_QUEUE;
 import static com.netflix.titus.ext.jooqflyway.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
 
 
@@ -89,7 +89,11 @@ public class JooqJobActivityStore implements JobActivityStore {
     public void initializeSchema(boolean createIfNotExists) {
         if (createIfNotExists) {
             logger.info("Creating/migrating JooqJobStore DB schema...");
-            Flyway flyway = Flyway.configure().dataSource(jobActivityJooqContext.getDataSource()).load();
+            Flyway flyway = Flyway.configure()
+                    .schemas("jobactivity")
+                    .locations("classpath:db/migration/jobactivity")
+                    .dataSource(jobActivityJooqContext.getDataSource())
+                    .load();
             flyway.migrate();
         }
     }
@@ -109,10 +113,13 @@ public class JooqJobActivityStore implements JobActivityStore {
                     .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX.asc())
                     .limit(1)
                     .fetchInto(JobActivityPublisherRecord.class);
-            if(records.size() != 0) {
+            if (records.size() != 0) {
                 System.out.println(records.get(0).getRecordType());
                 return records.get(0);
-            } else { System.out.println("no records"); return null; }
+            } else {
+                System.out.println("no records");
+                return null;
+            }
         }, producerDSLContext).onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException("Read failed", e));
     }
 
@@ -122,7 +129,7 @@ public class JooqJobActivityStore implements JobActivityStore {
             try {
                 Job job = JobActivityPublisherRecordUtils.getJobFromRecord(jobActivityPublisherRecord);
                 logger.info("Read back job {}", JobActivityPublisherRecordUtils.getJobFromRecord(jobActivityPublisherRecord));
-                return JooqUtils.executeAsyncMono( () ->  {
+                return JooqUtils.executeAsyncMono(() -> {
                     int numInserts = jobActivityDSLContext
                             .insertInto(JOBACTIVITY.JOBS, JOBACTIVITY.JOBS.JOB_ID, JOBACTIVITY.JOBS.RECORD_TIME)
                             .values(job.getId(), Timestamp.valueOf(LocalDateTime.ofEpochSecond(job.getStatus().getTimestamp(), 0, ZoneOffset.UTC)))
@@ -139,16 +146,21 @@ public class JooqJobActivityStore implements JobActivityStore {
     }
 
     public Mono<Void> deleteRecordFromPublisher(JobActivityPublisherRecord jobActivityPublisherRecord) {
-        return JooqUtils.executeAsyncMono( () -> {
+        return JooqUtils.executeAsyncMono(() -> {
             try {
                 producerDSLContext.deleteFrom(ACTIVITY_QUEUE).where(ACTIVITY_QUEUE.QUEUE_INDEX.eq(jobActivityPublisherRecord.getQueueIndex())).execute();
-            } catch (Exception e){ System.out.println("didnt work");}
-           return null;
+            } catch (Exception e) {
+                System.out.println("didnt work");
+            }
+            return null;
         }, producerDSLContext).then();
     }
 
     @Override
-    public Mono<Void> consumeJob(Job job) {return null;}
+    public Mono<Void> consumeJob(Job job) {
+        return null;
+    }
+
     @Override
     public void consumeTask(Task Task) {
         return;

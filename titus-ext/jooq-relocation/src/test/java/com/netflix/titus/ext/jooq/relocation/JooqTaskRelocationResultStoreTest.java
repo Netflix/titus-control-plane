@@ -28,19 +28,39 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.ext.jooq.JooqContext;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest(
+        properties = {
+                "spring.application.name=test",
+                "titus.ext.jooq.relocation.inMemoryDb=true"
+        },
+        classes = {
+                JooqRelocationContextComponent.class,
+                JooqTaskRelocationResultStoreTest.class,
+        }
+)
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqTaskRelocationResultStoreTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    @Rule
-    public final JooqResource jooqResource = new JooqResource();
+    @Autowired
+    public JooqContext jooqContext;
 
     private final JooqRelocationConfiguration configuration = Archaius2Ext.newConfiguration(JooqRelocationConfiguration.class, new MockEnvironment());
 
@@ -49,6 +69,11 @@ public class JooqTaskRelocationResultStoreTest {
     @Before
     public void setUp() {
         this.store = newStore();
+    }
+
+    @After
+    public void tearDown() {
+        StepVerifier.create(store.clearStore()).verifyComplete();
     }
 
     @Test
@@ -102,7 +127,7 @@ public class JooqTaskRelocationResultStoreTest {
         );
         store.createTaskRelocationStatuses(statusList).block();
 
-        JooqTaskRelocationGC gc = new JooqTaskRelocationGC(configuration, jooqResource.getDslContext(), store, titusRuntime);
+        JooqTaskRelocationGC gc = new JooqTaskRelocationGC(configuration, jooqContext.getDslContext(), store, titusRuntime);
         int removed = gc.removeExpiredData(now - 3_000_000);
         assertThat(removed).isEqualTo(1);
 
@@ -114,7 +139,7 @@ public class JooqTaskRelocationResultStoreTest {
     }
 
     private JooqTaskRelocationResultStore newStore() {
-        return new JooqTaskRelocationResultStore(jooqResource.getDslContext(), titusRuntime);
+        return new JooqTaskRelocationResultStore(jooqContext.getDslContext(), titusRuntime);
     }
 
     private List<TaskRelocationStatus> newRelocationStatuses(String taskPrefix, int count, long executionTime) {

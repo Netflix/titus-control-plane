@@ -23,22 +23,47 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.ext.jooq.JooqContext;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest(
+        properties = {
+                "spring.application.name=test",
+                "titus.ext.jooq.relocation.inMemoryDb=true"
+        },
+        classes = {
+                JooqRelocationContextComponent.class,
+                JooqTaskRelocationStoreTest.class,
+        }
+)
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqTaskRelocationStoreTest {
 
-    @Rule
-    public final JooqResource jooqResource = new JooqResource();
+    @Autowired
+    public JooqContext jooqContext;
 
     private JooqTaskRelocationStore store;
 
     @Before
     public void setUp() {
         this.store = newStore();
+    }
+
+    @After
+    public void tearDown() {
+        StepVerifier.create(store.clearStore()).verifyComplete();
     }
 
     @Test
@@ -89,7 +114,7 @@ public class JooqTaskRelocationStoreTest {
     }
 
     private JooqTaskRelocationStore newStore() {
-        JooqTaskRelocationStore store = new JooqTaskRelocationStore(jooqResource.getDslContext());
+        JooqTaskRelocationStore store = new JooqTaskRelocationStore(jooqContext.getDslContext());
         store.activate();
         return store;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,44 +26,65 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.ext.jooq.JooqConfiguration;
+import com.netflix.titus.ext.jooq.JooqContext;
 import com.netflix.titus.ext.jooq.jobactivity.JooqJobActivityPublisherStore;
-import com.netflix.titus.ext.jooq.relocation.JooqResource;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest(
+        properties = {
+                "spring.application.name=test",
+                "titus.ext.jooq.activity.inMemoryDb=true"
+        },
+        classes = {
+                JooqActivityContextComponent.class,
+        }
+)
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqJobActivityPublisherStoreTest {
+
     private final static Logger logger = LoggerFactory.getLogger(JooqJobActivityPublisherStoreTest.class);
 
     private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
+
     private DataGenerator<BatchJobTask> batchTasksGenerator = JobGenerator.batchTasks(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
 
-    @Rule
-    public final JooqResource jooqResource = new JooqResource();
+    @Autowired
+    public JooqConfiguration configuration;
+
+    @Autowired
+    public JooqContext jooqContext;
 
     private JooqJobActivityPublisherStore publisher;
 
     @Before
-    public void  setUp() {
+    public void setUp() {
         createJooqPublisherStore();
     }
 
     @After
     public void tearDown() {
-        StepVerifier.create(publisher.clearStore())
-                .verifyComplete();
+        StepVerifier.create(publisher.clearStore()).verifyComplete();
     }
 
     @Test
@@ -71,26 +92,18 @@ public class JooqJobActivityPublisherStoreTest {
         int numJobs = 10;
 
         Stopwatch insertStopwatch = Stopwatch.createStarted();
-        StepVerifier.create(publishJobs(numJobs))
-                .verifyComplete();
+        StepVerifier.create(publishJobs(numJobs)).verifyComplete();
         long insertMs = insertStopwatch.elapsed(TimeUnit.MILLISECONDS);
-        logger.info("Inserting {} took {}ms, which is {}ms/record", numJobs, insertMs, insertMs/numJobs);
+        logger.info("Inserting {} took {}ms, which is {}ms/record", numJobs, insertMs, insertMs / numJobs);
 
-        StepVerifier.create(publisher.getSize())
-                .expectNext(numJobs)
-                .verifyComplete();
+        StepVerifier.create(publisher.getSize()).expectNext(numJobs).verifyComplete();
     }
 
     @Test
     public void testPublishTasks() {
         int numTasks = 10;
-
-        StepVerifier.create(publishTasks(numTasks))
-                .verifyComplete();
-
-        StepVerifier.create(publisher.getSize())
-                .expectNext(numTasks)
-                .verifyComplete();
+        StepVerifier.create(publishTasks(numTasks)).verifyComplete();
+        StepVerifier.create(publisher.getSize()).expectNext(numTasks).verifyComplete();
     }
 
     @Test
@@ -134,7 +147,7 @@ public class JooqJobActivityPublisherStoreTest {
     }
 
     private void createJooqPublisherStore() {
-        publisher = new JooqJobActivityPublisherStore(jooqResource.getDslContext(), TitusRuntimes.internal(), EmptyLogStorageInfo.empty());
+        publisher = new JooqJobActivityPublisherStore(configuration, jooqContext, TitusRuntimes.internal(), EmptyLogStorageInfo.empty());
     }
 
     private Mono<Void> publishJobs(int count) {

@@ -26,9 +26,6 @@ public interface JooqConfiguration {
     @DefaultValue("false")
     boolean isInMemoryDb();
 
-    @DefaultValue("jdbc://localhost")
-    String getProducerDatatabaseUrl();
-
-    @DefaultValue("false")
-    boolean isLocalDb();
+    @DefaultValue("true")
+    boolean isCreateSchemaIfNotExist();
 }

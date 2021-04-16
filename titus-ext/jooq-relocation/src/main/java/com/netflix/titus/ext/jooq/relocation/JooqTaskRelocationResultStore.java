@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -35,18 +36,14 @@ import com.netflix.titus.common.util.cache.Cache;
 import com.netflix.titus.common.util.cache.Caches;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.jooq.JooqUtils;
-import com.netflix.titus.ext.jooq.relocation.schema.JRelocation;
-import com.netflix.titus.ext.jooq.relocation.schema.tables.records.JRelocationStatusRecord;
+import com.netflix.titus.ext.jooq.relocation.tables.records.RelocationStatusRecord;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Result;
 import org.jooq.StoreQuery;
-import org.jooq.impl.DSL;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
-
-import static com.netflix.titus.ext.jooq.relocation.schema.tables.JRelocationStatus.RELOCATION_STATUS;
 
 @Singleton
 public class JooqTaskRelocationResultStore implements TaskRelocationResultStore {
@@ -65,23 +62,11 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                 "titus.ext.jooq.relocationResultStore",
                 titusRuntime.getRegistry()
         );
-        createSchemaIfNotExist();
     }
 
-    private void createSchemaIfNotExist() {
-        dslContext.createSchemaIfNotExists(JRelocation.RELOCATION).execute();
-        dslContext.createTableIfNotExists(RELOCATION_STATUS)
-                .column(RELOCATION_STATUS.TASK_ID)
-                .column(RELOCATION_STATUS.RELOCATION_STATE)
-                .column(RELOCATION_STATUS.STATUS_CODE)
-                .column(RELOCATION_STATUS.STATUS_MESSAGE)
-                .column(RELOCATION_STATUS.REASON_CODE)
-                .column(RELOCATION_STATUS.REASON_MESSAGE)
-                .column(RELOCATION_STATUS.RELOCATION_DECISION_TIME)
-                .column(RELOCATION_STATUS.RELOCATION_PLAN_TIME)
-                .column(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
-                .constraint(DSL.constraint("pk_relocation_status_task_id").primaryKey(RELOCATION_STATUS.TASK_ID))
-                .execute();
+    @VisibleForTesting
+    Mono<Void> clearStore() {
+        return JooqUtils.executeAsyncMono(() -> dslContext.truncateTable(Relocation.RELOCATION.RELOCATION_STATUS).execute(), dslContext).then();
     }
 
     @Override
@@ -90,7 +75,7 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
             CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() -> {
                 loadToCache(findNotCached(taskRelocationStatuses), dslContext.configuration());
 
-                List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
+                List<StoreQuery<RelocationStatusRecord>> queries = taskRelocationStatuses.stream()
                         .map(this::newCreateOrUpdateQuery)
                         .collect(Collectors.toList());
 
@@ -169,7 +154,9 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
     }
 
     private void loadToCache(Set<String> notCached, Configuration configuration) {
-        Result<JRelocationStatusRecord> loaded = configuration.dsl().selectFrom(RELOCATION_STATUS).where(RELOCATION_STATUS.TASK_ID.in(notCached)).fetch();
+        Result<RelocationStatusRecord> loaded = configuration.dsl()
+                .selectFrom(Relocation.RELOCATION.RELOCATION_STATUS)
+                .where(Relocation.RELOCATION.RELOCATION_STATUS.TASK_ID.in(notCached)).fetch();
         loaded.forEach(record ->
                 statusesByTaskId.put(record.getTaskId(),
                         TaskRelocationStatus.newBuilder()
@@ -191,24 +178,24 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                 ));
     }
 
-    private StoreQuery<JRelocationStatusRecord> newCreateOrUpdateQuery(TaskRelocationStatus relocationStatus) {
-        StoreQuery<JRelocationStatusRecord> storeQuery;
+    private StoreQuery<RelocationStatusRecord> newCreateOrUpdateQuery(TaskRelocationStatus relocationStatus) {
+        StoreQuery<RelocationStatusRecord> storeQuery;
 
         if (statusesByTaskId.getIfPresent(relocationStatus.getTaskId()) != null) {
-            storeQuery = dslContext.updateQuery(RELOCATION_STATUS);
+            storeQuery = dslContext.updateQuery(Relocation.RELOCATION.RELOCATION_STATUS);
         } else {
-            storeQuery = dslContext.insertQuery(RELOCATION_STATUS);
-            storeQuery.addValue(RELOCATION_STATUS.TASK_ID, relocationStatus.getTaskId());
+            storeQuery = dslContext.insertQuery(Relocation.RELOCATION.RELOCATION_STATUS);
+            storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.TASK_ID, relocationStatus.getTaskId());
         }
 
-        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_STATE, relocationStatus.getState().name());
-        storeQuery.addValue(RELOCATION_STATUS.STATUS_CODE, relocationStatus.getStatusCode());
-        storeQuery.addValue(RELOCATION_STATUS.STATUS_MESSAGE, toLengthLimitedVarchar(relocationStatus.getStatusMessage()));
-        storeQuery.addValue(RELOCATION_STATUS.REASON_CODE, relocationStatus.getTaskRelocationPlan().getReason().name());
-        storeQuery.addValue(RELOCATION_STATUS.REASON_MESSAGE, toLengthLimitedVarchar(relocationStatus.getTaskRelocationPlan().getReasonMessage()));
-        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_DECISION_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getDecisionTime()));
-        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_PLAN_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getRelocationTime()));
-        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME, new Timestamp(relocationStatus.getTimestamp()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_STATE, relocationStatus.getState().name());
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.STATUS_CODE, relocationStatus.getStatusCode());
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.STATUS_MESSAGE, toLengthLimitedVarchar(relocationStatus.getStatusMessage()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.REASON_CODE, relocationStatus.getTaskRelocationPlan().getReason().name());
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.REASON_MESSAGE, toLengthLimitedVarchar(relocationStatus.getTaskRelocationPlan().getReasonMessage()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_DECISION_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getDecisionTime()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_PLAN_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getRelocationTime()));
+        storeQuery.addValue(Relocation.RELOCATION.RELOCATION_STATUS.RELOCATION_EXECUTION_TIME, new Timestamp(relocationStatus.getTimestamp()));
 
         return storeQuery;
     }

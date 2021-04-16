@@ -1,115 +1,139 @@
 /*
- * Copyright 2018 Netflix, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2021 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 plugins {
     id 'nu.studer.jooq' version '3.0.2'
+    id 'org.flywaydb.flyway' version '6.5.6'
 }
 
 apply plugin: 'nu.studer.jooq'
+apply plugin: 'org.flywaydb.flyway'
 
+apply from: '../../jooq.gradle'
+ext.dbProfile = "relocation"
+ext.dbSchemas = 'relocation'
 dependencies {
+    compile "org.springframework:spring-web:${springVersion}"
+    compile "org.springframework.boot:spring-boot:${springBootVersion}"
+
     compile project(':titus-common')
     compile project(':titus-api')
     compile project(':titus-supplementary-component-task-relocation')
+    compile project(':titus-ext-jooq-common')
 
+    implementation("org.jooq:jooq:${jooqVersion}")
+
+    // DB -  Drivers
+    compile "org.postgresql:postgresql:${psql}"
+
+    // DB - jOOQ
     compile "org.jooq:jooq:${jooqVersion}"
-    compile "org.postgresql:postgresql:${postgresqlVersion}"
-    compile "org.hsqldb:hsqldb:${hsqldbVersion}"
-
-    // TODO Remove
     compile "org.jooq:jooq-meta:${jooqVersion}"
     compile "org.jooq:jooq-codegen:${jooqVersion}"
+
+    // Flyway
+    compile "org.flywaydb:flyway-core:${flywayVersion}"
+
+    compile 'com.opentable.components:otj-pg-embedded:0.13.+'
+    jooqRuntime 'org.postgresql:postgresql:42.2.4'
+
+    // Hikari DataSource for connection pooling to the DB
+    compile 'com.zaxxer:HikariCP:3.2.0'
+    compile project(':titus-server-runtime')
 
     testCompile project(':titus-testkit')
 }
 
-sourceSets {
-    jooq {
-        resources {
-            srcDirs = ['src/jooq/resources']
-        }
-    }
-}
-
+// This partial configuration is needed so gradle recognizes jooq -> generateActivityJooqSchemaSource task for dev environments
 jooq {
+    println 'setup first'
+    version = '3.13.2'
     relocation(sourceSets.main) {
-        generator {
-            name = 'org.jooq.codegen.DefaultGenerator'
-            strategy {
-                // TODO If we stay with jooq, we need to write our own strategy
-                name = 'org.jooq.codegen.example.JPrefixGeneratorStrategy'
-            }
-            database {
-                name = 'org.jooq.meta.xml.XMLDatabase'
-                properties {
-                    property {
-                        key = 'xml-file'
-                        value = 'src/main/resources/relocation-schema.xml'
-                    }
-                }
-            }
-            generate {
-                relations = true
-                records = true
-                primaryKeyTypes = true
-                deprecated = false
-                immutablePojos = false
-                fluentSetters = false
-            }
-            target {
-                packageName = 'com.netflix.titus.ext.jooq.relocation.schema'
-            }
-        }
-    }
-
-    activity(sourceSets.main) {
-        generator {
-            name = 'org.jooq.codegen.DefaultGenerator'
-            strategy {
-                name = 'org.jooq.codegen.example.JPrefixGeneratorStrategy'
-            }
-            database {
-                name = 'org.jooq.meta.xml.XMLDatabase'
-                properties {
-                    property {
-                        key = 'xml-file'
-                        value = 'src/main/resources/activity-schema.xml'
-                    }
-                }
-            }
-            generate {
-                relations = true
-                records = true
-                primaryKeyTypes = true
-                deprecated = false
-                immutablePojos = false
-                fluentSetters = false
-            }
-            target {
-                packageName = 'com.netflix.titus.ext.jooq.activity.schema'
-            }
-        }
+        // ... This will be populated in the startDb method
     }
 }
 
-tasks.generateRelocationJooqSchemaSource.with {
-    jooqClasspath += sourceSets.jooq.resources.sourceDirectories
+task startFlyway {
+    group 'Flyway'
+    doFirst {
+        flyway {
+            driver = 'org.postgresql.Driver'
+            url = project.property('jdbcUrl')
+            user = project.property('jdbcUser')
+            password = project.property('jdbcPassword')
+            schemas = ['relocation']
+            println 'Flyway Configuration for migrating task relocation tables'
+            println '=========================================='
+            println 'jdbcUrl:  ' + url
+            println 'user      ' + user
+            println 'password: ' + password
+            println 'schemas:  ' + schemas
+            println '=========================================='
+        }
+        jooq {
+            println 'Setting up JOOQ Configuration'
+            println '============================='
+            version = '3.13.2'
+            relocation(sourceSets.main) {
+                jdbc {
+                    url = project.property('jdbcUrl')
+                    user = project.property('jdbcUser')
+                    password = project.property('jdbcPassword')
+                }
+                generator {
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        includes = '(relocation).*'
+                        excludes = ''
+                        recordVersionFields = 'rec_version'
+                    }
+                    target {
+                        packageName = 'com.netflix.titus.ext.jooq'
+                    }
+                    generate {
+                        daos = true
+                        interfaces = true
+                        immutablePojos = false
+                        fluentSetters = true
+                        pojosEqualsAndHashCode = true
+                    }
+                    strategy {
+                        name = null
+                        matchers {
+                            tables {
+                                table {
+                                    pojoClass {
+                                        transform = 'PASCAL'
+                                        // All Jooq Pojo Classess will suffixed with JooqPojo
+                                        expression = '\$0_Jooq_Pojo'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
-
-tasks.generateActivityJooqSchemaSource.with {
-    jooqClasspath += sourceSets.jooq.resources.sourceDirectories
-}
-
+// Setup dependence graph such that DB is up before migration and JOOQ code generation is attempted and the DB is shutdown as cleanup.
+startFlyway.dependsOn startDb
+flywayInfo.dependsOn startFlyway
+flywayMigrate.dependsOn flywayInfo
+flywayMigrate.finalizedBy stopDb
+flywayInfo.finalizedBy stopDb
+generateRelocationJooqSchemaSource.dependsOn flywayMigrate
+generateRelocationJooqSchemaSource.finalizedBy stopDb

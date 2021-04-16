@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooq;
+CREATE SCHEMA IF NOT EXISTS jobactivity;
 
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
+CREATE TABLE IF NOT EXISTS jobactivity.jobs
+(
+    job_id          VARCHAR(64) NOT NULL,
+    record_time     TIMESTAMP   NOT NULL,
+    job_record_json varchar(64),
+    PRIMARY KEY (job_id)
+);
 
-@Configuration(prefix = "titus.ext.jooq")
-public interface JooqConfiguration {
 
-    @DefaultValue("jdbc://localhost")
-    String getDatabaseUrl();
-
-    @DefaultValue("false")
-    boolean isInMemoryDb();
-}
+CREATE TABLE IF NOT EXISTS jobactivity.tasks
+(
+    task_id          VARCHAR(64) NOT NULL,
+    record_time      TIMESTAMP   NOT NULL,
+    task_record_json varchar(64),
+    PRIMARY KEY (task_id)
+);

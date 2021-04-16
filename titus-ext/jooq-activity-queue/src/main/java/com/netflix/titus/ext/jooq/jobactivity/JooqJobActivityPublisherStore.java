@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,16 @@ import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
+import com.netflix.titus.ext.jooq.JooqConfiguration;
+import com.netflix.titus.ext.jooq.JooqContext;
 import com.netflix.titus.ext.jooq.JooqUtils;
-import com.netflix.titus.ext.jooq.activity.schema.JActivity;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.ext.jooq.activity.Activity;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
+import org.flywaydb.core.Flyway;
 import org.jooq.DSLContext;
 import org.jooq.Record1;
 import org.jooq.impl.DSL;
@@ -42,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.ext.jooq.activity.schema.tables.JActivityQueue.ACTIVITY_QUEUE;
 import static org.jooq.impl.DSL.max;
 
 /**
@@ -54,6 +56,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     private static final String JOOQ_METRICS_DATABASE_NAME = "JobActivityPublisher";
 
+    private final JooqContext jooqContext;
     private final LogStorageInfo<Task> logStorageInfo;
     private final DSLContext dslContext;
     private final DatabaseMetrics databaseMetrics;
@@ -72,50 +75,40 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     private AtomicLong queueIndex;
 
     @Inject
-    public JooqJobActivityPublisherStore(DSLContext dslContext,
+    public JooqJobActivityPublisherStore(JooqConfiguration configuration,
+                                         JooqContext jooqContext,
                                          TitusRuntime runtime,
                                          LogStorageInfo<Task> logStorageInfo) {
-        this(dslContext, runtime, logStorageInfo,true);
-    }
-
-    @VisibleForTesting
-    public JooqJobActivityPublisherStore(DSLContext dslContext, TitusRuntime runtime, LogStorageInfo<Task> logStorageInfo, boolean createIfNotExist) {
+        this.jooqContext = jooqContext;
         this.logStorageInfo = logStorageInfo;
-        this.dslContext = dslContext;
+        this.dslContext = jooqContext.getDslContext();
         this.databaseMetrics = new DatabaseMetrics(runtime.getRegistry(), "titus", JOOQ_METRICS_DATABASE_NAME);
 
-        if (createIfNotExist) {
-            createSchemaIfNotExist();
-        }
+        createSchemaIfNotExist(configuration.isCreateSchemaIfNotExist());
+
         queueIndex = new AtomicLong(getInitialQueueIndex());
         logger.info("Loaded initial job activity publisher queue index {}", queueIndex);
     }
 
-    private void createSchemaIfNotExist() {
-        dslContext.createSchemaIfNotExists(JActivity.ACTIVITY)
-                .execute();
-
-        int rc = dslContext.createTableIfNotExists(ACTIVITY_QUEUE)
-                .column(ACTIVITY_QUEUE.QUEUE_INDEX)
-                .column(ACTIVITY_QUEUE.EVENT_TYPE)
-                .column(ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                .constraint(DSL.constraint("pk_activity_queue_index").primaryKey(ACTIVITY_QUEUE.QUEUE_INDEX))
-                .execute();
-        if (0 != rc) {
-            throw JobActivityStoreException.jobActivityCreateTableException(
-                    ACTIVITY_QUEUE.getName(),
-                    new RuntimeException(String.format("Unexpected table create return code %d", rc)));
+    private void createSchemaIfNotExist(boolean createIfNotExists) {
+        if (createIfNotExists) {
+            logger.info("Creating/migrating JooqJobActivityPublisherStore DB schema...");
+            Flyway flyway = Flyway.configure()
+                    .schemas("activity")
+                    .locations("classpath:db/migration/activity")
+                    .dataSource(jooqContext.getDataSource())
+                    .load();
+            flyway.migrate();
         }
-        logger.info("Created schema and table with return code {}", rc);
     }
 
     private long getInitialQueueIndex() {
         long startTimeMs = System.currentTimeMillis();
         Record1<Long> record = DSL.using(dslContext.configuration())
-                .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
-                .from(ACTIVITY_QUEUE)
+                .select(max(Activity.ACTIVITY.ACTIVITY_QUEUE.QUEUE_INDEX))
+                .from(Activity.ACTIVITY.ACTIVITY_QUEUE)
                 .fetchOne();
-        databaseMetrics.registerSelectLatency(startTimeMs, ACTIVITY_QUEUE.getName(), Collections.emptyList());
+        databaseMetrics.registerSelectLatency(startTimeMs, Activity.ACTIVITY.ACTIVITY_QUEUE.getName(), Collections.emptyList());
 
         // No record is present, start index at 0
         if (null == record.value1()) {
@@ -127,7 +120,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     @VisibleForTesting
     public Mono<Void> clearStore() {
-        return JooqUtils.executeAsyncMono(() -> dslContext.dropTable(ACTIVITY_QUEUE).execute(), dslContext).then();
+        return JooqUtils.executeAsyncMono(() -> dslContext.truncateTable(Activity.ACTIVITY.ACTIVITY_QUEUE).execute(), dslContext).then();
     }
 
     @VisibleForTesting
@@ -153,15 +146,15 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
         return JooqUtils.executeAsyncMono(() -> {
             long startTimeMs = System.currentTimeMillis();
             int numInserts = dslContext
-                    .insertInto(ACTIVITY_QUEUE,
-                            ACTIVITY_QUEUE.QUEUE_INDEX,
-                            ACTIVITY_QUEUE.EVENT_TYPE,
-                            ACTIVITY_QUEUE.SERIALIZED_EVENT)
+                    .insertInto(Activity.ACTIVITY.ACTIVITY_QUEUE,
+                            Activity.ACTIVITY.ACTIVITY_QUEUE.QUEUE_INDEX,
+                            Activity.ACTIVITY.ACTIVITY_QUEUE.EVENT_TYPE,
+                            Activity.ACTIVITY.ACTIVITY_QUEUE.SERIALIZED_EVENT)
                     .values(assignedQueueIndex,
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();
-            databaseMetrics.registerInsertLatency(startTimeMs, 1, ACTIVITY_QUEUE.getName(), Collections.emptyList());
+            databaseMetrics.registerInsertLatency(startTimeMs, 1, Activity.ACTIVITY.ACTIVITY_QUEUE.getName(), Collections.emptyList());
             return numInserts;
         }, dslContext)
                 .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException(recordId, e))
@@ -173,10 +166,10 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
         return JooqUtils.executeAsyncMono(() -> {
             long startTimeMs = System.currentTimeMillis();
             List<JobActivityPublisherRecord> records = dslContext
-                    .selectFrom(ACTIVITY_QUEUE)
-                    .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
+                    .selectFrom(Activity.ACTIVITY.ACTIVITY_QUEUE)
+                    .orderBy(Activity.ACTIVITY.ACTIVITY_QUEUE.QUEUE_INDEX)
                     .fetchInto(JobActivityPublisherRecord.class);
-            databaseMetrics.registerScanLatency(startTimeMs, ACTIVITY_QUEUE.getName(), Collections.emptyList());
+            databaseMetrics.registerScanLatency(startTimeMs, Activity.ACTIVITY.ACTIVITY_QUEUE.getName(), Collections.emptyList());
             return records;
         }, dslContext)
                 .flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
@@ -184,6 +177,6 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     @VisibleForTesting
     public Mono<Integer> getSize() {
-        return JooqUtils.executeAsyncMono(() -> dslContext.fetchCount(ACTIVITY_QUEUE), dslContext);
+        return JooqUtils.executeAsyncMono(() -> dslContext.fetchCount(Activity.ACTIVITY.ACTIVITY_QUEUE), dslContext);
     }
 }
