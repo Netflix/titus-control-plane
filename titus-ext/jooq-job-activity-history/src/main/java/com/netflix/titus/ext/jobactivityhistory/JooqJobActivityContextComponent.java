@@ -37,13 +37,13 @@ import javax.inject.Named;
 public class JooqJobActivityContextComponent {
 
     @Bean
-    @Named("jobActivityJooqContext")
+    @Named("jobActivityJooqConfiguration")
     public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobactivity", environment);
     }
 
     @Bean
-    @Named("producerJooqContext")
+    @Named("producerJooqConfiguration")
     public JooqConfiguration getJooqPropertyProducerConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobproducer", environment);
     }
@@ -56,7 +56,7 @@ public class JooqJobActivityContextComponent {
     @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqContext")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
             return new EmbeddedJooqContext(applicationContext, "jobActivityJooqContext");
         }
@@ -65,7 +65,7 @@ public class JooqJobActivityContextComponent {
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(@Named("producerJooqContext")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
             return new EmbeddedJooqContext(applicationContext, "producerJooqContext");
         }

@@ -44,8 +44,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.ext.jooq.activity.Tables.ACTIVITY_QUEUE;
-import static com.netflix.titus.ext.jobactivityhistory.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
-
+import static com.netflix.titus.ext.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
 
 @Singleton
 public class JooqJobActivityStore implements JobActivityStore {

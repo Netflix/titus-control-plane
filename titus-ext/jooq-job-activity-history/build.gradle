@@ -104,7 +104,7 @@ task startFlyway {
                         recordVersionFields = 'rec_version'
                     }
                     target {
-                        packageName = 'com.netflix.titus.ext.jooqflyway.jobactivity'
+                        packageName = 'com.netflix.titus.ext.jobactivity'
                     }
                     generate {
                         daos = true

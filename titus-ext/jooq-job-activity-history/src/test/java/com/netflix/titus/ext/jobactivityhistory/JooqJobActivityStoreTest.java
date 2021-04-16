@@ -80,7 +80,7 @@ public class JooqJobActivityStoreTest {
 
     @Autowired
     @Qualifier("producerJooqConfiguration")
-    private JooqConfiguration jooqProducerConfiguration;
+    private JooqConfiguration producerJooqConfiguration;
 
     @Autowired
     @Qualifier("jobActivityJooqContext")
@@ -105,7 +105,7 @@ public class JooqJobActivityStoreTest {
 
     private void createJooqJobActivityStore() {
         // Load JooqJobActivityPublisherStore to trigger schema creation.
-        new JooqJobActivityPublisherStore(configuration, producerJooqContext, titusRuntime, EmptyLogStorageInfo.empty());
+        new JooqJobActivityPublisherStore(producerJooqConfiguration, producerJooqContext, titusRuntime, EmptyLogStorageInfo.empty());
 
         jooqJobActivityStore = new JooqJobActivityStore(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
     }
