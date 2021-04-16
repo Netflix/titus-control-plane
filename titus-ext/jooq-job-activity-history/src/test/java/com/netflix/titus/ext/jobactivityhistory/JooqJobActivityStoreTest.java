@@ -57,7 +57,7 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 @SpringBootTest(
         properties = {
                 "spring.application.name=test",
-                "titus.ext.supplementary.jobactivity.inMemoryDb=true"
+                "titus.ext.supplementary.jobactivity.inMemoryDb=false"
         },
         classes = {
                 JooqJobActivityContextComponent.class,

@@ -37,12 +37,14 @@ import javax.inject.Named;
 public class JooqJobActivityContextComponent {
 
     @Bean
+    @Qualifier("jobActivityJooqConfiguration")
     @Named("jobActivityJooqConfiguration")
     public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobactivity", environment);
     }
 
     @Bean
+    @Qualifier("producerJooqConfiguration")
     @Named("producerJooqConfiguration")
     public JooqConfiguration getJooqPropertyProducerConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobproducer", environment);

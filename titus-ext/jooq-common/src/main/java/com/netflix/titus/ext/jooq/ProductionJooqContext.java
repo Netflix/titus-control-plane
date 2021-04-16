@@ -44,7 +44,7 @@ public class ProductionJooqContext implements JooqContext {
         hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
         hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
         hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
-
+        
         this.dataSource = new HikariDataSource(hikariConfig);
         this.dslContext = new DefaultDSLContext(dataSource, DEFAULT_DIALECT);
     }
