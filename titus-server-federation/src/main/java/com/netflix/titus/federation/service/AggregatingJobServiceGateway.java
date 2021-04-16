@@ -102,25 +102,30 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     private final GrpcConfiguration grpcConfiguration;
     private final TitusFederationConfiguration federationConfiguration;
-    private final CellConnector connector;
+    private final RemoteFederationConnector fedConnector;
+    private final CellConnector cellConnector;
     private final AggregatingCellClient aggregatingClient;
-    private AggregatingJobManagementServiceHelper jobManagementServiceHelper;
+    private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private final CellRouter router;
+    private final FallbackJobServiceGateway fallbackJobServiceGateway;
 
     @Inject
     public AggregatingJobServiceGateway(GrpcConfiguration grpcConfiguration,
                                         TitusFederationConfiguration federationConfiguration,
-                                        CellConnector connector,
+                                        RemoteFederationConnector fedConnector,
+                                        CellConnector cellConnector,
                                         CellRouter router,
                                         AggregatingCellClient aggregatingClient,
                                         AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
 
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
-        this.connector = connector;
+        this.fedConnector = fedConnector;
+        this.cellConnector = cellConnector;
         this.router = router;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
+        this.fallbackJobServiceGateway = getFallbackJobServiceGateway();
     }
 
     @Override
@@ -132,7 +137,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
         logger.debug("Routing JobDescriptor {} to Cell {}", jobDescriptor, cell);
 
-        Optional<JobManagementServiceStub> optionalClient = CellConnectorUtil.toStub(cell, connector, JobManagementServiceGrpc::newStub);
+        Optional<JobManagementServiceStub> optionalClient = CellConnectorUtil.toStub(cell, cellConnector, JobManagementServiceGrpc::newStub);
         if (!optionalClient.isPresent()) {
             return Observable.error(TitusServiceException.cellNotFound(cell.getName()));
         }
@@ -145,16 +150,28 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         } else {
             jobDescriptorBuilder = removeFederationAttributes(jobDescriptorBuilder);
         }
-        JobDescriptor enrichedJobDescriptor = jobDescriptorBuilder.build();
-        return createRequestObservable(emitter -> {
-            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
-                    emitter,
-                    jobId -> emitter.onNext(jobId.getId()),
-                    emitter::onError,
-                    emitter::onCompleted
-            );
-            wrap(client, callMetadata).createJob(enrichedJobDescriptor, streamObserver);
-        }, grpcConfiguration.getRequestTimeoutMs());
+
+        return getCreateObservable(client, jobDescriptorBuilder.build(), callMetadata);
+    }
+
+    private Observable<String> getCreateObservable(
+            JobManagementServiceGrpc.JobManagementServiceStub client,
+            JobDescriptor jobDescriptor,
+            CallMetadata callMetadata) {
+        if (federationConfiguration.isRemoteFederationEnabled()) {
+            logger.debug("creating job with fallback job management service");
+            return fallbackJobServiceGateway.createJob(jobDescriptor, client, callMetadata);
+        } else {
+            return createRequestObservable(emitter -> {
+                StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                        emitter,
+                        jobId -> emitter.onNext(jobId.getId()),
+                        emitter::onError,
+                        emitter::onCompleted
+                );
+                wrap(client, callMetadata).createJob(jobDescriptor, streamObserver);
+            }, grpcConfiguration.getRequestTimeoutMs());
+        }
     }
 
     @Override
@@ -314,7 +331,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
         final Observable<JobChangeNotification> observable = createRequestObservable(delegate -> {
             Emitter<JobChangeNotification> emitter = new EmitterWithMultipleSubscriptions<>(delegate);
-            Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
+            Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(cellConnector, JobManagementServiceGrpc::newStub);
             final CountDownLatch markersEmitted = new CallbackCountDownLatch(clients.size(),
                     () -> emitter.onNext(buildJobSnapshotEndMarker())
             );
@@ -530,7 +547,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall, CallMetadata callMetadata) {
-        return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
+        return callToCell(cell, cellConnector, JobManagementServiceGrpc::newStub,
                 (client, streamObserver) -> clientCall.accept(wrap(client, callMetadata), streamObserver));
     }
 
@@ -539,12 +556,17 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     }
 
     private <T> Observable<T> singleCellCallWithNoDeadline(Cell cell, ClientCall<T> clientCall, CallMetadata callMetadata) {
-        return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
+        return callToCell(cell, cellConnector, JobManagementServiceGrpc::newStub,
                 (client, streamObserver) -> clientCall.accept(wrapWithNoDeadline(client, callMetadata), streamObserver));
     }
 
     private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
+    }
+
+    private FallbackJobServiceGateway getFallbackJobServiceGateway() {
+        JobManagementServiceStub fedClient = JobManagementServiceGrpc.newStub(fedConnector.getChannel());
+        return new FallbackJobServiceGateway(fedClient, grpcConfiguration);
     }
 }
 

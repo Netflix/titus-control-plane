@@ -71,6 +71,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import rx.Observable;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
@@ -95,6 +97,10 @@ public class AggregatingJobServiceGatewayTest {
     private static final JobStatus FINISHED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Finished).build();
     private static final int TASKS_IN_GENERATED_JOBS = 10;
     private static final long GRPC_REQUEST_TIMEOUT_MS = 1_000L;
+    private static final long GRPC_PRIMARY_FALLBACK_TIMEOUT_MS = 100L;
+
+    @Rule
+    public GrpcServerRule remoteFederationRule = new GrpcServerRule().directExecutor();
 
     @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
@@ -103,6 +109,7 @@ public class AggregatingJobServiceGatewayTest {
     @Rule
     public final GrpcServerRule cellTwo = new GrpcServerRule().directExecutor();
     private final PublishSubject<JobChangeNotification> cellTwoUpdates = PublishSubject.create();
+    private final TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
 
     private String stackName;
     private AggregatingJobServiceGateway service;
@@ -117,8 +124,8 @@ public class AggregatingJobServiceGatewayTest {
 
         GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
         when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(GRPC_REQUEST_TIMEOUT_MS);
+        when(grpcConfiguration.getPrimaryFallbackTimeoutMs()).thenReturn(GRPC_PRIMARY_FALLBACK_TIMEOUT_MS);
 
-        TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getStack()).thenReturn(stackName);
         when(titusFederationConfiguration.getCells()).thenReturn("one=1;two=2");
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("one=(app1.*|app2.*);two=(app3.*)");
@@ -131,20 +138,24 @@ public class AggregatingJobServiceGatewayTest {
                 cells.get(1), cellTwo
         );
 
-        CellConnector connector = mock(CellConnector.class);
-        when(connector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
+        RemoteFederationConnector fedConnector = mock(RemoteFederationConnector.class);
+        when(fedConnector.getChannel()).thenReturn(remoteFederationRule.getChannel());
+
+        CellConnector cellConnector = mock(CellConnector.class);
+        when(cellConnector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, cellPairEntry -> cellPairEntry.getValue().getChannel()))
         );
-        when(connector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
+        when(cellConnector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
                 Optional.ofNullable(cellToServiceMap.get(invocation.<Cell>getArgument(0)))
                         .map(GrpcServerRule::getChannel)
         );
 
-        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
+        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(cellConnector);
         service = new AggregatingJobServiceGateway(
                 grpcConfiguration,
                 titusFederationConfiguration,
-                connector,
+                fedConnector,
+                cellConnector,
                 cellRouter,
                 aggregatingCellClient,
                 new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration)
@@ -158,6 +169,11 @@ public class AggregatingJobServiceGatewayTest {
     public void tearDown() {
         cellOneUpdates.onCompleted();
         cellTwoUpdates.onCompleted();
+    }
+
+    @BeforeEach
+    public void beforeEach() {
+        when(titusFederationConfiguration.isRemoteFederationEnabled()).thenReturn(false);
     }
 
     @Test
@@ -832,6 +848,54 @@ public class AggregatingJobServiceGatewayTest {
         assertThat(createdJob).isPresent();
         assertThat(createdJob.get().getAttributesMap()).containsEntry(JOB_ATTRIBUTES_STACK, stackName);
     }
+
+    @Test
+    public void createJobWithFallbackOnUnimplemented() {
+        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithUnimplementedInterface());
+    }
+
+    @Test
+    public void createJobWithFallbackOnTimeout() {
+        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithSlowMethods());
+    }
+
+    private void createJobWithFallbackFromRemoteJobManagementService(RemoteJobManagementService remoteJobManagementService) {
+        CellWithCachedJobsService cachedJobsService = new CellWithCachedJobsService(cells.get(0).getName());
+        cellOne.getServiceRegistry().addService(cachedJobsService);
+        remoteFederationRule.getServiceRegistry().addService(remoteJobManagementService);
+        JobDescriptor jobDescriptor = JobDescriptor.newBuilder()
+                .setApplicationName("app1")
+                .build();
+
+        // Prove fallback is NOT happening
+
+        long initialCreateCount = remoteJobManagementService.createCount.get();
+        assertThat(initialCreateCount).isEqualTo(0);
+
+        Observable<String> createObservable =
+                service.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA);
+
+        String jobId = createObservable.toBlocking().first();
+        Optional<JobDescriptor> createdJob = cachedJobsService.getCachedJob(jobId);
+        assertThat(createdJob).isPresent();
+        assertThat(remoteJobManagementService.createCount.get()).isEqualTo(initialCreateCount);
+
+        // Prove fallback IS happening
+
+        when(titusFederationConfiguration.isRemoteFederationEnabled()).thenReturn(true);
+
+        initialCreateCount = remoteJobManagementService.createCount.get();
+        assertThat(initialCreateCount).isEqualTo(0);
+
+        Observable<String> fallbackObservable =
+                service.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA);
+
+        jobId = fallbackObservable.toBlocking().first();
+        createdJob = cachedJobsService.getCachedJob(jobId);
+        assertThat(createdJob).isPresent();
+        assertThat(remoteJobManagementService.createCount.get()).isEqualTo(initialCreateCount + 1);
+    }
+
 
     private List<Job> walkAllFindJobsPages(int pageWalkSize) {
         return walkAllPages(
