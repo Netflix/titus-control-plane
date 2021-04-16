@@ -25,8 +25,11 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.ext.jooq.JooqConfiguration;
 import com.netflix.titus.ext.jooq.JooqContext;
 import com.netflix.titus.ext.jooq.JooqUtils;
+import com.netflix.titus.ext.jooq.jobactivity.JooqJobActivityPublisherStore;
+import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -46,7 +49,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static com.netflix.titus.ext.jooqflyway.jobactivity.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static com.netflix.titus.ext.jooq.activity.Tables.ACTIVITY_QUEUE;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 
@@ -76,6 +79,9 @@ public class JooqJobActivityStoreTest {
     private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
 
     @Autowired
+    private JooqConfiguration configuration;
+
+    @Autowired
     @Qualifier("jobActivityJooqContext")
     private JooqContext jobActivityJooqContext;
 
@@ -97,6 +103,9 @@ public class JooqJobActivityStoreTest {
     }
 
     private void createJooqJobActivityStore() {
+        // Load JooqJobActivityPublisherStore to trigger schema creation.
+        new JooqJobActivityPublisherStore(configuration, producerJooqContext, titusRuntime, EmptyLogStorageInfo.empty());
+
         jooqJobActivityStore = new JooqJobActivityStore(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
     }
 

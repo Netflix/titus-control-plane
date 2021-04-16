@@ -75,5 +75,4 @@ public class JooqJobActivityContextComponent {
     public DSLContext getProducerDSLContext(JooqContext jooqProducerContext) {
         return jooqProducerContext.getDslContext();
     }
-
 }

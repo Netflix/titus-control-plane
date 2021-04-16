@@ -20,6 +20,7 @@ ext.psql = '42.2.8'
 
 // Begin: Jooq code generation using EmbeddedPostgres database and Flyway migration
 ext.dbProfile = null
+ext.dbSchemas = null
 ext.jdbcUrl = ''
 ext.jdbcUser = null
 ext.jdbcPassword = null
@@ -32,7 +33,7 @@ ext.jdbcPort = -1
 def startEmbeddedPostgresDatabase() {
     dbProfile = project.getProperty('dbProfile')
 
-    println 'Starting embedded Postgresql DB...'
+    println 'Resolving RDBS test configuration...'
 
     def profileFile = new File(System.getenv("HOME"), ".titus-jooq.yaml")
     def useLocal = false
@@ -64,8 +65,8 @@ def startEmbeddedPostgresDatabase() {
         ResultSet rs = statement.executeQuery("SELECT 1")
         assert rs.next()
         assert rs.getInt(1) == 1
+        println 'Embedded Postgresql DB started on port: ' + jdbcPort
     }
-    println 'Embedded Postgresql DB started on port: ' + jdbcPort
 }
 
 task startDb {
@@ -73,76 +74,20 @@ task startDb {
     description 'Starts an instance of Embedded Postgresql DB'
     doFirst {
         startEmbeddedPostgresDatabase()
-        flyway {
-            driver = 'org.postgresql.Driver'
-            url = project.property('jdbcUrl')
-            user = project.property('jdbcUser')
-            password = project.property('jdbcPassword')
-            schemas = ['jobactivity', 'activity']
-            println 'Flyway Configuration for migrating job activity tables'
-            println '=========================================='
-            println 'jdbcUrl:  ' + url
-            println 'user      ' + user
-            println 'password: ' + password
-            println 'schemas:  ' + schemas
-            println '=========================================='
-        }
-        jooq {
-            println 'Setting up JOOQ Configuration'
-            println '============================='
-            version = '3.13.2'
-            activity(sourceSets.main) {
-                jdbc {
-                    url = project.property('jdbcUrl')
-                    user = project.property('jdbcUser')
-                    password = project.property('jdbcPassword')
-                }
-                generator {
-                    database {
-                        name = 'org.jooq.meta.postgres.PostgresDatabase'
-                        includes = '(jobactivity|activity).*'
-                        excludes = ''
-                        recordVersionFields = 'rec_version'
-                    }
-                    target {
-                        packageName = 'com.netflix.titus.ext.jooqflyway.jobactivity'
-                    }
-                    generate {
-                        daos = true
-                        interfaces = true
-                        immutablePojos = false
-                        fluentSetters = true
-                        pojosEqualsAndHashCode = true
-                    }
-                    strategy {
-                        name = null
-                        matchers {
-                            tables {
-                                table {
-                                    pojoClass {
-                                        transform = 'PASCAL'
-                                        // All Jooq Pojo Classess will suffixed with JooqPojo
-                                        expression = '\$0_Jooq_Pojo'
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
 task stopDb {
     group 'Embedded Postgresql DB'
     description 'Stops a running instance of Embedded Postgresql DB'
-    doLast {
-        // If you need the embedded DB to still be running for debugging code generation or DB migration,
-        // comment the following lines out so the DB is active. Connect to the port number in the output using your local postgres client.
-        // Alternatively, grep the process list (ps) for the word "embedded-pg" to get the postgresql command line arguments.
-        // You will need to manually terminate the postgresql instances running locally.
-        println 'Stopping embedded Postgresql DB running on port ' + jdbcPort
-        if (pg != null) pg.close()
+    if (pg != null) {
+        doLast {
+            // If you need the embedded DB to still be running for debugging code generation or DB migration,
+            // comment the following lines out so the DB is active. Connect to the port number in the output using your local postgres client.
+            // Alternatively, grep the process list (ps) for the word "embedded-pg" to get the postgresql command line arguments.
+            // You will need to manually terminate the postgresql instances running locally.
+            println 'Stopping embedded Postgresql DB running on port ' + jdbcPort
+            if (pg != null) pg.close()
+        }
     }
 }

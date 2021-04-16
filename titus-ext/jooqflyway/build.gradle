@@ -34,6 +34,7 @@ dependencies {
     compile project(':titus-server-runtime')
     compile project(':titus-supplementary-component-job-activity-history')
     compile project(':titus-ext-jooq-common')
+    compile project(':titus-ext-jooq-activity-queue')
 
     implementation("org.jooq:jooq:${jooqVersion}")
 
@@ -67,8 +68,74 @@ jooq {
     }
 }
 
+task startFlyway {
+    group 'Flyway'
+    doFirst {
+        flyway {
+            driver = 'org.postgresql.Driver'
+            url = project.property('jdbcUrl')
+            user = project.property('jdbcUser')
+            password = project.property('jdbcPassword')
+            schemas = ['jobactivity']
+            locations = ['filesystem:src/main/resources/db/migration/jobactivity']
+            println 'Flyway Configuration for migrating job activity tables'
+            println '=========================================='
+            println 'jdbcUrl:  ' + url
+            println 'user      ' + user
+            println 'password: ' + password
+            println 'schemas:  ' + schemas
+            println '=========================================='
+        }
+        jooq {
+            println 'Setting up JOOQ Configuration'
+            println '============================='
+            version = '3.13.2'
+            activity(sourceSets.main) {
+                jdbc {
+                    url = project.property('jdbcUrl')
+                    user = project.property('jdbcUser')
+                    password = project.property('jdbcPassword')
+                }
+                generator {
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        includes = '(jobactivity).*'
+                        excludes = ''
+                        recordVersionFields = 'rec_version'
+                    }
+                    target {
+                        packageName = 'com.netflix.titus.ext.jooqflyway.jobactivity'
+                    }
+                    generate {
+                        daos = true
+                        interfaces = true
+                        immutablePojos = false
+                        fluentSetters = true
+                        pojosEqualsAndHashCode = true
+                    }
+                    strategy {
+                        name = null
+                        matchers {
+                            tables {
+                                table {
+                                    pojoClass {
+                                        transform = 'PASCAL'
+                                        // All Jooq Pojo Classess will suffixed with JooqPojo
+                                        expression = '\$0_Jooq_Pojo'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Setup dependence graph such that DB is up before migration and JOOQ code generation is attempted and the DB is shutdown as cleanup.
-flywayInfo.dependsOn startDb
+startFlyway.dependsOn startDb
+flywayInfo.dependsOn startFlyway
 flywayMigrate.dependsOn flywayInfo
 flywayMigrate.finalizedBy stopDb
 flywayInfo.finalizedBy stopDb
