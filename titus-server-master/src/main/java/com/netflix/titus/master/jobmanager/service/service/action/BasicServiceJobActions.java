@@ -61,21 +61,24 @@ public class BasicServiceJobActions {
                         return Observable.error(JobManagerException.jobTerminating(serviceJob));
                     }
 
-                    Capacity.Builder newCapacityBuilder = serviceJob.getJobDescriptor().getExtensions().getCapacity().toBuilder();
+                    Capacity currentCapacity = serviceJob.getJobDescriptor().getExtensions().getCapacity();
+                    Capacity.Builder newCapacityBuilder = currentCapacity.toBuilder();
                     capacityAttributes.getDesired().ifPresent(newCapacityBuilder::withDesired);
                     capacityAttributes.getMax().ifPresent(newCapacityBuilder::withMax);
                     capacityAttributes.getMin().ifPresent(newCapacityBuilder::withMin);
-
                     Capacity newCapacity = newCapacityBuilder.build();
 
-                    if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(newCapacity)) {
+                    if (currentCapacity.equals(newCapacity)) {
                         return Observable.empty();
                     }
 
                     // model validation for capacity
                     Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
                     if (!violations.isEmpty()) {
-                        return Observable.error(TitusServiceException.invalidArgument(violations));
+                        return Observable.error(TitusServiceException.invalidArgument(
+                                String.format("Current capacity: %s", currentCapacity),
+                                violations
+                        ));
                     }
 
                     // checking if service job processes allow changes to desired capacity

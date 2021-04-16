@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.common.model.sanitizer.ValidationError;
+import com.netflix.titus.common.util.StringExt;
 
 import static java.lang.String.format;
 
@@ -120,10 +121,17 @@ public class TitusServiceException extends RuntimeException {
     }
 
     public static TitusServiceException invalidArgument(Set<? extends ValidationError> validationErrors) {
+        return invalidArgument("", validationErrors);
+    }
+
+    public static TitusServiceException invalidArgument(String context, Set<? extends ValidationError> validationErrors) {
         String errors = validationErrors.stream()
                 .map(err -> String.format("{%s}", err))
                 .collect(Collectors.joining(", "));
         String errMsg = String.format("Invalid Argument: %s", errors);
+        if (StringExt.isNotEmpty(context)) {
+            errMsg = context + ". " + errMsg;
+        }
         return TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, errMsg)
                 .withValidationErrors(validationErrors)
                 .build();
