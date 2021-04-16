@@ -316,7 +316,7 @@ public class JobScenarioBuilder {
         return this;
     }
 
-    public JobScenarioBuilder updateJobCapacityMin(int min, int unchangedMax, int unchangedDesired) {
+    public JobScenarioBuilder updateJobCapacityMin(int min, int expectedMax, int expectedDesired) {
         logger.info("[{}] Changing job {} capacity min to {}...", discoverActiveTest(), jobId, min);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
@@ -332,14 +332,14 @@ public class JobScenarioBuilder {
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
             Capacity capacity = ext.getCapacity();
-            return capacity.getMin() == min && capacity.getMax() == unchangedMax && capacity.getDesired() == unchangedDesired;
+            return capacity.getMin() == min && capacity.getMax() == expectedMax && capacity.getDesired() == expectedDesired;
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new min size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
-    public JobScenarioBuilder updateJobCapacityMax(int max, int unchangedMin, int unchangedDesired) {
+    public JobScenarioBuilder updateJobCapacityMax(int max, int expectedMin, int expectedDesired) {
         logger.info("[{}] Changing job {} capacity max to {}...", discoverActiveTest(), jobId, max);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
@@ -355,7 +355,7 @@ public class JobScenarioBuilder {
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
             Capacity capacity = ext.getCapacity();
-            return capacity.getMax() == max && capacity.getMin() == unchangedMin && capacity.getDesired() == unchangedDesired;
+            return capacity.getMax() == max && capacity.getMin() == expectedMin && capacity.getDesired() == expectedDesired;
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new max size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));

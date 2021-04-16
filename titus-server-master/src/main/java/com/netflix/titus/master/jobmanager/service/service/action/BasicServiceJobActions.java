@@ -66,6 +66,11 @@ public class BasicServiceJobActions {
                     capacityAttributes.getDesired().ifPresent(newCapacityBuilder::withDesired);
                     capacityAttributes.getMax().ifPresent(newCapacityBuilder::withMax);
                     capacityAttributes.getMin().ifPresent(newCapacityBuilder::withMin);
+                    if (capacityAttributes.getDesired().isPresent()) {
+                        newCapacityBuilder.withDesired(capacityAttributes.getDesired().get());
+                    } else {
+                        setDesiredBasedOnMinMax(newCapacityBuilder, currentCapacity, capacityAttributes);
+                    }
                     Capacity newCapacity = newCapacityBuilder.build();
 
                     if (currentCapacity.equals(newCapacity)) {
@@ -76,7 +81,7 @@ public class BasicServiceJobActions {
                     Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
                     if (!violations.isEmpty()) {
                         return Observable.error(TitusServiceException.invalidArgument(
-                                String.format("Current capacity: %s", currentCapacity),
+                                String.format("Current %s", currentCapacity),
                                 violations
                         ));
                     }
@@ -139,6 +144,22 @@ public class BasicServiceJobActions {
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
+    }
+
+    /**
+     * Automatically adjust the desired size to be within the bounds of (min,max). This method assumes min <= max.
+     */
+    private static void setDesiredBasedOnMinMax(Capacity.Builder builder, Capacity current, CapacityAttributes update) {
+        update.getMin().ifPresent(min -> {
+            if (min > current.getDesired()) {
+                builder.withDesired(min);
+            }
+        });
+        update.getMax().ifPresent(max -> {
+            if (max < current.getDesired()) {
+                builder.withDesired(max);
+            }
+        });
     }
 
     private static boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {

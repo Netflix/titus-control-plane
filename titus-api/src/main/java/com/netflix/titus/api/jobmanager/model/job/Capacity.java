@@ -23,7 +23,9 @@ import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 
 @ClassInvariant.List({
         @ClassInvariant(condition = "min <= desired", message = "'min'(#{min}) must be <= 'desired'(#{desired})"),
-        @ClassInvariant(condition = "desired <= max", message = "'desired'(#{desired}) must be <= 'max'(#{max})")
+        @ClassInvariant(condition = "desired <= max", message = "'desired'(#{desired}) must be <= 'max'(#{max})"),
+        // needed because desired can be automatically adjusted based on min and max
+        @ClassInvariant(condition = "min <= max", message = "'min'(#{min}) must be <= 'max'(#{max})")
 })
 public class Capacity {
 

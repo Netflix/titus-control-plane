@@ -93,12 +93,32 @@ public class JobScalingTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
+    public void testScaleUpAndDownServiceJobMinAdjustsDesired() throws Exception {
+        jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+                .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(1).withMax(5).build())
+                .expectAllTasksCreated()
+                .updateJobCapacityMin(2, 5, 2)
+        );
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testScaleUpAndDownServiceJobMax() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
                 .updateJobCapacityMax(4, 0, 2)
+        );
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void testScaleUpAndDownServiceJobMaxAdjustsDesired() throws Exception {
+        jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+                .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(4).withMax(5).build())
+                .expectAllTasksCreated()
+                .updateJobCapacityMax(2, 0, 2)
         );
     }
 
