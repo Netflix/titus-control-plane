@@ -24,14 +24,13 @@ apply plugin: 'org.flywaydb.flyway'
 
 apply from: '../../jooq.gradle'
 ext.dbProfile = "activity"
-ext.dbSchemas = 'relocation'
+ext.dbSchemas = 'activity'
 dependencies {
     compile "org.springframework:spring-web:${springVersion}"
     compile "org.springframework.boot:spring-boot:${springBootVersion}"
 
     compile project(':titus-common')
     compile project(':titus-api')
-    compile project(':titus-supplementary-component-task-relocation')
     compile project(':titus-ext-jooq-common')
 
     implementation("org.jooq:jooq:${jooqVersion}")
@@ -61,7 +60,7 @@ dependencies {
 jooq {
     println 'setup first'
     version = '3.13.2'
-    relocation(sourceSets.main) {
+    activity(sourceSets.main) {
         // ... This will be populated in the startDb method
     }
 }
@@ -75,7 +74,7 @@ task startFlyway {
             user = project.property('jdbcUser')
             password = project.property('jdbcPassword')
             schemas = ['activity']
-            locations = ['classpath:db/migration/activity']
+            locations = ['filesystem:src/main/resources/db/migration/activity']
             println 'Flyway Configuration for migrating job activity tables'
             println '=========================================='
             println 'jdbcUrl:  ' + url
@@ -88,7 +87,7 @@ task startFlyway {
             println 'Setting up JOOQ Configuration'
             println '============================='
             version = '3.13.2'
-            relocation(sourceSets.main) {
+            activity(sourceSets.main) {
                 jdbc {
                     url = project.property('jdbcUrl')
                     user = project.property('jdbcUser')
@@ -136,5 +135,5 @@ flywayInfo.dependsOn startFlyway
 flywayMigrate.dependsOn flywayInfo
 flywayMigrate.finalizedBy stopDb
 flywayInfo.finalizedBy stopDb
-generateRelocationJooqSchemaSource.dependsOn flywayMigrate
-generateRelocationJooqSchemaSource.finalizedBy stopDb
+generateActivityJooqSchemaSource.dependsOn flywayMigrate
+generateActivityJooqSchemaSource.finalizedBy stopDb

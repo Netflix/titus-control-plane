@@ -77,7 +77,7 @@ task startFlyway {
             user = project.property('jdbcUser')
             password = project.property('jdbcPassword')
             schemas = ['jobactivity']
-            locations = ['classpath:db/migration/jobactivity']
+            locations = ['filesystem:src/main/resources/db/migration/jobactivity']
             println 'Flyway Configuration for migrating job activity tables'
             println '=========================================='
             println 'jdbcUrl:  ' + url
