@@ -44,7 +44,7 @@ include 'titus-common',\
  'jooq-common',
  'jooq-relocation',
  'jooq-activity-queue',
- 'jooqflyway',
+ 'jooq-job-activity-history',
  'zookeeper'].each {
     def projectName = "titus-ext-$it"
     include projectName

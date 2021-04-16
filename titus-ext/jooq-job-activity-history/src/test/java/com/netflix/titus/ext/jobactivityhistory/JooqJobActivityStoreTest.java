@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jobactivityhistory;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -79,7 +79,8 @@ public class JooqJobActivityStoreTest {
     private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
 
     @Autowired
-    private JooqConfiguration configuration;
+    @Qualifier("producerJooqConfiguration")
+    private JooqConfiguration jooqProducerConfiguration;
 
     @Autowired
     @Qualifier("jobActivityJooqContext")

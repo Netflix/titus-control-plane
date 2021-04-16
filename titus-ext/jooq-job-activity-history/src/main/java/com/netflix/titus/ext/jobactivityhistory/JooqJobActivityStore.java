@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jobactivityhistory;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.ext.jooq.activity.Tables.ACTIVITY_QUEUE;
-import static com.netflix.titus.ext.jooqflyway.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
+import static com.netflix.titus.ext.jobactivityhistory.jobactivity.jobactivity.Jobactivity.JOBACTIVITY;
 
 
 @Singleton
