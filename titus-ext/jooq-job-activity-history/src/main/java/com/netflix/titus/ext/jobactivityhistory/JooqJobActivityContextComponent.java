@@ -60,7 +60,7 @@ public class JooqJobActivityContextComponent {
     @Qualifier("jobActivityJooqContext")
     public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "jobActivityJooqContext");
+            return new EmbeddedJooqContext(applicationContext, "jobactivity");
         }
         return new ProductionJooqContext(jooqConfiguration);
     }
@@ -69,7 +69,7 @@ public class JooqJobActivityContextComponent {
     @Qualifier("producerJooqContext")
     public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "producerJooqContext");
+            return new EmbeddedJooqContext(applicationContext, "activity");
         }
         return new ProductionJooqContext(jooqConfiguration);
     }
