@@ -23,7 +23,7 @@ apply plugin: 'nu.studer.jooq'
 apply plugin: 'org.flywaydb.flyway'
 
 apply from: '../../jooq.gradle'
-ext.dbProfile = "jobActivityJooqContext"
+ext.dbProfile = "jobactivity"
 
 dependencies {
     compile "org.springframework:spring-web:${springVersion}"
@@ -104,7 +104,7 @@ task startFlyway {
                         recordVersionFields = 'rec_version'
                     }
                     target {
-                        packageName = 'com.netflix.titus.ext.jooqflyway.jobactivity'
+                        packageName = 'com.netflix.titus.ext.jobactivity'
                     }
                     generate {
                         daos = true

@@ -1,4 +1,4 @@
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jobactivityhistory;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;

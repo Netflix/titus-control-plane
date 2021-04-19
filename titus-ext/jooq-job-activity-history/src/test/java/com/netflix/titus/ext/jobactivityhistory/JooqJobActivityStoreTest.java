@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jobactivityhistory;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -57,7 +57,8 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 @SpringBootTest(
         properties = {
                 "spring.application.name=test",
-                "titus.ext.supplementary.jobactivity.inMemoryDb=true"
+                "titus.ext.supplementary.jobactivity.inMemoryDb=true",
+                "titus.ext.supplementary.jobproducer.inMemoryDb=true"
         },
         classes = {
                 JooqJobActivityContextComponent.class,
@@ -79,7 +80,8 @@ public class JooqJobActivityStoreTest {
     private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
 
     @Autowired
-    private JooqConfiguration configuration;
+    @Qualifier("producerJooqConfiguration")
+    private JooqConfiguration producerJooqConfiguration;
 
     @Autowired
     @Qualifier("jobActivityJooqContext")
@@ -104,7 +106,7 @@ public class JooqJobActivityStoreTest {
 
     private void createJooqJobActivityStore() {
         // Load JooqJobActivityPublisherStore to trigger schema creation.
-        new JooqJobActivityPublisherStore(configuration, producerJooqContext, titusRuntime, EmptyLogStorageInfo.empty());
+        new JooqJobActivityPublisherStore(producerJooqConfiguration, producerJooqContext, titusRuntime, EmptyLogStorageInfo.empty());
 
         jooqJobActivityStore = new JooqJobActivityStore(titusRuntime, jobActivityJooqContext, producerJooqContext, true);
     }

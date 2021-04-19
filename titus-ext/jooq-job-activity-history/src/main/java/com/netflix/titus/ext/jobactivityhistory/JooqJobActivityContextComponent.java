@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway;
+package com.netflix.titus.ext.jobactivityhistory;
 
 
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
@@ -31,12 +31,23 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 
+import javax.inject.Named;
+
 @Configuration
 public class JooqJobActivityContextComponent {
 
     @Bean
+    @Qualifier("jobActivityJooqConfiguration")
+    @Named("jobActivityJooqConfiguration")
     public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobactivity", environment);
+    }
+
+    @Bean
+    @Qualifier("producerJooqConfiguration")
+    @Named("producerJooqConfiguration")
+    public JooqConfiguration getJooqPropertyProducerConfiguration(Environment environment) {
+        return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobproducer", environment);
     }
 
     @Bean
@@ -47,18 +58,18 @@ public class JooqJobActivityContextComponent {
     @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "jobActivityJooqContext");
+            return new EmbeddedJooqContext(applicationContext, "jobactivity");
         }
         return new ProductionJooqContext(jooqConfiguration);
     }
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "producerJooqContext");
+            return new EmbeddedJooqContext(applicationContext, "activity");
         }
         return new ProductionJooqContext(jooqConfiguration);
     }

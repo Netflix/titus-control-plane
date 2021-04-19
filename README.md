@@ -46,14 +46,14 @@ profiles:
     databaseUrl: jdbc:postgresql://localhost:5432/postgres
     user: titus
     password: 123
-  jobActivityJooqContext:
+  jobactivity:
     name: jobActivityJooqContext
-    databaseUrl: jdbc:postgresql://localhost:5432/postgres
+    databaseUrl: jdbc:postgresql://localhost:5432/jobactivity
     user: postgres
     password: postgres
-  producerJooqContext:
+  activity:
     name: producerJooqContext
-    databaseUrl: jdbc:postgresql://localhost:5432/postgres
+    databaseUrl: jdbc:postgresql://localhost:5432/jobactivity
     user: postgres
     password: postgres
 ```
