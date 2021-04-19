@@ -61,27 +61,35 @@ public class BasicServiceJobActions {
                         return Observable.error(JobManagerException.jobTerminating(serviceJob));
                     }
 
-                    Capacity.Builder newCapacityBuilder = serviceJob.getJobDescriptor().getExtensions().getCapacity().toBuilder();
+                    Capacity currentCapacity = serviceJob.getJobDescriptor().getExtensions().getCapacity();
+                    Capacity.Builder newCapacityBuilder = currentCapacity.toBuilder();
                     capacityAttributes.getDesired().ifPresent(newCapacityBuilder::withDesired);
                     capacityAttributes.getMax().ifPresent(newCapacityBuilder::withMax);
                     capacityAttributes.getMin().ifPresent(newCapacityBuilder::withMin);
-
+                    if (capacityAttributes.getDesired().isPresent()) {
+                        newCapacityBuilder.withDesired(capacityAttributes.getDesired().get());
+                    } else {
+                        setDesiredBasedOnMinMax(newCapacityBuilder, currentCapacity, capacityAttributes);
+                    }
                     Capacity newCapacity = newCapacityBuilder.build();
+
+                    if (currentCapacity.equals(newCapacity)) {
+                        return Observable.empty();
+                    }
 
                     // model validation for capacity
                     Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
                     if (!violations.isEmpty()) {
-                        return Observable.error(TitusServiceException.invalidArgument(violations));
+                        return Observable.error(TitusServiceException.invalidArgument(
+                                String.format("Current %s", currentCapacity),
+                                violations
+                        ));
                     }
 
                     // checking if service job processes allow changes to desired capacity
                     if (isDesiredCapacityInvalid(newCapacity, serviceJob)) {
                         return Observable.error(JobManagerException.invalidDesiredCapacity(serviceJob.getId(), newCapacity.getDesired(),
                                 serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
-                    }
-
-                    if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(newCapacity)) {
-                        return Observable.empty();
                     }
 
                     // ready to update job capacity
@@ -136,6 +144,22 @@ public class BasicServiceJobActions {
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
+    }
+
+    /**
+     * Automatically adjust the desired size to be within the bounds of (min,max). This method assumes min <= max.
+     */
+    private static void setDesiredBasedOnMinMax(Capacity.Builder builder, Capacity current, CapacityAttributes update) {
+        update.getMin().ifPresent(min -> {
+            if (min > current.getDesired()) {
+                builder.withDesired(min);
+            }
+        });
+        update.getMax().ifPresent(max -> {
+            if (max < current.getDesired()) {
+                builder.withDesired(max);
+            }
+        });
     }
 
     private static boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {
