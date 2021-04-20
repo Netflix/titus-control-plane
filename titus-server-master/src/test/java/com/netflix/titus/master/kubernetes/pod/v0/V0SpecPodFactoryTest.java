@@ -48,6 +48,7 @@ import com.netflix.titus.master.kubernetes.pod.env.TitusProvidedContainerEnvFact
 import com.netflix.titus.master.kubernetes.pod.env.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeModelConverters;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -77,6 +78,8 @@ public class V0SpecPodFactoryTest {
 
     private final MasterConfiguration jobCoordinatorConfiguration = mock(MasterConfiguration.class);
 
+    private final SchedulerConfiguration schedulerConfiguration = mock(SchedulerConfiguration.class);
+
     private final ApplicationSlaManagementService capacityGroupManagement = mock(ApplicationSlaManagementService.class);
 
     private final PodAffinityFactory podAffinityFactory = mock(PodAffinityFactory.class);
@@ -99,7 +102,8 @@ public class V0SpecPodFactoryTest {
             podAffinityFactory,
             taintTolerationFactory,
             defaultAggregatingContainerEnvFactory,
-            logStorageInfo
+            logStorageInfo,
+            schedulerConfiguration
     );
 
     @Test
