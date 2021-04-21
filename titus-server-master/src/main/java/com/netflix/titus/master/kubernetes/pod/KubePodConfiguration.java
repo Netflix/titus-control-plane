@@ -87,6 +87,14 @@ public interface KubePodConfiguration {
     String getReservedCapacityKubeSchedulerName();
 
     /**
+     * This string corresponds to a kube-scheduler profile name which implements exact same set of scheduler plugins as
+     * the standard reserved capacity scheduler (titus-kube-scheduler-reserved) except
+     * the bin-packing behavior based on security group affinity.
+     */
+    @DefaultValue("titus-kube-scheduler-reserved")
+    String getReservedCapacityKubeSchedulerNameForBinPacking();
+
+    /**
      * The grace period on the pod object to use when the pod is created.
      */
     @DefaultValue("600")

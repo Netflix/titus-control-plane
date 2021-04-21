@@ -65,6 +65,7 @@ import com.netflix.titus.master.kubernetes.pod.env.ContainerEnvs;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.mesos.ContainerInfoUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeModelConverters;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
@@ -126,6 +127,7 @@ public class V0SpecPodFactory implements PodFactory {
 
     private final KubePodConfiguration configuration;
     private final MasterConfiguration jobCoordinatorConfiguration;
+    private final SchedulerConfiguration schedulerConfiguration;
     private final ApplicationSlaManagementService capacityGroupManagement;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
@@ -140,7 +142,8 @@ public class V0SpecPodFactory implements PodFactory {
                             PodAffinityFactory podAffinityFactory,
                             TaintTolerationFactory taintTolerationFactory,
                             ContainerEnvFactory ContainerEnvFactory,
-                            LogStorageInfo<Task> logStorageInfo) {
+                            LogStorageInfo<Task> logStorageInfo,
+                            SchedulerConfiguration schedulerConfiguration) {
         this.configuration = configuration;
         this.jobCoordinatorConfiguration = jobCoordinatorConfiguration;
         this.capacityGroupManagement = capacityGroupManagement;
@@ -148,6 +151,7 @@ public class V0SpecPodFactory implements PodFactory {
         this.taintTolerationFactory = taintTolerationFactory;
         containerEnvFactory = ContainerEnvFactory;
         this.logStorageInfo = logStorageInfo;
+        this.schedulerConfiguration = schedulerConfiguration;
 
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
@@ -190,7 +194,11 @@ public class V0SpecPodFactory implements PodFactory {
         if (useKubeScheduler) {
             ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
             if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
-                schedulerName = configuration.getReservedCapacityKubeSchedulerName();
+                if(schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
+                    schedulerName = configuration.getReservedCapacityKubeSchedulerName();
+                } else {
+                    schedulerName = configuration.getReservedCapacityKubeSchedulerNameForBinPacking();
+                }
             } else {
                 schedulerName = configuration.getKubeSchedulerName();
             }
