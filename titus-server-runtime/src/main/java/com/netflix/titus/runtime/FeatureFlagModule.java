@@ -188,23 +188,27 @@ public class FeatureFlagModule extends AbstractModule {
         Function<String, Matcher> enabledMachineTypes = RegExpExt.dynamicMatcher(configuration::getEnabledMachineTypes,
                 "titus.features.jobManager.kubeSchedulerFeature.enabledMachineTypes", Pattern.DOTALL, logger);
 
+        Function<String, Matcher> enabledStaticIpJobTiers = RegExpExt.dynamicMatcher(configuration::getEnabledStaticIpOverrideTiers,
+                "titus.features.jobManager.kubeSchedulerFeature.enabledStaticIpOverrideTiers", Pattern.DOTALL, logger);
+
+        Function<String, Matcher> enabledEbsJobTiers = RegExpExt.dynamicMatcher(configuration::getEnabledEbsVolumeOverrideTiers,
+                "titus.features.jobManager.kubeSchedulerFeature.enabledEbsVolumeOverrideTiers", Pattern.DOTALL, logger);
+
         return p -> {
             JobDescriptor<?> jobDescriptor = p.getLeft();
             ApplicationSLA capacityGroup = p.getRight();
+            String tierName = capacityGroup.getTier().name();
 
             ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
 
-            // Check jobs with static IP addresses
-            if (!CollectionsExt.isNullOrEmpty(resources.getSignedIpAddressAllocations())) {
-                if (!configuration.isStaticIpEnabled()) {
-                    return false;
-                }
+            // Check tier specific property to always route jobs with static IP addresses to Kube Scheduler
+            if (!CollectionsExt.isNullOrEmpty(resources.getSignedIpAddressAllocations()) && enabledStaticIpJobTiers.apply(tierName).matches()) {
+                return true;
             }
 
-            if (!CollectionsExt.isNullOrEmpty(resources.getEbsVolumes())) {
-                if (!configuration.isEbsVolumeEnabled()) {
-                    return false;
-                }
+            // Check tier specific property to always route jobs with EBS Volumes to Kube Scheduler
+            if (!CollectionsExt.isNullOrEmpty(resources.getEbsVolumes()) && enabledEbsJobTiers.apply(tierName).matches()) {
+                return true;
             }
 
             // Job should not be scheduled by KubeScheduler
