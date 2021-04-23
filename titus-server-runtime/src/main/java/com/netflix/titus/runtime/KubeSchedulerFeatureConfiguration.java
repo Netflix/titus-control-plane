@@ -31,13 +31,13 @@ public interface KubeSchedulerFeatureConfiguration {
     /**
      * Allows tier level feature gate for routing Static IP jobs. Set to .* to route these jobs for both tiers.
      */
-    @DefaultValue("Flex")
+    @DefaultValue("")
     String getEnabledStaticIpOverrideTiers();
 
     /**
      * Allows tier level feature gate for routing EBS Volume jobs. Set to .* to route these jobs for both tiers.
      */
-    @DefaultValue("Flex")
+    @DefaultValue("")
     String getEnabledEbsVolumeOverrideTiers();
 
     /**
