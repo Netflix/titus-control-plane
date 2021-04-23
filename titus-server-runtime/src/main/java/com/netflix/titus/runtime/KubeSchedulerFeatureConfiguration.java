@@ -29,10 +29,16 @@ public interface KubeSchedulerFeatureConfiguration {
     boolean isGpuEnabled();
 
     /**
-     * Set to true to enable routing jobs with static IPs to KubeScheduler.
+     * Allows tier level feature gate for routing Static IP jobs. Set to .* to route these jobs for both tiers.
      */
-    @DefaultValue("false")
-    boolean isStaticIpEnabled();
+    @DefaultValue("")
+    String getEnabledStaticIpOverrideTiers();
+
+    /**
+     * Allows tier level feature gate for routing EBS Volume jobs. Set to .* to route these jobs for both tiers.
+     */
+    @DefaultValue("")
+    String getEnabledEbsVolumeOverrideTiers();
 
     /**
      * Jobs with machine type hard constraint which request machine types not allowed by this regexp pattern, will be
@@ -40,10 +46,4 @@ public interface KubeSchedulerFeatureConfiguration {
      */
     @DefaultValue(".*")
     String getEnabledMachineTypes();
-
-    /**
-     * Set to true to enable routing jobs with EBS volume configuration to KubeScheduler.
-     */
-    @DefaultValue("false")
-    boolean isEbsVolumeEnabled();
 }
