@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableSet;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
@@ -609,7 +610,15 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {
         String federatedJobId = jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID);
-        String jobId = (StringExt.isNotEmpty(federatedJobId) ? federatedJobId : UUID.randomUUID().toString());
+        String jobId;
+        if (StringExt.isNotEmpty(federatedJobId)) {
+            jobId = federatedJobId;
+            jobDescriptor = JobFunctions.deleteJobAttributes(jobDescriptor, ImmutableSet.of(JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID));
+            jobDescriptor = JobFunctions.appendJobDescriptorAttribute(jobDescriptor, JobAttributes.JOB_ATTRIBUTES_ORIGINAL_FEDERATED_JOB_ID, federatedJobId);
+        } else {
+            jobId = UUID.randomUUID().toString();
+        }
+
         return Job.<E>newBuilder()
                 .withId(jobId)
                 .withJobDescriptor(jobDescriptor)

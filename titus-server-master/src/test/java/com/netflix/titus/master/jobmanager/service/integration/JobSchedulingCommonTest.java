@@ -63,7 +63,11 @@ public class JobSchedulingCommonTest {
 
     private void testJobWithTaskInAcceptedStateNotScheduledYetWithFederatedJobId(JobDescriptor<?> oneTaskJobDescriptor, String federatedJobId) {
         jobsScenarioBuilder.scheduleJob(oneTaskJobDescriptor, jobScenario ->
-                jobScenario.expectJobEvent(job -> assertThat(job.getId()).isEqualTo(federatedJobId)));
+                jobScenario.expectJobEvent(job -> {
+                    assertThat(job.getId()).isEqualTo(federatedJobId);
+                    assertThat(job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_ORIGINAL_FEDERATED_JOB_ID)).isEqualTo(federatedJobId);
+                    assertThat(job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_FEDERATED_JOB_ID)).isNull();
+                }));
     }
 
     /**

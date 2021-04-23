@@ -56,6 +56,11 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_FEDERATED_JOB_ID = TITUS_ATTRIBUTE_PREFIX + "federatedJobId";
 
     /**
+     * This attribute is used to persist original federated Job id that may have been used to populate job id.
+     */
+    public static final String JOB_ATTRIBUTES_ORIGINAL_FEDERATED_JOB_ID = TITUS_ATTRIBUTE_PREFIX + "originalFederatedJobId";
+
+    /**
      * Set to true when sanitization for iam roles fails open
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.iam";
