@@ -29,7 +29,6 @@ import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldSanitizer;
-import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.util.CollectionsExt;
 
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
@@ -37,7 +36,7 @@ import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 /**
  */
 @ClassInvariant.List({
-        @ClassInvariant(expr = "@asserts.matchingDeleteMe(ipSignedAddressAllocations)", mode = VerifierMode.Strict),
+        // TODO: This should be enabled as a ClassInvariant rather than a {@link ExtendedJobSanitizer} with TITUS-5370.
         // @ClassInvariant(expr = "@asserts.matchingEbsAndIpZones(ebsVolumes, ipSignedAddressAllocations)", mode = VerifierMode.Strict),
         @ClassInvariant(condition = "shmMB <= memoryMB", message = "'shmMB' (#{shmMB}) must be <= 'memoryMB' (#{memoryMB})")
 })
