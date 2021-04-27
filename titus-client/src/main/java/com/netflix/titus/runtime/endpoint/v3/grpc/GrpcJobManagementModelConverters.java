@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.google.common.graph.Network;
 import com.google.protobuf.ByteString;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
@@ -37,6 +38,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -163,6 +165,7 @@ public final class GrpcJobManagementModelConverters {
                 .withJobGroupInfo(toCoreJobGroupInfo(grpcJobDescriptor.getJobGroupInfo()))
                 .withCapacityGroup(grpcJobDescriptor.getCapacityGroup())
                 .withContainer(toCoreContainer(grpcJobDescriptor.getContainer()))
+                .withNetworkConfiguration(toCoreNetworkConfiguration(grpcJobDescriptor.getNetworkConfiguration()))
                 .withAttributes(grpcJobDescriptor.getAttributesMap())
                 .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
@@ -197,6 +200,11 @@ public final class GrpcJobManagementModelConverters {
                 .withStack(grpcJobGroupInfo.getStack())
                 .withDetail(grpcJobGroupInfo.getDetail())
                 .withSequence(grpcJobGroupInfo.getSequence())
+                .build();
+    }
+
+    public static NetworkConfiguration toCoreNetworkConfiguration(com.netflix.titus.grpc.protogen.NetworkConfiguration grpcNetworkConfiguration) {
+        return JobModel.newNetworkConfiguration(grpcNetworkConfiguration.getNetworkMode().getNumber())
                 .build();
     }
 
@@ -655,6 +663,12 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
+    private static com.netflix.titus.grpc.protogen.NetworkConfiguration toGrpcNetworkConfiguration(NetworkConfiguration networkConfiguration) {
+        com.netflix.titus.grpc.protogen.NetworkConfiguration.Builder builder = com.netflix.titus.grpc.protogen.NetworkConfiguration.newBuilder();
+        builder.setNetworkModeValue(networkConfiguration.getNetworkMode());
+        return builder.build();
+    }
+
     public static com.netflix.titus.grpc.protogen.ContainerResources.EfsMount toGrpcEfsMount(EfsMount coreEfsMount) {
         com.netflix.titus.grpc.protogen.ContainerResources.EfsMount.Builder builder = com.netflix.titus.grpc.protogen.ContainerResources.EfsMount.newBuilder()
                 .setEfsId(coreEfsMount.getEfsId())
@@ -914,6 +928,7 @@ public final class GrpcJobManagementModelConverters {
                 .setOwner(toGrpcOwner(jobDescriptor.getOwner()))
                 .setApplicationName(jobDescriptor.getApplicationName())
                 .setCapacityGroup(jobDescriptor.getCapacityGroup())
+                .setNetworkConfiguration(toGrpcNetworkConfiguration(jobDescriptor.getNetworkConfiguration()))
                 .setContainer(toGrpcContainer(jobDescriptor.getContainer()))
                 .setJobGroupInfo(toGrpcJobGroupInfo(jobDescriptor.getJobGroupInfo()))
                 .setDisruptionBudget(toGrpcDisruptionBudget(jobDescriptor.getDisruptionBudget()))

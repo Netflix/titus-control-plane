@@ -98,6 +98,8 @@ public final class JobModel {
         return SecurityProfile.newBuilder(securityProfile);
     }
 
+    public static NetworkConfiguration.Builder newNetworkConfiguration(int mode) { return NetworkConfiguration.newBuilder(); }
+
     public static Container.Builder newContainer() {
         return Container.newBuilder();
     }
