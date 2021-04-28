@@ -240,10 +240,6 @@ public class JobAssertions {
         return Collections.emptyMap();
     }
 
-    public Map<String, String> matchingDeleteMe(List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
-        return Collections.emptyMap();
-    }
-
     public Map<String, String> matchingEbsAndIpZones(List<EbsVolume> ebsVolumes, List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
         return validateMatchingEbsAndIpZones(ebsVolumes, ipSignedAddressAllocations).stream()
                 .collect(Collectors.toMap(ValidationError::getField, ValidationError::getDescription));
