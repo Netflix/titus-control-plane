@@ -58,6 +58,10 @@ public class IpAddressLocation {
         return new Builder();
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -92,6 +96,12 @@ public class IpAddressLocation {
         private String subnetId;
 
         private Builder() {
+        }
+
+        private Builder(IpAddressLocation ipAddressLocation) {
+            this.region = ipAddressLocation.getRegion();
+            this.availabilityZone = ipAddressLocation.getAvailabilityZone();
+            this.subnetId = ipAddressLocation.getSubnetId();
         }
 
         public Builder withRegion(String val) {

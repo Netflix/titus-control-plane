@@ -35,7 +35,11 @@ import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
  */
-@ClassInvariant(condition = "shmMB <= memoryMB", message = "'shmMB' (#{shmMB}) must be <= 'memoryMB' (#{memoryMB})")
+@ClassInvariant.List({
+        // TODO: This should be enabled as a ClassInvariant rather than a {@link ExtendedJobSanitizer} with TITUS-5370.
+        // @ClassInvariant(expr = "@asserts.matchingEbsAndIpZones(ebsVolumes, ipSignedAddressAllocations)", mode = VerifierMode.Strict),
+        @ClassInvariant(condition = "shmMB <= memoryMB", message = "'shmMB' (#{shmMB}) must be <= 'memoryMB' (#{memoryMB})")
+})
 public class ContainerResources {
 
     @FieldSanitizer(adjuster = "T(java.lang.Math).max(@constraints.getCpuMin(), value)")
@@ -69,6 +73,7 @@ public class ContainerResources {
     private final int shmMB;
 
     @Valid
+    @CollectionInvariants(allowDuplicateValues = false)
     private final List<SignedIpAddressAllocation> ipSignedAddressAllocations;
 
     @Valid

@@ -47,6 +47,10 @@ public class IpAddressAllocation {
         return new Builder();
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     public IpAddressLocation getIpAddressLocation() {
         return ipAddressLocation;
     }
@@ -77,7 +81,6 @@ public class IpAddressAllocation {
     public int hashCode() {
         return Objects.hash(ipAddressLocation, allocationId, ipAddress);
     }
-
     @Override
     public String toString() {
         return "IpAddressAllocation{" +
@@ -93,6 +96,12 @@ public class IpAddressAllocation {
         private String ipAddress;
 
         private Builder() {
+        }
+
+        private Builder(IpAddressAllocation ipAddressAllocation) {
+            this.ipAddressLocation = ipAddressAllocation.getIpAddressLocation();
+            this.allocationId = ipAddressAllocation.getAllocationId();
+            this.ipAddress = ipAddressAllocation.getIpAddress();
         }
 
         public Builder withIpAddressLocation(IpAddressLocation val) {

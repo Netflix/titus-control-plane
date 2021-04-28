@@ -22,18 +22,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 
@@ -232,6 +238,38 @@ public class JobAssertions {
         }
 
         return Collections.emptyMap();
+    }
+
+    public Map<String, String> matchingEbsAndIpZones(List<EbsVolume> ebsVolumes, List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
+        return validateMatchingEbsAndIpZones(ebsVolumes, ipSignedAddressAllocations).stream()
+                .collect(Collectors.toMap(ValidationError::getField, ValidationError::getDescription));
+    }
+
+    public static Set<ValidationError> validateMatchingEbsAndIpZones(List<EbsVolume> ebsVolumes, List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
+        if (ebsVolumes == null || ipSignedAddressAllocations == null) {
+            return Collections.emptySet();
+        }
+
+        if (ebsVolumes.isEmpty() || ipSignedAddressAllocations.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        int numElements = Math.min(ebsVolumes.size(), ipSignedAddressAllocations.size());
+        for (int i = 0; i < numElements; i++) {
+            EbsVolume ebsVolume = ebsVolumes.get(i);
+            IpAddressAllocation ipAddressAllocation = ipSignedAddressAllocations.get(i).getIpAddressAllocation();
+            if (!ebsVolume.getVolumeAvailabilityZone().equals(ipAddressAllocation.getIpAddressLocation().getAvailabilityZone())) {
+                return Collections.singleton(new ValidationError(
+                        "containerResources.ebsVolumes",
+                        String.format(
+                                "EBS volume %s zone %s conflicts with Static IP %s zone %s and index %d",
+                                ebsVolume.getVolumeId(), ebsVolume.getVolumeAvailabilityZone(), ipAddressAllocation.getAllocationId(), ipAddressAllocation.getIpAddressLocation().getAvailabilityZone(), i
+                        )
+                ));
+            }
+        }
+
+        return Collections.emptySet();
     }
 
     private <N extends Number> Optional<String> check(Supplier<N> jobResource, Supplier<N> maxAllowed) {

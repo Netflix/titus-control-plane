@@ -35,11 +35,11 @@ public final class JobIpAllocationGenerator {
     private JobIpAllocationGenerator() {
     }
 
-    private static DataGenerator<String> zones() { return items("zoneA", "zoneB"); }
+    private static DataGenerator<String> zones() { return items("zoneA", "zoneB").loop(); }
 
-    private static DataGenerator<String> subnets() { return items("subnet-1"); }
+    private static DataGenerator<String> subnets() { return items("subnet-1").loop(); }
 
-    private static DataGenerator<String> regions() { return items("us-east-1"); }
+    private static DataGenerator<String> regions() { return items("us-east-1").loop(); }
 
     private static DataGenerator<String> ipAddresses() {
         return PrimitiveValueGenerators.ipv4CIDRs("96.96.96.1/28");
