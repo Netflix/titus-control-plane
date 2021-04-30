@@ -202,7 +202,7 @@ public class FeatureFlagModule extends AbstractModule {
             ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
 
             // GPU resources are no longer supported by Fenzo.
-            if (resources.getGpu() > 0) {
+            if (!configuration.isFenzoGpuEnabled() && resources.getGpu() > 0) {
                 return true;
             }
 
