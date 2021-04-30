@@ -23,12 +23,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface KubeSchedulerFeatureConfiguration {
 
     /**
-     * Set to true to enable routing GPU jobs to KubeScheduler.
-     */
-    @DefaultValue("false")
-    boolean isGpuEnabled();
-
-    /**
      * Allows tier level feature gate for routing Static IP jobs. Set to .* to route these jobs for both tiers.
      */
     @DefaultValue("")
