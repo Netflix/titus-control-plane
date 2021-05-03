@@ -23,10 +23,10 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface KubeSchedulerFeatureConfiguration {
 
     /**
-     * Set to true to enable routing GPU jobs to KubeScheduler.
+     * Fenzo/GPU is enabled in the integration tests only.
      */
     @DefaultValue("false")
-    boolean isGpuEnabled();
+    boolean isFenzoGpuEnabled();
 
     /**
      * Allows tier level feature gate for routing Static IP jobs. Set to .* to route these jobs for both tiers.

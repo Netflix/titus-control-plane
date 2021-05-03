@@ -128,7 +128,7 @@ public class JobFederationTest extends BaseIntegrationTest {
         JobDescriptor<BatchJobExt> tooBigJob = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().toBuilder()
                 .withContainerResources(ContainerResources.newBuilder()
                         .withCpu(64)
-                        .withGpu(16)
+                        .withGpu(0)
                         .withMemoryMB(472_000)
                         .withDiskMB(999_000)
                         .withNetworkMbps(40_000)

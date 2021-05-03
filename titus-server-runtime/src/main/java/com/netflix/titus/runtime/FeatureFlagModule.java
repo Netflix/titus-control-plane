@@ -201,6 +201,11 @@ public class FeatureFlagModule extends AbstractModule {
 
             ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
 
+            // GPU resources are no longer supported by Fenzo.
+            if (!configuration.isFenzoGpuEnabled() && resources.getGpu() > 0) {
+                return true;
+            }
+
             // Check tier specific property to always route jobs with static IP addresses to Kube Scheduler
             if (!CollectionsExt.isNullOrEmpty(resources.getSignedIpAddressAllocations()) && enabledStaticIpJobTiers.apply(tierName).matches()) {
                 return true;
@@ -213,11 +218,6 @@ public class FeatureFlagModule extends AbstractModule {
 
             // Job should not be scheduled by KubeScheduler
             if (FeatureFlagUtil.isNoKubeSchedulerMigration(jobDescriptor)) {
-                return false;
-            }
-
-            // Check GPU jobs
-            if (!configuration.isGpuEnabled() && resources.getGpu() > 0) {
                 return false;
             }
 
