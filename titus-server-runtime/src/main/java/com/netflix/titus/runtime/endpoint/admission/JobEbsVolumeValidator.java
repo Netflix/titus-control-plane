@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.admission.ValidatorMetrics;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
@@ -53,7 +56,8 @@ public class JobEbsVolumeValidator implements AdmissionValidator<JobDescriptor> 
     public Mono<Set<ValidationError>> validate(JobDescriptor jobDescriptor) {
         return Mono.fromCallable(() -> CollectionsExt.merge(
                 validateFieldsSet(jobDescriptor),
-                validateDuplicateVolumeIds(jobDescriptor)
+                validateDuplicateVolumeIds(jobDescriptor),
+                validateMatchEbsAndIpZones(jobDescriptor)
         ))
                 .doOnNext(validationErrors -> {
                     if (validationErrors.isEmpty()) {
@@ -93,5 +97,15 @@ public class JobEbsVolumeValidator implements AdmissionValidator<JobDescriptor> 
                 : Collections.singleton(new ValidationError(
                 JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS,
                 "Duplicate volume IDs exist"));
+    }
+
+    /**
+     * Validates that EBS volumes and any Static IP resources have matching AZs
+     */
+    private Set<ValidationError> validateMatchEbsAndIpZones(JobDescriptor jobDescriptor) {
+        List<SignedIpAddressAllocation> signedIpAddressAllocations = jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations();
+        return signedIpAddressAllocations.isEmpty()
+                ? Collections.emptySet()
+                : JobAssertions.validateMatchingEbsAndIpZones(jobDescriptor.getContainer().getContainerResources().getEbsVolumes(), signedIpAddressAllocations);
     }
 }
