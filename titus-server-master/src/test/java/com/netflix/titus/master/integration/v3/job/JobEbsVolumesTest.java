@@ -24,9 +24,11 @@ import java.util.function.Predicate;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
@@ -38,6 +40,7 @@ import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import com.netflix.titus.testkit.model.job.JobEbsVolumeGenerator;
+import com.netflix.titus.testkit.model.job.JobIpAllocationGenerator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -201,6 +204,26 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
         );
     }
 
+    /**
+     * Tests that a job with EBS volumes and Static IPs are paired with resources in the expected order.
+     */
+    @Test(timeout = 30_000)
+    public void testServiceJobWithStaticIps() {
+        int size = 4;
+        JobDescriptor<ServiceJobExt> serviceJobDescriptor = serviceJobDescriptors(serviceOfSizeAndEbsVolumes(size)).getValue();
+        List<SignedIpAddressAllocation> ipAllocations = JobIpAllocationGenerator.jobIpAllocations(size).toList();
+        JobDescriptor<ServiceJobExt> serviceJobDescriptorWithIps = JobFunctions.jobWithIpAllocations(serviceJobDescriptor, ipAllocations);
+        List<EbsVolume> ebsVolumes = serviceJobDescriptorWithIps.getContainer().getContainerResources().getEbsVolumes();
+
+        jobsScenarioBuilder.schedule(serviceJobDescriptorWithIps, jobScenarioBuilder ->
+                jobScenarioBuilder
+                        .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 0))
+                        .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 1))
+                        .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 2))
+                        .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 3))
+        );
+    }
+
     private static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> batchOfSizeAndEbsVolumes(int size) {
         List<EbsVolume> ebsVolumes = JobEbsVolumeGenerator.jobEbsVolumes(size).toList();
         Map<String, String> ebsVolumeAttributes = JobEbsVolumeGenerator.jobEbsVolumesToAttributes(ebsVolumes);
@@ -220,5 +243,10 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
                 .map(taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID))
                 .distinct()
                 .count() == 1;
+    }
+
+    private boolean matchingEbsAndIpIndex(Task task, List<EbsVolume> ebsVolumes, List<SignedIpAddressAllocation> signedIpAddressAllocations, int index) {
+        return task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, "").equals(ebsVolumes.get(index).getVolumeId())
+                && task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, "").equals(signedIpAddressAllocations.get(index).getIpAddressAllocation().getAllocationId());
     }
 }

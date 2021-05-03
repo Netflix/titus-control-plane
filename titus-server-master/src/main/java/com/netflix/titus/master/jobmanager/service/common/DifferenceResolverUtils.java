@@ -252,7 +252,6 @@ public class DifferenceResolverUtils {
         // Get a sorted list of all IP allocations from the job
         List<String> unassignedIpAddressIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().stream()
                 .map(signedIpAddressAllocation -> signedIpAddressAllocation.getIpAddressAllocation().getAllocationId())
-                .sorted()
                 .collect(Collectors.toList());
 
         // Filter out those that are assigned
@@ -269,7 +268,6 @@ public class DifferenceResolverUtils {
         // Get a sorted list of all ebs values from the job
         List<String> unassignedEbsVolumeIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().stream()
                 .map(EbsVolume::getVolumeId)
-                .sorted()
                 .collect(Collectors.toList());
 
         // Filter out those that are assigned

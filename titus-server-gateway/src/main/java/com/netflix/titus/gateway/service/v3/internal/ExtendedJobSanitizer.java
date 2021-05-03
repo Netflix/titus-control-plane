@@ -95,14 +95,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
 
     @Override
     public <T> Set<ValidationError> validate(T entity) {
-        Set<ValidationError> errors = entitySanitizer.validate(entity);
-
-        if (entity instanceof com.netflix.titus.api.jobmanager.model.job.JobDescriptor) {
-            JobDescriptor jd = ((JobDescriptor)entity);
-            errors.addAll(JobAssertions.validateMatchingEbsAndIpZones(jd.getContainer().getContainerResources().getEbsVolumes(), jd.getContainer().getContainerResources().getSignedIpAddressAllocations()));
-        }
-
-        return errors;
+        return entitySanitizer.validate(entity);
     }
 
     @Override
