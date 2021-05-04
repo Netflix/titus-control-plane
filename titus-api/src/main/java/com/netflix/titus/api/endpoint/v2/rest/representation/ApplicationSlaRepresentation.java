@@ -92,6 +92,11 @@ public class ApplicationSlaRepresentation {
      */
     private final String schedulerName;
 
+    /**
+     * Defines the resourcePool to use for managing capacity for applications using this SLA definition.
+     */
+    private final String resourcePool;
+
     @JsonCreator
     public ApplicationSlaRepresentation(@JsonProperty("appName") String appName,
                                         @JsonProperty("cellId") String cellId,
@@ -102,7 +107,8 @@ public class ApplicationSlaRepresentation {
                                         @JsonProperty("instanceNetworkMbs") Long instanceNetworkMbs,
                                         @JsonProperty("instanceCount") Integer instanceCount,
                                         @JsonProperty("reservationUsage") ReservationUsage reservationUsage,
-                                        @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName) {
+                                        @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName,
+                                        @JsonProperty("resourcePool") String resourcePool) {
         this.appName = appName;
         this.cellId = cellId;
         this.tier = tier;
@@ -113,6 +119,7 @@ public class ApplicationSlaRepresentation {
         this.instanceCount = instanceCount;
         this.reservationUsage = reservationUsage;
         this.schedulerName = schedulerName;
+        this.resourcePool = resourcePool;
     }
 
     public String getAppName() {
@@ -149,6 +156,10 @@ public class ApplicationSlaRepresentation {
 
     public ReservationUsage getReservationUsage() {
         return reservationUsage;
+    }
+
+    public String getResourcePool() {
+        return resourcePool;
     }
 
     public String getSchedulerName() {

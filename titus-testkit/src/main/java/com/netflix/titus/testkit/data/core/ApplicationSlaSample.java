@@ -82,12 +82,23 @@ public enum ApplicationSlaSample {
                     .withInstanceCount(2);
         }
     },
+    FlexSmallKubeScheduler() {
+        @Override
+        public ApplicationSLA.Builder builder() {
+            return ApplicationSLA.newBuilder(CriticalSmall.build())
+                    .withAppName("flexSmallKubeSchedulerApp")
+                    .withTier(Tier.Flex)
+                    .withSchedulerName("kubeScheduler")
+                    .withInstanceCount(2);
+        }
+    },
     CriticalSmallKubeScheduler() {
         @Override
         public ApplicationSLA.Builder builder() {
             return CriticalSmall.builder()
                     .withAppName("criticalSmallKubeSchedulerApp")
-                    .withSchedulerName("kubescheduler");
+                    .withSchedulerName("kubeScheduler")
+                    .withResourcePool("reserved");
         }
     };
 

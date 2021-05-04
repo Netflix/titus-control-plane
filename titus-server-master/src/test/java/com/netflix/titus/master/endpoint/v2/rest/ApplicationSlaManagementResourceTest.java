@@ -147,13 +147,13 @@ public class ApplicationSlaManagementResourceTest {
 
     @Test
     public void getApplicationSlaBySchedulerName() {
-        when(capacityManagementService.getApplicationSLAsForScheduler("kubescheduler")).thenReturn(Arrays.asList(SAMPLE_SLA_MANAGED_BY_KUBESCHEDULER));
+        when(capacityManagementService.getApplicationSLAsForScheduler("kubeScheduler")).thenReturn(Arrays.asList(SAMPLE_SLA_MANAGED_BY_KUBESCHEDULER));
         testClient.get()
-                .uri(uriBuilder -> uriBuilder.queryParam("schedulerName", "kubescheduler").build())
+                .uri(uriBuilder -> uriBuilder.queryParam("schedulerName", "kubeScheduler").build())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(APPLICATION_SLA_KUBE_SCHEDULER_REP_LIST_TR).value(result -> assertThat(result).hasSize(1));
-        verify(capacityManagementService, times(1)).getApplicationSLAsForScheduler("kubescheduler");
+        verify(capacityManagementService, times(1)).getApplicationSLAsForScheduler("kubeScheduler");
     }
 
     @Test

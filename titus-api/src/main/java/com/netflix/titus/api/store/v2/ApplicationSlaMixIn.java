@@ -33,6 +33,7 @@ public abstract class ApplicationSlaMixIn {
             @JsonProperty("tier") Tier tier,
             @JsonProperty("resourceDimension") ResourceDimension resourceDimension,
             @JsonProperty("instanceCount") int instanceCount,
-            @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName) {
+            @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName,
+            @JsonProperty("resourcePool") String resourcePool) {
     }
 }

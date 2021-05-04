@@ -19,6 +19,7 @@ package com.netflix.titus.api.model;
 import java.util.Objects;
 
 import com.google.common.base.Strings;
+import com.netflix.titus.common.util.StringExt;
 
 /**
  * Application SLA definition.
@@ -26,6 +27,10 @@ import com.google.common.base.Strings;
 public class ApplicationSLA {
 
     public static final String DEFAULT_SCHEDULER_NAME = "fenzo";
+
+    public static final String DEFAULT_CRITICAL_TIER_RESOURCE_POOL = "reserved";
+
+    public static final String DEFAULT_FLEX_TIER_RESOURCE_POOL = "elastic";
 
     private final String appName;
 
@@ -38,6 +43,8 @@ public class ApplicationSLA {
 
     private final String schedulerName;
 
+    private final String resourcePool;
+
     /**
      * Total number of instances required by this application. Titus will keep pre-allocated resources to always
      * fulfill this requirement.
@@ -48,7 +55,8 @@ public class ApplicationSLA {
                           Tier tier,
                           ResourceDimension resourceDimension,
                           int instanceCount,
-                          String schedulerName) {
+                          String schedulerName,
+                          String resourcePool) {
         this.appName = appName;
         this.tier = tier;
         this.resourceDimension = resourceDimension;
@@ -57,6 +65,24 @@ public class ApplicationSLA {
             this.schedulerName = DEFAULT_SCHEDULER_NAME;
         } else {
             this.schedulerName = schedulerName;
+        }
+        // Resource pools are only used with Kube Scheduler.
+        // Unless a non-empty value is given, we populate a default value of resource pool for non-GPU capacity groups
+        // when associated with kubeScheduler such that
+        // critical tier capacity groups (ApplicationSLAs) are mapped to reserved resource pool
+        // and flex tier capacity groups are mapped to elastic.
+        if (StringExt.isNotEmpty(resourcePool)) {
+            this.resourcePool = resourcePool;
+        } else {
+            if (Objects.equals(this.schedulerName, "kubeScheduler") && this.resourceDimension.getGpu() == 0L) {
+                if (tier == Tier.Critical) {
+                    this.resourcePool = DEFAULT_CRITICAL_TIER_RESOURCE_POOL;
+                } else {
+                    this.resourcePool = DEFAULT_FLEX_TIER_RESOURCE_POOL;
+                }
+            } else {
+                this.resourcePool = "";
+            }
         }
     }
 
@@ -76,6 +102,10 @@ public class ApplicationSLA {
         return instanceCount;
     }
 
+    public String getResourcePool() {
+        return resourcePool;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -84,19 +114,18 @@ public class ApplicationSLA {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         ApplicationSLA that = (ApplicationSLA) o;
-
         return instanceCount == that.instanceCount &&
                 Objects.equals(appName, that.appName) &&
                 tier == that.tier &&
                 Objects.equals(resourceDimension, that.resourceDimension) &&
-                Objects.equals(schedulerName, that.schedulerName);
+                Objects.equals(schedulerName, that.schedulerName) &&
+                Objects.equals(resourcePool, that.resourcePool);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(appName, tier, resourceDimension, schedulerName, instanceCount);
+        return Objects.hash(appName, tier, resourceDimension, schedulerName, resourcePool, instanceCount);
     }
 
     public String getSchedulerName() {
@@ -110,7 +139,8 @@ public class ApplicationSLA {
                 ", tier=" + tier +
                 ", resourceDimension=" + resourceDimension +
                 ", schedulerName='" + schedulerName + '\'' +
-                ", instanceCount=" + instanceCount +
+                ", instanceCount=" + instanceCount + '\'' +
+                ", resourcePool=" + resourcePool +
                 '}';
     }
 
@@ -121,7 +151,8 @@ public class ApplicationSLA {
     public static Builder newBuilder(ApplicationSLA original) {
         return newBuilder().withAppName(original.getAppName()).withTier(original.getTier())
                 .withResourceDimension(original.getResourceDimension()).withInstanceCount(original.getInstanceCount())
-                .withSchedulerName(original.getSchedulerName());
+                .withSchedulerName(original.getSchedulerName())
+                .withResourcePool(original.getResourcePool());
     }
 
     public static final class Builder {
@@ -130,6 +161,7 @@ public class ApplicationSLA {
         private ResourceDimension resourceDimension;
         private int instanceCount;
         private String schedulerName;
+        private String resourcePool;
 
         private Builder() {
         }
@@ -164,8 +196,13 @@ public class ApplicationSLA {
             return this;
         }
 
+        public Builder withResourcePool(String resourcePool) {
+            this.resourcePool = resourcePool;
+            return this;
+        }
+
         public ApplicationSLA build() {
-            return new ApplicationSLA(appName, tier, resourceDimension, instanceCount, schedulerName);
+            return new ApplicationSLA(appName, tier, resourceDimension, instanceCount, schedulerName, resourcePool);
         }
     }
 }

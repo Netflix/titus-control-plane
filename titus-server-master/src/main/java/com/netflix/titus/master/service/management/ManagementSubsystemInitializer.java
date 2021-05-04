@@ -22,10 +22,10 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.common.util.guice.annotation.Activator;
-import com.netflix.titus.master.service.management.CapacityManagementConfiguration.ResourceDimensionConfiguration;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.api.store.v2.exception.NotFoundException;
+import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.master.service.management.CapacityManagementConfiguration.ResourceDimensionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -69,6 +69,7 @@ public class ManagementSubsystemInitializer {
                 .withAppName(ApplicationSlaManagementService.DEFAULT_APPLICATION)
                 .withTier(Tier.Flex)
                 .withSchedulerName(configuration.getDefaultSchedulerName())
+                .withResourcePool("")
                 .withInstanceCount(configuration.getDefaultApplicationInstanceCount())
                 .withResourceDimension(ResourceDimension.newBuilder()
                         .withCpus(rdConf.getCPU())
