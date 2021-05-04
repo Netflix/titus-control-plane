@@ -34,10 +34,11 @@ import com.netflix.titus.common.util.CollectionsExt;
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
+ *
  */
 @ClassInvariant.List({
-        // TODO: This should be enabled as a ClassInvariant rather than a {@link ExtendedJobSanitizer} with TITUS-5370.
-        // @ClassInvariant(expr = "@asserts.matchingEbsAndIpZones(ebsVolumes, ipSignedAddressAllocations)", mode = VerifierMode.Strict),
+        // TODO This is also get checked during Gateway model validation. A change is needed to matchingEbsAndIpZones() to allow it to handle EbsVolume objects before TJC sanitization.
+//        @ClassInvariant(expr = "@asserts.matchingEbsAndIpZones(ebsVolumes, signedIpAddressAllocations)", mode = VerifierMode.Strict),
         @ClassInvariant(condition = "shmMB <= memoryMB", message = "'shmMB' (#{shmMB}) must be <= 'memoryMB' (#{memoryMB})")
 })
 public class ContainerResources {
@@ -74,7 +75,7 @@ public class ContainerResources {
 
     @Valid
     @CollectionInvariants(allowDuplicateValues = false)
-    private final List<SignedIpAddressAllocation> ipSignedAddressAllocations;
+    private final List<SignedIpAddressAllocation> signedIpAddressAllocations;
 
     @Valid
     @CollectionInvariants(allowDuplicateValues = false)
@@ -88,7 +89,7 @@ public class ContainerResources {
                               List<EfsMount> efsMounts,
                               boolean allocateIP,
                               int shmMB,
-                              List<SignedIpAddressAllocation> ipSignedAddressAllocations,
+                              List<SignedIpAddressAllocation> signedIpAddressAllocations,
                               List<EbsVolume> ebsVolumes) {
         this.cpu = cpu;
         this.gpu = gpu;
@@ -98,9 +99,10 @@ public class ContainerResources {
         this.efsMounts = CollectionsExt.nonNullImmutableCopyOf(efsMounts);
         this.allocateIP = allocateIP;
         this.shmMB = shmMB;
-        this.ipSignedAddressAllocations = CollectionsExt.nonNullImmutableCopyOf(ipSignedAddressAllocations);
+        this.signedIpAddressAllocations = CollectionsExt.nonNullImmutableCopyOf(signedIpAddressAllocations);
         this.ebsVolumes = CollectionsExt.nonNullImmutableCopyOf(ebsVolumes);
     }
+
     public double getCpu() {
         return cpu;
     }
@@ -134,7 +136,7 @@ public class ContainerResources {
     }
 
     public List<SignedIpAddressAllocation> getSignedIpAddressAllocations() {
-        return ipSignedAddressAllocations;
+        return signedIpAddressAllocations;
     }
 
     public List<EbsVolume> getEbsVolumes() {
@@ -158,13 +160,13 @@ public class ContainerResources {
                 allocateIP == that.allocateIP &&
                 shmMB == that.shmMB &&
                 efsMounts.equals(that.efsMounts) &&
-                ipSignedAddressAllocations.equals(that.ipSignedAddressAllocations) &&
+                signedIpAddressAllocations.equals(that.signedIpAddressAllocations) &&
                 ebsVolumes.equals(that.ebsVolumes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cpu, gpu, memoryMB, diskMB, networkMbps, efsMounts, allocateIP, shmMB, ipSignedAddressAllocations, ebsVolumes);
+        return Objects.hash(cpu, gpu, memoryMB, diskMB, networkMbps, efsMounts, allocateIP, shmMB, signedIpAddressAllocations, ebsVolumes);
     }
 
     @Override
@@ -178,7 +180,7 @@ public class ContainerResources {
                 ", efsMounts=" + efsMounts +
                 ", allocateIP=" + allocateIP +
                 ", shmMB=" + shmMB +
-                ", ipSignedAddressAllocations=" + ipSignedAddressAllocations +
+                ", signedIpAddressAllocations=" + signedIpAddressAllocations +
                 ", ebsVolumes=" + ebsVolumes +
                 '}';
     }
