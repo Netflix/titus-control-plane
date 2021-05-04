@@ -29,7 +29,6 @@ import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldSanitizer;
-import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.util.CollectionsExt;
 
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
@@ -38,7 +37,8 @@ import static com.netflix.titus.common.util.CollectionsExt.nonNull;
  *
  */
 @ClassInvariant.List({
-        @ClassInvariant(expr = "@asserts.matchingEbsAndIpZones(ebsVolumes, signedIpAddressAllocations)", mode = VerifierMode.Strict),
+        // TODO This is also get checked during Gateway model validation. A change is needed to matchingEbsAndIpZones() to allow it to handle EbsVolume objects before TJC sanitization.
+//        @ClassInvariant(expr = "@asserts.matchingEbsAndIpZones(ebsVolumes, signedIpAddressAllocations)", mode = VerifierMode.Strict),
         @ClassInvariant(condition = "shmMB <= memoryMB", message = "'shmMB' (#{shmMB}) must be <= 'memoryMB' (#{memoryMB})")
 })
 public class ContainerResources {
