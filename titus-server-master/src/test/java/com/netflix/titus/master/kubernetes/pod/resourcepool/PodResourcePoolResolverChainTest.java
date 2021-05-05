@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ public class PodResourcePoolResolverChainTest {
     private final PodResourcePoolResolver delegate1 = mock(PodResourcePoolResolver.class);
     private final PodResourcePoolResolver delegate2 = mock(PodResourcePoolResolver.class);
 
-    private final PodResourcePoolResolverChain resolver = new PodResourcePoolResolverChain(Arrays.asList(delegate1, delegate2));
+    private final PodResourcePoolResolverChain resolver = new PodResourcePoolResolverChain(Arrays.asList(delegate1, delegate2), TitusRuntimes.internal());
 
     @Test
     public void testChainedExecution() {

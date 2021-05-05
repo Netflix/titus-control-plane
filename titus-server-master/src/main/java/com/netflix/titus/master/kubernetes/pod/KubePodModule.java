@@ -33,6 +33,7 @@ import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResour
 import com.netflix.titus.master.kubernetes.pod.resourcepool.FarzonePodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.FenzoPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.GpuPodResourcePoolResolver;
+import com.netflix.titus.master.kubernetes.pod.resourcepool.KubeSchedulerPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverChain;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverFeatureGuard;
@@ -64,6 +65,7 @@ public class KubePodModule extends AbstractModule {
         return new PodResourcePoolResolverFeatureGuard(
                 configuration,
                 new PodResourcePoolResolverChain(Arrays.asList(
+                        new KubeSchedulerPodResourcePoolResolver(capacityGroupService),
                         new FenzoPodResourcePoolResolver(capacityGroupService),
                         new ExplicitJobPodResourcePoolResolver(),
                         new FarzonePodResourcePoolResolver(configuration),
@@ -75,7 +77,7 @@ public class KubePodModule extends AbstractModule {
                                 titusRuntime
                         ),
                         new TierPodResourcePoolResolver(capacityGroupService)
-                ))
+                ), titusRuntime)
         );
     }
 
