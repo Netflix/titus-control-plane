@@ -27,6 +27,7 @@ import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.model.ResourceDimensions;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
 import static com.netflix.titus.master.endpoint.v2.rest.ApplicationSlaManagementEndpoint.DEFAULT_APPLICATION;
 
 /**
@@ -82,12 +83,23 @@ public enum ApplicationSlaSample {
                     .withInstanceCount(2);
         }
     },
+    FlexSmallKubeScheduler() {
+        @Override
+        public ApplicationSLA.Builder builder() {
+            return ApplicationSLA.newBuilder(CriticalSmall.build())
+                    .withAppName("flexSmallKubeSchedulerApp")
+                    .withTier(Tier.Flex)
+                    .withSchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER)
+                    .withInstanceCount(2);
+        }
+    },
     CriticalSmallKubeScheduler() {
         @Override
         public ApplicationSLA.Builder builder() {
             return CriticalSmall.builder()
                     .withAppName("criticalSmallKubeSchedulerApp")
-                    .withSchedulerName("kubescheduler");
+                    .withSchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER)
+                    .withResourcePool("reserved");
         }
     };
 

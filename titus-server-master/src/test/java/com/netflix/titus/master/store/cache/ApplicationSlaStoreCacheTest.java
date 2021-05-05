@@ -24,11 +24,14 @@ import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.api.store.v2.ApplicationSlaStoreCache;
 import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.testkit.data.core.ApplicationSlaGenerator;
-
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
+import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.CriticalSmall;
+import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.CriticalSmallKubeScheduler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Matchers.anyString;
@@ -36,8 +39,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.*;
 
 public class ApplicationSlaStoreCacheTest {
 
@@ -75,10 +76,10 @@ public class ApplicationSlaStoreCacheTest {
 
     @Test
     public void testFindBySchedulerName() throws Exception {
-        List<ApplicationSLA> allFenzoApplicationSLAs = store.findBySchedulerName("fenzo").toList().toBlocking().first();
+        List<ApplicationSLA> allFenzoApplicationSLAs = store.findBySchedulerName(SCHEDULER_NAME_FENZO).toList().toBlocking().first();
         assertThat(allFenzoApplicationSLAs).hasSize(INIT_SIZE - 1);
 
-        List<ApplicationSLA> allKubeSchedulerApplicationSLAs = store.findBySchedulerName("kubescheduler").toList().toBlocking().first();
+        List<ApplicationSLA> allKubeSchedulerApplicationSLAs = store.findBySchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).toList().toBlocking().first();
         assertThat(allKubeSchedulerApplicationSLAs).hasSize(1);
     }
 

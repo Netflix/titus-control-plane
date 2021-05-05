@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.netflix.titus.api.model.ApplicationSLA;
+import static com.netflix.titus.api.model.SchedulerConstants.*;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
@@ -76,8 +77,9 @@ public class CassandraApplicationSlaStoreTest {
         ApplicationSLA capacityGroup1 = ApplicationSlaSample.DefaultFlex.build();
         ApplicationSLA capacityGroup2 = ApplicationSlaSample.CriticalLarge.build();
         ApplicationSLA capacityGroup3 = ApplicationSlaSample.CriticalSmallKubeScheduler.build();
+        ApplicationSLA capacityGroup4 = ApplicationSlaSample.FlexSmallKubeScheduler.build();
 
-        List<ApplicationSLA> capacityGroups = Arrays.asList(capacityGroup1, capacityGroup2, capacityGroup3);
+        List<ApplicationSLA> capacityGroups = Arrays.asList(capacityGroup1, capacityGroup2, capacityGroup3, capacityGroup4);
 
         // Create initial
         ApplicationSlaStore bootstrappingTitusStore = createStore();
@@ -88,37 +90,46 @@ public class CassandraApplicationSlaStoreTest {
         // Read all
         ApplicationSlaStore store = createStore();
         List<ApplicationSLA> result = store.findAll().toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
-        assertThat(result).hasSize(3);
+        assertThat(result).hasSize(4);
         assertThat(result).containsAll(capacityGroups);
 
         // Find by name
         ApplicationSLA fetched = store.findByName(capacityGroup1.getAppName()).timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
         assertThat(fetched).isEqualTo(capacityGroup1);
+        assertThat(fetched.getSchedulerName()).isEqualTo(SCHEDULER_NAME_FENZO);
+        assertThat(fetched.getResourcePool()).isEmpty();
 
         // Find by scheduler name
-        List<ApplicationSLA> fetchedByFenzoScheduler = store.findBySchedulerName("fenzo").toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
+        List<ApplicationSLA> fetchedByFenzoScheduler = store.findBySchedulerName(SCHEDULER_NAME_FENZO).toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
         assertThat(fetchedByFenzoScheduler).hasSize(2);
         assertThat(fetchedByFenzoScheduler).containsAll(ImmutableList.of(capacityGroup1, capacityGroup2));
 
-        List<ApplicationSLA> fetchByKubeScheduler = store.findBySchedulerName("kubescheduler").toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
-        assertThat(fetchByKubeScheduler).hasSize(1);
-        assertThat(fetchByKubeScheduler).containsAll(ImmutableList.of(capacityGroup3));
+        List<ApplicationSLA> fetchByKubeScheduler = store.findBySchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
+        assertThat(fetchByKubeScheduler).hasSize(2);
+        assertThat(fetchByKubeScheduler).containsAll(ImmutableList.of(capacityGroup3, capacityGroup4));
+        ApplicationSLA fetchedByKubeSchedulerCriticalTierApplicationSLA = fetchByKubeScheduler.stream().filter(applicationSLA -> applicationSLA.getAppName().equals(capacityGroup3.getAppName())).findFirst().orElseThrow(() -> new AssertionError("Expected value not found in the result"));
+        assertThat(fetchedByKubeSchedulerCriticalTierApplicationSLA.getSchedulerName()).isEqualTo(SCHEDULER_NAME_KUBE_SCHEDULER);
+        assertThat(fetchedByKubeSchedulerCriticalTierApplicationSLA.getResourcePool()).isEqualTo(ApplicationSLA.DEFAULT_CRITICAL_TIER_RESOURCE_POOL);
+
+        ApplicationSLA fetchedByKubeSchedulerFlexTierApplicatonSLA = fetchByKubeScheduler.stream().filter(applicationSLA -> applicationSLA.getAppName().equals(capacityGroup4.getAppName())).findFirst().orElseThrow(() -> new AssertionError("Expected value not found in the result"));
+        assertThat(fetchedByKubeSchedulerFlexTierApplicatonSLA.getSchedulerName()).isEqualTo(SCHEDULER_NAME_KUBE_SCHEDULER);
+        assertThat(fetchedByKubeSchedulerFlexTierApplicatonSLA.getResourcePool()).isEqualTo(ApplicationSLA.DEFAULT_FLEX_TIER_RESOURCE_POOL);
 
         // update an ApplicationSLA associated with fenzo to kubescheduler and verify the new set
-        ApplicationSLA updatedCapacityGroup = ApplicationSLA.newBuilder(capacityGroup1).withSchedulerName("kubescheduler").build();
+        ApplicationSLA updatedCapacityGroup = ApplicationSLA.newBuilder(capacityGroup1).withSchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).build();
         assertThat(store.create(updatedCapacityGroup).toCompletable().await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue();
 
-        List<ApplicationSLA> fetchByKubeSchedulerAfterUpdate = store.findBySchedulerName("kubescheduler").toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
-        assertThat(fetchByKubeSchedulerAfterUpdate).hasSize(2);
-        assertThat(fetchByKubeSchedulerAfterUpdate).containsAll(ImmutableList.of(updatedCapacityGroup, capacityGroup3));
+        List<ApplicationSLA> fetchByKubeSchedulerAfterUpdate = store.findBySchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
+        assertThat(fetchByKubeSchedulerAfterUpdate).hasSize(3);
+        assertThat(fetchByKubeSchedulerAfterUpdate).containsAll(ImmutableList.of(updatedCapacityGroup, capacityGroup3, capacityGroup4));
 
-        List<ApplicationSLA> fetchByFenzoAfterUpdate = store.findBySchedulerName("fenzo").toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
+        List<ApplicationSLA> fetchByFenzoAfterUpdate = store.findBySchedulerName(SCHEDULER_NAME_FENZO).toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
         assertThat(fetchByFenzoAfterUpdate).hasSize(1);
         assertThat(fetchByFenzoAfterUpdate).containsAll(ImmutableList.of(capacityGroup2));
 
         List<ApplicationSLA> findAllResult = store.findAll().toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
-        assertThat(findAllResult).hasSize(3);
-        assertThat(findAllResult).containsAll(ImmutableList.of(updatedCapacityGroup, capacityGroup2, capacityGroup3));
+        assertThat(findAllResult).hasSize(4);
+        assertThat(findAllResult).containsAll(ImmutableList.of(updatedCapacityGroup, capacityGroup2, capacityGroup3, capacityGroup4));
 
         // Now delete
         assertThat(store.remove(capacityGroup1.getAppName()).toCompletable().await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue();

@@ -21,6 +21,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
+
 /**
  * To better decouple service layer model from the persistence layer, we provide serialization
  * specific annotations via Jackson mix-ins.
@@ -33,6 +35,7 @@ public abstract class ApplicationSlaMixIn {
             @JsonProperty("tier") Tier tier,
             @JsonProperty("resourceDimension") ResourceDimension resourceDimension,
             @JsonProperty("instanceCount") int instanceCount,
-            @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName) {
+            @JsonProperty(value = "schedulerName", defaultValue = SCHEDULER_NAME_FENZO) String schedulerName,
+            @JsonProperty("resourcePool") String resourcePool) {
     }
 }

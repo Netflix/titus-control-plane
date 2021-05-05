@@ -38,7 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
-import rx.schedulers.Schedulers;
+
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
 
 @Singleton
 public class DefaultTierSlaUpdater implements TierSlaUpdater {
@@ -84,7 +85,7 @@ public class DefaultTierSlaUpdater implements TierSlaUpdater {
     }
 
     private TieredQueueSlas recomputeSLAs() {
-        Collection<ApplicationSLA> applicationSLAs = applicationSlaManagementService.getApplicationSLAsForScheduler(ApplicationSLA.DEFAULT_SCHEDULER_NAME);
+        Collection<ApplicationSLA> applicationSLAs = applicationSlaManagementService.getApplicationSLAsForScheduler(SCHEDULER_NAME_FENZO);
 
         Map<Integer, ResAllocs> tierCapacities = new HashMap<>();
         Map<Integer, Map<String, ResAllocs>> slas = new HashMap<>();

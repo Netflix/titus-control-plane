@@ -23,11 +23,13 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.api.store.v2.ApplicationSlaStoreCache;
-
 import org.junit.Test;
 
-import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.*;
-import static org.assertj.core.api.Assertions.*;
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
+import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.CriticalSmall;
+import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.DefaultFlex;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class InMemoryApplicationSlaStoreTest {
 
@@ -38,7 +40,7 @@ public class InMemoryApplicationSlaStoreTest {
         ApplicationSlaStore store = createStore();
         ApplicationSLA capacityGroup1 = DefaultFlex.build();
         ApplicationSLA capacityGroup2 = CriticalSmall.builder()
-                .withSchedulerName("kubescheduler").build();
+                .withSchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).build();
 
         List<ApplicationSLA> capacityGroups = Arrays.asList(capacityGroup1, capacityGroup2);
 
@@ -59,10 +61,10 @@ public class InMemoryApplicationSlaStoreTest {
         assertThat(result).containsExactlyInAnyOrder(capacityGroup1);
 
         // find by scheduler name
-        result = store.findBySchedulerName("fenzo").toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
+        result = store.findBySchedulerName(SCHEDULER_NAME_FENZO).toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
         assertThat(result).containsExactlyInAnyOrder(capacityGroup1);
 
-        result = store.findBySchedulerName("kubescheduler").toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
+        result = store.findBySchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
         assertThat(result).containsExactlyInAnyOrder(capacityGroup2);
 
         // find by non-existent scheduler name
@@ -70,7 +72,7 @@ public class InMemoryApplicationSlaStoreTest {
         assertThat(result).isEmpty();
 
         // update scheduler name and verify
-        ApplicationSLA updatedCapacityGroup = ApplicationSLA.newBuilder(capacityGroup1).withSchedulerName("kubescheduler").build();
+        ApplicationSLA updatedCapacityGroup = ApplicationSLA.newBuilder(capacityGroup1).withSchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).build();
         assertThat(store.create(updatedCapacityGroup).toCompletable().await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue();
         result = store.findAll().toList().timeout(TIMEOUT, TimeUnit.MILLISECONDS).toBlocking().first();
         assertThat(result).containsExactlyInAnyOrder(updatedCapacityGroup, capacityGroup2);
