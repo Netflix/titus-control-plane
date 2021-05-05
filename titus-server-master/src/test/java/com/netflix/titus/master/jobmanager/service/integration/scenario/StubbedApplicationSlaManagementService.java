@@ -33,7 +33,8 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
             Tier.Flex,
             ResourceDimension.newBuilder().withCpus(16).withMemoryMB(32 * 1024).withNetworkMbs(4096).withDiskMB(100 * 1024).build(),
             10,
-            "fenzo"
+            "fenzo",
+            ""
     );
 
     @Override
