@@ -21,12 +21,13 @@ import java.util.Objects;
 import com.google.common.base.Strings;
 import com.netflix.titus.common.util.StringExt;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
+
 /**
  * Application SLA definition.
  */
 public class ApplicationSLA {
-
-    public static final String DEFAULT_SCHEDULER_NAME = "fenzo";
 
     public static final String DEFAULT_CRITICAL_TIER_RESOURCE_POOL = "reserved";
 
@@ -62,7 +63,7 @@ public class ApplicationSLA {
         this.resourceDimension = resourceDimension;
         this.instanceCount = instanceCount;
         if (Strings.isNullOrEmpty(schedulerName)) {
-            this.schedulerName = DEFAULT_SCHEDULER_NAME;
+            this.schedulerName = SCHEDULER_NAME_FENZO;
         } else {
             this.schedulerName = schedulerName;
         }
@@ -74,7 +75,7 @@ public class ApplicationSLA {
         if (StringExt.isNotEmpty(resourcePool)) {
             this.resourcePool = resourcePool;
         } else {
-            if (Objects.equals(this.schedulerName, "kubeScheduler") && this.resourceDimension.getGpu() == 0L) {
+            if (Objects.equals(this.schedulerName, SCHEDULER_NAME_KUBE_SCHEDULER) && this.resourceDimension.getGpu() == 0L) {
                 if (tier == Tier.Critical) {
                     this.resourcePool = DEFAULT_CRITICAL_TIER_RESOURCE_POOL;
                 } else {

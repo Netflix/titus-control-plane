@@ -34,6 +34,7 @@ import org.junit.Test;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
 import static com.netflix.titus.master.model.ResourceDimensions.fromResAllocs;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,7 +72,7 @@ public class DefaultTierSlaUpdaterTest {
         when(availableCapacityService.totalCapacityOf(Tier.Critical)).thenReturn(Optional.of(CRITICAL_CAPACITY));
         when(availableCapacityService.totalCapacityOf(Tier.Flex)).thenReturn(Optional.of(FLEX_CAPACITY));
 
-        when(applicationSlaManagementService.getApplicationSLAsForScheduler(ApplicationSLA.DEFAULT_SCHEDULER_NAME)).thenReturn(
+        when(applicationSlaManagementService.getApplicationSLAsForScheduler(SCHEDULER_NAME_FENZO)).thenReturn(
                 asList(FLEX_CAPACITY_GROUP, CRITICAL_CAPACITY_GROUP)
         );
     }

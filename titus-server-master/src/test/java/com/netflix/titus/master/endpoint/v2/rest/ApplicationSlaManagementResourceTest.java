@@ -28,9 +28,9 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
@@ -46,6 +46,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import rx.Observable;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -147,13 +148,13 @@ public class ApplicationSlaManagementResourceTest {
 
     @Test
     public void getApplicationSlaBySchedulerName() {
-        when(capacityManagementService.getApplicationSLAsForScheduler("kubeScheduler")).thenReturn(Arrays.asList(SAMPLE_SLA_MANAGED_BY_KUBESCHEDULER));
+        when(capacityManagementService.getApplicationSLAsForScheduler(SCHEDULER_NAME_KUBE_SCHEDULER)).thenReturn(Arrays.asList(SAMPLE_SLA_MANAGED_BY_KUBESCHEDULER));
         testClient.get()
-                .uri(uriBuilder -> uriBuilder.queryParam("schedulerName", "kubeScheduler").build())
+                .uri(uriBuilder -> uriBuilder.queryParam("schedulerName", SCHEDULER_NAME_KUBE_SCHEDULER).build())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(APPLICATION_SLA_KUBE_SCHEDULER_REP_LIST_TR).value(result -> assertThat(result).hasSize(1));
-        verify(capacityManagementService, times(1)).getApplicationSLAsForScheduler("kubeScheduler");
+        verify(capacityManagementService, times(1)).getApplicationSLAsForScheduler(SCHEDULER_NAME_KUBE_SCHEDULER);
     }
 
     @Test
