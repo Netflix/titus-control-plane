@@ -46,4 +46,10 @@ public interface KubeSchedulerFeatureConfiguration {
      */
     @DefaultValue(".*")
     String getEnabledMachineTypes();
+
+    /**
+     * This property provides a mechanism to override routing behavior to Kube Scheduler by Tier.
+     */
+    @DefaultValue("")
+    String getEnabledOverrideTiers();
 }
