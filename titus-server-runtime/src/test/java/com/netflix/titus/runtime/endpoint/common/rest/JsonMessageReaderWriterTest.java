@@ -63,7 +63,7 @@ public class JsonMessageReaderWriterTest {
     @Test
     public void testFieldsSelection() throws Exception {
         ApplicationSlaRepresentation myAppSla = new ApplicationSlaRepresentation(
-                "myApp", null, TierRepresentation.Critical, 1D, 2L, 3L, 4L, 5, null, null, ""
+                "myApp", null, TierRepresentation.Critical, 1D, 2L, 3L, 4L, 5L, null, null, "", ""
         );
 
         when(httpServletRequest.getParameter(JsonMessageReaderWriter.FIELDS_PARAM)).thenReturn("appName,instanceCPU");

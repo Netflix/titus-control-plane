@@ -80,6 +80,9 @@ public class ApplicationSlaRepresentation {
     @Min(value = 1, message = "'instanceCount' must be at least 1")
     private final Integer instanceCount;
 
+    @Min(value = 0, message = "'instanceGPU' must be at least 0")
+    private final Long instanceGPU;
+
     // ----------------------------------------------------------------
     // Fields of the extended model.
 
@@ -105,6 +108,7 @@ public class ApplicationSlaRepresentation {
                                         @JsonProperty("instanceMemoryMB") Long instanceMemoryMB,
                                         @JsonProperty("instanceDiskMB") Long instanceDiskMB,
                                         @JsonProperty("instanceNetworkMbs") Long instanceNetworkMbs,
+                                        @JsonProperty(value = "instanceGPU", defaultValue = "0") Long instanceGPU,
                                         @JsonProperty("instanceCount") Integer instanceCount,
                                         @JsonProperty("reservationUsage") ReservationUsage reservationUsage,
                                         @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName,
@@ -116,6 +120,11 @@ public class ApplicationSlaRepresentation {
         this.instanceMemoryMB = instanceMemoryMB;
         this.instanceDiskMB = instanceDiskMB;
         this.instanceNetworkMbs = instanceNetworkMbs;
+        if (instanceGPU == null) {
+            this.instanceGPU = 0L;
+        } else {
+            this.instanceGPU = instanceGPU;
+        }
         this.instanceCount = instanceCount;
         this.reservationUsage = reservationUsage;
         this.schedulerName = schedulerName;
@@ -148,6 +157,10 @@ public class ApplicationSlaRepresentation {
 
     public Long getInstanceNetworkMbs() {
         return instanceNetworkMbs;
+    }
+
+    public Long getInstanceGPU() {
+        return instanceGPU;
     }
 
     public Integer getInstanceCount() {
