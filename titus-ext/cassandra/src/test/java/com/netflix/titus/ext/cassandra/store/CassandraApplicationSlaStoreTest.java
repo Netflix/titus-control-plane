@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.netflix.titus.api.model.ApplicationSLA;
-import static com.netflix.titus.api.model.SchedulerConstants.*;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
@@ -36,6 +35,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

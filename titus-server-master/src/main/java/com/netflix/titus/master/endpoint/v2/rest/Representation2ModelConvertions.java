@@ -37,6 +37,7 @@ public final class Representation2ModelConvertions {
                 .withMemoryMB(representation.getInstanceMemoryMB())
                 .withDiskMB(representation.getInstanceDiskMB())
                 .withNetworkMbs(representation.getInstanceNetworkMbs())
+                .withGpu(representation.getInstanceGPU())
                 .build();
 
         Tier tier;
@@ -72,6 +73,7 @@ public final class Representation2ModelConvertions {
                 resourceDimension.getMemoryMB(),
                 resourceDimension.getDiskMB(),
                 resourceDimension.getNetworkMbs(),
+                resourceDimension.getGpu(),
                 coreEntity.getInstanceCount(),
                 reservationUsage,
                 coreEntity.getSchedulerName(),
