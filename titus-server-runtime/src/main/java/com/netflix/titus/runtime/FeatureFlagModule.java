@@ -194,12 +194,20 @@ public class FeatureFlagModule extends AbstractModule {
         Function<String, Matcher> enabledEbsJobTiers = RegExpExt.dynamicMatcher(configuration::getEnabledEbsVolumeOverrideTiers,
                 "titus.features.jobManager.kubeSchedulerFeature.enabledEbsVolumeOverrideTiers", Pattern.DOTALL, logger);
 
+        Function<String, Matcher> enabledOverrideTiers = RegExpExt.dynamicMatcher(configuration::getEnabledOverrideTiers,
+                "titus.features.jobManager.kubeSchedulerFeature.enabledOverrideTiers", Pattern.DOTALL, logger);
+
         return p -> {
             JobDescriptor<?> jobDescriptor = p.getLeft();
             ApplicationSLA capacityGroup = p.getRight();
             String tierName = capacityGroup.getTier().name();
 
             ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
+
+            // Global tier based override for routing to Kube Scheduler
+            if (enabledOverrideTiers.apply(tierName).matches()) {
+                return true;
+            }
 
             // GPU resources are no longer supported by Fenzo.
             if (!configuration.isFenzoGpuEnabled() && resources.getGpu() > 0) {
