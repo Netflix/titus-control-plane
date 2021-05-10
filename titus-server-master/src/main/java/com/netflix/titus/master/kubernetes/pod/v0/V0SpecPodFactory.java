@@ -538,12 +538,14 @@ public class V0SpecPodFactory implements PodFactory {
      */
     private static int getJobMaxSkew(Job<?> job) {
         String maxSkewAttr = job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SPREADING_MAX_SKEW);
-        try {
-            int maxSkew = Integer.parseInt(maxSkewAttr);
-            if (maxSkew > 0) {
-                return maxSkew;
+        if (maxSkewAttr != null) {
+            try {
+                int maxSkew = Integer.parseInt(maxSkewAttr);
+                if (maxSkew > 0) {
+                    return maxSkew;
+                }
+            } catch (Exception ignore) {
             }
-        } catch (Exception ignore) {
         }
 
         DisruptionBudgetPolicy policy = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
