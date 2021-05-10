@@ -135,4 +135,10 @@ public interface KubePodConfiguration {
      */
     @DefaultValue("true")
     boolean isBytePodResourceEnabled();
+
+    /**
+     * A regular expression pattern for capacity groups for which job spreading should be disabled.
+     */
+    @DefaultValue("NONE")
+    String getDisabledJobSpreadingPattern();
 }

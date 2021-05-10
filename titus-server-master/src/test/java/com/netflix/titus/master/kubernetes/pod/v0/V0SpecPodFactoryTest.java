@@ -26,16 +26,20 @@ import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo.S3LogLocation;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
@@ -51,6 +55,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeModelConverters;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
+import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1EnvVar;
@@ -60,10 +65,15 @@ import io.kubernetes.client.openapi.models.V1TopologySpreadConstraint;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.master.kubernetes.pod.v0.V0SpecPodFactory.S3_BUCKET_NAME;
 import static com.netflix.titus.master.kubernetes.pod.v0.V0SpecPodFactory.S3_WRITER_ROLE;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.officeHourTimeWindow;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.percentageOfHealthyPolicy;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -72,6 +82,10 @@ public class V0SpecPodFactoryTest {
 
     private static final S3LogLocation DEFAULT_S3_LOG_LOCATION = new S3LogLocation(
             "myAccount", "myAccountId", "myRegion", "defaultBucket", "key"
+    );
+
+    private static final DisruptionBudget PERCENTAGE_OF_HEALTH_POLICY = budget(
+            percentageOfHealthyPolicy(95), unlimitedRate(), Collections.singletonList(officeHourTimeWindow())
     );
 
     private final KubePodConfiguration configuration = mock(KubePodConfiguration.class);
@@ -95,16 +109,22 @@ public class V0SpecPodFactoryTest {
 
     private final LogStorageInfo<Task> logStorageInfo = mock(LogStorageInfo.class);
 
-    private final V0SpecPodFactory podFactory = new V0SpecPodFactory(
-            configuration,
-            jobCoordinatorConfiguration,
-            capacityGroupManagement,
-            podAffinityFactory,
-            taintTolerationFactory,
-            defaultAggregatingContainerEnvFactory,
-            logStorageInfo,
-            schedulerConfiguration
-    );
+    private V0SpecPodFactory podFactory;
+
+    @Before
+    public void setUp() throws Exception {
+        podFactory = new V0SpecPodFactory(
+                configuration,
+                jobCoordinatorConfiguration,
+                capacityGroupManagement,
+                podAffinityFactory,
+                taintTolerationFactory,
+                defaultAggregatingContainerEnvFactory,
+                logStorageInfo,
+                schedulerConfiguration
+        );
+        when(configuration.getDisabledJobSpreadingPattern()).thenReturn("NONE");
+    }
 
     @Test
     public void testDefaultWriterRoleAssignment() {
@@ -291,6 +311,58 @@ public class V0SpecPodFactoryTest {
         assertThat(pod.getMetadata().getLabels()).containsEntry(
                 KubeConstants.LABEL_CAPACITY_GROUP, "mygroup"
         );
+    }
+
+    @Test
+    public void testBatchJobSpreading() {
+        // By default no job spreading
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        List<V1TopologySpreadConstraint> constraints = podFactory.buildTopologySpreadConstraints(job);
+        assertThat(constraints).isEmpty();
+
+        // Enable via job attribute
+        job = JobFunctions.appendJobDescriptorAttribute(job, JobAttributes.JOB_ATTRIBUTES_SPREADING_ENABLED, "true");
+        job = JobFunctions.appendJobDescriptorAttribute(job, JobAttributes.JOB_ATTRIBUTES_SPREADING_MAX_SKEW, "10");
+        constraints = podFactory.buildTopologySpreadConstraints(job);
+        assertThat(constraints).hasSize(1);
+        assertThat(constraints.get(0).getMaxSkew()).isEqualTo(10);
+
+        // And now add zone constraint
+        job = JobFunctions.appendSoftConstraint(job, JobConstraints.ZONE_BALANCE, "true");
+        constraints = podFactory.buildTopologySpreadConstraints(job);
+        assertThat(constraints).hasSize(2);
+    }
+
+    @Test
+    public void testServiceJobSpreadingWithAvailabilityPercentageDisruptionBudget() {
+        // By default no job spreading
+        Job<ServiceJobExt> job = JobGenerator.serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
+        job = JobFunctions.changeServiceJobCapacity(job, Capacity.newBuilder().withDesired(100).withMax(100).build());
+        job = JobFunctions.changeDisruptionBudget(job, PERCENTAGE_OF_HEALTH_POLICY);
+        List<V1TopologySpreadConstraint> constraints = podFactory.buildTopologySpreadConstraints(job);
+        assertThat(constraints).hasSize(1);
+        assertThat(constraints.get(0).getMaxSkew()).isEqualTo(5);
+
+        // And now add zone constraint
+        job = JobFunctions.appendSoftConstraint(job, JobConstraints.ZONE_BALANCE, "true");
+        job = JobFunctions.appendJobDescriptorAttribute(job, JobAttributes.JOB_ATTRIBUTES_SPREADING_MAX_SKEW, "10");
+        constraints = podFactory.buildTopologySpreadConstraints(job);
+        assertThat(constraints).hasSize(2);
+        assertThat(constraints.get(1).getMaxSkew()).isEqualTo(10);
+
+        // Disable via job attribute
+        job = JobFunctions.appendJobDescriptorAttribute(job, JobAttributes.JOB_ATTRIBUTES_SPREADING_ENABLED, "false");
+        constraints = podFactory.buildTopologySpreadConstraints(job);
+        assertThat(constraints).hasSize(1);
+    }
+
+    @Test
+    public void testJobSpreadingDisabledConfiguration() {
+        Job<ServiceJobExt> job = JobGenerator.serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
+        assertThat(podFactory.buildTopologySpreadConstraints(job)).hasSize(1);
+
+        when(configuration.getDisabledJobSpreadingPattern()).thenReturn(".*");
+        assertThat(podFactory.buildTopologySpreadConstraints(job)).isEmpty();
     }
 
     private void verifyEnvVar(V1Pod v1Pod, String name, String value) {

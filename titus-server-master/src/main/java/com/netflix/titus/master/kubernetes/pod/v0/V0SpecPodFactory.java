@@ -16,11 +16,14 @@
 
 package com.netflix.titus.master.kubernetes.pod.v0;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -44,6 +47,8 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -52,6 +57,7 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
@@ -82,16 +88,22 @@ import io.kubernetes.client.openapi.models.V1TopologySpreadConstraint;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.titanframework.messages.TitanProtos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.getJobDesiredSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.getJobType;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.isServiceJob;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 
 @Singleton
 public class V0SpecPodFactory implements PodFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(V0SpecPodFactory.class);
 
     private static final String FENZO_SCHEDULER = "fenzo-scheduler";
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
@@ -119,12 +131,6 @@ public class V0SpecPodFactory implements PodFactory {
     private static final String ARN_SUFFIX = ":role/";
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
-    /**
-     * Max allowed skew for zone load balancing as a soft constraint. As we do not want to prevent placement in any
-     * case, it must be >= max job size.
-     */
-    private static final int SOFT_MAX_SKEW = 100_000;
-
     private final KubePodConfiguration configuration;
     private final MasterConfiguration jobCoordinatorConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
@@ -134,6 +140,7 @@ public class V0SpecPodFactory implements PodFactory {
     private final ContainerEnvFactory containerEnvFactory;
     private final LogStorageInfo<Task> logStorageInfo;
     private final String iamArnPrefix;
+    private final Function<String, Matcher> jobsWithNoSpreadingMatcher;
 
     @Inject
     public V0SpecPodFactory(KubePodConfiguration configuration,
@@ -156,6 +163,9 @@ public class V0SpecPodFactory implements PodFactory {
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
         this.iamArnPrefix = ARN_PREFIX + accountId + ARN_SUFFIX;
+
+        this.jobsWithNoSpreadingMatcher = RegExpExt.dynamicMatcher(configuration::getDisabledJobSpreadingPattern,
+                "disabledJobSpreadingPattern", Pattern.DOTALL, logger);
     }
 
     @Override
@@ -194,7 +204,7 @@ public class V0SpecPodFactory implements PodFactory {
         if (useKubeScheduler) {
             ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
             if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
-                if(schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
+                if (schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
                     schedulerName = configuration.getReservedCapacityKubeSchedulerName();
                 } else {
                     schedulerName = configuration.getReservedCapacityKubeSchedulerNameForBinPacking();
@@ -464,23 +474,89 @@ public class V0SpecPodFactory implements PodFactory {
 
     @VisibleForTesting
     List<V1TopologySpreadConstraint> buildTopologySpreadConstraints(Job<?> job) {
-        boolean hard = Boolean.parseBoolean(JobFunctions.findHardConstraint(job, JobConstraints.ZONE_BALANCE).orElse("false"));
-        boolean soft = Boolean.parseBoolean(JobFunctions.findSoftConstraint(job, JobConstraints.ZONE_BALANCE).orElse("false"));
-        if (!hard && !soft) {
-            return Collections.emptyList();
+        List<V1TopologySpreadConstraint> constraints = new ArrayList<>();
+        buildZoneTopologySpreadConstraints(job).ifPresent(constraints::add);
+        buildJobTopologySpreadConstraints(job).ifPresent(constraints::add);
+        return constraints;
+    }
+
+    private Optional<V1TopologySpreadConstraint> buildZoneTopologySpreadConstraints(Job<?> job) {
+        boolean zoneHard = Boolean.parseBoolean(JobFunctions.findHardConstraint(job, JobConstraints.ZONE_BALANCE).orElse("false"));
+        boolean zoneSoft = Boolean.parseBoolean(JobFunctions.findSoftConstraint(job, JobConstraints.ZONE_BALANCE).orElse("false"));
+        if (!zoneHard && !zoneSoft) {
+            return Optional.empty();
         }
 
-        V1TopologySpreadConstraint constraint = new V1TopologySpreadConstraint()
+        V1TopologySpreadConstraint zoneConstraint = new V1TopologySpreadConstraint()
                 .topologyKey(KubeConstants.NODE_LABEL_ZONE)
-                .labelSelector(new V1LabelSelector().matchLabels(Collections.singletonMap(KubeConstants.POD_LABEL_JOB_ID, job.getId())));
+                .labelSelector(new V1LabelSelector().matchLabels(Collections.singletonMap(KubeConstants.POD_LABEL_JOB_ID, job.getId())))
+                .maxSkew(1);
 
-        if (hard) {
-            constraint.maxSkew(1).whenUnsatisfiable("DoNotSchedule");
+        if (zoneHard) {
+            zoneConstraint.whenUnsatisfiable("DoNotSchedule");
         } else {
-            constraint.maxSkew(SOFT_MAX_SKEW).whenUnsatisfiable("ScheduleAnyway");
+            zoneConstraint.whenUnsatisfiable("ScheduleAnyway");
+        }
+        return Optional.of(zoneConstraint);
+    }
+
+    private Optional<V1TopologySpreadConstraint> buildJobTopologySpreadConstraints(Job<?> job) {
+        if (!isJobSpreadingEnabled(job)) {
+            return Optional.empty();
+        }
+        int maxSkew = getJobMaxSkew(job);
+
+        V1TopologySpreadConstraint nodeConstraint = new V1TopologySpreadConstraint()
+                .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID)
+                .labelSelector(new V1LabelSelector().matchLabels(Collections.singletonMap(KubeConstants.POD_LABEL_JOB_ID, job.getId())))
+                .maxSkew(maxSkew)
+                .whenUnsatisfiable("ScheduleAnyway");
+        return Optional.of(nodeConstraint);
+    }
+
+    /**
+     * Spreading is by default enabled for service jobs and disabled for batch jobs.
+     */
+    private boolean isJobSpreadingEnabled(Job<?> job) {
+        if (jobsWithNoSpreadingMatcher.apply(job.getJobDescriptor().getApplicationName()).matches()) {
+            return false;
+        }
+        if (jobsWithNoSpreadingMatcher.apply(job.getJobDescriptor().getCapacityGroup()).matches()) {
+            return false;
+        }
+        String spreadingEnabledAttr = job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SPREADING_ENABLED);
+        if (spreadingEnabledAttr == null) {
+            return isServiceJob(job);
+        }
+        return Boolean.parseBoolean(spreadingEnabledAttr);
+    }
+
+    /**
+     * Get max skew from a job descriptor or compute a value based on the job type and its configured disruption budget.
+     *
+     * @return -1 if max skew not set or is invalid
+     */
+    private static int getJobMaxSkew(Job<?> job) {
+        String maxSkewAttr = job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SPREADING_MAX_SKEW);
+        try {
+            int maxSkew = Integer.parseInt(maxSkewAttr);
+            if (maxSkew > 0) {
+                return maxSkew;
+            }
+        } catch (Exception ignore) {
         }
 
-        return Collections.singletonList(constraint);
+        DisruptionBudgetPolicy policy = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+        if (!(policy instanceof AvailabilityPercentageLimitDisruptionBudgetPolicy)) {
+            return 1;
+        }
+        int jobSize = getJobDesiredSize(job);
+        if (jobSize <= 1) {
+            return 1;
+        }
+        AvailabilityPercentageLimitDisruptionBudgetPolicy availabilityPolicy = (AvailabilityPercentageLimitDisruptionBudgetPolicy) policy;
+        int maxSkew = (int) (jobSize * (100 - availabilityPolicy.getPercentageOfHealthyContainers()) / 100);
+        return Math.max(maxSkew, 1);
     }
 
     /**
