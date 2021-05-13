@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public class JobEbsVolumeSanitizerTest {
             .withMountPermissions(EbsVolume.MountPerm.RW)
             .withFsType("xfs")
             .build();
-    private static final List<EbsVolume> EBS_VOLUMES = Arrays.asList(EBS_VOLUME_A, EBS_VOLUME_B);
+    private static final List<EbsVolume> EBS_VOLUMES = Arrays.asList(EBS_VOLUME_B, EBS_VOLUME_A);
     private static final JobDescriptor<?> JOB_WITH_NO_EBS_VOLUMES = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
     private static final JobDescriptor<?> JOB_WITH_DEFAULT_MULTIPLE_EBS_VOLUMES = JOB_WITH_NO_EBS_VOLUMES.toBuilder()
             .withContainer(JOB_WITH_NO_EBS_VOLUMES.getContainer().toBuilder()
@@ -116,9 +116,10 @@ public class JobEbsVolumeSanitizerTest {
         when(validationClient.validateEbsVolume(request_b)).thenReturn(Mono.just(response_b));
 
         StepVerifier.create(sanitizer.sanitize(JOB_WITH_DEFAULT_MULTIPLE_EBS_VOLUMES))
-                .expectNextMatches(operator -> jobContainsVolumes(
-                        operator.apply(JOB_WITH_DEFAULT_MULTIPLE_EBS_VOLUMES),
-                        CollectionsExt.asSet(sanitizedEbsVolumeA, sanitizedEbsVolumeB)))
+                .expectNextMatches(operator ->
+                        jobContainsVolumes(operator.apply(JOB_WITH_DEFAULT_MULTIPLE_EBS_VOLUMES),
+                                // Provide volumes in expected order (which should match original order)
+                                Arrays.asList(sanitizedEbsVolumeB, sanitizedEbsVolumeA)))
                 .verifyComplete();
     }
 
@@ -166,7 +167,7 @@ public class JobEbsVolumeSanitizerTest {
                 .verify();
     }
 
-    private boolean jobContainsVolumes(JobDescriptor<?> jobDescriptor, Set<EbsVolume> ebsVolumeSet) {
-        return new HashSet<>(jobDescriptor.getContainer().getContainerResources().getEbsVolumes()).equals(ebsVolumeSet);
+    private boolean jobContainsVolumes(JobDescriptor<?> jobDescriptor, List<EbsVolume> ebsVolumes) {
+        return jobDescriptor.getContainer().getContainerResources().getEbsVolumes().equals(ebsVolumes);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@
 package com.netflix.titus.ext.jobvalidator.ebs;
 
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import com.netflix.compute.validator.protogen.ComputeValidator;
@@ -82,7 +83,12 @@ public class JobEbsVolumeSanitizer implements AdmissionSanitizer<JobDescriptor> 
                         .flatMap(response -> sanitizeEbsVolume(ebsVolume, response))
                         .doOnEach(response -> metrics.incrementValidationSuccess(ebsVolume.getVolumeId()))
                         .doOnError(throwable -> metrics.incrementValidationError(ebsVolume.getVolumeId(), throwable.getMessage())))
-                .collectSortedList(Comparator.comparing(EbsVolume::getVolumeId))
+                // Apply the sanitized volume results in the original order
+                .sequential()
+                .collect(Collectors.toMap(EbsVolume::getVolumeId, Function.identity()))
+                .map(sanitizedVolumeMap -> ebsVolumes.stream()
+                        .map(ebsVolume -> sanitizedVolumeMap.getOrDefault(ebsVolume.getVolumeId(), ebsVolume))
+                        .collect(Collectors.toList()))
                 // Update the job with sanitized ebs volume list
                 .map(JobEbsVolumeSanitizer::setEbsFunction)
                 .timeout(Duration.ofMillis(configuration.getJobEbsSanitizationTimeoutMs()));
