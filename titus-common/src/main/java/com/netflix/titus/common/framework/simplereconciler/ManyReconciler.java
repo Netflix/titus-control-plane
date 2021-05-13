@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.framework.simplereconciler.internal.DefaultManyReconciler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.closeable.CloseableReference;
@@ -36,7 +35,6 @@ import reactor.core.scheduler.Schedulers;
  * A simple reconciliation framework that manages multiple data items. Each individual data item is processed
  * independently, with no concurrency constraints.
  */
-@Experimental(deadline = "12/31/2019")
 public interface ManyReconciler<DATA> {
 
     Mono<Void> add(String id, DATA initial);
@@ -95,7 +93,17 @@ public interface ManyReconciler<DATA> {
             return this;
         }
 
+        public Builder<DATA> withExternalActionProviderPolicy(ReconcilerActionProviderPolicy policy) {
+            return this;
+        }
+
         public Builder<DATA> withReconcilerActionsProvider(Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider) {
+            this.reconcilerActionsProvider = reconcilerActionsProvider;
+            return this;
+        }
+
+        public Builder<DATA> withReconcilerActionsProvider(ReconcilerActionProviderPolicy policy,
+                                                           Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider) {
             this.reconcilerActionsProvider = reconcilerActionsProvider;
             return this;
         }
