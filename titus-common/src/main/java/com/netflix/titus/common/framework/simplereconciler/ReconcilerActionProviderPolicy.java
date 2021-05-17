@@ -19,11 +19,23 @@ package com.netflix.titus.common.framework.simplereconciler;
 import java.time.Duration;
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 /**
  * {@link ReconcilerActionProviderPolicy} provides evaluation rules and ordering. Reconciler actions come from two
  * main sources: external (user actions), and internal. Only actions coming from one source can be processed at a time.
  */
 public class ReconcilerActionProviderPolicy {
+
+    public static String DEFAULT_EXTERNAL_POLICY_NAME = "external";
+
+    public static String DEFAULT_INTERNAL_POLICY_NAME = "internal";
+
+    /**
+     * A priority set for providers that configure minimumExecutionInterval, when the last evaluation time exceeds
+     * this time.
+     */
+    public static final int EXCEEDED_MIN_EXECUTION_INTERVAL_PRIORITY = 10;
 
     /**
      * Priority assigned to the external change actions. Internal action providers with a lower priority value will be always
@@ -31,14 +43,27 @@ public class ReconcilerActionProviderPolicy {
      */
     public static final int DEFAULT_EXTERNAL_ACTIONS_PRIORITY = 100;
 
+    public static final int DEFAULT_INTERNAL_ACTIONS_PRIORITY = 200;
+
     /**
      * Default policy assigned to the external change action provider.
      */
     private static final ReconcilerActionProviderPolicy DEFAULT_EXTERNAL_ACTION_PROVIDER_POLICY = newBuilder()
+            .withName(DEFAULT_EXTERNAL_POLICY_NAME)
             .withPriority(DEFAULT_EXTERNAL_ACTIONS_PRIORITY)
             .withExecutionInterval(Duration.ZERO)
             .build();
 
+    /**
+     * Default policy assigned to the external change action provider.
+     */
+    private static final ReconcilerActionProviderPolicy DEFAULT_INTERNAL_ACTION_PROVIDER_POLICY = newBuilder()
+            .withName(DEFAULT_INTERNAL_POLICY_NAME)
+            .withPriority(DEFAULT_INTERNAL_ACTIONS_PRIORITY)
+            .withExecutionInterval(Duration.ZERO)
+            .build();
+
+    private final String name;
     /**
      * Execution priority. The lower the value, the higher the priority.
      */
@@ -59,12 +84,18 @@ public class ReconcilerActionProviderPolicy {
      */
     private final Duration minimumExecutionInterval;
 
-    public ReconcilerActionProviderPolicy(int priority,
+    public ReconcilerActionProviderPolicy(String name,
+                                          int priority,
                                           Duration executionInterval,
                                           Duration minimumExecutionInterval) {
+        this.name = name;
         this.priority = priority;
         this.executionInterval = executionInterval;
         this.minimumExecutionInterval = minimumExecutionInterval;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public int getPriority() {
@@ -75,8 +106,12 @@ public class ReconcilerActionProviderPolicy {
         return executionInterval;
     }
 
-    public static ReconcilerActionProviderPolicy getExternalChangeActionProvider() {
+    public static ReconcilerActionProviderPolicy getDefaultExternalPolicy() {
         return DEFAULT_EXTERNAL_ACTION_PROVIDER_POLICY;
+    }
+
+    public static ReconcilerActionProviderPolicy getDefaultInternalPolicy() {
+        return DEFAULT_INTERNAL_ACTION_PROVIDER_POLICY;
     }
 
     public Duration getMinimumExecutionInterval() {
@@ -92,18 +127,19 @@ public class ReconcilerActionProviderPolicy {
             return false;
         }
         ReconcilerActionProviderPolicy that = (ReconcilerActionProviderPolicy) o;
-        return priority == that.priority && Objects.equals(executionInterval, that.executionInterval) && Objects.equals(minimumExecutionInterval, that.minimumExecutionInterval);
+        return priority == that.priority && Objects.equals(name, that.name) && Objects.equals(executionInterval, that.executionInterval) && Objects.equals(minimumExecutionInterval, that.minimumExecutionInterval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(priority, executionInterval, minimumExecutionInterval);
+        return Objects.hash(name, priority, executionInterval, minimumExecutionInterval);
     }
 
     @Override
     public String toString() {
         return "ReconcilerActionProviderPolicy{" +
-                "priority=" + priority +
+                "name='" + name + '\'' +
+                ", priority=" + priority +
                 ", executionInterval=" + executionInterval +
                 ", minimumExecutionInterval=" + minimumExecutionInterval +
                 '}';
@@ -114,18 +150,25 @@ public class ReconcilerActionProviderPolicy {
     }
 
     public Builder toBuilder() {
-        return newBuilder().withPriority(priority)
+        return newBuilder().withName(name)
+                .withPriority(priority)
                 .withExecutionInterval(executionInterval)
                 .withMinimumExecutionInterval(minimumExecutionInterval);
     }
 
     public static final class Builder {
 
+        private String name;
         private int priority;
         private Duration executionInterval;
         private Duration minimumExecutionInterval;
 
         private Builder() {
+        }
+
+        public Builder withName(String name) {
+            this.name = name;
+            return this;
         }
 
         public Builder withPriority(int priority) {
@@ -144,7 +187,14 @@ public class ReconcilerActionProviderPolicy {
         }
 
         public ReconcilerActionProviderPolicy build() {
-            return new ReconcilerActionProviderPolicy(priority, executionInterval, minimumExecutionInterval);
+            Preconditions.checkNotNull(name, "policy name not set");
+            if (executionInterval == null) {
+                executionInterval = Duration.ZERO;
+            }
+            if (minimumExecutionInterval == null) {
+                minimumExecutionInterval = Duration.ZERO;
+            }
+            return new ReconcilerActionProviderPolicy(name, priority, executionInterval, minimumExecutionInterval);
         }
     }
 }

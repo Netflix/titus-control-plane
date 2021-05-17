@@ -35,6 +35,7 @@ import java.util.function.Function;
 
 import com.netflix.titus.common.framework.simplereconciler.ManyReconciler;
 import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.Transaction;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
@@ -58,7 +59,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
     private static final IllegalStateException EXCEPTION_CLOSED = new IllegalStateException("Reconciler closed");
 
-    private final Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider;
+    private final ActionProviderSelectorFactory<DATA> selectorFactory;
     private final long quickCycleMs;
     private final long longCycleMs;
     private final CloseableReference<Scheduler> reconcilerSchedulerRef;
@@ -86,13 +87,13 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             String name,
             Duration quickCycle,
             Duration longCycle,
-            Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider,
+            ActionProviderSelectorFactory<DATA> selectorFactory,
             CloseableReference<Scheduler> reconcilerSchedulerRef,
             CloseableReference<Scheduler> notificationSchedulerRef,
             TitusRuntime titusRuntime) {
         this.quickCycleMs = quickCycle.toMillis();
         this.longCycleMs = longCycle.toMillis();
-        this.reconcilerActionsProvider = reconcilerActionsProvider;
+        this.selectorFactory = selectorFactory;
         this.reconcilerSchedulerRef = reconcilerSchedulerRef;
         this.notificationSchedulerRef = notificationSchedulerRef;
         this.clock = titusRuntime.getClock();
@@ -364,13 +365,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             if (executor.getPendingTransaction() == null) {
                 if (fullReconciliationCycle || justChanged.contains(id)) {
                     try {
-                        // Start next reference change action, if present and exit.
-                        if (executor.startNextExternalChangeAction()) {
-                            return;
-                        }
-
-                        // Run reconciler
-                        executor.startReconcileAction();
+                        executor.startNextChangeAction();
                     } catch (Exception e) {
                         logger.warn("[{}] Unexpected error from reconciliation executor", executor.getId(), e);
                         titusRuntime.getCodeInvariants().unexpectedError("Unexpected error in reconciliation executor", e);
@@ -390,7 +385,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             this.executor = new ReconcilerEngine<>(
                     id,
                     initial,
-                    reconcilerActionsProvider,
+                    selectorFactory.create(),
                     metrics,
                     titusRuntime
             );

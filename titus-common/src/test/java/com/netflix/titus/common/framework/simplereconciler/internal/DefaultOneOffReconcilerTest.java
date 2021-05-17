@@ -17,6 +17,7 @@
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -24,6 +25,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProvider;
+import com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProviderPolicy;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
@@ -203,12 +207,16 @@ public class DefaultOneOffReconcilerTest {
     }
 
     private void newReconciler(Function<String, List<Mono<Function<String, String>>>> reconcilerActionsProvider) {
+        ActionProviderSelectorFactory<String> selectorFactory = new ActionProviderSelectorFactory<>("test", Arrays.asList(
+                new ReconcilerActionProvider<>(ReconcilerActionProviderPolicy.getDefaultExternalPolicy(), true, data -> Collections.emptyList()),
+                new ReconcilerActionProvider<>(ReconcilerActionProviderPolicy.getDefaultInternalPolicy(), false, reconcilerActionsProvider)
+        ), titusRuntime);
         this.reconciler = new DefaultOneOffReconciler<>(
                 "junit",
                 INITIAL,
                 QUICK_CYCLE,
                 LONG_CYCLE,
-                reconcilerActionsProvider,
+                selectorFactory,
                 Schedulers.parallel(),
                 titusRuntime
         );
