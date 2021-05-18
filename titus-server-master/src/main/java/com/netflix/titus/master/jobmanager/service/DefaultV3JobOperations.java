@@ -642,7 +642,10 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     private Pair<Job<?>, List<Task>> toJobTasksPair(EntityHolder jobHolder) {
-        List<Task> tasks = jobHolder.getChildren().stream().map(childHolder -> (Task) childHolder.getEntity()).collect(Collectors.toList());
+        List<Task> tasks = new ArrayList<>();
+        for (EntityHolder childHolder : jobHolder.getChildren()) {
+            tasks.add(childHolder.getEntity());
+        }
         return Pair.of(jobHolder.getEntity(), tasks);
     }
 
