@@ -39,6 +39,8 @@ import java.util.stream.Stream;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.common.util.collections.OneItemIterator;
+import com.netflix.titus.common.util.collections.TwoItemIterator;
 import com.netflix.titus.common.util.tuple.Pair;
 
 /**
@@ -618,6 +620,20 @@ public final class CollectionsExt {
                         (o, n) -> n,
                         mapSupplier
                 ));
+    }
+
+    @SafeVarargs
+    public static <T> Iterator<T> newIterator(T... items) {
+        if (items.length == 0) {
+            return Collections.emptyIterator();
+        }
+        if (items.length == 1) {
+            return new OneItemIterator<>(items[0]);
+        }
+        if (items.length == 2) {
+            return new TwoItemIterator<>(items[0], items[1]);
+        }
+        return Arrays.asList(items).iterator();
     }
 
     public static class MapBuilder<K, V> {

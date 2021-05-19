@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
@@ -24,6 +25,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProvider;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelector;
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.FailedTransaction;
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.SingleTransaction;
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.Transaction;
@@ -47,14 +50,14 @@ class ReconcilerEngine<DATA> {
     static final IllegalStateException EXCEPTION_CANCELLED = new IllegalStateException("cancelled");
 
     private final String id;
-    private final Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider;
+    private final ActionProviderSelector<DATA> providerSelector;
     private final Clock clock;
 
     private final BlockingQueue<ChangeActionHolder<DATA>> referenceChangeActions = new LinkedBlockingQueue<>();
     private final BlockingQueue<Runnable> closeCallbacks = new LinkedBlockingQueue<>();
     private final ReconcilerExecutorMetrics metrics;
 
-    private AtomicReference<ReconcilerState> state = new AtomicReference<>(ReconcilerState.Running);
+    private final AtomicReference<ReconcilerState> state = new AtomicReference<>(ReconcilerState.Running);
 
     private volatile DATA current;
 
@@ -67,12 +70,12 @@ class ReconcilerEngine<DATA> {
 
     ReconcilerEngine(String id,
                      DATA initial,
-                     Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider,
+                     ActionProviderSelector<DATA> providerSelector,
                      ReconcilerExecutorMetrics metrics,
                      TitusRuntime titusRuntime) {
         this.id = id;
         this.current = initial;
-        this.reconcilerActionsProvider = reconcilerActionsProvider;
+        this.providerSelector = providerSelector;
         this.metrics = metrics;
         this.clock = titusRuntime.getClock();
     }
@@ -213,6 +216,26 @@ class ReconcilerEngine<DATA> {
         return Optional.of(() -> closeCallbacks.forEach(c -> ExceptionExt.silent(c::run)));
     }
 
+    void startNextChangeAction() {
+        long now = clock.wallTime();
+        Iterator<ReconcilerActionProvider<DATA>> nextIt = providerSelector.next(now);
+        while (nextIt.hasNext()) {
+            ReconcilerActionProvider<DATA> next = nextIt.next();
+            providerSelector.updateEvaluationTime(next.getPolicy().getName(), now);
+            if (next.isExternal()) {
+                // Start next reference change action, if present and exit.
+                if (startNextExternalChangeAction()) {
+                    return;
+                }
+            } else {
+                // Run reconciler
+                if (startReconcileAction(next.getActionProvider())) {
+                    return;
+                }
+            }
+        }
+    }
+
     boolean startNextExternalChangeAction() {
         try {
             if (pendingTransaction != null) {
@@ -245,12 +268,12 @@ class ReconcilerEngine<DATA> {
         }
     }
 
-    boolean startReconcileAction() {
+    boolean startReconcileAction(Function<DATA, List<Mono<Function<DATA, DATA>>>> actionProvider) {
         if (state.get() != ReconcilerState.Running) {
             return false;
         }
 
-        List<Mono<Function<DATA, DATA>>> reconcilerActions = reconcilerActionsProvider.apply(current);
+        List<Mono<Function<DATA, DATA>>> reconcilerActions = actionProvider.apply(current);
         if (CollectionsExt.isNullOrEmpty(reconcilerActions)) {
             return false;
         }

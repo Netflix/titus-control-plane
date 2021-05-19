@@ -17,6 +17,7 @@
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -24,7 +25,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProvider;
+import com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProviderPolicy;
 import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.SampleActionProviderCatalog;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.SampleActionProviderCatalog.SampleProviderActionFunction;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
@@ -220,18 +226,46 @@ public class DefaultManyReconcilerTest {
         await().until(() -> !changesSubscriber.isOpen());
     }
 
+    @Test
+    public void testActionProviderPriorities() throws InterruptedException {
+        ReconcilerActionProvider<String> provider1 = SampleActionProviderCatalog.newInternalProvider("i1", 20);
+        ReconcilerActionProvider<String> provider2 = SampleActionProviderCatalog.newInternalProvider("i2", 1_000, Duration.ZERO, Duration.ofMillis(10));
+        ((SampleProviderActionFunction) provider1.getActionProvider()).enableEmit(true);
+        ((SampleProviderActionFunction) provider2.getActionProvider()).enableEmit(true);
+
+        ActionProviderSelectorFactory<String> selectorFactory = new ActionProviderSelectorFactory<>("test", Arrays.asList(
+                new ReconcilerActionProvider<>(ReconcilerActionProviderPolicy.getDefaultExternalPolicy(), true, data -> Collections.emptyList()),
+                provider1,
+                provider2
+        ), titusRuntime);
+        newReconcilerWithRegistrations(selectorFactory, "a", "");
+        await().timeout(com.jayway.awaitility.Duration.FOREVER).until(() -> reconciler.getAll().get("a").contains("i2"));
+    }
+
     private void newReconcilerWithRegistrations(Function<String, List<Mono<Function<String, String>>>> reconcilerActionsProvider,
                                                 String... idAndInitialValuePairs) throws InterruptedException {
+        ActionProviderSelectorFactory<String> selectorFactory = new ActionProviderSelectorFactory<>("test", Arrays.asList(
+                new ReconcilerActionProvider<>(ReconcilerActionProviderPolicy.getDefaultExternalPolicy(), true, data -> Collections.emptyList()),
+                new ReconcilerActionProvider<>(ReconcilerActionProviderPolicy.getDefaultInternalPolicy(), false, reconcilerActionsProvider)
+        ), titusRuntime);
+        newReconcilerWithRegistrations(selectorFactory, idAndInitialValuePairs);
+    }
+
+    private void newReconcilerWithRegistrations(ActionProviderSelectorFactory<String> selectorFactory,
+                                                String... idAndInitialValuePairs) throws InterruptedException {
+
         Preconditions.checkArgument((idAndInitialValuePairs.length % 2) == 0, "Expected pairs of id/value");
+
 
         CloseableReference<Scheduler> reconcilerSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("reconciler"), Scheduler::dispose);
         CloseableReference<Scheduler> notificationSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("notification"), Scheduler::dispose);
+
 
         reconciler = new DefaultManyReconciler<>(
                 "junit",
                 Duration.ofMillis(1),
                 Duration.ofMillis(2),
-                reconcilerActionsProvider,
+                selectorFactory,
                 reconcilerSchedulerRef,
                 notificationSchedulerRef,
                 titusRuntime

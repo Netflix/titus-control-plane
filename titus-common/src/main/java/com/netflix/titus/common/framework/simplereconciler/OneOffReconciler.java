@@ -17,14 +17,23 @@
 package com.netflix.titus.common.framework.simplereconciler;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.simplereconciler.internal.DefaultOneOffReconciler;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
+
+import static com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProviderPolicy.DEFAULT_EXTERNAL_POLICY_NAME;
+import static com.netflix.titus.common.framework.simplereconciler.ReconcilerActionProviderPolicy.getDefaultExternalPolicy;
 
 /**
  * A simple reconciliation engine, which serializes client and internal/reconciler actions that work over the same
@@ -50,7 +59,8 @@ public interface OneOffReconciler<DATA> {
         private DATA initial;
         private Duration quickCycle;
         private Duration longCycle;
-        private Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider;
+        private ReconcilerActionProvider<DATA> externalActionProvider;
+        private Map<String, ReconcilerActionProvider<DATA>> internalActionProviders = new HashMap<>();
         private Scheduler scheduler;
         private TitusRuntime titusRuntime;
 
@@ -80,8 +90,26 @@ public interface OneOffReconciler<DATA> {
             return this;
         }
 
+        public Builder<DATA> withExternalActionProviderPolicy(ReconcilerActionProviderPolicy policy) {
+            // The action provider resolves in this case to an empty list as we handle the external change actions in a different way.
+            Preconditions.checkArgument(!internalActionProviders.containsKey(policy.getName()),
+                    "External and internal policy names are equal: name=%s", policy.getName());
+            this.externalActionProvider = new ReconcilerActionProvider<>(policy, true, data -> Collections.emptyList());
+            return this;
+        }
+
         public Builder<DATA> withReconcilerActionsProvider(Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider) {
-            this.reconcilerActionsProvider = reconcilerActionsProvider;
+            withReconcilerActionsProvider(ReconcilerActionProviderPolicy.getDefaultInternalPolicy(), reconcilerActionsProvider);
+            return this;
+        }
+
+        public Builder<DATA> withReconcilerActionsProvider(ReconcilerActionProviderPolicy policy,
+                                                           Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider) {
+            Preconditions.checkArgument(!policy.getName().equals(DEFAULT_EXTERNAL_POLICY_NAME),
+                    "Attempted to use the default external policy name for an internal one: name=%s", DEFAULT_EXTERNAL_POLICY_NAME);
+            Preconditions.checkArgument(externalActionProvider == null || !externalActionProvider.getPolicy().getName().equals(policy.getName()),
+                    "External and internal policy names must be different: name=%s", policy.getName());
+            internalActionProviders.put(policy.getName(), new ReconcilerActionProvider<>(policy, false, reconcilerActionsProvider));
             return this;
         }
 
@@ -96,12 +124,24 @@ public interface OneOffReconciler<DATA> {
         }
 
         public OneOffReconciler<DATA> build() {
+            Preconditions.checkNotNull(id, "id is null");
+            Preconditions.checkNotNull(titusRuntime, "TitusRuntime is null");
+
+            List<ReconcilerActionProvider<DATA>> actionProviders = new ArrayList<>();
+            if (externalActionProvider == null) {
+                actionProviders.add(new ReconcilerActionProvider<>(getDefaultExternalPolicy(), true, data -> Collections.emptyList()));
+            } else {
+                actionProviders.add(externalActionProvider);
+            }
+            actionProviders.addAll(internalActionProviders.values());
+            ActionProviderSelectorFactory<DATA> providerSelector = new ActionProviderSelectorFactory<>(id, actionProviders, titusRuntime);
+
             return new DefaultOneOffReconciler<>(
                     id,
                     initial,
                     quickCycle,
                     longCycle,
-                    reconcilerActionsProvider,
+                    providerSelector,
                     scheduler,
                     titusRuntime
             );

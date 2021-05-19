@@ -17,12 +17,12 @@
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import com.netflix.titus.common.framework.simplereconciler.OneOffReconciler;
+import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.Transaction;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
@@ -57,7 +57,7 @@ public class DefaultOneOffReconciler<DATA> implements OneOffReconciler<DATA> {
                                    DATA initial,
                                    Duration quickCycle,
                                    Duration longCycle,
-                                   Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider,
+                                   ActionProviderSelectorFactory<DATA> selectorFactory,
                                    Scheduler scheduler,
                                    TitusRuntime titusRuntime) {
         this.quickCycleMs = quickCycle.toMillis();
@@ -67,7 +67,7 @@ public class DefaultOneOffReconciler<DATA> implements OneOffReconciler<DATA> {
         this.titusRuntime = titusRuntime;
 
         this.metrics = new ReconcilerExecutorMetrics(id, titusRuntime);
-        this.executor = new ReconcilerEngine<>(id, initial, reconcilerActionsProvider, metrics, titusRuntime);
+        this.executor = new ReconcilerEngine<>(id, initial, selectorFactory.create(), metrics, titusRuntime);
 
         eventProcessor.onNext(initial);
         doSchedule(0);
@@ -163,13 +163,7 @@ public class DefaultOneOffReconciler<DATA> implements OneOffReconciler<DATA> {
         // Trigger actions on engines.
         if (fullReconciliationCycle || completedNow) {
             try {
-                // Start next reference change action, if present and exit.
-                if (executor.startNextExternalChangeAction()) {
-                    return;
-                }
-
-                // Run reconciler
-                executor.startReconcileAction();
+                executor.startNextChangeAction();
             } catch (Exception e) {
                 logger.warn("[{}] Unexpected error from reconciliation engine 'triggerActions' method", executor.getId(), e);
                 titusRuntime.getCodeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
