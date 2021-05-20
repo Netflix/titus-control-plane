@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
@@ -56,7 +57,11 @@ public interface ManyReconciler<DATA> {
 
     Mono<DATA> apply(String id, Function<DATA, Mono<DATA>> action);
 
-    Flux<List<SimpleReconcilerEvent<DATA>>> changes();
+    Flux<List<SimpleReconcilerEvent<DATA>>> changes(String clientId);
+
+    default Flux<List<SimpleReconcilerEvent<DATA>>> changes() {
+        return changes(UUID.randomUUID().toString());
+    }
 
     static <DATA> Builder<DATA> newBuilder() {
         return new Builder<>();

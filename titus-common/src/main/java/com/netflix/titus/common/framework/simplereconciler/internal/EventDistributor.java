@@ -49,6 +49,7 @@ class EventDistributor<DATA> {
     private static final String ROOT_METRIC_NAME = "titus.simpleReconciliation.eventDistributor.";
 
     private final Supplier<List<SimpleReconcilerEvent<DATA>>> snapshotSupplier;
+    private final Registry registry;
 
     private final LinkedBlockingQueue<EmitterHolder> sinkQueue = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<SimpleReconcilerEvent<DATA>> eventQueue = new LinkedBlockingQueue<>();
@@ -68,6 +69,7 @@ class EventDistributor<DATA> {
     EventDistributor(Supplier<List<SimpleReconcilerEvent<DATA>>> snapshotSupplier, Registry registry) {
         this.snapshotSupplier = snapshotSupplier;
         this.metricLoopExecutionTime = registry.timer(ROOT_METRIC_NAME + "executionTime");
+        this.registry = registry;
         PolledMeter.using(registry).withName(ROOT_METRIC_NAME + "eventQueue").monitorValue(this, self -> self.eventQueueDepth.get());
         PolledMeter.using(registry).withName(ROOT_METRIC_NAME + "activeSubscribers").monitorSize(activeSinks);
         this.metricEmittedEvents = registry.counter(ROOT_METRIC_NAME + "emittedEvents");
@@ -104,11 +106,11 @@ class EventDistributor<DATA> {
         }
     }
 
-    void connectSink(FluxSink<List<SimpleReconcilerEvent<DATA>>> sink) {
-        String id = UUID.randomUUID().toString();
+    void connectSink(String clientId, FluxSink<List<SimpleReconcilerEvent<DATA>>> sink) {
         // That really should not be needed, but it does not hurt to check.
+        String id = clientId;
         while (activeSinks.containsKey(id)) {
-            id = UUID.randomUUID().toString();
+            id = clientId + "#" + UUID.randomUUID();
         }
         sinkQueue.add(new EmitterHolder(id, sink));
     }
@@ -230,9 +232,14 @@ class EventDistributor<DATA> {
         private final FluxSink<List<SimpleReconcilerEvent<DATA>>> emitter;
         private volatile boolean cancelled;
 
+        private final Timer metricOnNext;
+        private final Timer metricOnError;
+
         private EmitterHolder(String id, FluxSink<List<SimpleReconcilerEvent<DATA>>> emitter) {
             this.id = id;
             this.emitter = emitter;
+            this.metricOnNext = registry.timer(ROOT_METRIC_NAME + "sink", "action", "next", "clientId", id);
+            this.metricOnError = registry.timer(ROOT_METRIC_NAME + "sink", "action", "error", "clientId", id);
             emitter.onCancel(() -> cancelled = true);
         }
 
@@ -249,21 +256,26 @@ class EventDistributor<DATA> {
                 return false;
             }
 
+            Stopwatch stopwatch = Stopwatch.createStarted();
             try {
                 emitter.next(event);
+                metricOnNext.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             } catch (Throwable e) {
                 ExceptionExt.silent(() -> emitter.error(e));
                 this.cancelled = true;
+                metricOnError.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
                 return false;
             }
             return true;
         }
 
         private void onError(Throwable error) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
             try {
                 emitter.error(error);
             } catch (Throwable ignore) {
             } finally {
+                metricOnError.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
                 cancelled = true;
             }
         }

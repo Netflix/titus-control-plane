@@ -41,6 +41,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -68,7 +69,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     private final BlockingQueue<AddHolder> addHolders = new LinkedBlockingQueue<>();
     private final Map<String, ReconcilerEngine<DATA>> executors = new ConcurrentHashMap<>();
 
-    private final BlockingQueue<FluxSink<List<SimpleReconcilerEvent<DATA>>>> eventListenerHolders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<String, FluxSink<List<SimpleReconcilerEvent<DATA>>>>> eventListenerHolders = new LinkedBlockingQueue<>();
 
     private final AtomicReference<ReconcilerState> stateRef = new AtomicReference<>(ReconcilerState.Running);
     private final Scheduler.Worker reconcilerWorker;
@@ -177,12 +178,12 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     }
 
     @Override
-    public Flux<List<SimpleReconcilerEvent<DATA>>> changes() {
+    public Flux<List<SimpleReconcilerEvent<DATA>>> changes(String clientId) {
         return Flux.<List<SimpleReconcilerEvent<DATA>>>create(sink -> {
             if (stateRef.get() != ReconcilerState.Running) {
                 sink.error(EXCEPTION_CLOSED);
             } else {
-                eventListenerHolders.add(sink);
+                eventListenerHolders.add(Pair.of(clientId, sink));
 
                 // Check again to deal with race condition during shutdown process
                 if (stateRef.get() != ReconcilerState.Running) {
@@ -235,8 +236,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         }
 
         // Cancel newly added event listeners
-        for (FluxSink<List<SimpleReconcilerEvent<DATA>>> sink; (sink = eventListenerHolders.poll()) != null; ) {
-            sink.error(EXCEPTION_CLOSED);
+        for (Pair<String, FluxSink<List<SimpleReconcilerEvent<DATA>>>> holder; (holder = eventListenerHolders.poll()) != null; ) {
+            holder.getRight().error(EXCEPTION_CLOSED);
         }
 
         // Close active executors.
@@ -260,8 +261,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         if (eventListenerHolders.isEmpty()) {
             return;
         }
-        for (FluxSink<List<SimpleReconcilerEvent<DATA>>> holder; (holder = eventListenerHolders.poll()) != null; ) {
-            eventDistributor.connectSink(holder);
+        for (Pair<String, FluxSink<List<SimpleReconcilerEvent<DATA>>>> holder; (holder = eventListenerHolders.poll()) != null; ) {
+            eventDistributor.connectSink(holder.getLeft(), holder.getRight());
         }
     }
 
