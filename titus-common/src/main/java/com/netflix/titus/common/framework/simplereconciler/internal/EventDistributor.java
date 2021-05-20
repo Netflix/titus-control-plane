@@ -202,15 +202,16 @@ class EventDistributor<DATA> {
     }
 
     private void processEvents(List<SimpleReconcilerEvent<DATA>> events) {
-        events.forEach(event -> {
-            Set<String> cancelled = new HashSet<>();
-            activeSinks.forEach((id, holder) -> {
-                if (!holder.onNext(events)) {
-                    cancelled.add(id);
-                }
-            });
-            activeSinks.keySet().removeAll(cancelled);
+        if (events.isEmpty()) {
+            return;
+        }
+        Set<String> cancelled = new HashSet<>();
+        activeSinks.forEach((id, holder) -> {
+            if (!holder.onNext(events)) {
+                cancelled.add(id);
+            }
         });
+        activeSinks.keySet().removeAll(cancelled);
     }
 
     private void completeEmitters() {
