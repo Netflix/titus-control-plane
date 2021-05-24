@@ -40,17 +40,15 @@ import com.netflix.titus.common.framework.simplereconciler.internal.transaction.
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.closeable.CloseableReference;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
 import reactor.core.publisher.MonoSink;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 
 public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
@@ -64,13 +62,14 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     private final long longCycleMs;
     private final CloseableReference<Scheduler> reconcilerSchedulerRef;
     private final CloseableReference<Scheduler> notificationSchedulerRef;
+    private final EventDistributor<DATA> eventDistributor;
     private final Clock clock;
     private final TitusRuntime titusRuntime;
 
     private final BlockingQueue<AddHolder> addHolders = new LinkedBlockingQueue<>();
     private final Map<String, ReconcilerEngine<DATA>> executors = new ConcurrentHashMap<>();
 
-    private BlockingQueue<EventListenerHolder> eventListenerHolders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<String, FluxSink<List<SimpleReconcilerEvent<DATA>>>>> eventListenerHolders = new LinkedBlockingQueue<>();
 
     private final AtomicReference<ReconcilerState> stateRef = new AtomicReference<>(ReconcilerState.Running);
     private final Scheduler.Worker reconcilerWorker;
@@ -79,9 +78,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
     private volatile long lastLongCycleTimestamp;
 
-    private final DirectProcessor<List<SimpleReconcilerEvent<DATA>>> eventProcessor;
-    private final Flux<List<SimpleReconcilerEvent<DATA>>> eventStream;
-    private final MonoProcessor<Void> closedProcessor = MonoProcessor.create();
+    private final Sinks.Empty<Void> closedProcessor = Sinks.empty();
 
     public DefaultManyReconciler(
             String name,
@@ -96,22 +93,14 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         this.selectorFactory = selectorFactory;
         this.reconcilerSchedulerRef = reconcilerSchedulerRef;
         this.notificationSchedulerRef = notificationSchedulerRef;
+        this.eventDistributor = new EventDistributor<>(this::buildSnapshot, titusRuntime.getRegistry());
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
 
         this.reconcilerWorker = reconcilerSchedulerRef.get().createWorker();
         this.metrics = new ReconcilerExecutorMetrics(name, titusRuntime);
 
-        eventProcessor = DirectProcessor.create();
-
-        // We build snapshot only after the subscription to 'eventStream' happens, otherwise we might lose events
-        // due to fact that subscription happening on the 'notification' thread may take some time.
-        eventStream = eventProcessor
-                .transformDeferred(ReactorExt.head(() -> Collections.singleton(buildSnapshot())))
-                .transformDeferred(ReactorExt.badSubscriberHandler(logger))
-                .subscribeOn(notificationSchedulerRef.get())
-                .publishOn(notificationSchedulerRef.get());
-
+        eventDistributor.start();
         doSchedule(0);
     }
 
@@ -157,7 +146,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         return Mono.defer(() -> {
             stateRef.compareAndSet(ReconcilerState.Running, ReconcilerState.Closing);
 
-            return closedProcessor.doFinally(signal -> {
+            return closedProcessor.asMono().doFinally(signal -> {
                 reconcilerSchedulerRef.close();
                 // TODO There may be pending notifications, so we have to delay the actual close. There must be a better solution than timer.
                 notificationSchedulerRef.get().createWorker().schedule(notificationSchedulerRef::close, 5_000, TimeUnit.MILLISECONDS);
@@ -189,13 +178,12 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     }
 
     @Override
-    public Flux<List<SimpleReconcilerEvent<DATA>>> changes() {
+    public Flux<List<SimpleReconcilerEvent<DATA>>> changes(String clientId) {
         return Flux.<List<SimpleReconcilerEvent<DATA>>>create(sink -> {
             if (stateRef.get() != ReconcilerState.Running) {
                 sink.error(EXCEPTION_CLOSED);
             } else {
-                EventListenerHolder holder = new EventListenerHolder(sink);
-                eventListenerHolders.add(holder);
+                eventListenerHolders.add(Pair.of(clientId, sink));
 
                 // Check again to deal with race condition during shutdown process
                 if (stateRef.get() != ReconcilerState.Running) {
@@ -248,8 +236,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         }
 
         // Cancel newly added event listeners
-        for (EventListenerHolder holder; (holder = eventListenerHolders.poll()) != null; ) {
-            holder.getSink().error(EXCEPTION_CLOSED);
+        for (Pair<String, FluxSink<List<SimpleReconcilerEvent<DATA>>>> holder; (holder = eventListenerHolders.poll()) != null; ) {
+            holder.getRight().error(EXCEPTION_CLOSED);
         }
 
         // Close active executors.
@@ -261,8 +249,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
         if (addHolders.isEmpty() && executors.isEmpty()) {
             stateRef.set(ReconcilerState.Closed);
-            eventProcessor.onError(EXCEPTION_CLOSED);
-            closedProcessor.onComplete();
+            eventDistributor.stop(0L);
+            closedProcessor.tryEmitEmpty();
             metrics.shutdown();
         }
 
@@ -273,14 +261,15 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         if (eventListenerHolders.isEmpty()) {
             return;
         }
-
-        for (EventListenerHolder holder; (holder = eventListenerHolders.poll()) != null; ) {
-            FluxSink<List<SimpleReconcilerEvent<DATA>>> sink = holder.getSink();
-            Disposable disposable = eventStream.subscribe(sink::next, sink::error);
-            sink.onCancel(disposable);
+        for (Pair<String, FluxSink<List<SimpleReconcilerEvent<DATA>>>> holder; (holder = eventListenerHolders.poll()) != null; ) {
+            eventDistributor.connectSink(holder.getLeft(), holder.getRight());
         }
     }
 
+    /**
+     * Snapshot is built by {@link EventDistributor} thread, but as {@link #executors} is {@link ConcurrentHashMap}, and
+     * {@link ReconcilerEngine#getCurrent()} is a volatile access it is safe to do so.
+     */
     private List<SimpleReconcilerEvent<DATA>> buildSnapshot() {
         List<SimpleReconcilerEvent<DATA>> allState = new ArrayList<>();
         executors.forEach((id, executor) -> {
@@ -311,7 +300,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                     Runnable action = pair.getRight();
 
                     // Emit event first, and run action after, so subscription completes only after events were propagated.
-                    data.ifPresent(t -> eventProcessor.onNext(
+                    data.ifPresent(t -> eventDistributor.addEvents(
                             Collections.singletonList(new SimpleReconcilerEvent<>(
                                     SimpleReconcilerEvent.Kind.Updated,
                                     executor.getId(),
@@ -337,7 +326,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                     metrics.remove(executor.getId());
 
                     // This is the very last action, so we can take safely the next transaction id without progressing it.
-                    eventProcessor.onNext(Collections.singletonList(
+                    eventDistributor.addEvents(Collections.singletonList(
                             new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Removed, executor.getId(), executor.getCurrent(), executor.getNextTransactionId())
                     ));
 
@@ -352,7 +341,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             executors.put(holder.getId(), executor);
 
             // We set transaction id "0" for the newly added executors.
-            eventProcessor.onNext(Collections.singletonList(
+            eventDistributor.addEvents(Collections.singletonList(
                     new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Added, executor.getId(), executor.getCurrent(), 0)
             ));
 
@@ -400,19 +389,6 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         }
 
         private MonoSink<Void> getSink() {
-            return sink;
-        }
-    }
-
-    private class EventListenerHolder {
-
-        private final FluxSink<List<SimpleReconcilerEvent<DATA>>> sink;
-
-        private EventListenerHolder(FluxSink<List<SimpleReconcilerEvent<DATA>>> sink) {
-            this.sink = sink;
-        }
-
-        private FluxSink<List<SimpleReconcilerEvent<DATA>>> getSink() {
             return sink;
         }
     }
