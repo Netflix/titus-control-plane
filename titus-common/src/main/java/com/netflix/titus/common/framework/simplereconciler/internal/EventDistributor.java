@@ -117,6 +117,7 @@ class EventDistributor<DATA> {
 
     void addEvents(List<SimpleReconcilerEvent<DATA>> events) {
         eventQueue.addAll(events);
+        eventQueueDepth.accumulateAndGet(events.size(), (current, delta) -> current + delta);
     }
 
     private void doLoop() {
