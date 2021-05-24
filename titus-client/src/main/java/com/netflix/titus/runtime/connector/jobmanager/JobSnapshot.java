@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -203,13 +201,16 @@ public class JobSnapshot extends ReplicatedSnapshot {
         }
 
         public JobSnapshot build() {
-            Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
-            tasksByJobId.forEach((jobId, tasks) -> immutableTasksByJobId.put(jobId, unmodifiableList(tasks)));
-
             List<Task> allTasks = new ArrayList<>();
-            tasksByJobId.values().forEach(allTasks::addAll);
-
-            Map<String, Task> taskById = allTasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
+            Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
+            Map<String, Task> taskById = new HashMap<>();
+            this.tasksByJobId.forEach((jobId, tasks) -> {
+                allTasks.addAll(tasks);
+                immutableTasksByJobId.put(jobId, unmodifiableList(tasks));
+                for (Task task : tasks) {
+                    taskById.put(task.getId(), task);
+                }
+            });
 
             return new JobSnapshot(
                     snapshotId,
@@ -217,7 +218,7 @@ public class JobSnapshot extends ReplicatedSnapshot {
                     unmodifiableMap(immutableTasksByJobId),
                     unmodifiableList(new ArrayList<>(jobsById.values())),
                     unmodifiableList(allTasks),
-                    buildAllJobsAndTasksList(jobsById, tasksByJobId),
+                    buildAllJobsAndTasksList(jobsById, this.tasksByJobId),
                     unmodifiableMap(taskById)
             );
 
