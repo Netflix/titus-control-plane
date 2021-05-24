@@ -201,16 +201,16 @@ public class JobSnapshot extends ReplicatedSnapshot {
         }
 
         public JobSnapshot build() {
-            Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
-            tasksByJobId.forEach((jobId, tasks) -> immutableTasksByJobId.put(jobId, unmodifiableList(tasks)));
-
             List<Task> allTasks = new ArrayList<>();
-            tasksByJobId.values().forEach(allTasks::addAll);
-
+            Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
             Map<String, Task> taskById = new HashMap<>();
-            for (Task task : allTasks) {
-                taskById.put(task.getId(), task);
-            }
+            this.tasksByJobId.forEach((jobId, tasks) -> {
+                allTasks.addAll(tasks);
+                immutableTasksByJobId.put(jobId, unmodifiableList(tasks));
+                for (Task task : tasks) {
+                    taskById.put(task.getId(), task);
+                }
+            });
 
             return new JobSnapshot(
                     snapshotId,
@@ -218,7 +218,7 @@ public class JobSnapshot extends ReplicatedSnapshot {
                     unmodifiableMap(immutableTasksByJobId),
                     unmodifiableList(new ArrayList<>(jobsById.values())),
                     unmodifiableList(allTasks),
-                    buildAllJobsAndTasksList(jobsById, tasksByJobId),
+                    buildAllJobsAndTasksList(jobsById, this.tasksByJobId),
                     unmodifiableMap(taskById)
             );
 
