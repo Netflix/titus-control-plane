@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -209,7 +207,10 @@ public class JobSnapshot extends ReplicatedSnapshot {
             List<Task> allTasks = new ArrayList<>();
             tasksByJobId.values().forEach(allTasks::addAll);
 
-            Map<String, Task> taskById = allTasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
+            Map<String, Task> taskById = new HashMap<>();
+            for (Task task : allTasks) {
+                taskById.put(task.getId(), task);
+            }
 
             return new JobSnapshot(
                     snapshotId,
