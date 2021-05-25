@@ -233,6 +233,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         null,
                         null,
                         params.resourceVersion,
+                        null,
                         params.timeoutSeconds,
                         params.watch,
                         null
@@ -254,6 +255,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         null,
                         null,
                         params.resourceVersion,
+                        null,
                         params.timeoutSeconds,
                         params.watch,
                         null
@@ -274,6 +276,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         null,
                         null,
                         params.resourceVersion,
+                        null,
                         params.timeoutSeconds,
                         params.watch,
                         null
@@ -295,6 +298,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         null,
                         null,
                         params.resourceVersion,
+                        null,
                         params.timeoutSeconds,
                         params.watch,
                         null
