@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,6 +37,7 @@ import com.netflix.spectator.api.Timer;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent;
 import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.spectator.SpectatorExt;
 import reactor.core.publisher.FluxSink;
 
 /**
@@ -107,11 +107,7 @@ class EventDistributor<DATA> {
     }
 
     void connectSink(String clientId, FluxSink<List<SimpleReconcilerEvent<DATA>>> sink) {
-        // That really should not be needed, but it does not hurt to check.
-        String id = clientId;
-        while (activeSinks.containsKey(id)) {
-            id = clientId + "#" + UUID.randomUUID();
-        }
+        String id = SpectatorExt.uniqueTagValue(clientId, activeSinks::containsKey);
         sinkQueue.add(new EmitterHolder(id, sink));
     }
 
