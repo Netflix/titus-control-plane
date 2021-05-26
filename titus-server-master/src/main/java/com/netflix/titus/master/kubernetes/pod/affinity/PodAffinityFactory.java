@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.kubernetes.pod;
+package com.netflix.titus.master.kubernetes.pod.affinity;
 
 import java.util.Map;
 

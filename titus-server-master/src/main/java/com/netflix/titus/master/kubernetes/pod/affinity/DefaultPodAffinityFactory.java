@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.kubernetes.pod;
+package com.netflix.titus.master.kubernetes.pod.affinity;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocationUtils;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ResourcePoolAssignment;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;

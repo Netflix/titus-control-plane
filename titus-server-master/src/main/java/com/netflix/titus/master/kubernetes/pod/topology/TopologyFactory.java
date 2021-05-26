@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.kubernetes.pod.env;
+package com.netflix.titus.master.kubernetes.pod.topology;
 
-import java.util.Map;
+import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
+import io.kubernetes.client.openapi.models.V1TopologySpreadConstraint;
 
 /**
- * Build container environment that is added to pod env section.
+ * {@link TopologyFactory} resolves topologies for a task that should be added when a pod is created.
  */
-public interface ContainerEnvFactory {
+public interface TopologyFactory {
 
-    /**
-     * Returns container environment variables (empty map if none set).
-     *
-     * @return none null environment variables map
-     */
-    Map<String, String> buildContainerEnv(Job<?> job, Task task);
+    List<V1TopologySpreadConstraint> buildTopologySpreadConstraints(Job<?> job);
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.kubernetes.pod.env;
+package com.netflix.titus.master.kubernetes.pod.legacy;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import io.kubernetes.client.openapi.models.V1EnvVar;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 
-public class ContainerEnvs {
+/**
+ * Build container environment that is added to pod env section.
+ */
+public interface ContainerEnvFactory {
 
-    public static List<V1EnvVar> toV1EnvVar(Map<String, String> env) {
-        return env.entrySet().stream()
-                .map(entry -> new V1EnvVar().name(entry.getKey()).value(entry.getValue()))
-                .collect(Collectors.toList());
-    }
+    /**
+     * Returns container environment variables (empty map if none set).
+     *
+     * @return none null environment variables map
+     */
+    Map<String, String> buildContainerEnv(Job<?> job, Task task);
 }

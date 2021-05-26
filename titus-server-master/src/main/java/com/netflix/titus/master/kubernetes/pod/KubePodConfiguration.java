@@ -141,4 +141,10 @@ public interface KubePodConfiguration {
      */
     @DefaultValue("NONE")
     String getDisabledJobSpreadingPattern();
+
+    /**
+     * @return the pod spec version to use..
+     */
+    @DefaultValue("v0")
+    String getPodSpecVersion();
 }

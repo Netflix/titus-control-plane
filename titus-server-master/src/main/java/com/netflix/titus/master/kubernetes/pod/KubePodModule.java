@@ -24,10 +24,14 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.api.Config;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.master.kubernetes.pod.env.ContainerEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.env.DefaultAggregatingContainerEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.env.TitusProvidedContainerEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.env.UserProvidedContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.affinity.DefaultPodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.ContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.DefaultAggregatingContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.TitusProvidedContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.FarzonePodResourcePoolResolver;
@@ -38,7 +42,12 @@ import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResol
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverChain;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverFeatureGuard;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.TierPodResourcePoolResolver;
-import com.netflix.titus.master.kubernetes.pod.v0.V0SpecPodFactory;
+import com.netflix.titus.master.kubernetes.pod.taint.DefaultTaintTolerationFactory;
+import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
+import com.netflix.titus.master.kubernetes.pod.topology.DefaultTopologyFactory;
+import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.DefaultContainerResultCodeResolver;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 public class KubePodModule extends AbstractModule {
@@ -47,7 +56,12 @@ public class KubePodModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(PodFactory.class).to(V0SpecPodFactory.class);
+        bind(PodFactory.class).to(RouterPodFactory.class);
+        bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
+        bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
+        bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
+        bind(TopologyFactory.class).to(DefaultTopologyFactory.class);
+        bind(PodEnvFactory.class).to(DefaultPodEnvFactory.class);
     }
 
     @Provides

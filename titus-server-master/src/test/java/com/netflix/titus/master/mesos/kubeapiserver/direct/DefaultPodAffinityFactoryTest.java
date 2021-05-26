@@ -31,7 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.kubernetes.pod.DefaultPodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.affinity.DefaultPodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;

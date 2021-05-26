@@ -24,6 +24,7 @@ public final class JobAttributes {
 
     public static final String TITUS_ATTRIBUTE_PREFIX = "titus.";
     public static final String TITUS_PARAMETER_ATTRIBUTE_PREFIX = "titusParameter.";
+    public static final String TITUS_PARAMETER_AGENT_PREFIX = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.";
     public static final String JOB_ATTRIBUTE_SANITIZATION_PREFIX = TITUS_ATTRIBUTE_PREFIX + "sanitization.";
     public static final String PREDICTION_ATTRIBUTE_PREFIX = TITUS_ATTRIBUTE_PREFIX + "runtimePrediction.";
 
@@ -218,6 +219,12 @@ public final class JobAttributes {
     public static final String JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX = "titusParameter.agent.log.s3PathPrefix";
 
     /**
+     * If a user specifies a custom bucket location, the S3 writer role will include the container's IAM role.
+     * Otherwise default role will be used which has access to a default S3 bucket.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_S3_WRITER_ROLE = "titusParameter.agent.log.s3WriterRole";
+
+    /**
      * Subnets to launch the container in.
      */
     public static final String JOB_CONTAINER_ATTRIBUTE_SUBNETS = "titusParameter.agent.subnets";
@@ -274,6 +281,46 @@ public final class JobAttributes {
      * prevent a pod from being scheduled.
      */
     public static final String JOB_ATTRIBUTES_SPREADING_MAX_SKEW = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "spreading.maxSkew";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_HOSTNAME_STYLE = TITUS_PARAMETER_AGENT_PREFIX + "hostnameStyle";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_JUMBO = TITUS_PARAMETER_AGENT_PREFIX + "allowNetworkJumbo";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_ASSIGN_IPV6_ADDRESS = TITUS_PARAMETER_AGENT_PREFIX + "assignIPv6Address";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_CHECK_INTERVAL = TITUS_PARAMETER_AGENT_PREFIX + "log.uploadCheckInterval";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_LOG_STDIO_CHECK_INTERVAL = TITUS_PARAMETER_AGENT_PREFIX + "log.stdioCheckInterval";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_THRESHOLD_TIME = TITUS_PARAMETER_AGENT_PREFIX + "log.uploadThresholdTime";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_LOG_KEEP_LOCAL_FILE_AFTER_UPLOAD = TITUS_PARAMETER_AGENT_PREFIX + "log.keepLocalFileAfterUpload";
+
+    /**
+     *
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_REGEXP = TITUS_PARAMETER_AGENT_PREFIX + "log.uploadRegexp";
 
     private JobAttributes() {
     }
