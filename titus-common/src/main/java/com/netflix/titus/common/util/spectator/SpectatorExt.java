@@ -19,7 +19,9 @@ package com.netflix.titus.common.util.spectator;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
@@ -31,6 +33,10 @@ import rx.Observable;
  */
 public final class SpectatorExt {
 
+    public static final int MAX_TAG_VALUE_LENGTH = 120;
+
+    private static final int UUID_LENGTH = UUID.randomUUID().toString().length();
+
     public interface FsmMetrics<S> {
         void transition(S nextState);
 
@@ -38,6 +44,36 @@ public final class SpectatorExt {
     }
 
     private SpectatorExt() {
+    }
+
+    /**
+     * Spectator tag value size is limited to {@link #MAX_TAG_VALUE_LENGTH}. Tags with values larger than this are
+     * dropped from metrics. This function trims long values to fit into the Spectator constraints.
+     */
+    public static String trimTagValue(String value) {
+        if (value == null || value.isEmpty() || value.length() <= MAX_TAG_VALUE_LENGTH) {
+            return value;
+        }
+        return value.substring(0, MAX_TAG_VALUE_LENGTH);
+    }
+
+    /**
+     * Return a unique tag value with the provided base (value prefix), and a collision predicate.
+     * The returned value is guaranteed to be unique and within the Spectator tag value limits.
+     */
+    public static String uniqueTagValue(String base, Predicate<String> collisionCheck) {
+        String trimmed = trimTagValue(base);
+        if (!collisionCheck.test(trimmed)) {
+            return trimmed;
+        }
+        String trimmedBase = (trimmed.length() + 1 + UUID_LENGTH) <= MAX_TAG_VALUE_LENGTH
+                ? trimmed + '#'
+                : trimmed.substring(0, MAX_TAG_VALUE_LENGTH - UUID_LENGTH - 1) + '#';
+        String value;
+        do {
+            value = trimmedBase + UUID.randomUUID();
+        } while (collisionCheck.test(value));
+        return value;
     }
 
     /**
