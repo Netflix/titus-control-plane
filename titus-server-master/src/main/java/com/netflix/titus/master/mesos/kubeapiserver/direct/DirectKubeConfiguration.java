@@ -60,12 +60,6 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     int getPodCreateConcurrencyLimit();
 
     /**
-     * Set to true to enable the old logic for creating Kubernetes pod object in the KubeApiServerIntegrator (legacy integration).
-     */
-    @DefaultValue("false")
-    boolean isKubeApiServerIntegratorOldPodCreationEnabled();
-
-    /**
      * Set to true to enable EBS PV and PVC management.
      */
     @DefaultValue("false")

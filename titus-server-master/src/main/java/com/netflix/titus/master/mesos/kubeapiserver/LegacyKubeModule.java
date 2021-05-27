@@ -27,8 +27,8 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
-import com.netflix.titus.master.kubernetes.pod.DefaultPodAffinityFactory;
-import com.netflix.titus.master.kubernetes.pod.PodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.affinity.DefaultPodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.DefaultTaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.mesos.MesosConfiguration;
@@ -55,9 +55,6 @@ public class LegacyKubeModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
-        bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
-        bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
     }
 

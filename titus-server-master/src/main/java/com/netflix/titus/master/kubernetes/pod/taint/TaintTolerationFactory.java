@@ -27,5 +27,5 @@ import io.kubernetes.client.openapi.models.V1Toleration;
  */
 public interface TaintTolerationFactory {
 
-    List<V1Toleration> buildV1Toleration(Job job, Task task, boolean useKubeScheduler);
+    List<V1Toleration> buildV1Toleration(Job<?> job, Task task, boolean useKubeScheduler);
 }

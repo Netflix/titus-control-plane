@@ -19,7 +19,6 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,36 +51,26 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
-import com.netflix.titus.master.kubernetes.pod.env.ContainerEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.env.ContainerEnvs;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
-import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.TaskAssignments;
 import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
-import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import org.apache.mesos.Protos;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -128,7 +117,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
 
-    private static final String NEVER_RESTART_POLICY = "Never";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
     private static final String TASK_STARTING = "TASK_STARTING";
@@ -149,13 +137,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     );
 
     private final TitusRuntime titusRuntime;
-    private final MesosConfiguration mesosConfiguration;
-    private final ApplicationSlaManagementService capacityGroupManagement;
     private final DirectKubeConfiguration directKubeConfiguration;
     private final KubePodConfiguration kubePodConfiguration;
     private final Injector injector;
     private final KubeApiFacade kubeApiFacade;
-    private final ContainerEnvFactory containerEnvFactory;
     private final ContainerResultCodeResolver containerResultCodeResolver;
     private final PodFactory podFactory;
 
@@ -179,23 +164,17 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     @Inject
     public KubeApiServerIntegrator(TitusRuntime titusRuntime,
-                                   MesosConfiguration mesosConfiguration,
-                                   ApplicationSlaManagementService capacityGroupManagement,
                                    DirectKubeConfiguration directKubeConfiguration,
                                    KubePodConfiguration kubePodConfiguration,
                                    Injector injector,
                                    KubeApiFacade kubeApiFacade,
-                                   ContainerEnvFactory containerEnvFactory,
                                    ContainerResultCodeResolver containerResultCodeResolver,
                                    PodFactory podFactory) {
         this.titusRuntime = titusRuntime;
-        this.mesosConfiguration = mesosConfiguration;
-        this.capacityGroupManagement = capacityGroupManagement;
         this.directKubeConfiguration = directKubeConfiguration;
         this.kubePodConfiguration = kubePodConfiguration;
         this.injector = injector;
         this.kubeApiFacade = kubeApiFacade;
-        this.containerEnvFactory = containerEnvFactory;
         this.containerResultCodeResolver = containerResultCodeResolver;
         this.podFactory = podFactory;
 
@@ -555,88 +534,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private V1Pod taskInfoToPod(TaskInfoRequest taskInfoRequest) {
-        if (directKubeConfiguration.isKubeApiServerIntegratorOldPodCreationEnabled()) {
-            return oldTaskInfoToPod(taskInfoRequest);
-        }
-        return newTaskInfoToPod(taskInfoRequest);
-    }
-
-    private V1Pod newTaskInfoToPod(TaskInfoRequest taskInfoRequest) {
         return podFactory.buildV1Pod(taskInfoRequest.getJob(), taskInfoRequest.getTask(), false, directKubeConfiguration.isEbsVolumePvEnabled());
-    }
-
-    private V1Pod oldTaskInfoToPod(TaskInfoRequest taskInfoRequest) {
-        Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
-        String taskId = taskInfo.getName();
-        String nodeName = taskInfo.getSlaveId().getValue();
-        Map<String, String> annotations = KubePodUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
-                taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
-                mesosConfiguration.isJobDescriptorAnnotationEnabled());
-
-        String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(taskInfoRequest.getJob().getJobDescriptor(), capacityGroupManagement).toLowerCase();
-
-        V1ObjectMeta metadata = new V1ObjectMeta()
-                .name(taskId)
-                .annotations(annotations)
-                .labels(Collections.singletonMap(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup));
-
-        V1Container container = new V1Container()
-                .name(taskId)
-                .image("imageIsInContainerInfo")
-                .env(ContainerEnvs.toV1EnvVar(containerEnvFactory.buildContainerEnv(taskInfoRequest.getJob(), taskInfoRequest.getTask())))
-                .resources(taskInfoToResources(taskInfo));
-
-        V1PodSpec spec = new V1PodSpec()
-                .nodeName(nodeName)
-                .containers(Collections.singletonList(container))
-                .terminationGracePeriodSeconds(kubePodConfiguration.getPodTerminationGracePeriodSeconds())
-                .restartPolicy(NEVER_RESTART_POLICY);
-
-        return new V1Pod()
-                .metadata(metadata)
-                .spec(spec);
-    }
-
-    private V1ResourceRequirements taskInfoToResources(Protos.TaskInfo taskInfo) {
-        Map<String, Quantity> requests = new HashMap<>();
-        Map<String, Quantity> limits = new HashMap<>();
-        for (Protos.Resource resource : taskInfo.getResourcesList()) {
-            switch (resource.getName()) {
-                case "cpus": {
-                    String value = String.valueOf(resource.getScalar().getValue());
-                    requests.put("cpu", new Quantity(value));
-                    limits.put("cpu", new Quantity(value));
-                    break;
-                }
-                case "mem": {
-                    String value = String.valueOf(resource.getScalar().getValue());
-                    requests.put("memory", new Quantity(value));
-                    limits.put("memory", new Quantity(value));
-                    break;
-                }
-                case "disk": {
-                    String value = String.valueOf(resource.getScalar().getValue());
-                    requests.put("titus/disk", new Quantity(value));
-                    limits.put("titus/disk", new Quantity(value));
-                    break;
-                }
-                case "network": {
-                    String value = String.valueOf(resource.getScalar().getValue());
-                    requests.put("titus/network", new Quantity(value));
-                    limits.put("titus/network", new Quantity(value));
-                    break;
-                }
-                case "gpu": {
-                    String value = String.valueOf(resource.getScalar().getValue());
-                    requests.put("titus/gpu", new Quantity(value));
-                    limits.put("titus/gpu", new Quantity(value));
-                    break;
-                }
-            }
-        }
-        return new V1ResourceRequirements()
-                .requests(requests)
-                .limits(limits);
     }
 
     private void podUpdated(V1Pod pod) {
