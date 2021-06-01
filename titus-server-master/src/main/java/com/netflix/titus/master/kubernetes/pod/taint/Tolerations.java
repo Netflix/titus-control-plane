@@ -63,4 +63,9 @@ public final class Tolerations {
             .key(KubeConstants.TAINT_GPU_INSTANCE)
             .operator("Exists")
             .effect("NoSchedule");
+
+    public static final V1Toleration TOLERATION_DECOMISSIONING = new V1Toleration()
+            .key(KubeConstants.TAINT_NODE_DECOMISSIONING)
+            .operator("Exists")
+            .effect("NoSchedule");
 }

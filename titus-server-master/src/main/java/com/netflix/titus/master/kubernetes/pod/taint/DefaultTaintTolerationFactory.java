@@ -49,14 +49,14 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
     }
 
     @Override
-    public List<V1Toleration> buildV1Toleration(Job job, Task task, boolean useKubeScheduler) {
+    public List<V1Toleration> buildV1Toleration(Job<?> job, Task task, boolean useKubeScheduler) {
         List<V1Toleration> tolerations = new ArrayList<>();
 
         // Default taints.
         tolerations.add(Tolerations.TOLERATION_VIRTUAL_KUBLET);
         V1Toleration schedulerToleration = useKubeScheduler ? Tolerations.TOLERATION_KUBE_SCHEDULER : Tolerations.TOLERATION_FENZO_SCHEDULER;
         tolerations.add(schedulerToleration);
-
+        resolveDecomissioningToleration(job).ifPresent(tolerations::add);
         tolerations.add(resolveTierToleration(job));
         resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);
         resolveGpuInstanceTypeToleration(job).ifPresent(tolerations::add);
@@ -65,7 +65,18 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
         return tolerations;
     }
 
-    private V1Toleration resolveTierToleration(Job job) {
+    /**
+     * All tasks by default tolerate nodes being decommissioned, unless their job has the {@link JobConstraints#ACTIVE_HOST}
+     * hard constraint
+     */
+    private Optional<V1Toleration> resolveDecomissioningToleration(Job<?> job) {
+        if (JobFunctions.findHardConstraint(job, JobConstraints.ACTIVE_HOST).isPresent()) {
+            return Optional.empty();
+        }
+        return Optional.of(Tolerations.TOLERATION_DECOMISSIONING);
+    }
+
+    private V1Toleration resolveTierToleration(Job<?> job) {
         String capacityGroupName = JobFunctions.getEffectiveCapacityGroup(job);
         ApplicationSLA capacityGroup = capacityManagement.findApplicationSLA(capacityGroupName).orElse(null);
         if (capacityGroup == null) {
@@ -74,11 +85,11 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
         return capacityGroup.getTier() == Tier.Critical ? Tolerations.TOLERATION_TIER_CRITICAL : Tolerations.TOLERATION_TIER_FLEX;
     }
 
-    private Optional<V1Toleration> resolveAvailabilityZoneToleration(Job job) {
+    private Optional<V1Toleration> resolveAvailabilityZoneToleration(Job<?> job) {
         return KubeUtil.findFarzoneId(configuration, job).map(Tolerations.TOLERATION_FARZONE_FACTORY);
     }
 
-    private Optional<V1Toleration> resolveGpuInstanceTypeToleration(Job job) {
+    private Optional<V1Toleration> resolveGpuInstanceTypeToleration(Job<?> job) {
         return job.getJobDescriptor().getContainer().getContainerResources().getGpu() <= 0
                 ? Optional.empty()
                 : Optional.of(Tolerations.TOLERATION_GPU_INSTANCE);

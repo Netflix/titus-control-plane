@@ -46,6 +46,15 @@ public class DefaultTaintTolerationFactoryTest {
     );
 
     @Test
+    public void decommissioningNodesAreTolerated() {
+        List<V1Toleration> tolerations = factory.buildV1Toleration(JobGenerator.oneBatchJob(), JobGenerator.oneBatchTask(), true);
+        assertThat(tolerations).contains(Tolerations.TOLERATION_DECOMISSIONING);
+
+        List<V1Toleration> withConstraints = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.ACTIVE_HOST, "true"), JobGenerator.oneBatchTask(), true);
+        assertThat(withConstraints).doesNotContain(Tolerations.TOLERATION_DECOMISSIONING);
+    }
+
+    @Test
     public void testGpuInstanceAssignment() {
         List<V1Toleration> tolerations = factory.buildV1Toleration(newGpuJob(), JobGenerator.oneBatchTask(), true);
         V1Toleration gpuToleration = tolerations.stream().filter(t -> t.getKey().equals(KubeConstants.TAINT_GPU_INSTANCE)).findFirst().orElse(null);

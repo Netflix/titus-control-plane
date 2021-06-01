@@ -134,6 +134,15 @@ public final class KubeConstants {
      */
     public static final String TAINT_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
+    /**
+     * Nodes with this taint have are in the process of being decommissioned. Effects have different meaning:
+     *
+     * - <code>PreferNoSchedule</code>: nodes being drained, while preserving capacity if needed
+     * - <code>NoSchedule</code>: used to avoid placing tasks with the {@link com.netflix.titus.api.jobmanager.JobConstraints#ACTIVE_HOST} onto nodes being decommissioned
+     * - <code>NoExecute</code>: nodes being actively evacuated by task relocation
+     */
+    public static final String TAINT_NODE_DECOMISSIONING = TITUS_NODE_DOMAIN + "decommissioning";
+
     /*
      * Opportunistic scheduling annotations
      */
