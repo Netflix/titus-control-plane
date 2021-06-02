@@ -56,7 +56,7 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
         tolerations.add(Tolerations.TOLERATION_VIRTUAL_KUBLET);
         V1Toleration schedulerToleration = useKubeScheduler ? Tolerations.TOLERATION_KUBE_SCHEDULER : Tolerations.TOLERATION_FENZO_SCHEDULER;
         tolerations.add(schedulerToleration);
-        resolveDecomissioningToleration(job).ifPresent(tolerations::add);
+        resolveDecommissioningToleration(job).ifPresent(tolerations::add);
         tolerations.add(resolveTierToleration(job));
         resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);
         resolveGpuInstanceTypeToleration(job).ifPresent(tolerations::add);
@@ -69,11 +69,11 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
      * All tasks by default tolerate nodes being decommissioned, unless their job has the {@link JobConstraints#ACTIVE_HOST}
      * hard constraint
      */
-    private Optional<V1Toleration> resolveDecomissioningToleration(Job<?> job) {
+    private Optional<V1Toleration> resolveDecommissioningToleration(Job<?> job) {
         if (JobFunctions.findHardConstraint(job, JobConstraints.ACTIVE_HOST).isPresent()) {
             return Optional.empty();
         }
-        return Optional.of(Tolerations.TOLERATION_DECOMISSIONING);
+        return Optional.of(Tolerations.TOLERATION_DECOMMISSIONING);
     }
 
     private V1Toleration resolveTierToleration(Job<?> job) {

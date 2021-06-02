@@ -48,10 +48,10 @@ public class DefaultTaintTolerationFactoryTest {
     @Test
     public void decommissioningNodesAreTolerated() {
         List<V1Toleration> tolerations = factory.buildV1Toleration(JobGenerator.oneBatchJob(), JobGenerator.oneBatchTask(), true);
-        assertThat(tolerations).contains(Tolerations.TOLERATION_DECOMISSIONING);
+        assertThat(tolerations).contains(Tolerations.TOLERATION_DECOMMISSIONING);
 
         List<V1Toleration> withConstraints = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.ACTIVE_HOST, "true"), JobGenerator.oneBatchTask(), true);
-        assertThat(withConstraints).doesNotContain(Tolerations.TOLERATION_DECOMISSIONING);
+        assertThat(withConstraints).doesNotContain(Tolerations.TOLERATION_DECOMMISSIONING);
     }
 
     @Test
