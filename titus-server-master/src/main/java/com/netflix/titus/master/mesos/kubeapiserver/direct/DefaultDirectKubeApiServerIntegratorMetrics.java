@@ -18,6 +18,7 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
@@ -106,6 +107,10 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
                 "status", "error",
                 "error", error.getClass().getSimpleName()
         )).record(elapsedMs, TimeUnit.MILLISECONDS);
+    }
+
+    void launchTimeout(long elapsedMs) {
+        registry.timer(launchCounterId.withTag("status", "timeout")).record(elapsedMs, TimeUnit.MILLISECONDS);
     }
 
     void terminateSuccess(Task task, long elapsedMs) {

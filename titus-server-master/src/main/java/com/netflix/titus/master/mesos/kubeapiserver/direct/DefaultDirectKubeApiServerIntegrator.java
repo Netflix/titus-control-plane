@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -167,7 +168,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                         ? launchEbsVolume(job, task, v1Pod, kubeApiFacade.getCoreV1Api()).then(Mono.just(v1Pod))
                         : Mono.just(v1Pod))
                 .flatMap(v1Pod -> launchPod(task, v1Pod))
-                .subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
+                .subscribeOn(apiClientScheduler)
+                .timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()))
+                .doOnError(TimeoutException.class, e -> metrics.launchTimeout(configuration.getKubeApiClientTimeoutMs()));
     }
 
     @Override
