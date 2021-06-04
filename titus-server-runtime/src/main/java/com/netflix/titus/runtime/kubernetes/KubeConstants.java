@@ -90,6 +90,8 @@ public final class KubeConstants {
 
     public static final String NODE_LABEL_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
+    public static final String NODE_LABEL_CPU_MODEL = TITUS_NODE_DOMAIN + "cpu-model-name";
+
     public static final String NODE_LABEL_RESOURCE_POOL = TITUS_SCALER_DOMAIN + "resource-pool";
 
     /*
