@@ -71,6 +71,11 @@ public class JobConstraints {
     public static final String KUBE_BACKEND = "kubebackend";
 
     /**
+     * Constrain Kubernetes pod scheduling to nodes with a given CPU model.
+     */
+    public static final String CPU_MODEL= "cpumodel";
+
+    /**
      * Taints that are tolerated on Kubernetes Nodes.
      */
     public static final String TOLERATION = "toleration";
@@ -84,6 +89,7 @@ public class JobConstraints {
             MACHINE_ID,
             MACHINE_GROUP,
             MACHINE_TYPE,
-            KUBE_BACKEND
+            KUBE_BACKEND,
+            CPU_MODEL
     );
 }
