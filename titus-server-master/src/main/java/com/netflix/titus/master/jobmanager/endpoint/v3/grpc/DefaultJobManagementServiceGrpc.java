@@ -227,7 +227,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             try {
                 coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(cellDecorator.ensureCellInfo(jobDescriptor));
             } catch (Exception e) {
-                return Mono.error(TitusServiceException.invalidArgument(e));
+                return Mono.error(TitusServiceException.invalidArgument("Error when converting GRPC object to the internal representation: " + e.getMessage()));
             }
 
             return Mono.fromCallable(() -> entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor))
@@ -486,7 +486,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         try {
             coreDisruptionBudget = GrpcJobManagementModelConverters.toCoreDisruptionBudget(grpcDisruptionBudget);
         } catch (Exception e) {
-            safeOnError(logger, TitusServiceException.invalidArgument(e), responseObserver);
+            safeOnError(logger, TitusServiceException.invalidArgument("Error when converting GRPC disruption budget to the internal model: " + e.getMessage()), responseObserver);
             return Optional.empty();
         }
 
