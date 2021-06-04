@@ -87,7 +87,7 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
                     return Observable.error(
                             TitusServiceException.newBuilder(
                                     TitusServiceException.ErrorCode.INVALID_ARGUMENT,
-                                    "Job sanitization error in TitusGateway")
+                                    "Job sanitization error in TitusGateway: " + throwable.getMessage())
                                     .withCause(throwable)
                                     .build()
                     );
