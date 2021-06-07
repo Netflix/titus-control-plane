@@ -33,6 +33,8 @@ import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -40,6 +42,8 @@ import rx.Observable;
 import static com.netflix.titus.common.util.rx.ReactorExt.toObservable;
 
 public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
+
+    private static final Logger logger = LoggerFactory.getLogger(SanitizingJobServiceGateway.class);
 
     private final JobServiceGateway delegate;
     private final EntitySanitizer entitySanitizer;
@@ -65,7 +69,7 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
                     GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor)
             );
         } catch (Exception e) {
-            return Observable.error(TitusServiceException.invalidArgument(e));
+            return Observable.error(TitusServiceException.invalidArgument("Error when filtering out generated attributes: " + e.getMessage()));
         }
 
         // basic entity validations based on class/field constraints
@@ -78,7 +82,16 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
         // validations that need external data
         return toObservable(admissionSanitizer.sanitizeAndApply(sanitizedCoreJobDescriptor)
                 .switchIfEmpty(Mono.just(sanitizedCoreJobDescriptor)))
-                .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
+                .onErrorResumeNext(throwable -> {
+                    logger.error("Sanitization error", throwable);
+                    return Observable.error(
+                            TitusServiceException.newBuilder(
+                                    TitusServiceException.ErrorCode.INVALID_ARGUMENT,
+                                    "Job sanitization error in TitusGateway: " + throwable.getMessage())
+                                    .withCause(throwable)
+                                    .build()
+                    );
+                })
                 .flatMap(jd -> toObservable(admissionValidator.validate(jd))
                         .flatMap(errors -> {
                             // Only emit an error on HARD validation errors

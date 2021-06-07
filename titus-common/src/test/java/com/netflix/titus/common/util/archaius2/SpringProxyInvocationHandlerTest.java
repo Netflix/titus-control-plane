@@ -41,7 +41,7 @@ public class SpringProxyInvocationHandlerTest {
     @Before
     public void setUp() {
         environment.setProperty("annotationPrefix.intWithNoDefault", "11");
-        this.configuration = Archaius2Ext.newConfiguration(SomeConfiguration.class, environment, 1);
+        this.configuration = Archaius2Ext.newConfiguration(SomeConfiguration.class, environment, 0);
     }
 
     @Test

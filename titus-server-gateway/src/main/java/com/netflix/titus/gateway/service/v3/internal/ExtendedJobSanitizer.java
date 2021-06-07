@@ -151,7 +151,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
             // We have to throw the exception here, as we cannot conditionally check violations using annotations.
             violations.findViolation(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE).ifPresent(nonCompliance -> {
                 if (environmentVariableNamesStrictValidationPredicate.test(jobDescriptorWithAllowedAttributes)) {
-                    throw TitusServiceException.invalidArgument(nonCompliance.toErrorMessage());
+                    throw TitusServiceException.invalidArgument("Environment variable validation error: " + nonCompliance.toErrorMessage());
                 }
             });
 
