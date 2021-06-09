@@ -42,6 +42,8 @@ public class GpuPodResourcePoolResolver implements PodResourcePoolResolver {
 
     public GpuPodResourcePoolResolver(KubePodConfiguration configuration) {
         this.configuration = configuration;
+        // Call early to initialize before the first usage.
+        getCurrent();
     }
 
     @Override
