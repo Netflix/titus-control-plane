@@ -33,8 +33,6 @@ import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolv
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
-import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcServer;
-import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
 import io.grpc.Channel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -75,13 +73,6 @@ public class JobActivityMain {
     @Named(JobManagerConnectorComponent.JOB_MANAGER_CHANNEL)
     public Channel getJobManagerChannel(@Named(TITUS_MASTER_CHANNEL) Channel channel) {
         return channel;
-    }
-
-    @Bean
-    public JobActivityGrpcServer getJobActivityHistoryGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                 JobActivityGrpcService jobActivityGrpcService,
-                                                                 TitusRuntime runtime) {
-        return new JobActivityGrpcServer(configuration, jobActivityGrpcService, runtime);
     }
 
     public static void main(String[] args) {
