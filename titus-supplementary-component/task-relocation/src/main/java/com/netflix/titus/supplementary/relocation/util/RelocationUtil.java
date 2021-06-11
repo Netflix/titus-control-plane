@@ -24,8 +24,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.DateTimeExt;
@@ -89,5 +91,16 @@ public final class RelocationUtil {
 
     public static String doFormat(TaskRelocationPlan plan) {
         return String.format("{reason=%s, reasonMessage='%s', relocationAfter=%s}", plan.getReason(), plan.getReasonMessage(), DateTimeExt.toUtcDateTimeString(plan.getRelocationTime()));
+    }
+
+    public static TaskRelocationPlan buildSelfManagedRelocationPlan(Job<?> job, Task task, String reason, long timeNow) {
+        SelfManagedDisruptionBudgetPolicy selfManaged = (SelfManagedDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+        return TaskRelocationPlan.newBuilder()
+                .withTaskId(task.getId())
+                .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
+                .withReasonMessage(reason)
+                .withDecisionTime(timeNow)
+                .withRelocationTime(timeNow + selfManaged.getRelocationTimeMs())
+                .build();
     }
 }
