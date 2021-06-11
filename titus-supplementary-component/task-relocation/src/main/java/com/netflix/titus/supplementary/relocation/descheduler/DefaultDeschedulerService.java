@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -43,6 +44,8 @@ import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
+
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
 
 /**
  * WARN This is a simple implementation focused on a single task migration use case.
@@ -103,34 +106,15 @@ public class DefaultDeschedulerService implements DeschedulerService {
             List<Task> tasks = bestMatch.get().getRight();
             tasks.forEach(task -> {
                 if (!allRequestedEvictions.containsKey(task.getId())) {
-                    TaskRelocationPlan plannedAheadTaskRelocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
-
-                    AtomicReference<TaskRelocationPlan> selfManagedRelocationPlan = new AtomicReference<>();
-                    if (plannedAheadTaskRelocationPlan == null) {
-                        // re-check if self-managed
-                        jobOperations.getJob(task.getJobId()).ifPresent(job -> {
-                            RelocationPredicates.checkIfNeedsRelocationPlan(job, task, agent).ifPresent(reason -> {
-                                if (RelocationPredicates.isSelfManaged(job)) {
-                                    selfManagedRelocationPlan.set(RelocationUtil.buildSelfManagedRelocationPlan(job, task, reason, clock.wallTime()));
-                                }
-                            });
-                        });
-
-                        if (selfManagedRelocationPlan.get() == null) {
-                            plannedAheadTaskRelocationPlan = newNotDelayedRelocationPlan(task, true);
-                        } else {
-                            plannedAheadTaskRelocationPlan = selfManagedRelocationPlan.get();
-                        }
-                    }
-
-                    regularEvictions.put(
+                    Optional<TaskRelocationPlan> relocationPlanForTask = getRelocationPlanForTask(agent, task, plannedAheadTaskRelocationPlans);
+                    relocationPlanForTask.ifPresent(rp -> regularEvictions.put(
                             task.getId(),
                             DeschedulingResult.newBuilder()
                                     .withTask(task)
                                     .withAgentInstance(agent)
-                                    .withTaskRelocationPlan(plannedAheadTaskRelocationPlan)
+                                    .withTaskRelocationPlan(rp)
                                     .build()
-                    );
+                    ));
                 }
             });
         }
@@ -177,5 +161,28 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 .withDecisionTime(now)
                 .withRelocationTime(now)
                 .build();
+    }
+
+    @VisibleForTesting
+    Optional<TaskRelocationPlan> getRelocationPlanForTask(Node agent, Task task,
+                                                          Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
+        AtomicReference<Optional<TaskRelocationPlan>> result = new AtomicReference<>(Optional.empty());
+        TaskRelocationPlan plannedAheadTaskRelocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
+        if (plannedAheadTaskRelocationPlan == null) {
+            // recheck if a self managed plan is needed
+            jobOperations.getJob(task.getJobId()).ifPresent(job ->
+                    RelocationPredicates.checkIfNeedsRelocationPlan(job, task, agent).ifPresent(reason -> {
+                        if (RelocationPredicates.isSelfManaged(job) && hasDisruptionBudget(job)) {
+                            result.set(Optional.of(RelocationUtil.buildSelfManagedRelocationPlan(job, task, reason, clock.wallTime())));
+                        }
+                    }));
+
+            if (!result.get().isPresent()) {
+                result.set(Optional.of(newNotDelayedRelocationPlan(task, true)));
+            }
+        } else {
+            result.set(Optional.of(plannedAheadTaskRelocationPlan));
+        }
+        return result.get();
     }
 }
