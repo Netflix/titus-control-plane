@@ -32,15 +32,12 @@ import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.common.util.loadshedding.grpc.GrpcAdmissionControllerServerInterceptor;
 import com.netflix.titus.federation.endpoint.EndpointConfiguration;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
-import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
-import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc.JobActivityHistoryServiceImplBase;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
@@ -66,6 +63,7 @@ public class TitusFederationGrpcServer {
     private final JobManagementServiceImplBase jobManagementService;
     private AutoScalingServiceImplBase autoScalingService;
     private LoadBalancerServiceImplBase loadBalancerService;
+    private JobActivityHistoryServiceImplBase jobActivityHistoryService;
     private final ReactorGatewayMachineGrpcService reactorMachineGrpcService;
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final EndpointConfiguration config;
@@ -84,6 +82,7 @@ public class TitusFederationGrpcServer {
             JobManagementServiceImplBase jobManagementService,
             AutoScalingServiceImplBase autoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
+            JobActivityHistoryServiceImplBase jobActivityHistoryService,
             ReactorGatewayMachineGrpcService reactorMachineGrpcService,
             GrpcToReactorServerFactory reactorServerFactory,
             EndpointConfiguration config,
@@ -94,6 +93,7 @@ public class TitusFederationGrpcServer {
         this.jobManagementService = jobManagementService;
         this.autoScalingService = autoScalingService;
         this.loadBalancerService = loadBalancerService;
+        this.jobActivityHistoryService = jobActivityHistoryService;
         this.reactorMachineGrpcService = reactorMachineGrpcService;
         this.reactorServerFactory = reactorServerFactory;
         this.config = config;
@@ -131,6 +131,9 @@ public class TitusFederationGrpcServer {
                 .addService(ServerInterceptors.intercept(
                         loadBalancerService,
                         createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())))
+                .addService(ServerInterceptors.intercept(
+                        jobActivityHistoryService,
+                        createInterceptors(JobActivityHistoryServiceGrpc.getServiceDescriptor())))
                 .addService(
                         ServerInterceptors.intercept(
                                 reactorServerFactory.apply(
