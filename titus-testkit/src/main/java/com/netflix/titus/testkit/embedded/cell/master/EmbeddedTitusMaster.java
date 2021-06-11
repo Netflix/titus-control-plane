@@ -65,17 +65,10 @@ import com.netflix.titus.common.util.guice.ContainerEventBus;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.testkit.store.EmbeddedCassandraStoreFactory;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
-import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
-import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
@@ -368,6 +361,11 @@ public class EmbeddedTitusMaster {
 
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
+    }
+
+    public JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
+        JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub client = JobActivityHistoryServiceGrpc.newStub(getOrCreateGrpcChannel());
         return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 

@@ -90,7 +90,7 @@ class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
 
     @Override
     public JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
-        return federation.getJobActivityGrpcClient();
+        return federation.getJobActivityHistoryGrpcClient();
     }
 
     @Override

@@ -198,7 +198,7 @@ public class EmbeddedTitusFederation {
         return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
-    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub jobActivityHistoryGrpcClient() {
+    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
         return JobActivityHistoryServiceGrpc.newStub(getOrCreateGrpcChannel());
     }
 

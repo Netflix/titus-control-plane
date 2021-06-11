@@ -162,10 +162,4 @@ public class TitusMasterConnectorModule extends AbstractModule {
     AutoScalingServiceStub autoScalingClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return AutoScalingServiceGrpc.newStub(channel);
     }
-
-    @Provides
-    @Singleton
-    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub jobActivityHistoryClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
-        return JobActivityHistoryServiceGrpc.newStub(channel);
-    }
 }
