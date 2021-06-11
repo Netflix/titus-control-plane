@@ -3,7 +3,7 @@ package com.netflix.titus.federation.service;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.ActivityQueryResult;
-import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.runtime.service.JobActivityHistoryService;
 import io.grpc.stub.StreamObserver;
@@ -15,20 +15,23 @@ import javax.inject.Singleton;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.*;
 
 @Singleton
-public class DefaultJobActivityHistoryService implements JobActivityHistoryService {
+public class
+DefaultJobActivityHistoryService implements JobActivityHistoryService {
     private final GrpcConfiguration grpcConfiguration;
-    private final JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub client;
+    private final JobActivityHistoryServiceStub client;
+
     @Inject
     public DefaultJobActivityHistoryService(GrpcConfiguration grpcConfiguration,
-                                            JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub client) {
+                                            JobActivityHistoryServiceStub client) {
         this.grpcConfiguration = grpcConfiguration;
         this.client = client;
     }
 
-    public Observable<ActivityQueryResult> viewScalingActivities(JobId jobId, CallMetadata callMetadata) {
+
+    public Observable<ActivityQueryResult> viewScalingActivities(JobId request, CallMetadata callMetadata) {
         return createRequestObservable(emitter -> {
             StreamObserver<ActivityQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadata, grpcConfiguration.getRequestTimeoutMs()).viewScalingActivities(jobId, streamObserver);
+            createWrappedStub(client, callMetadata, grpcConfiguration.getRequestTimeoutMs()).viewScalingActivities(request, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 }
