@@ -7,6 +7,7 @@ import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc.JobActivity
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.runtime.service.JobActivityHistoryService;
 import io.grpc.stub.StreamObserver;
+import org.springframework.context.annotation.Bean;
 import rx.Observable;
 
 import javax.inject.Inject;
@@ -18,7 +19,7 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.*;
 public class
 DefaultJobActivityHistoryService implements JobActivityHistoryService {
     private final GrpcConfiguration grpcConfiguration;
-    private final JobActivityHistoryServiceStub client;
+    private JobActivityHistoryServiceStub client;
 
     @Inject
     public DefaultJobActivityHistoryService(GrpcConfiguration grpcConfiguration,

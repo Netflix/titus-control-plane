@@ -30,19 +30,14 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
 import com.netflix.titus.federation.startup.TitusFederationModule;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
-import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
-import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
+import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -50,6 +45,8 @@ import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Named;
 
 /**
  * Run embedded version of TitusFederation.
@@ -199,6 +196,10 @@ public class EmbeddedTitusFederation {
 
     public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
         return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
+    }
+
+    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub jobActivityHistoryGrpcClient() {
+        return JobActivityHistoryServiceGrpc.newStub(getOrCreateGrpcChannel());
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {
