@@ -28,7 +28,7 @@ public class DefaultJobActivityHistoryService implements JobActivityHistoryServi
     public Observable<ActivityQueryResult> viewScalingActivities(JobId jobId, CallMetadata callMetadata) {
         return createRequestObservable(emitter -> {
             StreamObserver<ActivityQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadata, grpcConfiguration.getRequestTimeoutMs());
+            createWrappedStub(client, callMetadata, grpcConfiguration.getRequestTimeoutMs()).viewScalingActivities(jobId, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 }
