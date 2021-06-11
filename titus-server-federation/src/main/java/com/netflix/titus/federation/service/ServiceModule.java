@@ -21,6 +21,7 @@ import com.netflix.titus.runtime.connector.machine.ReactorMachineServiceStub;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
+import com.netflix.titus.runtime.service.JobActivityHistoryService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 
 public class ServiceModule extends AbstractModule {
@@ -32,5 +33,6 @@ public class ServiceModule extends AbstractModule {
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
         bind(ReactorMachineServiceStub.class).to(AggregatingReactorMachineServiceStub.class);
+        bind(JobActivityHistoryService.class).to(DefaultJobActivityHistoryService.class);
     }
 }
