@@ -24,10 +24,15 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.google.inject.AbstractModule;
+import com.google.inject.util.Modules;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
+import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
 import com.netflix.titus.federation.service.DefaultJobActivityHistoryService;
 import com.netflix.titus.federation.service.NoopJobActivityHistoryService;
@@ -35,6 +40,7 @@ import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
+import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.jobactivity.store.NoopJobActivityPublisherStore;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -121,6 +127,7 @@ public class EmbeddedTitusFederation {
 
         injector = InjectorBuilder.fromModules(
                 new EmbeddedJettyModule(httpPort),
+
                 new ArchaiusModule() {
                     @Override
                     protected void configureArchaius() {
@@ -128,7 +135,6 @@ public class EmbeddedTitusFederation {
                         config.setProperty("titus.federation.cells", buildCellString());
 
                         bindApplicationConfigurationOverride().toInstance(config);
-                        bind(JobActivityHistoryService.class).to(NoopJobActivityHistoryService.class);
                     }
                 },
                 new TitusFederationModule()

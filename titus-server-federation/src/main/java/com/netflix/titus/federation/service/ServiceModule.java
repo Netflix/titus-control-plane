@@ -33,6 +33,6 @@ public class ServiceModule extends AbstractModule {
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
         bind(ReactorMachineServiceStub.class).to(AggregatingReactorMachineServiceStub.class);
-        bind(JobActivityHistoryService.class).to(DefaultJobActivityHistoryService.class);
+        bind(JobActivityHistoryService.class).to(NoopJobActivityHistoryService.class);
     }
 }
