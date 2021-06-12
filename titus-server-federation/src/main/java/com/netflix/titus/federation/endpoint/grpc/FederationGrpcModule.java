@@ -19,7 +19,6 @@ package com.netflix.titus.federation.endpoint.grpc;
 import com.google.inject.AbstractModule;
 import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.runtime.endpoint.v3.grpc.*;
-import com.netflix.titus.runtime.service.JobActivityHistoryService;
 
 public class FederationGrpcModule extends AbstractModule {
 

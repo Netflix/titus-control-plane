@@ -29,12 +29,16 @@ import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
+import com.netflix.titus.federation.service.DefaultJobActivityHistoryService;
+import com.netflix.titus.federation.service.NoopJobActivityHistoryService;
 import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
+import com.netflix.titus.master.jobactivity.store.NoopJobActivityPublisherStore;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import com.netflix.titus.runtime.service.JobActivityHistoryService;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import io.grpc.Channel;
@@ -124,6 +128,7 @@ public class EmbeddedTitusFederation {
                         config.setProperty("titus.federation.cells", buildCellString());
 
                         bindApplicationConfigurationOverride().toInstance(config);
+                        bind(JobActivityHistoryService.class).to(NoopJobActivityHistoryService.class);
                     }
                 },
                 new TitusFederationModule()

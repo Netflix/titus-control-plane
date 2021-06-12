@@ -16,8 +16,7 @@ import javax.inject.Singleton;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.*;
 
 @Singleton
-public class
-DefaultJobActivityHistoryService implements JobActivityHistoryService {
+public class DefaultJobActivityHistoryService implements JobActivityHistoryService {
     private final GrpcConfiguration grpcConfiguration;
     private JobActivityHistoryServiceStub client;
 
