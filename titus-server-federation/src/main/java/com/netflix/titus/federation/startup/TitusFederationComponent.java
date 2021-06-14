@@ -19,7 +19,14 @@ package com.netflix.titus.federation.startup;
 import java.util.Arrays;
 
 import com.netflix.titus.federation.endpoint.FederationEndpointComponent;
-import com.netflix.titus.federation.service.*;
+import com.netflix.titus.federation.service.CellInfoResolver;
+import com.netflix.titus.federation.service.DefaultCellConnector;
+import com.netflix.titus.federation.service.DefaultCellInfoResolver;
+import com.netflix.titus.federation.service.DefaultCellWebClientConnector;
+import com.netflix.titus.federation.service.JobActivityServiceComponent;
+import com.netflix.titus.federation.service.ServiceComponent;
+import com.netflix.titus.federation.service.SimpleWebClientFactory;
+import com.netflix.titus.federation.service.WebClientFactory;
 import com.netflix.titus.federation.service.router.ApplicationCellRouter;
 import com.netflix.titus.federation.service.router.CellRouter;
 import com.netflix.titus.federation.service.router.ChainCellRouter;

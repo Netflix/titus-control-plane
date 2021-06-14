@@ -24,7 +24,7 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnErro
 public class DefaultJobActivityHistoryServiceGrpc extends JobActivityHistoryServiceGrpc.JobActivityHistoryServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobActivityHistoryServiceGrpc.class);
     private final JobActivityHistoryService jobActivityHistoryService;
-    CallMetadataResolver callMetadataResolver;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public DefaultJobActivityHistoryServiceGrpc(JobActivityHistoryService jobActivityHistoryService,
