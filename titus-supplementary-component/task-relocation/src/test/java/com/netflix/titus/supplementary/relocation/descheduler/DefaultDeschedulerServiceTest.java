@@ -16,12 +16,16 @@
 
 package com.netflix.titus.supplementary.relocation.descheduler;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
@@ -34,11 +38,11 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
-import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -55,6 +59,7 @@ import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DefaultDeschedulerServiceTest {
 
@@ -67,7 +72,7 @@ public class DefaultDeschedulerServiceTest {
     private final MutableDataGenerator<Job<ServiceJobExt>> jobGenerator = new MutableDataGenerator<>(
             JobGenerator.serviceJobs(oneTaskServiceJobDescriptor().but(
                     ofServiceSize(4),
-                    withDisruptionBudget(budget(selfManagedPolicy(30_000), unlimitedRate(), Collections.emptyList()))
+                    withDisruptionBudget(budget(selfManagedPolicy(0), unlimitedRate(), Collections.emptyList()))
             ))
     );
 
@@ -122,8 +127,58 @@ public class DefaultDeschedulerServiceTest {
             if (isImmediateJobMigration) {
                 assertThat(plan.getReasonMessage()).containsSequence("Job marked for immediate eviction");
             } else {
-                assertThat(plan.getReasonMessage()).containsSequence("Enough quota to migrate the task");
+                assertThat(plan.getReasonMessage()).isEqualTo("Enough quota to migrate the task (no migration delay configured)");
             }
         }
+    }
+
+    @Test
+    public void verifySelfManagedRelocationPlanWithDelay() {
+        verifyRelocationPlan(10_000, "Agent instance tagged for eviction");
+    }
+
+    @Test
+    public void verifyRelocationPlanWithNoDelay() {
+        verifyRelocationPlan(0, "Enough quota to migrate the task (no migration delay configured)");
+    }
+
+    private void verifyRelocationPlan(long relocationDelay, String reasonMessage) {
+        ReadOnlyJobOperations jobOperations = mock(ReadOnlyJobOperations.class);
+        DefaultDeschedulerService dds = new DefaultDeschedulerService(
+                jobOperations,
+                mock(ReadOnlyEvictionOperations.class),
+                new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator, instance -> true,
+                        mock(RelocationConfiguration.class),
+                        TestDataFactory.mockKubeApiFacade()),
+                () -> "foo|bar",
+                titusRuntime
+        );
+
+        Job<ServiceJobExt> job = JobGenerator.serviceJobs(
+                oneTaskServiceJobDescriptor()
+                        .but(ofServiceSize(2),
+                                withDisruptionBudget(budget(selfManagedPolicy(relocationDelay), unlimitedRate(), Collections.emptyList()))))
+                .getValue();
+
+        ServiceJobTask task = JobGenerator.serviceTasks(job).getValue();
+        when(jobOperations.getJob(job.getId())).thenReturn(Optional.of(job));
+
+        Node node = Node.newBuilder()
+                .withId("node1")
+                .withServerGroupId("asg1")
+                .withRelocationRequired(true).withBadCondition(false).build();
+
+        // Advance test clock
+        long clockAdvancedMs = 5_000;
+        TestClock testClock = (TestClock) titusRuntime.getClock();
+        testClock.advanceTime(Duration.ofMillis(clockAdvancedMs));
+
+        Optional<TaskRelocationPlan> relocationPlanForTask = dds.getRelocationPlanForTask(node, task, Collections.emptyMap());
+        assertThat(relocationPlanForTask).isPresent();
+        assertThat(relocationPlanForTask.get().getTaskId()).isEqualTo(task.getId());
+        // relocation time is expected to be decision clock time + retentionTimeMs
+        assertThat(relocationPlanForTask.get().getRelocationTime()).isEqualTo(relocationDelay + clockAdvancedMs);
+        assertThat(relocationPlanForTask.get().getDecisionTime()).isEqualTo(clockAdvancedMs);
+        assertThat(relocationPlanForTask.get().getReasonMessage()).isEqualTo(reasonMessage);
     }
 }

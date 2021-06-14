@@ -174,7 +174,7 @@ public class RelocationPredicates {
         return JobFunctions.findTaskStatus(task, TaskState.Accepted).orElse(task.getStatus()).getTimestamp();
     }
 
-    private static boolean isSelfManaged(Job<?> job) {
+    public static boolean isSelfManaged(Job<?> job) {
         DisruptionBudgetPolicy disruptionBudgetPolicy = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
         return disruptionBudgetPolicy instanceof SelfManagedDisruptionBudgetPolicy;
     }
