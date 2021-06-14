@@ -19,7 +19,14 @@ package com.netflix.titus.testkit.embedded.federation;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.grpc.protogen.*;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
