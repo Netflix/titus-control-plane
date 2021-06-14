@@ -70,6 +70,7 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
+import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
@@ -368,6 +369,11 @@ public class EmbeddedTitusMaster {
 
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
+    }
+
+    public JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
+        JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub client = JobActivityHistoryServiceGrpc.newStub(getOrCreateGrpcChannel());
         return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 

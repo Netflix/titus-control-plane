@@ -20,6 +20,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
@@ -27,6 +28,8 @@ import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import rx.Observable;
+
+import static com.netflix.titus.grpc.protogen.EvictionServiceGrpc.*;
 
 public interface EmbeddedTitusOperations {
     SimulatedCloud getSimulatedCloud();
@@ -47,7 +50,9 @@ public interface EmbeddedTitusOperations {
 
     LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient();
 
-    EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient();
+    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient();
+
+    EvictionServiceBlockingStub getBlockingGrpcEvictionClient();
 
     Observable<TaskExecutorHolder> observeLaunchedTasks();
 

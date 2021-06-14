@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Import;
         AggregatingLoadbalancerService.class,
         AggregatingReactorMachineServiceStub.class,
         DefaultAggregatingSchedulerService.class,
+        DefaultJobActivityHistoryService.class,
 })
 public class ServiceComponent {
 }

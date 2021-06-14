@@ -23,6 +23,7 @@ import com.netflix.titus.federation.service.CellInfoResolver;
 import com.netflix.titus.federation.service.DefaultCellConnector;
 import com.netflix.titus.federation.service.DefaultCellInfoResolver;
 import com.netflix.titus.federation.service.DefaultCellWebClientConnector;
+import com.netflix.titus.federation.service.JobActivityServiceComponent;
 import com.netflix.titus.federation.service.ServiceComponent;
 import com.netflix.titus.federation.service.SimpleWebClientFactory;
 import com.netflix.titus.federation.service.WebClientFactory;
@@ -47,7 +48,8 @@ import org.springframework.context.annotation.Import;
         DefaultCellWebClientConnector.class,
 
         ServiceComponent.class,
-        FederationEndpointComponent.class
+        FederationEndpointComponent.class,
+        JobActivityServiceComponent.class
 })
 public class TitusFederationComponent {
 

@@ -34,6 +34,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
@@ -50,6 +51,8 @@ import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Named;
 
 /**
  * Run embedded version of TitusFederation.
@@ -120,6 +123,7 @@ public class EmbeddedTitusFederation {
 
         injector = InjectorBuilder.fromModules(
                 new EmbeddedJettyModule(httpPort),
+
                 new ArchaiusModule() {
                     @Override
                     protected void configureArchaius() {
@@ -199,6 +203,10 @@ public class EmbeddedTitusFederation {
 
     public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
         return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
+    }
+
+    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
+        return JobActivityHistoryServiceGrpc.newStub(getOrCreateGrpcChannel());
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {
