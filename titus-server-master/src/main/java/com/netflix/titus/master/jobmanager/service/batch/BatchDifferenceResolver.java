@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.FeatureRolloutPlans;
@@ -262,8 +263,11 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
         JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
+        String resourcePool = capacityGroupDescriptor.getResourcePool();
         if (JobManagerUtil.shouldAssignToKubeScheduler(refJobView.getJob(), capacityGroupDescriptor, kubePodConfiguration, kubeSchedulerPredicate)) {
-            taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
+            taskContext = CollectionsExt.copyAndAdd(taskContext, ImmutableMap.of(
+                    TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true",
+                    TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool));
         }
 
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(

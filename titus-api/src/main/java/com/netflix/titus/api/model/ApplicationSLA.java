@@ -63,7 +63,7 @@ public class ApplicationSLA {
         this.resourceDimension = resourceDimension;
         this.instanceCount = instanceCount;
         if (Strings.isNullOrEmpty(schedulerName)) {
-            this.schedulerName = SCHEDULER_NAME_FENZO;
+            this.schedulerName = SCHEDULER_NAME_KUBE_SCHEDULER;
         } else {
             this.schedulerName = schedulerName;
         }

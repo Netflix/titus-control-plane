@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.FeatureRolloutPlans;
@@ -66,7 +67,6 @@ import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActio
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.SchedulingService;
@@ -285,8 +285,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
+        String resourcePool = capacityGroupDescriptor.getResourcePool();
         if (JobManagerUtil.shouldAssignToKubeScheduler(refJobView.getJob(), capacityGroupDescriptor, kubePodConfiguration, kubeSchedulerPredicate)) {
-            taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
+            taskContext = CollectionsExt.copyAndAdd(taskContext, ImmutableMap.of(
+                    TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true",
+                    TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool));
         }
 
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
