@@ -42,6 +42,7 @@ public final class TaskAttributes {
 
     public static final String TASK_ATTRIBUTES_KUBE_NODE_NAME = "kube.nodeName";
     public static final String TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER = "kube.ownedByKubeScheduler";
+    public static final String TASK_ATTRIBUTES_RESOURCE_POOL = "resourcePool";
     public static final String TASK_ATTRIBUTES_POD_CREATED = "kube.podCreated";
 
     /*
