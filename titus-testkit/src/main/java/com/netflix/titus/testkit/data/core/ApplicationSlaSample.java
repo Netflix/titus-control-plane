@@ -27,6 +27,7 @@ import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.model.ResourceDimensions;
 
+import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
 import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER;
 import static com.netflix.titus.master.endpoint.v2.rest.ApplicationSlaManagementEndpoint.DEFAULT_APPLICATION;
 
@@ -50,6 +51,7 @@ public enum ApplicationSlaSample {
         public ApplicationSLA.Builder builder() {
             return ApplicationSLA.newBuilder()
                     .withAppName("criticalSmallApp")
+                    .withSchedulerName(SCHEDULER_NAME_FENZO)
                     .withTier(Tier.Critical)
                     .withResourceDimension(ResourceDimensionSample.Small.build())
                     .withInstanceCount(2);

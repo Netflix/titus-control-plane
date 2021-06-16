@@ -267,7 +267,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         if (JobManagerUtil.shouldAssignToKubeScheduler(refJobView.getJob(), capacityGroupDescriptor, kubePodConfiguration, kubeSchedulerPredicate)) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, ImmutableMap.of(
                     TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true",
-                    TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool));
+                    TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool,
+                    TaskAttributes.TASK_ATTRIBUTES_TIER, capacityGroupDescriptor.getTier().name()));
         }
 
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(

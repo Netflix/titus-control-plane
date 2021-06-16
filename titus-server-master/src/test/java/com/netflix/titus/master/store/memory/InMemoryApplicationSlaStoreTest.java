@@ -38,7 +38,8 @@ public class InMemoryApplicationSlaStoreTest {
     @Test
     public void testStoreAndRetrieveCapacityGroups() {
         ApplicationSlaStore store = createStore();
-        ApplicationSLA capacityGroup1 = DefaultFlex.build();
+        ApplicationSLA capacityGroup1 = DefaultFlex.builder()
+                .withSchedulerName(SCHEDULER_NAME_FENZO).build();
         ApplicationSLA capacityGroup2 = CriticalSmall.builder()
                 .withSchedulerName(SCHEDULER_NAME_KUBE_SCHEDULER).build();
 
