@@ -75,8 +75,8 @@ public class CassandraApplicationSlaStoreTest {
 
     @Test
     public void testStoreAndRetrieveCapacityGroups() {
-        ApplicationSLA capacityGroup1 = ApplicationSlaSample.DefaultFlex.build();
-        ApplicationSLA capacityGroup2 = ApplicationSlaSample.CriticalLarge.build();
+        ApplicationSLA capacityGroup1 = ApplicationSlaSample.DefaultFlex.builder().withSchedulerName(SCHEDULER_NAME_FENZO).build();
+        ApplicationSLA capacityGroup2 = ApplicationSlaSample.CriticalLarge.builder().withSchedulerName(SCHEDULER_NAME_FENZO).build();
         ApplicationSLA capacityGroup3 = ApplicationSlaSample.CriticalSmallKubeScheduler.build();
         ApplicationSLA capacityGroup4 = ApplicationSlaSample.FlexSmallKubeScheduler.build();
 

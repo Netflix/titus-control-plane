@@ -123,6 +123,7 @@ public enum ApplicationSlaSample {
         if (DoubleMath.isMathematicalInteger(instanceCount)) {
             return ApplicationSLA.newBuilder()
                     .withTier(tier)
+                    .withSchedulerName(SCHEDULER_NAME_FENZO)
                     .withAppName(appName)
                     .withInstanceCount((int) instanceCount)
                     .withResourceDimension(ResourceDimensions.fromAwsInstanceType(instanceType))
