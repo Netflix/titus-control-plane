@@ -78,7 +78,11 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
                     .map(ServiceMeshImageSanitizer::setMeshImageFunction)
                     .timeout(Duration.ofMillis(configuration.getServiceMeshImageValidationTimeoutMs()))
                     .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                    .onErrorReturn(throwable -> isAllowedException(throwable, image), ServiceMeshImageSanitizer::skipSanitization);
+                    .onErrorReturn(throwable -> isAllowedException(throwable, image), ServiceMeshImageSanitizer::skipSanitization)
+                    .onErrorMap(Exception.class, error -> new IllegalArgumentException(String.format(
+                            "Service mesh image validation error: image=%s, cause=%s",
+                            image, error.getMessage()
+                    ), error));
         } catch (Throwable t) {
             return Mono.error(t);
         }
