@@ -117,8 +117,8 @@ public class ServiceMeshImageSanitizerTest {
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
                 .expectErrorSatisfies(throwable -> {
-                    assertThat(throwable).isInstanceOf(TitusRegistryException.class);
-                    assertThat(((TitusRegistryException) throwable).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
+                    assertThat(throwable.getCause()).isInstanceOf(TitusRegistryException.class);
+                    assertThat(((TitusRegistryException) throwable.getCause()).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
                 })
                 .verify();
     }
