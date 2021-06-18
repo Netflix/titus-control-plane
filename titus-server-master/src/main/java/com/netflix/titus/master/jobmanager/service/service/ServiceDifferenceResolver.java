@@ -396,9 +396,13 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     }
 
     private long getNumberOfNotFinishedTasks(ServiceJobView refJobView) {
-        return refJobView.getJobHolder().getChildren().stream()
-                .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
-                .count();
+        long count = 0L;
+        for (EntityHolder holder : refJobView.getJobHolder().getChildren()) {
+            if (TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean hasEnoughTasksRunning(ServiceJobView refJobView) {
