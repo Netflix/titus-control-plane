@@ -79,11 +79,11 @@ public class KubePodModule extends AbstractModule {
         return new PodResourcePoolResolverFeatureGuard(
                 configuration,
                 new PodResourcePoolResolverChain(Arrays.asList(
-                        new KubeSchedulerPodResourcePoolResolver(capacityGroupService),
-                        new FenzoPodResourcePoolResolver(capacityGroupService),
                         new ExplicitJobPodResourcePoolResolver(),
                         new FarzonePodResourcePoolResolver(configuration),
-                        new GpuPodResourcePoolResolver(configuration),
+                        new GpuPodResourcePoolResolver(configuration, capacityGroupService),
+                        new KubeSchedulerPodResourcePoolResolver(capacityGroupService),
+                        new FenzoPodResourcePoolResolver(capacityGroupService),
                         new CapacityGroupPodResourcePoolResolver(
                                 configuration,
                                 config.getPrefixedView(RESOURCE_POOL_PROPERTIES_PREFIX),
