@@ -67,7 +67,7 @@ com.netflix.archaius:archaius-core:0.7.6
 com.netflix.archaius:archaius2-api:2.3.16
 com.netflix.archaius:archaius2-core:2.3.16
 com.netflix.archaius:archaius2-guice:2.3.16
-com.netflix.eureka:eureka-client:1.10.14
+com.netflix.eureka:eureka-client:1.10.15
 com.netflix.fenzo:fenzo-core:1.1.0-rc.9
 com.netflix.frigga:frigga:0.25.0
 com.netflix.governator:governator-api:1.15.11
@@ -95,7 +95,7 @@ com.sun.jersey:jersey-core:1.19.4
 com.sun.jersey:jersey-server:1.19.4
 com.sun.jersey:jersey-servlet:1.19.4
 com.thinkaurelius.thrift:thrift-server:0.3.7
-com.thoughtworks.xstream:xstream:1.4.16
+com.thoughtworks.xstream:xstream:1.4.17
 com.twitter:finagle-core_2.11:6.33.0
 com.twitter:finagle-http_2.11:6.33.0
 com.twitter:finagle-native_2.11:6.33.0
