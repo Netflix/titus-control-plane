@@ -102,17 +102,14 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     private final GrpcConfiguration grpcConfiguration;
     private final TitusFederationConfiguration federationConfiguration;
-    private final RemoteFederationConnector fedConnector;
     private final CellConnector cellConnector;
     private final AggregatingCellClient aggregatingClient;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private final CellRouter router;
-    private final FallbackJobServiceGateway fallbackJobServiceGateway;
 
     @Inject
     public AggregatingJobServiceGateway(GrpcConfiguration grpcConfiguration,
                                         TitusFederationConfiguration federationConfiguration,
-                                        RemoteFederationConnector fedConnector,
                                         CellConnector cellConnector,
                                         CellRouter router,
                                         AggregatingCellClient aggregatingClient,
@@ -120,12 +117,10 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
-        this.fedConnector = fedConnector;
         this.cellConnector = cellConnector;
         this.router = router;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
-        this.fallbackJobServiceGateway = getFallbackJobServiceGateway();
     }
 
     @Override
@@ -144,34 +139,18 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         JobManagementServiceStub client = optionalClient.get();
 
         JobDescriptor.Builder jobDescriptorBuilder = addStackName(jobDescriptor.toBuilder());
-        if (federationConfiguration.isFederationJobIdCreationEnabled()) {
-            String federatedJobId = UUID.randomUUID().toString();
-            jobDescriptorBuilder = addFederationAttributes(jobDescriptorBuilder, federatedJobId, cell.getName());
-        } else {
-            jobDescriptorBuilder = removeFederationAttributes(jobDescriptorBuilder);
-        }
+        jobDescriptorBuilder = removeFederationAttributes(jobDescriptorBuilder);
+        JobDescriptor jd = jobDescriptorBuilder.build();
 
-        return getCreateObservable(client, jobDescriptorBuilder.build(), callMetadata);
-    }
-
-    private Observable<String> getCreateObservable(
-            JobManagementServiceGrpc.JobManagementServiceStub client,
-            JobDescriptor jobDescriptor,
-            CallMetadata callMetadata) {
-        if (federationConfiguration.isRemoteFederationEnabled()) {
-            logger.debug("creating job with fallback job management service");
-            return fallbackJobServiceGateway.createJob(jobDescriptor, client, callMetadata);
-        } else {
-            return createRequestObservable(emitter -> {
-                StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
-                        emitter,
-                        jobId -> emitter.onNext(jobId.getId()),
-                        emitter::onError,
-                        emitter::onCompleted
-                );
-                wrap(client, callMetadata).createJob(jobDescriptor, streamObserver);
-            }, grpcConfiguration.getRequestTimeoutMs());
-        }
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                    emitter,
+                    jobId -> emitter.onNext(jobId.getId()),
+                    emitter::onError,
+                    emitter::onCompleted
+            );
+            wrap(client, callMetadata).createJob(jd, streamObserver);
+        }, grpcConfiguration.getRequestTimeoutMs());
     }
 
     @Override
@@ -476,13 +455,6 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toCompletable();
     }
 
-    private JobDescriptor.Builder addFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder, String federatedJobId, String routingCell) {
-        return jobDescriptorBuilder.putAllAttributes(CollectionsExt.<String, String>newHashMap()
-                .entry(JOB_ATTRIBUTES_FEDERATED_JOB_ID, federatedJobId)
-                .entry(JOB_ATTRIBUTE_ROUTING_CELL, routingCell)
-                .toMap());
-    }
-
     private JobDescriptor.Builder removeFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder) {
         return jobDescriptorBuilder
                 .removeAttributes(JOB_ATTRIBUTES_FEDERATED_JOB_ID)
@@ -562,11 +534,6 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
-    }
-
-    private FallbackJobServiceGateway getFallbackJobServiceGateway() {
-        JobManagementServiceStub fedClient = JobManagementServiceGrpc.newStub(fedConnector.getChannel());
-        return new FallbackJobServiceGateway(fedClient, grpcConfiguration);
     }
 }
 

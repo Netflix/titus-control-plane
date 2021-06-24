@@ -154,7 +154,6 @@ public class AggregatingJobServiceGatewayTest {
         service = new AggregatingJobServiceGateway(
                 grpcConfiguration,
                 titusFederationConfiguration,
-                fedConnector,
                 cellConnector,
                 cellRouter,
                 aggregatingCellClient,
@@ -849,52 +848,6 @@ public class AggregatingJobServiceGatewayTest {
         assertThat(createdJob.get().getAttributesMap()).containsEntry(JOB_ATTRIBUTES_STACK, stackName);
     }
 
-    @Test
-    public void createJobWithFallbackOnUnimplemented() {
-        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithUnimplementedInterface());
-    }
-
-    @Test
-    public void createJobWithFallbackOnTimeout() {
-        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithSlowMethods());
-    }
-
-    private void createJobWithFallbackFromRemoteJobManagementService(RemoteJobManagementService remoteJobManagementService) {
-        CellWithCachedJobsService cachedJobsService = new CellWithCachedJobsService(cells.get(0).getName());
-        cellOne.getServiceRegistry().addService(cachedJobsService);
-        remoteFederationRule.getServiceRegistry().addService(remoteJobManagementService);
-        JobDescriptor jobDescriptor = JobDescriptor.newBuilder()
-                .setApplicationName("app1")
-                .build();
-
-        // Prove fallback is NOT happening
-
-        long initialCreateCount = remoteJobManagementService.createCount.get();
-        assertThat(initialCreateCount).isEqualTo(0);
-
-        Observable<String> createObservable =
-                service.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA);
-
-        String jobId = createObservable.toBlocking().first();
-        Optional<JobDescriptor> createdJob = cachedJobsService.getCachedJob(jobId);
-        assertThat(createdJob).isPresent();
-        assertThat(remoteJobManagementService.createCount.get()).isEqualTo(initialCreateCount);
-
-        // Prove fallback IS happening
-
-        when(titusFederationConfiguration.isRemoteFederationEnabled()).thenReturn(true);
-
-        initialCreateCount = remoteJobManagementService.createCount.get();
-        assertThat(initialCreateCount).isEqualTo(0);
-
-        Observable<String> fallbackObservable =
-                service.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA);
-
-        jobId = fallbackObservable.toBlocking().first();
-        createdJob = cachedJobsService.getCachedJob(jobId);
-        assertThat(createdJob).isPresent();
-        assertThat(remoteJobManagementService.createCount.get()).isEqualTo(initialCreateCount + 1);
-    }
 
 
     private List<Job> walkAllFindJobsPages(int pageWalkSize) {
