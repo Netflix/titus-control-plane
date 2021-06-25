@@ -208,4 +208,5 @@ public final class KubeConstants {
      */
     public static final String NETWORK_DOMAIN = "network." + NETFLIX_DOMAIN;
     public static final String STATIC_IP_ALLOCATION_ID = NETWORK_DOMAIN + "static-ip-allocation-uuid";
+    public static final String NETWORK_MODE = NETWORK_DOMAIN + "network-mode";
 }

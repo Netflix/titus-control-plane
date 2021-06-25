@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -218,4 +218,30 @@ public class V0SpecPodFactoryTest {
         assertThat(envVarOptional.isPresent()).isTrue();
         assertThat(envVarOptional.get().getValue()).isEqualTo(value);
     }
+
+    @Test
+    public void testNetworkConfigurationRespectsBeingSet() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        NetworkConfiguration networkConfiguration = new NetworkConfiguration(3);
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withNetworkConfiguration(networkConfiguration).build()).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
+        assertThat(networkModeAnnotationValue).isEqualTo("Ipv6AndIpv4Fallback");
+    }
+
+    @Test
+    public void testNetworkConfigurationIsNotNullAndSetToUnknownByDefault() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().build()).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
+        assertThat(networkModeAnnotationValue).isEqualTo("UnknownNetworkMode");
+    }
 }
+

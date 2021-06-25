@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
+import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 
@@ -35,6 +36,7 @@ public abstract class JobDescriptorMixin {
                               @JsonProperty("labels") Map<String, String> labels,
                               @JsonProperty("container") Container container,
                               @JsonProperty("disruptionBudget") DisruptionBudget disruptionBudget,
+                              @JsonProperty("networkConfiguration") NetworkConfiguration networkConfiguration,
                               @JsonProperty("extensions") JobDescriptor.JobDescriptorExt extensions) {
     }
 }

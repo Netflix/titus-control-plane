@@ -80,6 +80,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     private final DisruptionBudget disruptionBudget;
 
     @Valid
+    private final NetworkConfiguration networkConfiguration;
+
+    @Valid
     private final E extensions;
 
     public JobDescriptor(Owner owner,
@@ -89,6 +92,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                          Map<String, String> attributes,
                          Container container,
                          DisruptionBudget disruptionBudget,
+                         NetworkConfiguration networkConfiguration,
                          E extensions) {
         this.owner = owner;
         this.applicationName = applicationName;
@@ -103,6 +107,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             this.disruptionBudget = DEFAULT_DISRUPTION_BUDGET;
         } else {
             this.disruptionBudget = disruptionBudget;
+        }
+
+        if (networkConfiguration == null) {
+            this.networkConfiguration = NetworkConfiguration.newBuilder().build();
+        } else {
+            this.networkConfiguration = networkConfiguration;
         }
     }
 
@@ -158,6 +168,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     /**
+     * Network configuration for a job
+     */
+    public NetworkConfiguration getNetworkConfiguration() { return networkConfiguration; }
+
+    /**
      * Returns job type specific data.
      */
     public E getExtensions() {
@@ -180,12 +195,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 Objects.equals(attributes, that.attributes) &&
                 Objects.equals(container, that.container) &&
                 Objects.equals(disruptionBudget, that.disruptionBudget) &&
+                Objects.equals(networkConfiguration, that.networkConfiguration) &&
                 Objects.equals(extensions, that.extensions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, extensions);
+        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extensions);
     }
 
     @Override
@@ -198,6 +214,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 ", attributes=" + attributes +
                 ", container=" + container +
                 ", disruptionBudget=" + disruptionBudget +
+                ", networkConfiguration" + networkConfiguration +
                 ", extensions=" + extensions +
                 '}';
     }
@@ -218,6 +235,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         }
         if (result instanceof JobDescriptor.Builder) {
             return ((JobDescriptor.Builder<E>) result).build();
+        }
+        if (result instanceof NetworkConfiguration) {
+            return toBuilder().withNetworkConfiguration((NetworkConfiguration) result).build();
+        }
+        if (result instanceof NetworkConfiguration.Builder) {
+            return toBuilder().withNetworkConfiguration(((NetworkConfiguration.Builder) result).build()).build();
         }
         if (result instanceof Owner) {
             return toBuilder().withOwner((Owner) result).build();
@@ -275,6 +298,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 .withAttributes(jobDescriptor.getAttributes())
                 .withContainer(jobDescriptor.getContainer())
                 .withDisruptionBudget(jobDescriptor.getDisruptionBudget())
+                .withNetworkConfiguration(jobDescriptor.getNetworkConfiguration())
                 .withExtensions(jobDescriptor.getExtensions());
     }
 
@@ -286,6 +310,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         private Map<String, String> attributes;
         private Container container;
         private DisruptionBudget disruptionBudget;
+        private NetworkConfiguration networkConfiguration;
         private E extensions;
 
         private Builder() {
@@ -326,6 +351,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             return this;
         }
 
+        public Builder<E> withNetworkConfiguration(NetworkConfiguration networkConfiguration) {
+            this.networkConfiguration = networkConfiguration;
+            return this;
+        }
+
         public Builder<E> withExtensions(E extensions) {
             this.extensions = extensions;
             return this;
@@ -340,11 +370,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                     .withAttributes(attributes)
                     .withContainer(container)
                     .withDisruptionBudget(disruptionBudget)
+                    .withNetworkConfiguration(networkConfiguration)
                     .withExtensions(extensions);
         }
 
         public JobDescriptor<E> build() {
-            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, extensions);
+            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extensions);
             return jobDescriptor;
         }
     }
