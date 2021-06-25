@@ -98,6 +98,10 @@ public class Page {
         return EMPTY;
     }
 
+    public static Page first(int pageSize) {
+        return new Page(0, pageSize, "");
+    }
+
     public static Page unlimited() {
         return UNLIMITED;
     }

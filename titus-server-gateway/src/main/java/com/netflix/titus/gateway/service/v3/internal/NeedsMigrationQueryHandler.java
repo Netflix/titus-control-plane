@@ -17,12 +17,16 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.PageResult;
@@ -36,7 +40,6 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
@@ -62,7 +65,57 @@ class NeedsMigrationQueryHandler {
         this.titusRuntime = titusRuntime;
     }
 
+    /**
+     * 'needsMigration' filter requires that there is at least one task that is active and requires migration.
+     * The query is executed by finding all tasks requiring migration that match the given criteria, and next resolve
+     * from that set their jobs.
+     */
+    PageResult<com.netflix.titus.grpc.protogen.Job> findJobs(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Page page) {
+        List<com.netflix.titus.grpc.protogen.Task> matchingTasks = findMatchingTasks(queryCriteria);
+        if (matchingTasks.isEmpty()) {
+            return PageResult.pageOf(
+                    Collections.emptyList(),
+                    Pagination.newBuilder().withCurrentPage(page).withCursor("").withHasMore(false).build()
+            );
+        }
+
+        Set<String> matchingJobIds = new HashSet<>();
+        matchingTasks.forEach(task -> matchingJobIds.add(task.getJobId()));
+
+        List<com.netflix.titus.grpc.protogen.Job> jobsToReturn = new ArrayList<>();
+        List<Job<?>> allJobs = jobDataReplicator.getCurrent().getJobs();
+        allJobs.forEach(job -> {
+            if (matchingJobIds.contains(job.getId())) {
+                jobsToReturn.add(GrpcJobManagementModelConverters.toGrpcJob(job));
+            }
+        });
+
+        Pair<List<com.netflix.titus.grpc.protogen.Job>, Pagination> paginationPair = PaginationUtil.takePageWithCursor(
+                page,
+                jobsToReturn,
+                JobManagerCursors.jobCursorOrderComparator(),
+                JobManagerCursors::jobIndexOf,
+                JobManagerCursors::newCursorFrom
+        );
+
+        return PageResult.pageOf(paginationPair.getLeft(), paginationPair.getRight());
+    }
+
     PageResult<com.netflix.titus.grpc.protogen.Task> findTasks(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Page page) {
+        List<com.netflix.titus.grpc.protogen.Task> matchingTasks = findMatchingTasks(queryCriteria);
+
+        Pair<List<com.netflix.titus.grpc.protogen.Task>, Pagination> paginationPair = PaginationUtil.takePageWithCursor(
+                page,
+                matchingTasks,
+                JobManagerCursors.taskCursorOrderComparator(),
+                JobManagerCursors::taskIndexOf,
+                JobManagerCursors::newTaskCursorFrom
+        );
+
+        return PageResult.pageOf(paginationPair.getLeft(), paginationPair.getRight());
+    }
+
+    private List<com.netflix.titus.grpc.protogen.Task> findMatchingTasks(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria) {
         List<Pair<Job<?>, List<Task>>> jobsAndTasks = jobDataReplicator.getCurrent().getJobsAndTasks();
         Map<String, TaskRelocationPlan> relocationPlans = relocationDataReplicator.getCurrent().getPlans();
 
@@ -89,16 +142,7 @@ class NeedsMigrationQueryHandler {
                 }
             });
         });
-
-        Pair<List<com.netflix.titus.grpc.protogen.Task>, Pagination> paginationPair = PaginationUtil.takePageWithCursor(
-                page,
-                matchingTasks,
-                JobManagerCursors.taskCursorOrderComparator(),
-                JobManagerCursors::taskIndexOf,
-                JobManagerCursors::newTaskCursorFrom
-        );
-
-        return PageResult.pageOf(paginationPair.getLeft(), paginationPair.getRight());
+        return matchingTasks;
     }
 
     private JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> filterOutNeedsMigration(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria) {
