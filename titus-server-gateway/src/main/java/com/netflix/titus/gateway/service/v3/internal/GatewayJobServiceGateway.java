@@ -54,6 +54,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.JobQuery;
+import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
@@ -160,6 +162,23 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 return Observable.error(e);
             }
         }).timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public Observable<JobQueryResult> findJobs(JobQuery jobQuery, CallMetadata callMetadata) {
+        Map<String, String> filteringCriteriaMap = jobQuery.getFilteringCriteriaMap();
+        boolean needsMigrationFilter = "true".equalsIgnoreCase(filteringCriteriaMap.getOrDefault("needsMigration", "false"));
+
+        // "needsMigration" query is served from the local job and relocation cache.
+        if (needsMigrationFilter) {
+            PageResult<Job> pageResult = needsMigrationQueryHandler.findJobs(GrpcJobQueryModelConverters.toJobQueryCriteria(jobQuery), toPage(jobQuery.getPage()));
+            return Observable.just(JobQueryResult.newBuilder()
+                    .setPagination(toGrpcPagination(pageResult.getPagination()))
+                    .addAllItems(pageResult.getItems())
+                    .build()
+            );
+        }
+        return super.findJobs(jobQuery, callMetadata);
     }
 
     @Override
