@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.federation.service.router.ApplicationCellRouter;
@@ -47,6 +49,7 @@ public class FallbackJobServiceGatewayTest {
     private static final int TASKS_IN_GENERATED_JOBS = 10;
     private static final long GRPC_REQUEST_TIMEOUT_MS = 1_000L;
     private static final long GRPC_PRIMARY_FALLBACK_TIMEOUT_MS = 100L;
+    private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     @Rule
     public GrpcServerRule remoteFederationRule = new GrpcServerRule().directExecutor();
@@ -110,7 +113,7 @@ public class FallbackJobServiceGatewayTest {
         );
 
         remoteJobServiceGateway = new RemoteJobServiceGateway(fedConfig, fedConnector, cellRouter, grpcConfiguration);
-        fallbackJobServiceGateway = new FallbackJobServiceGateway(fedConfig, remoteJobServiceGateway, aggregatingJobServiceGateway);
+        fallbackJobServiceGateway = new FallbackJobServiceGateway(titusRuntime, fedConfig, remoteJobServiceGateway, aggregatingJobServiceGateway);
 
         clock = Clocks.test();
         dataGenerator = new ServiceDataGenerator(clock, TASKS_IN_GENERATED_JOBS);

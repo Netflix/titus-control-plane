@@ -16,6 +16,7 @@
 
 package com.netflix.titus.federation.service;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import org.springframework.context.annotation.Bean;
@@ -42,9 +43,10 @@ public class ServiceComponent {
     @Bean
     @Primary
     public JobServiceGateway getFallbackJobServiceGateway(
+            TitusRuntime titusRuntime,
             TitusFederationConfiguration federationConfiguration,
             RemoteJobServiceGateway primary,
             AggregatingJobServiceGateway secondary) {
-        return new FallbackJobServiceGateway(federationConfiguration, primary, secondary);
+        return new FallbackJobServiceGateway(titusRuntime, federationConfiguration, primary, secondary);
     }
 }

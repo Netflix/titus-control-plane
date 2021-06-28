@@ -1,6 +1,9 @@
 package com.netflix.titus.federation.service;
 
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Id;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
@@ -23,6 +26,7 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import io.grpc.StatusRuntimeException;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -30,176 +34,221 @@ import rx.Observable;
 import javax.inject.Inject;
 
 public class FallbackJobServiceGateway implements JobServiceGateway {
+    public static String METRIC_ROOT = "titus.fallbackJobServiceGateway.";
+    private static String METRIC_FALLBACK_ROOT= METRIC_ROOT + "fallbackCount.";
 
     private final TitusFederationConfiguration federationConfiguration;
     private final JobServiceGateway primary;
     private final JobServiceGateway secondary;
+    private final TitusRuntime titusRuntime;
 
     @Inject
     public FallbackJobServiceGateway(
+            TitusRuntime titusRuntime,
             TitusFederationConfiguration federationConfiguration,
             RemoteJobServiceGateway primary,
             AggregatingJobServiceGateway secondary) {
 
+        this.titusRuntime = titusRuntime;
         this.federationConfiguration = federationConfiguration;
         this.primary = primary;
         this.secondary = secondary;
+
     }
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
+        final String methodName = "createJob";
         Observable<String> primaryObservable = primary.createJob(jobDescriptor, callMetadata);
         Observable<String> secondaryObservable = secondary.createJob(jobDescriptor, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate, CallMetadata callMetadata) {
+        final String methodName = "updateJobCapacity";
         Completable primaryCompletable = primary.updateJobCapacity(jobCapacityUpdate, callMetadata);
         Completable secondaryObservable = secondary.updateJobCapacity(jobCapacityUpdate, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes, CallMetadata callMetadata) {
+        final String methodName = "updateJobCapacityWithOptionalAttributes";
         Completable primaryCompletable = primary.updateJobCapacityWithOptionalAttributes(
                 jobCapacityUpdateWithOptionalAttributes,
                 callMetadata);
         Completable secondaryObservable = secondary.updateJobCapacityWithOptionalAttributes(
                 jobCapacityUpdateWithOptionalAttributes,
                 callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate, CallMetadata callMetadata) {
+        final String methodName = "updateJobProcesses";
         Completable primaryCompletable = primary.updateJobProcesses(jobProcessesUpdate, callMetadata);
         Completable secondaryObservable = secondary.updateJobProcesses(jobProcessesUpdate, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Completable updateJobStatus(JobStatusUpdate statusUpdate, CallMetadata callMetadata) {
+        final String methodName = "updateJobStatus";
         Completable primaryCompletable = primary.updateJobStatus(statusUpdate, callMetadata);
         Completable secondaryObservable = secondary.updateJobStatus(statusUpdate, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, CallMetadata callMetadata) {
+        final String methodName = "updateJobDisruptionBudget";
         Mono<Void> primaryMono = primary.updateJobDisruptionBudget(request, callMetadata);
         Mono<Void> secondaryMono = secondary.updateJobDisruptionBudget(request, callMetadata);
-        return getFallbackMono(primaryMono, secondaryMono);
+        return getFallbackMono(methodName, primaryMono, secondaryMono);
     }
 
     @Override
     public Mono<Void> updateJobAttributes(JobAttributesUpdate request, CallMetadata callMetadata) {
+        final String methodName = "updateJobAttributes";
         Mono<Void> primaryMono = primary.updateJobAttributes(request, callMetadata);
         Mono<Void> secondaryMono = secondary.updateJobAttributes(request, callMetadata);
-        return getFallbackMono(primaryMono, secondaryMono);
+        return getFallbackMono(methodName, primaryMono, secondaryMono);
     }
 
     @Override
     public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request, CallMetadata callMetadata) {
+        final String methodName = "deleteJobAttributes";
         Mono<Void> primaryMono = primary.deleteJobAttributes(request, callMetadata);
         Mono<Void> secondaryMono = secondary.deleteJobAttributes(request, callMetadata);
-        return getFallbackMono(primaryMono, secondaryMono);
+        return getFallbackMono(methodName, primaryMono, secondaryMono);
     }
 
     @Override
     public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
+        final String methodName = "findJob";
         Observable<Job> primaryObservable = primary.findJob(jobId, callMetadata);
         Observable<Job> secondaryObservable = secondary.findJob(jobId, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery, CallMetadata callMetadata) {
+        final String methodName = "findJobs";
         Observable<JobQueryResult> primaryObservable = primary.findJobs(jobQuery, callMetadata);
         Observable<JobQueryResult> secondaryObservable = secondary.findJobs(jobQuery, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
+        final String methodName = "observeJob";
         Observable<JobChangeNotification> primaryObservable = primary.observeJob(jobId, callMetadata);
         Observable<JobChangeNotification> secondaryObservable = secondary.observeJob(jobId, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
+        final String methodName = "observeJobs";
         Observable<JobChangeNotification> primaryObservable = primary.observeJobs(query, callMetadata);
         Observable<JobChangeNotification> secondaryObservable = secondary.observeJobs(query, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Completable killJob(String jobId, CallMetadata callMetadata) {
+        final String methodName = "killJob";
         Completable primaryCompletable = primary.killJob(jobId, callMetadata);
         Completable secondaryObservable = secondary.killJob(jobId, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
+        final String methodName = "findTask";
         Observable<Task> primaryObservable = primary.findTask(taskId, callMetadata);
         Observable<Task> secondaryObservable = secondary.findTask(taskId, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery, CallMetadata callMetadata) {
+        final String methodName = "findTasks";
         Observable<TaskQueryResult> primaryObservable = primary.findTasks(taskQuery, callMetadata);
         Observable<TaskQueryResult> secondaryObservable = secondary.findTasks(taskQuery, callMetadata);
-        return getFallbackObservable(primaryObservable, secondaryObservable);
+        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest, CallMetadata callMetadata) {
+        final String methodName = "killTask";
         Completable primaryCompletable = primary.killTask(taskKillRequest, callMetadata);
         Completable secondaryObservable = secondary.killTask(taskKillRequest, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Completable updateTaskAttributes(TaskAttributesUpdate request, CallMetadata callMetadata) {
+        final String methodName = "updateTaskAttributes";
         Completable primaryCompletable = primary.updateTaskAttributes(request, callMetadata);
         Completable secondaryObservable = secondary.updateTaskAttributes(request, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Completable deleteTaskAttributes(TaskAttributesDeleteRequest request, CallMetadata callMetadata) {
+        final String methodName = "deleteTaskAttributes";
         Completable primaryCompletable = primary.deleteTaskAttributes(request, callMetadata);
         Completable secondaryObservable = secondary.deleteTaskAttributes(request, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
     @Override
     public Completable moveTask(TaskMoveRequest taskMoveRequest, CallMetadata callMetadata) {
+        final String methodName = "moveTask";
         Completable primaryCompletable = primary.moveTask(taskMoveRequest, callMetadata);
         Completable secondaryObservable = secondary.moveTask(taskMoveRequest, callMetadata);
-        return getFallbackCompletable(primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
     }
 
-    private <T> Observable<T> getFallbackObservable(Observable<T> primary, Observable<T> secondary) {
+    private <T> Observable<T> getFallbackObservable(String methodName, Observable<T> primary, Observable<T> secondary) {
         if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.onErrorResumeNext(secondary);
+            return primary.onErrorResumeNext( (t) -> {
+                Id metricId = this.getMetricId(METRIC_FALLBACK_ROOT + methodName, t);
+                this.titusRuntime.getRegistry().counter(metricId).increment();
+                return secondary;
+            });
         } else {
             return secondary;
         }
     }
 
-    private Completable getFallbackCompletable(Completable primary, Completable secondary) {
-        return getFallbackObservable(primary.toObservable(), secondary.toObservable()).toCompletable();
+    private Completable getFallbackCompletable(String methodName, Completable primary, Completable secondary) {
+        return getFallbackObservable(methodName, primary.toObservable(), secondary.toObservable()).toCompletable();
     }
 
-    private <T> Mono<T> getFallbackMono(Mono<T> primary, Mono<T> secondary) {
+    private <T> Mono<T> getFallbackMono(String methodName, Mono<T> primary, Mono<T> secondary) {
         if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.onErrorResume(t -> secondary);
+            return primary.onErrorResume(t -> {
+                Id metricId = this.getMetricId(METRIC_FALLBACK_ROOT + methodName, t);
+                this.titusRuntime.getRegistry().counter(metricId).increment();
+                return secondary;
+            });
         } else {
             return secondary;
         }
+    }
+
+    private Id getMetricId(String metricName, Throwable t) {
+        String reason = t.getClass().getSimpleName();
+
+        if (t instanceof StatusRuntimeException) {
+            reason = ((StatusRuntimeException) t).getStatus().getCode().toString();
+        }
+
+        return this.titusRuntime.getRegistry().createId(
+                metricName,
+                "reason", reason);
     }
 }

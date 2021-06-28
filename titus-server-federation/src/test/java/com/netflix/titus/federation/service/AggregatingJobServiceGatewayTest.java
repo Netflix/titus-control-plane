@@ -72,7 +72,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
-import rx.Observable;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
