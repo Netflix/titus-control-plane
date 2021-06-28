@@ -26,21 +26,25 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
 import javax.inject.Inject;
+import java.util.Arrays;
+import java.util.List;
 
 public class FallbackJobServiceGateway implements JobServiceGateway {
-    public static String METRIC_ROOT = "titus.fallbackJobServiceGateway.";
-    private static String METRIC_FALLBACK_ROOT= METRIC_ROOT + "fallbackCount.";
+    public static final String METRIC_ROOT = "titus.fallbackJobServiceGateway.";
+    private static final String METRIC_FALLBACK_ROOT= METRIC_ROOT + "fallbackCount.";
 
     private final TitusFederationConfiguration federationConfiguration;
     private final JobServiceGateway primary;
     private final JobServiceGateway secondary;
     private final TitusRuntime titusRuntime;
+    private final List<Status.Code> fallbackCodes = Arrays.asList(Status.Code.UNIMPLEMENTED, Status.Code.UNAVAILABLE);
 
     @Inject
     public FallbackJobServiceGateway(
@@ -53,7 +57,6 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         this.federationConfiguration = federationConfiguration;
         this.primary = primary;
         this.secondary = secondary;
-
     }
 
     @Override
@@ -142,18 +145,18 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
-        final String methodName = "observeJob";
-        Observable<JobChangeNotification> primaryObservable = primary.observeJob(jobId, callMetadata);
-        Observable<JobChangeNotification> secondaryObservable = secondary.observeJob(jobId, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        // TODO: Direct stream APIs to the remote (primary) JobServiceGateway.
+        // A failure in a stream which is in progress on the primary falling back to the secondary
+        // is not the right behavior.
+        return secondary.observeJob(jobId, callMetadata);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
-        final String methodName = "observeJobs";
-        Observable<JobChangeNotification> primaryObservable = primary.observeJobs(query, callMetadata);
-        Observable<JobChangeNotification> secondaryObservable = secondary.observeJobs(query, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        // TODO: Direct stream APIs to the remote (primary) JobServiceGateway.
+        // A failure in a stream which is in progress on the primary falling back to the secondary
+        // is not the right behavior.
+        return secondary.observeJobs(query, callMetadata);
     }
 
     @Override
@@ -215,9 +218,27 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
     private <T> Observable<T> getFallbackObservable(String methodName, Observable<T> primary, Observable<T> secondary) {
         if (federationConfiguration.isRemoteFederationEnabled()) {
             return primary.onErrorResumeNext( (t) -> {
-                Id metricId = this.getMetricId(METRIC_FALLBACK_ROOT + methodName, t);
-                this.titusRuntime.getRegistry().counter(metricId).increment();
-                return secondary;
+                incrementFallbackCounter(methodName, t);
+                if (shouldFallback(t)) {
+                    return secondary;
+                } else {
+                    return Observable.error(t);
+                }
+            });
+        } else {
+            return secondary;
+        }
+    }
+
+    private <T> Mono<T> getFallbackMono(String methodName, Mono<T> primary, Mono<T> secondary) {
+        if (federationConfiguration.isRemoteFederationEnabled()) {
+            return primary.onErrorResume(t -> {
+                incrementFallbackCounter(methodName, t);
+                if (shouldFallback(t)) {
+                    return secondary;
+                } else {
+                    return Mono.error(t);
+                }
             });
         } else {
             return secondary;
@@ -228,23 +249,20 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         return getFallbackObservable(methodName, primary.toObservable(), secondary.toObservable()).toCompletable();
     }
 
-    private <T> Mono<T> getFallbackMono(String methodName, Mono<T> primary, Mono<T> secondary) {
-        if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.onErrorResume(t -> {
-                Id metricId = this.getMetricId(METRIC_FALLBACK_ROOT + methodName, t);
-                this.titusRuntime.getRegistry().counter(metricId).increment();
-                return secondary;
-            });
-        } else {
-            return secondary;
-        }
+    private boolean shouldFallback(Throwable t) {
+        return t instanceof StatusRuntimeException && fallbackCodes.contains(Status.fromThrowable(t).getCode());
+    }
+
+    private void incrementFallbackCounter(String methodName, Throwable t) {
+        Id metricId = this.getMetricId(METRIC_FALLBACK_ROOT + methodName, t);
+        this.titusRuntime.getRegistry().counter(metricId).increment();
     }
 
     private Id getMetricId(String metricName, Throwable t) {
         String reason = t.getClass().getSimpleName();
 
         if (t instanceof StatusRuntimeException) {
-            reason = ((StatusRuntimeException) t).getStatus().getCode().toString();
+            reason = Status.fromThrowable(t).getCode().toString();
         }
 
         return this.titusRuntime.getRegistry().createId(

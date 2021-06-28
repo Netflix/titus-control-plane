@@ -1,6 +1,7 @@
 package com.netflix.titus.federation.service;
 
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,12 +25,25 @@ class RemoteJobManagementServiceWithUnimplementedInterface extends RemoteJobMana
     }
 }
 
-class RemoteJobManagementServiceWithSlowMethods extends RemoteJobManagementService {
-    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementServiceWithSlowMethods.class);
+class RemoteJobManagementServiceWithUnavailableMethods extends RemoteJobManagementService {
+    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementServiceWithUnavailableMethods.class);
 
     public void createJob(com.netflix.titus.grpc.protogen.JobDescriptor request,
                           io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.JobId> responseObserver) {
-        // Increment call count, but never respond to the responseObserver
+        createCount.getAndIncrement();
+        logger.info("id: {} createJob called {} time(s)", id, createCount);
+        responseObserver.onError(Status.UNAVAILABLE
+                .withDescription(String.format("Method %s is unavailable", "createJob"))
+                .asRuntimeException());
+    }
+}
+
+class RemoteJobManagementServiceWithTimeoutMethods extends RemoteJobManagementService {
+    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementServiceWithUnavailableMethods.class);
+
+    public void createJob(com.netflix.titus.grpc.protogen.JobDescriptor request,
+                          io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.JobId> responseObserver) {
+        // Never respond to force timeout
         createCount.getAndIncrement();
         logger.info("id: {} createJob called {} time(s)", id, createCount);
     }

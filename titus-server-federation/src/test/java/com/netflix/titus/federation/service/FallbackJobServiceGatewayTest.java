@@ -33,6 +33,8 @@ import com.netflix.titus.federation.service.router.ApplicationCellRouter;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.testing.GrpcServerRule;
 import org.junit.Before;
 import org.junit.Rule;
@@ -130,8 +132,35 @@ public class FallbackJobServiceGatewayTest {
     }
 
     @Test
-    public void createJobWithFallbackOnTimeout() {
-        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithSlowMethods());
+    public void createJobWithFallbackOnUnavailable() {
+        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithUnavailableMethods());
+    }
+
+    @Test
+    public void createJobWithoutFallbackOnTimeout() {
+        RemoteJobManagementService remoteJobManagementService = new RemoteJobManagementServiceWithTimeoutMethods();
+        CellWithCachedJobsService cachedJobsService = new CellWithCachedJobsService(cells.get(0).getName());
+        cellOne.getServiceRegistry().addService(cachedJobsService);
+        remoteFederationRule.getServiceRegistry().addService(remoteJobManagementService);
+        JobDescriptor jobDescriptor = JobDescriptor.newBuilder()
+                .setApplicationName("app1")
+                .build();
+
+        // Prove fallback is NOT happening
+        assertNoFallback(jobDescriptor, remoteJobManagementService, cachedJobsService);
+
+        // Prove fallback is NOT happening and the Timeout error is returned
+        when(fedConfig.isRemoteFederationEnabled()).thenReturn(true);
+        Observable<String> createObservable =
+                fallbackJobServiceGateway.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA);
+        try {
+            createObservable.toBlocking().first();
+            // We shouldn't reach here as we expect to raise a DEADLINE_EXCEEDED exception
+            assertThat(false).isEqualTo(true);
+        } catch (StatusRuntimeException e) {
+            assertThat(remoteJobManagementService.createCount.get()).isEqualTo(1);
+            assertThat(Status.fromThrowable(e).getCode()).isEqualTo(Status.Code.DEADLINE_EXCEEDED);
+        }
     }
 
     private void createJobWithFallbackFromRemoteJobManagementService(RemoteJobManagementService remoteJobManagementService) {
@@ -143,6 +172,17 @@ public class FallbackJobServiceGatewayTest {
                 .build();
 
         // Prove fallback is NOT happening
+        assertNoFallback(jobDescriptor, remoteJobManagementService, cachedJobsService);
+
+        // Prove fallback IS happening
+        when(fedConfig.isRemoteFederationEnabled()).thenReturn(true);
+        assertFallback(jobDescriptor, remoteJobManagementService, cachedJobsService);
+    }
+
+    private void assertNoFallback(
+            JobDescriptor jobDescriptor,
+            RemoteJobManagementService remoteJobManagementService,
+            CellWithCachedJobsService cachedJobsService) {
 
         long initialCreateCount = remoteJobManagementService.createCount.get();
         assertThat(initialCreateCount).isEqualTo(0);
@@ -154,19 +194,21 @@ public class FallbackJobServiceGatewayTest {
         Optional<JobDescriptor> createdJob = cachedJobsService.getCachedJob(jobId);
         assertThat(createdJob).isPresent();
         assertThat(remoteJobManagementService.createCount.get()).isEqualTo(initialCreateCount);
+    }
 
-        // Prove fallback IS happening
+    private void assertFallback(
+            JobDescriptor jobDescriptor,
+            RemoteJobManagementService remoteJobManagementService,
+            CellWithCachedJobsService cachedJobsService) {
 
-        when(fedConfig.isRemoteFederationEnabled()).thenReturn(true);
-
-        initialCreateCount = remoteJobManagementService.createCount.get();
+        long initialCreateCount = remoteJobManagementService.createCount.get();
         assertThat(initialCreateCount).isEqualTo(0);
 
-        Observable<String> fallbackObservable =
+        Observable<String> createObservable =
                 fallbackJobServiceGateway.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA);
 
-        jobId = fallbackObservable.toBlocking().first();
-        createdJob = cachedJobsService.getCachedJob(jobId);
+        String jobId = createObservable.toBlocking().first();
+        Optional<JobDescriptor> createdJob = cachedJobsService.getCachedJob(jobId);
         assertThat(createdJob).isPresent();
         assertThat(remoteJobManagementService.createCount.get()).isEqualTo(initialCreateCount + 1);
     }
