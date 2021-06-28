@@ -68,8 +68,8 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate, CallMetadata callMetadata) {
         final String methodName = "updateJobCapacity";
         Completable primaryCompletable = primary.updateJobCapacity(jobCapacityUpdate, callMetadata);
-        Completable secondaryObservable = secondary.updateJobCapacity(jobCapacityUpdate, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.updateJobCapacity(jobCapacityUpdate, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -78,26 +78,26 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         Completable primaryCompletable = primary.updateJobCapacityWithOptionalAttributes(
                 jobCapacityUpdateWithOptionalAttributes,
                 callMetadata);
-        Completable secondaryObservable = secondary.updateJobCapacityWithOptionalAttributes(
+        Completable secondaryCompletable = secondary.updateJobCapacityWithOptionalAttributes(
                 jobCapacityUpdateWithOptionalAttributes,
                 callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate, CallMetadata callMetadata) {
         final String methodName = "updateJobProcesses";
         Completable primaryCompletable = primary.updateJobProcesses(jobProcessesUpdate, callMetadata);
-        Completable secondaryObservable = secondary.updateJobProcesses(jobProcessesUpdate, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.updateJobProcesses(jobProcessesUpdate, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
     public Completable updateJobStatus(JobStatusUpdate statusUpdate, CallMetadata callMetadata) {
         final String methodName = "updateJobStatus";
         Completable primaryCompletable = primary.updateJobStatus(statusUpdate, callMetadata);
-        Completable secondaryObservable = secondary.updateJobStatus(statusUpdate, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.updateJobStatus(statusUpdate, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -160,8 +160,8 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
     public Completable killJob(String jobId, CallMetadata callMetadata) {
         final String methodName = "killJob";
         Completable primaryCompletable = primary.killJob(jobId, callMetadata);
-        Completable secondaryObservable = secondary.killJob(jobId, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.killJob(jobId, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -184,32 +184,32 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
     public Completable killTask(TaskKillRequest taskKillRequest, CallMetadata callMetadata) {
         final String methodName = "killTask";
         Completable primaryCompletable = primary.killTask(taskKillRequest, callMetadata);
-        Completable secondaryObservable = secondary.killTask(taskKillRequest, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.killTask(taskKillRequest, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
     public Completable updateTaskAttributes(TaskAttributesUpdate request, CallMetadata callMetadata) {
         final String methodName = "updateTaskAttributes";
         Completable primaryCompletable = primary.updateTaskAttributes(request, callMetadata);
-        Completable secondaryObservable = secondary.updateTaskAttributes(request, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.updateTaskAttributes(request, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
     public Completable deleteTaskAttributes(TaskAttributesDeleteRequest request, CallMetadata callMetadata) {
         final String methodName = "deleteTaskAttributes";
         Completable primaryCompletable = primary.deleteTaskAttributes(request, callMetadata);
-        Completable secondaryObservable = secondary.deleteTaskAttributes(request, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.deleteTaskAttributes(request, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
     public Completable moveTask(TaskMoveRequest taskMoveRequest, CallMetadata callMetadata) {
         final String methodName = "moveTask";
         Completable primaryCompletable = primary.moveTask(taskMoveRequest, callMetadata);
-        Completable secondaryObservable = secondary.moveTask(taskMoveRequest, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryObservable);
+        Completable secondaryCompletable = secondary.moveTask(taskMoveRequest, callMetadata);
+        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     private <T> Observable<T> getFallbackObservable(String methodName, Observable<T> primary, Observable<T> secondary) {
