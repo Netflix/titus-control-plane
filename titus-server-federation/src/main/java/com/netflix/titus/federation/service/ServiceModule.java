@@ -29,7 +29,7 @@ public class ServiceModule extends AbstractModule {
     protected void configure() {
         bind(HealthService.class).to(AggregatingHealthService.class);
         bind(AggregatingSchedulerService.class).to(DefaultAggregatingSchedulerService.class);
-        bind(JobServiceGateway.class).to(AggregatingJobServiceGateway.class);
+        bind(JobServiceGateway.class).to(FallbackJobServiceGateway.class);
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
         bind(ReactorMachineServiceStub.class).to(AggregatingReactorMachineServiceStub.class);

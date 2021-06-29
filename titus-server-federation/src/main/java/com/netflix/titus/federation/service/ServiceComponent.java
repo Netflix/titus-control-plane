@@ -16,21 +16,37 @@
 
 package com.netflix.titus.federation.service;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.federation.startup.TitusFederationConfiguration;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 @Import({
         AggregatingCellClient.class,
         AggregatingHealthService.class,
 
-        AggregatingJobServiceGateway.class,
         AggregatingJobManagementServiceHelper.class,
+        AggregatingJobServiceGateway.class,
         AggregatingAutoScalingService.class,
         AggregatingLoadbalancerService.class,
         AggregatingReactorMachineServiceStub.class,
         DefaultAggregatingSchedulerService.class,
         DefaultJobActivityHistoryService.class,
+        RemoteJobServiceGateway.class,
 })
+
 public class ServiceComponent {
+    @Bean
+    @Primary
+    public JobServiceGateway getFallbackJobServiceGateway(
+            TitusRuntime titusRuntime,
+            TitusFederationConfiguration federationConfiguration,
+            RemoteJobServiceGateway primary,
+            AggregatingJobServiceGateway secondary) {
+        return new FallbackJobServiceGateway(titusRuntime, federationConfiguration, primary, secondary);
+    }
 }

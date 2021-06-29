@@ -106,7 +106,6 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
         service = new AggregatingJobServiceGateway(
                 grpcClientConfiguration,
                 titusFederationConfiguration,
-                fedConnector,
                 cellConnector,
                 cellRouter,
                 aggregatingCellClient,
