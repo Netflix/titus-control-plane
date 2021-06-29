@@ -44,7 +44,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
     private final JobServiceGateway primary;
     private final JobServiceGateway secondary;
     private final TitusRuntime titusRuntime;
-    private final List<Status.Code> fallbackCodes = Arrays.asList(Status.Code.UNIMPLEMENTED, Status.Code.UNAVAILABLE);
+    private final List<Status.Code> fallbackCodes = Arrays.asList(Status.Code.UNIMPLEMENTED);
 
     @Inject
     public FallbackJobServiceGateway(
@@ -259,11 +259,8 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
     }
 
     private Id getMetricId(String metricName, Throwable t) {
-        String reason = t.getClass().getSimpleName();
-
-        if (t instanceof StatusRuntimeException) {
-            reason = Status.fromThrowable(t).getCode().toString();
-        }
+        Status.Code code = Status.fromThrowable(t).getCode();
+        String reason = code == Status.Code.UNKNOWN ? t.getClass().getSimpleName() : code.toString();
 
         return this.titusRuntime.getRegistry().createId(
                 metricName,

@@ -132,11 +132,6 @@ public class FallbackJobServiceGatewayTest {
     }
 
     @Test
-    public void createJobWithFallbackOnUnavailable() {
-        createJobWithFallbackFromRemoteJobManagementService(new RemoteJobManagementServiceWithUnavailableMethods());
-    }
-
-    @Test
     public void createJobWithoutFallbackOnTimeout() {
         RemoteJobManagementService remoteJobManagementService = new RemoteJobManagementServiceWithTimeoutMethods();
         CellWithCachedJobsService cachedJobsService = new CellWithCachedJobsService(cells.get(0).getName());

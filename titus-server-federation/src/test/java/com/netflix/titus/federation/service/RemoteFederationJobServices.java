@@ -25,21 +25,8 @@ class RemoteJobManagementServiceWithUnimplementedInterface extends RemoteJobMana
     }
 }
 
-class RemoteJobManagementServiceWithUnavailableMethods extends RemoteJobManagementService {
-    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementServiceWithUnavailableMethods.class);
-
-    public void createJob(com.netflix.titus.grpc.protogen.JobDescriptor request,
-                          io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.JobId> responseObserver) {
-        createCount.getAndIncrement();
-        logger.info("id: {} createJob called {} time(s)", id, createCount);
-        responseObserver.onError(Status.UNAVAILABLE
-                .withDescription(String.format("Method %s is unavailable", "createJob"))
-                .asRuntimeException());
-    }
-}
-
 class RemoteJobManagementServiceWithTimeoutMethods extends RemoteJobManagementService {
-    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementServiceWithUnavailableMethods.class);
+    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementServiceWithTimeoutMethods.class);
 
     public void createJob(com.netflix.titus.grpc.protogen.JobDescriptor request,
                           io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.JobId> responseObserver) {
