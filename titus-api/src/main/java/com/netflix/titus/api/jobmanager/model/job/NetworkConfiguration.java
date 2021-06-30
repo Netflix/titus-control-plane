@@ -16,9 +16,13 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  */
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class NetworkConfiguration {
 
     final private int networkMode;
@@ -29,6 +33,7 @@ public class NetworkConfiguration {
 
     public int getNetworkMode() { return networkMode; }
 
+    @JsonIgnore
     public String getNetworkModeName() {
         return networkModeToName(networkMode);
     }
