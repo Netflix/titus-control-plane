@@ -204,7 +204,8 @@ public final class GrpcJobManagementModelConverters {
     }
 
     public static NetworkConfiguration toCoreNetworkConfiguration(com.netflix.titus.grpc.protogen.NetworkConfiguration grpcNetworkConfiguration) {
-        return JobModel.newNetworkConfiguration(grpcNetworkConfiguration.getNetworkMode().getNumber())
+        return JobModel.newNetworkConfiguration()
+                .withNetworkMode(grpcNetworkConfiguration.getNetworkModeValue())
                 .build();
     }
 

@@ -214,7 +214,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 ", attributes=" + attributes +
                 ", container=" + container +
                 ", disruptionBudget=" + disruptionBudget +
-                ", networkConfiguration" + networkConfiguration +
+                ", networkConfiguration=" + networkConfiguration +
                 ", extensions=" + extensions +
                 '}';
     }
