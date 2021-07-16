@@ -16,9 +16,16 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.time.Clocks;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -97,5 +104,46 @@ public class JobFunctionsTest {
         Job<BatchJobExt> job = JobFunctions.appendSoftConstraint(JobGenerator.oneBatchJob(), "MyConstraint", "good");
         assertThat(JobFunctions.findHardConstraint(job, "myConstraint")).isEmpty();
         assertThat(JobFunctions.findSoftConstraint(job, "myConstraint")).contains("good");
+    }
+
+    @Test
+    public void testGroupTasksByResubmitOrder() {
+        List<Task> group1 = taskWithReplacements(3);
+        List<Task> group2 = taskWithReplacements(5);
+        Task badOne = JobGenerator.oneBatchTask().toBuilder().withOriginalId("missing").build();
+        List<Task> mixed = CollectionsExt.merge(group1, group2, Collections.singletonList(badOne));
+        Collections.shuffle(mixed);
+
+        Pair<Map<String, List<Task>>, List<Task>> result = JobFunctions.groupTasksByResubmitOrder(mixed);
+        Map<String, List<Task>> ordered = result.getLeft();
+        List<Task> rejected = result.getRight();
+
+        // Ordered
+        assertThat(ordered).hasSize(2);
+        List<Task> firstOrder = ordered.get(group1.get(0).getId());
+        assertThat(firstOrder).isEqualTo(group1);
+        List<Task> secondOrder = ordered.get(group2.get(0).getId());
+        assertThat(secondOrder).isEqualTo(group2);
+
+        // Rejected
+        assertThat(rejected).hasSize(1);
+        assertThat(rejected.get(0).getId()).isEqualTo(badOne.getId());
+    }
+
+    private static List<Task> taskWithReplacements(int size) {
+        BatchJobTask first = JobGenerator.oneBatchTask();
+        List<Task> result = new ArrayList<>();
+        result.add(first);
+        Task last = first;
+        for (int i = 1; i < size; i++) {
+            BatchJobTask next = JobGenerator.oneBatchTask().toBuilder()
+                    .withJobId(first.getJobId())
+                    .withOriginalId(first.getId())
+                    .withResubmitOf(last.getId())
+                    .build();
+            result.add(next);
+            last = next;
+        }
+        return result;
     }
 }

@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import javax.validation.Valid;
 
@@ -45,11 +46,15 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
 
     private final List<JobStatus> statusHistory;
 
-    public Job(String id, JobDescriptor<E> jobDescriptor, JobStatus status, List<JobStatus> statusHistory) {
+    private final Version version;
+
+    public Job(String id, JobDescriptor<E> jobDescriptor, JobStatus status, List<JobStatus> statusHistory, Version version) {
         this.id = id;
         this.jobDescriptor = jobDescriptor;
         this.status = status;
         this.statusHistory = CollectionsExt.nullableImmutableCopyOf(statusHistory);
+        // TODO Remove me. Version is a newly introduced field. If not set explicitly, assign a default value
+        this.version = version == null ? Version.undefined() : version;
     }
 
     /**
@@ -80,6 +85,10 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
         return statusHistory;
     }
 
+    public Version getVersion() {
+        return version;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -88,28 +97,13 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Job<?> job = (Job<?>) o;
-
-        if (id != null ? !id.equals(job.id) : job.id != null) {
-            return false;
-        }
-        if (jobDescriptor != null ? !jobDescriptor.equals(job.jobDescriptor) : job.jobDescriptor != null) {
-            return false;
-        }
-        if (status != null ? !status.equals(job.status) : job.status != null) {
-            return false;
-        }
-        return statusHistory != null ? statusHistory.equals(job.statusHistory) : job.statusHistory == null;
+        return Objects.equals(id, job.id) && Objects.equals(jobDescriptor, job.jobDescriptor) && Objects.equals(status, job.status) && Objects.equals(statusHistory, job.statusHistory) && Objects.equals(version, job.version);
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (jobDescriptor != null ? jobDescriptor.hashCode() : 0);
-        result = 31 * result + (status != null ? status.hashCode() : 0);
-        result = 31 * result + (statusHistory != null ? statusHistory.hashCode() : 0);
-        return result;
+        return Objects.hash(id, jobDescriptor, status, statusHistory, version);
     }
 
     @Override
@@ -119,6 +113,7 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
                 ", jobDescriptor=" + jobDescriptor +
                 ", status=" + status +
                 ", statusHistory=" + statusHistory +
+                ", version=" + version +
                 '}';
     }
 
@@ -136,7 +131,8 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
                 .withId(id)
                 .withJobDescriptor(jobDescriptor)
                 .withStatus(status)
-                .withStatusHistory(statusHistory);
+                .withStatusHistory(statusHistory)
+                .withVersion(version);
     }
 
     public static <E extends JobDescriptor.JobDescriptorExt> Builder<E> newBuilder() {
@@ -148,6 +144,7 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
         private JobDescriptor<E> jobDescriptor;
         private JobStatus status;
         private List<JobStatus> statusHistory;
+        private Version version;
 
         private Builder() {
         }
@@ -182,8 +179,13 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
             return withStatusHistory(asList(statusHistory));
         }
 
+        public Builder<E> withVersion(Version version) {
+            this.version = version;
+            return this;
+        }
+
         public Job<E> build() {
-            return new Job<>(id, jobDescriptor, status, nonNull(statusHistory));
+            return new Job<>(id, jobDescriptor, status, nonNull(statusHistory), version);
         }
     }
 }

@@ -37,6 +37,7 @@ import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import com.netflix.titus.testkit.model.job.ContainersGenerator;
 import org.apache.mesos.Protos;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,6 +75,11 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.jobConfiguration = titusStackResource.getGateway().getInstance(JobManagerConfiguration.class);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        jobsScenarioBuilder.expectVersionsOrdered();
     }
 
     /**

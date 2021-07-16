@@ -45,8 +45,10 @@ public class ServiceJobTask extends Task {
                           List<TwoLevelResource> twoLevelResources,
                           Map<String, String> taskContext,
                           Map<String, String> attributes,
-                          MigrationDetails migrationDetails) {
-        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, evictionResubmitNumber, twoLevelResources, taskContext, attributes);
+                          MigrationDetails migrationDetails,
+                          Version version) {
+        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber,
+                evictionResubmitNumber, twoLevelResources, taskContext, attributes, version);
         this.migrationDetails = migrationDetails;
     }
 
@@ -92,7 +94,8 @@ public class ServiceJobTask extends Task {
                 ", twoLevelResources=" + getTwoLevelResources() +
                 ", taskContext=" + getTaskContext() +
                 ", attributes=" + getAttributes() +
-                "migrationDetails=" + migrationDetails +
+                ", migrationDetails=" + migrationDetails +
+                ", version=" + getVersion() +
                 '}';
     }
 
@@ -144,7 +147,8 @@ public class ServiceJobTask extends Task {
                     nonNull(twoLevelResources),
                     nonNull(taskContext),
                     nonNull(attributes),
-                    migrationDetails
+                    migrationDetails,
+                    version
             );
         }
     }
