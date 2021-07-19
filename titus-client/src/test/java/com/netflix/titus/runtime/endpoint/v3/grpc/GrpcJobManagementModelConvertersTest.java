@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_LIVE_STREAM;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_ACCOUNT_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_ACCOUNT_NAME;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_BUCKET_NAME;
@@ -23,6 +24,7 @@ public class GrpcJobManagementModelConvertersTest {
     public void coreTaskLogAttributes() {
         String taskId = "tid-1";
         String uiLocation = "http://titus-ui/tasks/" + taskId;
+        String liveStream = "http://agentIp:8080/logs/" + taskId;
         String s3Bucket = "bucket-1";
         String s3Key = "key-1";
         String s3AccountId = "acc-1";
@@ -37,6 +39,7 @@ public class GrpcJobManagementModelConvertersTest {
                 .putAllTaskContext(taskContext)
                 .setLogLocation(LogLocation.newBuilder()
                         .setUi(LogLocation.UI.newBuilder().setUrl(uiLocation))
+                        .setLiveStream(LogLocation.LiveStream.newBuilder().setUrl(liveStream).build())
                         .setS3(LogLocation.S3.newBuilder()
                                 .setRegion(s3Region)
                                 .setBucket(s3Bucket)
@@ -66,5 +69,8 @@ public class GrpcJobManagementModelConvertersTest {
 
         assertThat(coreTask.getAttributes().containsKey(TASK_ATTRIBUTE_LOG_UI_LOCATION)).isTrue();
         assertThat(coreTask.getAttributes().get(TASK_ATTRIBUTE_LOG_UI_LOCATION)).isEqualTo(uiLocation);
+
+        assertThat(coreTask.getAttributes().containsKey(TASK_ATTRIBUTE_LOG_LIVE_STREAM)).isTrue();
+        assertThat(coreTask.getAttributes().get(TASK_ATTRIBUTE_LOG_LIVE_STREAM)).isEqualTo(liveStream);
     }
 }

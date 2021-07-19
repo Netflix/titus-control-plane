@@ -78,6 +78,8 @@ public final class TaskAttributes {
 
     public static final String TASK_ATTRIBUTE_LOG_UI_LOCATION = TASK_ATTRIBUTE_LOG_PREFIX + "uiLogLocation";
 
+    public static final String TASK_ATTRIBUTE_LOG_LIVE_STREAM = TASK_ATTRIBUTE_LOG_PREFIX + "liveStream";
+
     public static final String TASK_ATTRIBUTE_LOG_S3_PREFIX = TASK_ATTRIBUTE_LOG_PREFIX + "s3.";
 
     public static final String TASK_ATTRIBUTE_LOG_S3_ACCOUNT_NAME = TASK_ATTRIBUTE_LOG_S3_PREFIX + "accountName";
