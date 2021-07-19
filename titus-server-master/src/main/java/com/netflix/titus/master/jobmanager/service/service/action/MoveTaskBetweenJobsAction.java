@@ -36,9 +36,13 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;
+
+import static com.netflix.titus.master.jobmanager.service.VersionSuppliers.nextVersion;
 
 public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
 
@@ -47,17 +51,20 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
     private final String taskId;
     private final JobStore titusStore;
     private final CallMetadata callMetadata;
+    private final VersionSupplier versionSupplier;
 
     public MoveTaskBetweenJobsAction(ReconciliationEngine<JobManagerReconcilerEvent> engineFrom,
                                      ReconciliationEngine<JobManagerReconcilerEvent> engineTo,
                                      String taskId,
                                      JobStore titusStore,
-                                     CallMetadata callMetadata) {
+                                     CallMetadata callMetadata,
+                                     VersionSupplier versionSupplier) {
         this.engineFrom = engineFrom;
         this.engineTo = engineTo;
         this.taskId = taskId;
         this.titusStore = titusStore;
         this.callMetadata = callMetadata;
+        this.versionSupplier = versionSupplier;
     }
 
     @Override
@@ -91,9 +98,10 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
             // Compute new model entities
 
             // Decrement job size by 1
-            Job<ServiceJobExt> updatedJobFrom = JobFunctions.incrementJobSize(jobFrom, -1);
-            Job<ServiceJobExt> updatedJobTo = JobFunctions.incrementJobSize(jobTo, 1);
-            Task updatedReferenceTaskTo = JobFunctions.moveTask(jobFrom.getId(), jobTo.getId(), taskFromReference);
+            Job<ServiceJobExt> updatedJobFrom = nextVersion(JobFunctions.incrementJobSize(jobFrom, -1), versionSupplier);
+            Job<ServiceJobExt> updatedJobTo = nextVersion(JobFunctions.incrementJobSize(jobTo, 1), versionSupplier);
+            Task updatedReferenceTaskTo = VersionSuppliers.nextVersion(
+                    JobFunctions.moveTask(jobFrom.getId(), jobTo.getId(), taskFromReference), versionSupplier);
 
             // Move the task
             return titusStore.moveTask(updatedJobFrom, updatedJobTo, updatedReferenceTaskTo).andThen(

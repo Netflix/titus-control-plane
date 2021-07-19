@@ -637,6 +637,19 @@ public class JobScenarioBuilder {
         return this;
     }
 
+    public void expectVersionsOrdered() {
+        expectJobVersionsOrdered();
+    }
+
+    public void expectJobVersionsOrdered() {
+        List<Job> revisions = jobEventStream.getAllItems();
+        Job last = revisions.get(0);
+        for (int i = 1; i < revisions.size(); i++) {
+            Job next = revisions.get(i);
+            assertThat(next.getVersion().getTimestamp()).isGreaterThanOrEqualTo(last.getVersion().getTimestamp());
+        }
+    }
+
     private class TaskHolder {
         private final ReplaySubject<Task> taskEventStream;
         private final TaskScenarioBuilder taskScenarioBuilder;

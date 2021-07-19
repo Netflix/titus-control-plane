@@ -33,6 +33,7 @@ import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +59,11 @@ public class JobScalingTest extends BaseIntegrationTest {
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        jobsScenarioBuilder.expectVersionsOrdered();
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)

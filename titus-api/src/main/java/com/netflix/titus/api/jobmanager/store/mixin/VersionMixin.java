@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,12 @@
 
 package com.netflix.titus.api.jobmanager.store.mixin;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobStatus;
-import com.netflix.titus.api.jobmanager.model.job.Version;
 
-public abstract class JobMixin {
+public abstract class VersionMixin {
+
     @JsonCreator
-    JobMixin(@JsonProperty("id") String id,
-             @JsonProperty("jobDescriptor") JobDescriptor jobDescriptor,
-             @JsonProperty("status") JobStatus status,
-             @JsonProperty("statusHistory") List<JobStatus> statusHistory,
-             @JsonProperty("version") Version version) {
+    public VersionMixin(@JsonProperty("timestamp") long timestamp) {
     }
 }

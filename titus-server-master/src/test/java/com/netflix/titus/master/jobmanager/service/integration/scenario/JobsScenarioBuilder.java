@@ -51,6 +51,8 @@ import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
@@ -100,6 +102,7 @@ public class JobsScenarioBuilder {
     private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
     private final StubbedJobStore jobStore = new StubbedJobStore();
     private final Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate;
+    private final VersionSupplier versionSupplier;
 
     private volatile int concurrentStoreUpdateLimit = CONCURRENT_STORE_UPDATE_LIMIT;
 
@@ -114,6 +117,7 @@ public class JobsScenarioBuilder {
     public JobsScenarioBuilder(boolean kubeSchedulerEnabled) {
         this.kubeSchedulerPredicate = jobDescriptor -> kubeSchedulerEnabled;
         this.schedulingService = new StubbedSchedulingService(kubeSchedulerEnabled);
+        this.versionSupplier = VersionSuppliers.newInstance(titusRuntime.getClock());
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
 
@@ -173,6 +177,7 @@ public class JobsScenarioBuilder {
                 schedulingService,
                 vmService,
                 jobStore,
+                versionSupplier,
                 constraintEvaluatorTransformer,
                 systemSoftConstraint,
                 systemHardConstraint,
@@ -191,6 +196,7 @@ public class JobsScenarioBuilder {
                 schedulingService,
                 vmService,
                 jobStore,
+                versionSupplier,
                 constraintEvaluatorTransformer,
                 systemSoftConstraint,
                 systemHardConstraint,
@@ -234,13 +240,15 @@ public class JobsScenarioBuilder {
                         constraintEvaluatorTransformer,
                         newJobSanitizer(VerifierMode.Permissive),
                         newJobSanitizer(VerifierMode.Strict),
+                        versionSupplier,
                         titusRuntime,
                         Optional.of(testScheduler)
                 ),
                 jobSubmitLimiter,
                 new ManagementSubsystemInitializer(null, null),
                 titusRuntime,
-                EntitySanitizerBuilder.stdBuilder().build()
+                EntitySanitizerBuilder.stdBuilder().build(),
+                versionSupplier
         );
         v3JobOperations.enterActiveMode();
 
@@ -284,6 +292,7 @@ public class JobsScenarioBuilder {
                     jobStore,
                     vmService,
                     kubeApiServerIntegrator,
+                    versionSupplier,
                     titusRuntime,
                     testScheduler
             );
@@ -360,11 +369,13 @@ public class JobsScenarioBuilder {
                 jobStore,
                 vmService,
                 kubeApiServerIntegrator,
+                versionSupplier,
                 titusRuntime,
                 testScheduler
         );
         jobScenarioBuilders.add(jobScenarioBuilder);
         jobScenario.apply(jobScenarioBuilder);
+        jobScenarioBuilder.expectVersionsOrdered();
         return this;
     }
 

@@ -44,6 +44,8 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -61,7 +63,8 @@ public class KillInitiatedActions {
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
-    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore, String reason, CallMetadata callMetadata) {
+    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore,
+                                                          VersionSupplier versionSupplier, String reason, CallMetadata callMetadata) {
         String reasonMessage = String.format("Changing job state to KillInitiated (reason:%s)", reason);
         return TitusChangeAction.newAction("initiateJobKillAction")
                 .id(engine.getReferenceView().getId())
@@ -74,7 +77,7 @@ public class KillInitiatedActions {
                             .withState(JobState.KillInitiated)
                             .withReasonCode(TaskStatus.REASON_JOB_KILLED).withReasonMessage(reasonMessage)
                             .build();
-                    Job jobWithKillInitiated = JobFunctions.changeJobStatus(job, newStatus);
+                    Job jobWithKillInitiated = VersionSuppliers.nextVersion(JobFunctions.changeJobStatus(job, newStatus), versionSupplier);
 
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
                             .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated)));
@@ -92,6 +95,7 @@ public class KillInitiatedActions {
                                                           VirtualMachineMasterService vmService,
                                                           DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                                           JobStore jobStore,
+                                                          VersionSupplier versionSupplier,
                                                           String taskId,
                                                           boolean shrink,
                                                           boolean preventMinSizeUpdate,
@@ -119,7 +123,9 @@ public class KillInitiatedActions {
                                 }
                             }
 
-                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock());
+                            Task taskWithKillInitiated = VersionSuppliers.nextVersion(
+                                    JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock()),
+                                    versionSupplier);
 
                             Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId(), titusRuntime).map(current -> {
                                 List<ModelActionHolder> updateActions = new ArrayList<>();
@@ -128,7 +134,7 @@ public class KillInitiatedActions {
                                 updateActions.addAll(ModelActionHolder.allModels(stateUpdateAction));
 
                                 if (shrink) {
-                                    TitusModelAction shrinkAction = createShrinkAction(self);
+                                    TitusModelAction shrinkAction = createShrinkAction(self, versionSupplier);
                                     updateActions.add(ModelActionHolder.reference(shrinkAction));
                                 }
                                 return updateActions;
@@ -149,6 +155,7 @@ public class KillInitiatedActions {
                                                                     VirtualMachineMasterService vmService,
                                                                     DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                                                     JobStore jobStore,
+                                                                    VersionSupplier versionSupplier,
                                                                     String reasonCode,
                                                                     String reason,
                                                                     TitusRuntime titusRuntime) {
@@ -164,7 +171,9 @@ public class KillInitiatedActions {
                                 return Observable.just(Collections.<ModelActionHolder>emptyList());
                             }
 
-                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock());
+                            Task taskWithKillInitiated = VersionSuppliers.nextVersion(
+                                    JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock()),
+                                    versionSupplier);
                             TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
 
                             // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
@@ -191,6 +200,7 @@ public class KillInitiatedActions {
                                                                               String reasonCode,
                                                                               String reason,
                                                                               int concurrencyLimit,
+                                                                              VersionSupplier versionSupplier,
                                                                               TitusRuntime titusRuntime) {
         List<ChangeAction> result = new ArrayList<>();
 
@@ -215,6 +225,7 @@ public class KillInitiatedActions {
                         jobStore,
                         V3JobOperations.Trigger.Reconciler,
                         reason,
+                        versionSupplier,
                         titusRuntime,
                         JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build()
                 ));
@@ -230,7 +241,7 @@ public class KillInitiatedActions {
             Task task = taskHolder.getEntity();
             TaskState state = task.getStatus().getState();
             if (state != TaskState.KillInitiated && state != TaskState.Finished) {
-                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator, jobStore, reasonCode, reason, titusRuntime));
+                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator, jobStore, versionSupplier, reasonCode, reason, titusRuntime));
             }
         }
 
@@ -243,7 +254,7 @@ public class KillInitiatedActions {
                 : Completable.fromAction(() -> vmService.killTask(task.getId()));
     }
 
-    private static TitusModelAction createShrinkAction(TitusChangeAction.Builder changeActionBuilder) {
+    private static TitusModelAction createShrinkAction(TitusChangeAction.Builder changeActionBuilder, VersionSupplier versionSupplier) {
         return TitusModelAction.newModelUpdate(changeActionBuilder)
                 .summary("Shrinking job as a result of terminate and shrink request")
                 .jobUpdate(jobHolder -> {
@@ -265,6 +276,7 @@ public class KillInitiatedActions {
                                             .withExtensions(oldExt.toBuilder().withCapacity(newCapacity).build())
                                             .build())
                             .build();
+                    newJob = VersionSuppliers.nextVersion(newJob, versionSupplier);
                     return jobHolder.setEntity(newJob);
                 });
     }

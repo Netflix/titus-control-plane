@@ -49,6 +49,8 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
@@ -75,6 +77,7 @@ public class BasicTaskActions {
                                                                 JobStore jobStore,
                                                                 Trigger trigger,
                                                                 String reason,
+                                                                VersionSupplier versionSupplier,
                                                                 TitusRuntime titusRuntime,
                                                                 CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateTaskAndWriteItToStore")
@@ -85,7 +88,7 @@ public class BasicTaskActions {
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
-                                    Task newTask = changeFunction.apply(task);
+                                    Task newTask = VersionSuppliers.nextVersion(changeFunction.apply(task), versionSupplier);
                                     TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
                                     return jobStore.updateTask(newTask).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelUpdate)));
                                 })
@@ -143,6 +146,7 @@ public class BasicTaskActions {
                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                              Function<Task, Optional<Task>> changeFunction,
                                                              String reason,
+                                                             VersionSupplier versionSupplier,
                                                              TitusRuntime titusRuntime,
                                                              CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateTaskInRunningModel")
@@ -161,7 +165,7 @@ public class BasicTaskActions {
                             if (!maybeNewTask.isPresent()) {
                                 return Collections.emptyList();
                             }
-                            Task newTask = maybeNewTask.get();
+                            Task newTask = VersionSuppliers.nextVersion(maybeNewTask.get(), versionSupplier);
 
                             // Handle separately reference and runtime models, as only reference model gets retry attributes.
                             List<ModelActionHolder> modelActionHolders = new ArrayList<>();
@@ -233,6 +237,7 @@ public class BasicTaskActions {
                                                      Job<?> job,
                                                      Task task,
                                                      CallMetadata callMetadata,
+                                                     VersionSupplier versionSupplier,
                                                      TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("launchTaskInKube")
                 .task(task)
@@ -259,6 +264,7 @@ public class BasicTaskActions {
                                         .withStatus(taskStatus)
                                         .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
                                         .build();
+                                taskWithPod = VersionSuppliers.nextVersion(taskWithPod, versionSupplier);
 
                                 TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithPod);
                                 return ModelActionHolder.referenceAndRunning(modelUpdateAction);
@@ -273,6 +279,7 @@ public class BasicTaskActions {
                                         .withTimestamp(titusRuntime.getClock().wallTime())
                                         .build()
                                 );
+                                finishedTask = VersionSuppliers.nextVersion(finishedTask, versionSupplier);
 
                                 List<ModelActionHolder> modelActionHolders = new ArrayList<>();
                                 modelActionHolders.add(ModelActionHolder.reference(attachRetryer(self, taskHolder, finishedTask, callMetadata, configuration, titusRuntime)));

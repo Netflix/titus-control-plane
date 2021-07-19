@@ -32,6 +32,8 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -63,7 +65,8 @@ public class BasicJobActions {
     /**
      * Update job disruption budet.
      */
-    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget, JobStore jobStore, CallMetadata callMetadata) {
+    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget,
+                                                         JobStore jobStore, VersionSupplier versionSupplier, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateDisruptionBudget")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -72,7 +75,7 @@ public class BasicJobActions {
                 .changeWithModelUpdates(self -> {
 
                     Job<?> job = engine.getReferenceView().getEntity();
-                    Job<?> updatedJob = JobFunctions.changeDisruptionBudget(job, disruptionBudget);
+                    Job<?> updatedJob = VersionSuppliers.nextVersion(JobFunctions.changeDisruptionBudget(job, disruptionBudget), versionSupplier);
 
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
 
@@ -83,7 +86,8 @@ public class BasicJobActions {
     /**
      * Update the attributes of a job. This will either create new attributes or replacing an existing ones with the same key.
      */
-    public static ChangeAction updateJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Map<String, String> attributes, JobStore jobStore, CallMetadata callMetadata) {
+    public static ChangeAction updateJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Map<String, String> attributes,
+                                                   JobStore jobStore, VersionSupplier versionSupplier, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateJobAttributes")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -91,7 +95,7 @@ public class BasicJobActions {
                 .callMetadata(callMetadata)
                 .changeWithModelUpdates(self -> {
                     Job<?> job = engine.getReferenceView().getEntity();
-                    Job<?> updatedJob = JobFunctions.updateJobAttributes(job, attributes);
+                    Job<?> updatedJob = VersionSuppliers.nextVersion(JobFunctions.updateJobAttributes(job, attributes), versionSupplier);
 
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
 
@@ -102,7 +106,8 @@ public class BasicJobActions {
     /**
      * Delete the attributes of a job with the specified key names.
      */
-    public static ChangeAction deleteJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Set<String> keys, JobStore jobStore, CallMetadata callMetadata) {
+    public static ChangeAction deleteJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Set<String> keys,
+                                                   JobStore jobStore, VersionSupplier versionSupplier, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateJobAttributes")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -110,7 +115,7 @@ public class BasicJobActions {
                 .callMetadata(callMetadata)
                 .changeWithModelUpdates(self -> {
                     Job<?> job = engine.getReferenceView().getEntity();
-                    Job<?> updatedJob = JobFunctions.deleteJobAttributes(job, keys);
+                    Job<?> updatedJob = VersionSuppliers.nextVersion(JobFunctions.deleteJobAttributes(job, keys), versionSupplier);
 
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
 
@@ -121,7 +126,7 @@ public class BasicJobActions {
     /**
      * Move job to {@link JobState#Finished} state in reference and running models.
      */
-    public static TitusChangeAction completeJob(String jobId) {
+    public static TitusChangeAction completeJob(String jobId, VersionSupplier versionSupplier) {
         return TitusChangeAction.newAction("closeJob")
                 .id(jobId)
                 .trigger(V3JobOperations.Trigger.Reconciler)
@@ -132,6 +137,7 @@ public class BasicJobActions {
                                 Job job = entityHolder.getEntity();
                                 if (job.getStatus().getState() != JobState.Finished) {
                                     Job newJob = JobFunctions.changeJobStatus(job, JobState.Finished, TaskStatus.REASON_NORMAL);
+                                    newJob  = VersionSuppliers.nextVersion(newJob, versionSupplier);
                                     return Optional.of(entityHolder.setEntity(newJob));
                                 }
                                 return Optional.empty();

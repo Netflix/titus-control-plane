@@ -44,6 +44,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -121,6 +122,7 @@ public class JobReconciliationFrameworkFactory {
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
     private final EntitySanitizer permissiveEntitySanitizer;
     private final EntitySanitizer strictEntitySanitizer;
+    private final VersionSupplier versionSupplier;
     private final InitializationErrorCollector errorCollector; // Keep reference so it is not garbage collected (it holds metrics)
     private final TitusRuntime titusRuntime;
     private final Registry registry;
@@ -144,11 +146,12 @@ public class JobReconciliationFrameworkFactory {
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              @Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer permissiveEntitySanitizer,
                                              @Named(JOB_STRICT_SANITIZER) EntitySanitizer strictEntitySanitizer,
+                                             VersionSupplier versionSupplier,
                                              TitusRuntime titusRuntime) {
         this(jobManagerConfiguration, featureConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store,
                 schedulingService, capacityGroupService, systemSoftConstraint, systemHardConstraint,
-                constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer, titusRuntime,
-                Optional.empty());
+                constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer, versionSupplier,
+                titusRuntime, Optional.empty());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -163,6 +166,7 @@ public class JobReconciliationFrameworkFactory {
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              EntitySanitizer permissiveEntitySanitizer,
                                              EntitySanitizer strictEntitySanitizer,
+                                             VersionSupplier versionSupplier,
                                              TitusRuntime titusRuntime,
                                              Optional<Scheduler> optionalScheduler) {
         this.jobManagerConfiguration = jobManagerConfiguration;
@@ -175,6 +179,7 @@ public class JobReconciliationFrameworkFactory {
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.permissiveEntitySanitizer = permissiveEntitySanitizer;
         this.strictEntitySanitizer = strictEntitySanitizer;
+        this.versionSupplier = versionSupplier;
         this.optionalScheduler = optionalScheduler;
         this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, titusRuntime);
         this.titusRuntime = titusRuntime;
@@ -432,7 +437,14 @@ public class JobReconciliationFrameworkFactory {
             }
         }
 
-        return Optional.of(job);
+        // If version is missing (old job objects) create one based on the current job state.
+        Job jobWithVersion = job;
+        if (job.getVersion() == null) {
+            Version newVersion = Version.newBuilder().withTimestamp(job.getStatus().getTimestamp()).build();
+            jobWithVersion = job.toBuilder().withVersion(newVersion).build();
+        }
+
+        return Optional.of(jobWithVersion);
     }
 
     private Optional<Task> validateTask(Task task) {
@@ -453,7 +465,14 @@ public class JobReconciliationFrameworkFactory {
             }
         }
 
-        return Optional.of(task);
+        // If version is missing (old task objects) create one based on the current task state.
+        Task taskWithVersion = task;
+        if (task.getVersion() == null) {
+            Version newVersion = Version.newBuilder().withTimestamp(task.getStatus().getTimestamp()).build();
+            taskWithVersion = task.toBuilder().withVersion(newVersion).build();
+        }
+
+        return Optional.of(taskWithVersion);
     }
 
     private List<Pair<Job, List<Task>>> checkGlobalConsistency(List<Pair<Job, List<Task>>> jobsAndTasks) {

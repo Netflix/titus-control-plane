@@ -44,6 +44,7 @@ public abstract class Task {
     private final List<TwoLevelResource> twoLevelResources;
     private final Map<String, String> taskContext;
     private final Map<String, String> attributes;
+    private final Version version;
 
     protected Task(String id,
                    String jobId,
@@ -56,7 +57,8 @@ public abstract class Task {
                    int evictionResubmitNumber,
                    List<TwoLevelResource> twoLevelResources,
                    Map<String, String> taskContext,
-                   Map<String, String> attributes) {
+                   Map<String, String> attributes,
+                   Version version) {
         this.id = id;
         this.jobId = jobId;
         this.status = status;
@@ -69,6 +71,8 @@ public abstract class Task {
         this.twoLevelResources = CollectionsExt.nullableImmutableCopyOf(twoLevelResources);
         this.taskContext = CollectionsExt.nullableImmutableCopyOf(taskContext);
         this.attributes = attributes;
+        // TODO Remove me. Version is a newly introduced field. If not set explicitly, assign a default value
+        this.version = version == null ? Version.undefined() : version;
     }
 
     public String getId() {
@@ -119,6 +123,10 @@ public abstract class Task {
         return attributes;
     }
 
+    public Version getVersion() {
+        return version;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -128,23 +136,12 @@ public abstract class Task {
             return false;
         }
         Task task = (Task) o;
-        return resubmitNumber == task.resubmitNumber &&
-                systemResubmitNumber == task.systemResubmitNumber &&
-                evictionResubmitNumber == task.evictionResubmitNumber &&
-                Objects.equals(id, task.id) &&
-                Objects.equals(jobId, task.jobId) &&
-                Objects.equals(status, task.status) &&
-                Objects.equals(statusHistory, task.statusHistory) &&
-                Objects.equals(originalId, task.originalId) &&
-                Objects.equals(resubmitOf, task.resubmitOf) &&
-                Objects.equals(twoLevelResources, task.twoLevelResources) &&
-                Objects.equals(taskContext, task.taskContext) &&
-                Objects.equals(attributes, task.attributes);
+        return resubmitNumber == task.resubmitNumber && systemResubmitNumber == task.systemResubmitNumber && evictionResubmitNumber == task.evictionResubmitNumber && Objects.equals(id, task.id) && Objects.equals(jobId, task.jobId) && Objects.equals(status, task.status) && Objects.equals(statusHistory, task.statusHistory) && Objects.equals(originalId, task.originalId) && Objects.equals(resubmitOf, task.resubmitOf) && Objects.equals(twoLevelResources, task.twoLevelResources) && Objects.equals(taskContext, task.taskContext) && Objects.equals(attributes, task.attributes) && Objects.equals(version, task.version);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, evictionResubmitNumber, twoLevelResources, taskContext, attributes);
+        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, evictionResubmitNumber, twoLevelResources, taskContext, attributes, version);
     }
 
     @Override
@@ -162,6 +159,7 @@ public abstract class Task {
                 ", twoLevelResources=" + twoLevelResources +
                 ", taskContext=" + taskContext +
                 ", attributes=" + attributes +
+                ", version=" + version +
                 '}';
     }
 
@@ -180,6 +178,7 @@ public abstract class Task {
         protected List<TwoLevelResource> twoLevelResources;
         protected Map<String, String> taskContext;
         protected Map<String, String> attributes;
+        protected Version version;
 
         public B withId(String id) {
             this.id = id;
@@ -295,6 +294,11 @@ public abstract class Task {
             return self();
         }
 
+        public B withVersion(Version version) {
+            this.version = version;
+            return self();
+        }
+
         public abstract T build();
 
         protected B but(TaskBuilder<T, B> newBuilder) {
@@ -309,7 +313,8 @@ public abstract class Task {
                     .withEvictionResubmitNumber(evictionResubmitNumber)
                     .withTwoLevelResources(twoLevelResources)
                     .withTaskContext(taskContext)
-                    .withAttributes(attributes);
+                    .withAttributes(attributes)
+                    .withVersion(version);
         }
 
         protected B newBuilder(TaskBuilder<T, B> newBuilder, Task task) {
@@ -325,7 +330,8 @@ public abstract class Task {
                     .withEvictionResubmitNumber(task.getEvictionResubmitNumber())
                     .withTwoLevelResources(task.getTwoLevelResources())
                     .withTaskContext(task.getTaskContext())
-                    .withAttributes(task.getAttributes());
+                    .withAttributes(task.getAttributes())
+                    .withVersion(task.getVersion());
 
         }
 

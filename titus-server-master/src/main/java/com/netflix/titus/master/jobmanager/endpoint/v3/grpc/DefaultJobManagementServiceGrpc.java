@@ -638,7 +638,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 // avoid clogging the computation scheduler
                 .observeOn(observeJobsScheduler)
                 .subscribeOn(observeJobsScheduler, false)
-                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, grpcObjectsCache))
+                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, grpcObjectsCache, titusRuntime.getClock().wallTime()))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobsSnapshot(jobsPredicate, tasksPredicate);
                     snapshot.add(SNAPSHOT_END_MARKER);
@@ -684,7 +684,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 // avoid clogging the computation scheduler
                 .observeOn(observeJobsScheduler)
                 .subscribeOn(observeJobsScheduler, false)
-                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, grpcObjectsCache))
+                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, grpcObjectsCache, titusRuntime.getClock().wallTime()))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobSnapshot(jobId);
                     snapshot.add(SNAPSHOT_END_MARKER);

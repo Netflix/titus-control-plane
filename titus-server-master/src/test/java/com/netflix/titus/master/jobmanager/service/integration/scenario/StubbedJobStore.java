@@ -71,6 +71,8 @@ public class StubbedJobStore implements JobStore {
 
     private final ConcurrentMap<String, Job<?>> jobs = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Task> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, List<Task>> taskRevisionsByOriginalId = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, List<Job>> jobRevisions = new ConcurrentHashMap<>();
 
     private final ConcurrentMap<String, Job<?>> archivedJobs = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Task> archivedTasks = new ConcurrentHashMap<>();
@@ -85,6 +87,18 @@ public class StubbedJobStore implements JobStore {
 
     public Map<String, Job<?>> getJobsInternal() {
         return new HashMap<>(jobs);
+    }
+
+    public List<Job> getJobRevisions(String jobId) {
+        Preconditions.checkState(jobs.containsKey(jobId) || archivedJobs.containsKey(jobId));
+        return jobRevisions.get(jobId);
+    }
+
+    public Map<String, List<Task>> getTaskRevisions(String jobId) {
+        Preconditions.checkState(jobs.containsKey(jobId) || archivedJobs.containsKey(jobId));
+        return taskRevisionsByOriginalId.values().stream()
+                .filter(tasks -> tasks.get(0).getJobId().equals(jobId))
+                .collect(Collectors.toMap(ts -> ts.get(0).getOriginalId(), Function.identity()));
     }
 
     public Map<String, Task> getArchivedTasksInternal(String jobId) {
@@ -243,7 +257,7 @@ public class StubbedJobStore implements JobStore {
     public Completable storeJob(Job job) {
         return beforeCompletable(() ->
                 Completable.fromAction(() -> {
-                    jobs.put(job.getId(), job);
+                    addJobInternal(job);
                     if (isServiceJob(job)) {
                         jobToServiceTaskIndex.put(job.getId(), new ServiceTaskIndex());
                     }
@@ -255,9 +269,22 @@ public class StubbedJobStore implements JobStore {
     public Completable updateJob(Job job) {
         return beforeCompletable(() ->
                 Completable.fromAction(() -> {
-                    jobs.put(job.getId(), job);
+                    addJobInternal(job);
                     eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, job));
                 }));
+    }
+
+    private void addJobInternal(Job job) {
+        jobs.put(job.getId(), job);
+
+        // We make a copy of an array to allow for shallow copy when accessing this data.
+        List<Job> currentRevisions = jobRevisions.get(job.getId());
+        List<Job> newRevisions = new ArrayList<>();
+        if (currentRevisions != null) {
+            newRevisions.addAll(currentRevisions);
+        }
+        newRevisions.add(job);
+        jobRevisions.put(job.getId(), newRevisions);
     }
 
     @Override
@@ -304,7 +331,7 @@ public class StubbedJobStore implements JobStore {
                 Completable.fromAction(() -> {
                     Job<?> job = jobs.get(task.getJobId());
                     if (job != null) {
-                        tasks.put(task.getId(), task);
+                        addTaskInternal(task);
 
                         if (isServiceJob(job)) {
                             jobToServiceTaskIndex.get(job.getId()).addTask(task);
@@ -322,12 +349,25 @@ public class StubbedJobStore implements JobStore {
         return beforeCompletable(() ->
                 Completable.fromAction(() -> {
                     if (jobs.get(task.getJobId()) != null) {
-                        tasks.put(task.getId(), task);
+                        addTaskInternal(task);
                         eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, task));
                     } else {
                         throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
                     }
                 }));
+    }
+
+    private void addTaskInternal(Task task) {
+        tasks.put(task.getId(), task);
+
+        // We make a copy of an array to allow for shallow copy when accessing this data.
+        List<Task> currentRevisions = taskRevisionsByOriginalId.get(task.getOriginalId());
+        List<Task> newRevisions = new ArrayList<>();
+        if (currentRevisions != null) {
+            newRevisions.addAll(currentRevisions);
+        }
+        newRevisions.add(task);
+        taskRevisionsByOriginalId.put(task.getOriginalId(), newRevisions);
     }
 
     @Override

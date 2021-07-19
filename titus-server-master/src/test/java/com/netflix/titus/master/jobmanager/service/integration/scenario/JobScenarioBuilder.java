@@ -63,6 +63,8 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -86,6 +88,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     private final String jobId;
     private final boolean kubeScheduler;
     private final StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator;
+    private final VersionSupplier versionSupplier;
     private final TitusRuntime titusRuntime;
     private final EventHolder<JobManagerEvent<?>> jobEventsSubscriber;
     private final EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber;
@@ -108,11 +111,13 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                               StubbedJobStore jobStore,
                               StubbedVirtualMachineMasterService vmService,
                               StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                              VersionSupplier versionSupplier,
                               TitusRuntime titusRuntime,
                               TestScheduler testScheduler) {
         this.jobId = jobId;
         this.kubeScheduler = kubeScheduler;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
+        this.versionSupplier = versionSupplier;
         this.titusRuntime = titusRuntime;
         this.batchJob = JobFunctions.isBatchJob(jobStore.retrieveJob(jobId).toBlocking().first());
         this.jobEventsSubscriber = jobEventsSubscriber;
@@ -148,6 +153,34 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> andThen(Runnable action) {
         action.run();
+        return this;
+    }
+
+    public JobScenarioBuilder<E> expectVersionsOrdered() {
+        expectJobVersionsOrdered();
+        expectTaskVersionsOrdered();
+        return this;
+    }
+
+    public JobScenarioBuilder<E> expectJobVersionsOrdered() {
+        List<Job> revisions = jobStore.getJobRevisions(jobId);
+        Job last = revisions.get(0);
+        for (int i = 1; i < revisions.size(); i++) {
+            Job next = revisions.get(i);
+            assertThat(next.getVersion().getTimestamp()).isGreaterThanOrEqualTo(last.getVersion().getTimestamp());
+        }
+        return this;
+    }
+
+    public JobScenarioBuilder<E> expectTaskVersionsOrdered() {
+        Map<String, List<Task>> taskGroups = jobStore.getTaskRevisions(jobId);
+        taskGroups.forEach((originalId, list) -> {
+            Task last = list.get(0);
+            for (int i = 1; i < list.size(); i++) {
+                Task next = list.get(i);
+                assertThat(next.getVersion().getTimestamp()).isGreaterThanOrEqualTo(last.getVersion().getTimestamp());
+            }
+        });
         return this;
     }
 
@@ -669,7 +702,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> modifyJobStoreRecord(Function<Job, Job> transformer) {
         Job<?> storedJob = jobStore.retrieveJob(jobId).toBlocking().first();
-        Job updatedJob = transformer.apply(storedJob);
+        Job updatedJob = VersionSuppliers.nextVersion(transformer.apply(storedJob), versionSupplier);
         assertThat(jobStore.updateJob(updatedJob).get()).isNull();
 
         return this;

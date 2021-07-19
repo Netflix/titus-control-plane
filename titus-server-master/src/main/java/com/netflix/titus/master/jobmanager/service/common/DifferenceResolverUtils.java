@@ -48,6 +48,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
@@ -139,6 +140,7 @@ public class DifferenceResolverUtils {
                                                            VirtualMachineMasterService vmService,
                                                            DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                                            JobStore jobStore,
+                                                           VersionSupplier versionSupplier,
                                                            TokenBucket stuckInStateRateLimiter,
                                                            TitusRuntime titusRuntime) {
         Clock clock = titusRuntime.getClock();
@@ -157,7 +159,7 @@ public class DifferenceResolverUtils {
                 long deadline = task.getStatus().getTimestamp() + runtimeLimitMs;
                 if (deadline < clock.wallTime()) {
                     actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator,
-                            jobStore, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED,
+                            jobStore, versionSupplier, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED,
                             "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)", titusRuntime)
                     );
                 }
@@ -210,18 +212,19 @@ public class DifferenceResolverUtils {
                                                     .build()
                                             ),
                                             "TimedOut in KillInitiated state",
+                                            versionSupplier,
                                             titusRuntime,
                                             JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Kill initiated").build())
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));
                             actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator,
-                                    jobStore, TaskStatus.REASON_STUCK_IN_KILLING_STATE,
+                                    jobStore, versionSupplier, TaskStatus.REASON_STUCK_IN_KILLING_STATE,
                                     "Another kill attempt (" + (attempts + 1) + ')', titusRuntime));
                         }
                     } else {
                         actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator,
-                                jobStore, TaskStatus.REASON_STUCK_IN_STATE,
+                                jobStore, versionSupplier, TaskStatus.REASON_STUCK_IN_STATE,
                                 "Task stuck in " + taskState + " state", titusRuntime));
                     }
                     break;

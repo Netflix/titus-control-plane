@@ -220,7 +220,7 @@ public class JobComponentStub {
             if (coreEvent == JobManagerEvent.snapshotMarker()) {
                 return GRPC_SNAPSHOT_MARKER;
             }
-            return GrpcJobManagementModelConverters.toGrpcJobChangeNotification(coreEvent, grpcObjectsCache);
+            return GrpcJobManagementModelConverters.toGrpcJobChangeNotification(coreEvent, grpcObjectsCache, clock.wallTime());
         });
     }
 }

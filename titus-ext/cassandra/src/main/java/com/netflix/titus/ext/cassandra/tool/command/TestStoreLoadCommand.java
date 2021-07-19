@@ -26,6 +26,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.runtime.TitusRuntimes;
@@ -223,7 +224,7 @@ public class TestStoreLoadCommand implements Command {
                 .withExtensions(new BatchJobExt(1, 1, null, false))
                 .build();
         JobStatus status = new JobStatus(Accepted, "code", "message", System.currentTimeMillis());
-        return new Job<>(jobId, jobDescriptor, status, new ArrayList<>());
+        return new Job<>(jobId, jobDescriptor, status, new ArrayList<>(), Version.undefined());
     }
 
     private Task createTaskObject(Job<BatchJobExt> job) {

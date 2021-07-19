@@ -28,6 +28,7 @@ import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,6 +67,11 @@ public class JobDisruptionBudgetTest extends BaseIntegrationTest {
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        jobsScenarioBuilder.expectVersionsOrdered();
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)

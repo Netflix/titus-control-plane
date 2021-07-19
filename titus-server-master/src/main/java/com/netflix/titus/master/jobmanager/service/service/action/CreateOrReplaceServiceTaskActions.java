@@ -38,6 +38,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -50,19 +51,21 @@ public class CreateOrReplaceServiceTaskActions {
 
     public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration,
                                                               JobStore jobStore,
+                                                              VersionSupplier versionSupplier,
                                                               EntityHolder jobHolder,
                                                               Optional<EntityHolder> previousTaskHolder,
                                                               Clock clock,
                                                               Map<String, String> taskContext) {
         Job<ServiceJobExt> job = jobHolder.getEntity();
         return previousTaskHolder
-                .map(previous -> createResubmittedTaskChangeAction(jobHolder, previous, configuration, jobStore, clock, taskContext))
-                .orElseGet(() -> createOriginalTaskChangeAction(job, jobStore, clock, taskContext));
+                .map(previous -> createResubmittedTaskChangeAction(jobHolder, previous, configuration, jobStore, versionSupplier, clock, taskContext))
+                .orElseGet(() -> createOriginalTaskChangeAction(job, jobStore, versionSupplier, clock, taskContext));
     }
 
-    private static TitusChangeAction createOriginalTaskChangeAction(Job<ServiceJobExt> job, JobStore jobStore, Clock clock, Map<String, String> taskContext) {
+    private static TitusChangeAction createOriginalTaskChangeAction(Job<ServiceJobExt> job, JobStore jobStore,
+                                                                    VersionSupplier versionSupplier, Clock clock, Map<String, String> taskContext) {
         Retryer newRetryer = JobFunctions.retryer(job);
-        ServiceJobTask newTask = createNewServiceTask(job, clock.wallTime(), taskContext);
+        ServiceJobTask newTask = createNewServiceTask(job, clock.wallTime(), taskContext, versionSupplier);
         String summary = String.format("Creating new service task in DB store: %s", newTask.getId());
 
         return TitusChangeAction.newAction("createOrReplaceTask")
@@ -76,6 +79,7 @@ public class CreateOrReplaceServiceTaskActions {
                                                                        EntityHolder taskHolder,
                                                                        JobManagerConfiguration configuration,
                                                                        JobStore jobStore,
+                                                                       VersionSupplier versionSupplier,
                                                                        Clock clock,
                                                                        Map<String, String> taskContext) {
         ServiceJobTask oldTask = taskHolder.getEntity();
@@ -83,7 +87,7 @@ public class CreateOrReplaceServiceTaskActions {
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
-        ServiceJobTask newTask = createServiceTaskReplacement(jobHolder.getEntity(), oldTask, clock.wallTime(), taskContext);
+        ServiceJobTask newTask = createServiceTaskReplacement(jobHolder.getEntity(), oldTask, clock.wallTime(), taskContext, versionSupplier);
 
         String summary = String.format(
                 "Replacing service task in DB store: resubmit=%d, originalId=%s, previousId=%s, newId=%s",
@@ -125,7 +129,7 @@ public class CreateOrReplaceServiceTaskActions {
         return actions;
     }
 
-    private static ServiceJobTask createNewServiceTask(Job<?> job, long timestamp, Map<String, String> taskContext) {
+    private static ServiceJobTask createNewServiceTask(Job<?> job, long timestamp, Map<String, String> taskContext, VersionSupplier versionSupplier) {
         String taskId = UUID.randomUUID().toString();
         return ServiceJobTask.newBuilder()
                 .withId(taskId)
@@ -134,10 +138,12 @@ public class CreateOrReplaceServiceTaskActions {
                 .withOriginalId(taskId)
                 .withCellInfo(job)
                 .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
+                .withVersion(versionSupplier.nextVersion())
                 .build();
     }
 
-    private static ServiceJobTask createServiceTaskReplacement(Job<?> job, ServiceJobTask oldTask, long timestamp, Map<String, String> taskContext) {
+    private static ServiceJobTask createServiceTaskReplacement(Job<?> job, ServiceJobTask oldTask, long timestamp,
+                                                               Map<String, String> taskContext, VersionSupplier versionSupplier) {
         String taskId = UUID.randomUUID().toString();
         return ServiceJobTask.newBuilder()
                 .withId(taskId)
@@ -151,6 +157,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .withEvictionResubmitNumber(TaskStatus.isEvicted(oldTask
                 ) ? oldTask.getEvictionResubmitNumber() + 1 : oldTask.getEvictionResubmitNumber())
                 .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
+                .withVersion(versionSupplier.nextVersion())
                 .build();
     }
 }

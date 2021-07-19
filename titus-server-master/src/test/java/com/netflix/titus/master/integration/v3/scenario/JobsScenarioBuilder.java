@@ -185,6 +185,10 @@ public class JobsScenarioBuilder extends ExternalResource {
         return this;
     }
 
+    public void expectVersionsOrdered() {
+        jobScenarioBuilders.forEach(JobScenarioBuilder::expectVersionsOrdered);
+    }
+
     private List<JobScenarioBuilder> loadJobs() {
         JobQuery query = JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(1000)).build();
         Throwable lastFailure = null;
