@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 
 public abstract class BatchJobTaskMixin {
     @JsonCreator
@@ -39,6 +40,7 @@ public abstract class BatchJobTaskMixin {
                       @JsonProperty("statusHistory") List<TaskStatus> statusHistory,
                       @JsonProperty("twoLevelResources") List<TwoLevelResource> twoLevelResources,
                       @JsonProperty("taskContext") Map<String, String> taskContext,
-                      @JsonProperty("attributes") Map<String, String> attributes) {
+                      @JsonProperty("attributes") Map<String, String> attributes,
+                      @JsonProperty("version") Version version) {
     }
 }

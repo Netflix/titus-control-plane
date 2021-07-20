@@ -36,6 +36,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -50,6 +51,7 @@ public class CreateOrReplaceBatchTaskActions {
                                                               JobStore jobStore,
                                                               EntityHolder jobHolder,
                                                               int index,
+                                                              VersionSupplier versionSupplier,
                                                               Clock clock,
                                                               Map<String, String> taskContext) {
         return jobHolder.getChildren().stream()
@@ -58,13 +60,14 @@ public class CreateOrReplaceBatchTaskActions {
                     return task.getIndex() == index;
                 })
                 .findFirst()
-                .map(taskHolder -> createResubmittedTaskChangeAction(jobHolder, taskHolder, configuration, jobStore, clock, taskContext))
-                .orElseGet(() -> createOriginalTaskChangeAction(jobHolder.getEntity(), index, jobStore, clock, taskContext));
+                .map(taskHolder -> createResubmittedTaskChangeAction(jobHolder, taskHolder, configuration, jobStore, versionSupplier, clock, taskContext))
+                .orElseGet(() -> createOriginalTaskChangeAction(jobHolder.getEntity(), index, jobStore, versionSupplier, clock, taskContext));
     }
 
-    private static TitusChangeAction createOriginalTaskChangeAction(Job<BatchJobExt> job, int index, JobStore jobStore, Clock clock, Map<String, String> taskContext) {
+    private static TitusChangeAction createOriginalTaskChangeAction(Job<BatchJobExt> job, int index, JobStore jobStore, VersionSupplier versionSupplier,
+                                                                    Clock clock, Map<String, String> taskContext) {
         Retryer newRetryer = JobFunctions.retryer(job);
-        BatchJobTask newTask = createNewBatchTask(job, index, clock.wallTime(), taskContext);
+        BatchJobTask newTask = createNewBatchTask(job, index, clock.wallTime(), versionSupplier, taskContext);
 
         return TitusChangeAction.newAction("createOrReplaceTask")
                 .id(newTask.getId())
@@ -79,6 +82,7 @@ public class CreateOrReplaceBatchTaskActions {
                                                                        EntityHolder taskHolder,
                                                                        JobManagerConfiguration configuration,
                                                                        JobStore jobStore,
+                                                                       VersionSupplier versionSupplier,
                                                                        Clock clock,
                                                                        Map<String, String> taskContext) {
         BatchJobTask oldTask = taskHolder.getEntity();
@@ -86,7 +90,7 @@ public class CreateOrReplaceBatchTaskActions {
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
-        BatchJobTask newTask = createBatchTaskReplacement(jobHolder.getEntity(), oldTask, clock, taskContext);
+        BatchJobTask newTask = createBatchTaskReplacement(jobHolder.getEntity(), oldTask, versionSupplier, clock, taskContext);
 
         String summary = String.format(
                 "Replacing task at index %d (resubmit=%d) in DB store: old=%s, new=%s",
@@ -130,7 +134,8 @@ public class CreateOrReplaceBatchTaskActions {
         return actions;
     }
 
-    private static BatchJobTask createNewBatchTask(Job<?> job, int index, long timestamp, Map<String, String> taskContext) {
+    private static BatchJobTask createNewBatchTask(Job<?> job, int index, long timestamp, VersionSupplier versionSupplier,
+                                                   Map<String, String> taskContext) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
                 .withId(taskId)
@@ -140,10 +145,12 @@ public class CreateOrReplaceBatchTaskActions {
                 .withOriginalId(taskId)
                 .withCellInfo(job)
                 .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
+                .withVersion(versionSupplier.nextVersion())
                 .build();
     }
 
-    private static BatchJobTask createBatchTaskReplacement(Job<?> job, BatchJobTask oldTask, Clock clock, Map<String, String> taskContext) {
+    private static BatchJobTask createBatchTaskReplacement(Job<?> job, BatchJobTask oldTask, VersionSupplier versionSupplier,
+                                                           Clock clock, Map<String, String> taskContext) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
                 .withId(taskId)
@@ -157,6 +164,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withSystemResubmitNumber(TaskStatus.hasSystemError(oldTask) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .withEvictionResubmitNumber(TaskStatus.isEvicted(oldTask) ? oldTask.getEvictionResubmitNumber() + 1 : oldTask.getEvictionResubmitNumber())
                 .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
+                .withVersion(versionSupplier.nextVersion())
                 .build();
     }
 }

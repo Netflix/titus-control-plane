@@ -18,7 +18,9 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +50,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.common.util.tuple.Pair;
 
 /**
  * Collection of functions for working with jobs and tasks.
@@ -686,5 +689,45 @@ public final class JobFunctions {
         return jd
                 .but(j -> j.getContainer()
                         .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(ipAllocations).build()));
+    }
+
+    /**
+     * Split tasks into groups with the same original id and order them by their resubmit order. Tasks that do not fit
+     * into any such group are returned as a second parameter in the result. Keys in the returned map contain
+     * task original ids. Lists start with the original task followed by its resubmits.
+     */
+    public static Pair<Map<String, List<Task>>, List<Task>> groupTasksByResubmitOrder(Collection<Task> tasks) {
+        if (tasks.isEmpty()) {
+            return Pair.of(Collections.emptyMap(), Collections.emptyList());
+        }
+
+        Map<String, Task> tasksById = new HashMap<>();
+        Map<String, List<Task>> mapped = new HashMap<>();
+        tasks.forEach(task -> {
+            tasksById.put(task.getId(), task);
+            if (task.getId().equals(task.getOriginalId())) {
+                mapped.put(task.getId(), new ArrayList<>());
+            }
+        });
+
+        Map<String, Task> parentIdToNextTask = new HashMap<>();
+        tasks.forEach(task -> {
+            String parentId = task.getResubmitOf().orElse(null);
+            if (parentId != null && tasksById.containsKey(parentId)) {
+                parentIdToNextTask.put(parentId, task);
+            }
+        });
+
+        Map<String, Task> left = new HashMap<>(tasksById);
+        mapped.forEach((originalId, list) -> {
+            Task current = tasksById.get(originalId);
+            while (current != null) {
+                list.add(current);
+                left.remove(current.getId());
+                current = parentIdToNextTask.get(current.getId());
+            }
+        });
+        List<Task> rejected = new ArrayList<>(left.values());
+        return Pair.of(mapped, rejected);
     }
 }

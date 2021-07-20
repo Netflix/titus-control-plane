@@ -76,6 +76,12 @@ public class V3JobManagerModule extends AbstractModule {
 
     @Provides
     @Singleton
+    public VersionSupplier getVersionSupplier(TitusRuntime titusRuntime) {
+        return VersionSuppliers.newInstance(titusRuntime.getClock());
+    }
+
+    @Provides
+    @Singleton
     public JobManagerConfiguration getJobManagerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(JobManagerConfiguration.class);
     }

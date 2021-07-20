@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.graph.Network;
 import com.google.protobuf.ByteString;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
@@ -46,6 +45,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
@@ -134,6 +134,13 @@ public final class GrpcJobManagementModelConverters {
                 .withJobDescriptor(toCoreJobDescriptor(grpcJob.getJobDescriptor()))
                 .withStatus(toCoreJobStatus(grpcJob.getStatus()))
                 .withStatusHistory(grpcJob.getStatusHistoryList().stream().map(GrpcJobManagementModelConverters::toCoreJobStatus).collect(Collectors.toList()))
+                .withVersion(toCoreVersion(grpcJob.getVersion()))
+                .build();
+    }
+
+    public static Version toCoreVersion(com.netflix.titus.grpc.protogen.Version version) {
+        return Version.newBuilder()
+                .withTimestamp(version.getTimestamp())
                 .build();
     }
 
@@ -540,7 +547,8 @@ public final class GrpcJobManagementModelConverters {
                 .withSystemResubmitNumber(systemResubmitNumber)
                 .withEvictionResubmitNumber(evictionResubmitNumber)
                 .withTaskContext(taskContext)
-                .withAttributes(buildAttributesMapForCoreTask(grpcTask));
+                .withAttributes(buildAttributesMapForCoreTask(grpcTask))
+                .withVersion(toCoreVersion(grpcTask.getVersion()));
 
         if (isBatchTask) { // Batch job
             ((BatchJobTask.Builder) builder).withIndex(Integer.parseInt(taskIndexStr));
@@ -1024,6 +1032,13 @@ public final class GrpcJobManagementModelConverters {
                 .setJobDescriptor(toGrpcJobDescriptor(coreJob.getJobDescriptor()))
                 .setStatus(toGrpcJobStatus(coreJob.getStatus()))
                 .addAllStatusHistory(toGrpcJobStatusHistory(coreJob.getStatusHistory()))
+                .setVersion(toGrpcVersion(coreJob.getVersion()))
+                .build();
+    }
+
+    private static com.netflix.titus.grpc.protogen.Version toGrpcVersion(Version version) {
+        return com.netflix.titus.grpc.protogen.Version.newBuilder()
+                .setTimestamp(version.getTimestamp())
                 .build();
     }
 
@@ -1047,7 +1062,8 @@ public final class GrpcJobManagementModelConverters {
                 .addAllStatusHistory(toGrpcTaskStatusHistory(coreTask.getStatusHistory()))
                 .putAllTaskContext(taskContext)
                 .putAllAttributes(coreTask.getAttributes())
-                .setLogLocation(toGrpcLogLocation(coreTask, logStorageInfo));
+                .setLogLocation(toGrpcLogLocation(coreTask, logStorageInfo))
+                .setVersion(toGrpcVersion(coreTask.getVersion()));
 
         if (coreTask instanceof ServiceJobTask) {
             ServiceJobTask serviceTask = (ServiceJobTask) coreTask;
@@ -1097,20 +1113,25 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, GrpcObjectsCache grpcObjectsCache) {
+    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, GrpcObjectsCache grpcObjectsCache, long now) {
         if (event instanceof JobUpdateEvent) {
             JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
             return JobChangeNotification.newBuilder()
                     .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder()
                             .setJob(grpcObjectsCache.getJob(jobUpdateEvent.getCurrent()))
-                    ).build();
+                    )
+                    .setTimestamp(now)
+                    .build();
         }
 
         TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
-        return JobChangeNotification.newBuilder().setTaskUpdate(
-                JobChangeNotification.TaskUpdate.newBuilder()
-                        .setTask(grpcObjectsCache.getTask(taskUpdateEvent.getCurrent()))
-                        .setMovedFromAnotherJob(taskUpdateEvent.isMovedFromAnotherJob())
-        ).build();
+        return JobChangeNotification.newBuilder()
+                .setTaskUpdate(
+                        JobChangeNotification.TaskUpdate.newBuilder()
+                                .setTask(grpcObjectsCache.getTask(taskUpdateEvent.getCurrent()))
+                                .setMovedFromAnotherJob(taskUpdateEvent.isMovedFromAnotherJob())
+                )
+                .setTimestamp(now)
+                .build();
     }
 }

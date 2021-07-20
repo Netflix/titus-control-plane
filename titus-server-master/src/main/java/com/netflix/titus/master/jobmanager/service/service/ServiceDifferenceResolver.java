@@ -57,6 +57,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -102,6 +103,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
+    private final VersionSupplier versionSupplier;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
@@ -124,13 +126,14 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
+            VersionSupplier versionSupplier,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
             @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime) {
         this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeConfiguration, kubePodConfiguration,
-                kubeSchedulerPredicate, capacityGroupService, schedulingService, vmService, jobStore,
+                kubeSchedulerPredicate, capacityGroupService, schedulingService, vmService, jobStore, versionSupplier,
                 constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint, stuckInStateRateLimiter,
                 titusRuntime, Schedulers.computation()
         );
@@ -147,6 +150,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
+            VersionSupplier versionSupplier,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
@@ -163,6 +167,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.schedulingService = schedulingService;
         this.vmService = vmService;
         this.jobStore = jobStore;
+        this.versionSupplier = versionSupplier;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
@@ -190,7 +195,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         actions.addAll(applyRuntime(engine, refJobView, engine.getRunningView(), engine.getStoreView(), allowedNewTasks, allowedTaskKills));
 
         if (actions.isEmpty()) {
-            actions.addAll(removeCompletedJob(engine.getReferenceView(), engine.getStoreView(), jobStore));
+            actions.addAll(removeCompletedJob(engine.getReferenceView(), engine.getStoreView(), jobStore, versionSupplier));
         }
 
         return actions;
@@ -209,10 +214,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
                     engine, vmService, kubeApiServerIntegrator, jobStore, TaskStatus.REASON_TASK_KILLED,
                     "Killing task as its job is in KillInitiated state", allowedTaskKills.get(),
+                    versionSupplier,
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
-                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, stuckInStateRateLimiter, titusRuntime);
+                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, versionSupplier, stuckInStateRateLimiter, titusRuntime);
             }
             allowedTaskKills.set(allowedTaskKills.get() - killInitiatedActions.size());
             return killInitiatedActions;
@@ -226,7 +232,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, stuckInStateRateLimiter, titusRuntime));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, versionSupplier, stuckInStateRateLimiter, titusRuntime));
 
         return actions;
     }
@@ -260,7 +266,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 List<ChangeAction> killActions = tasksToRemove.stream()
                         .filter(t -> !isTerminating(t))
                         .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, vmService, kubeApiServerIntegrator,
-                                jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task", titusRuntime)
+                                jobStore, versionSupplier, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task", titusRuntime)
                         )
                         .collect(Collectors.toList());
                 allowedTaskKills.set(allowedTaskKills.get() - killActions.size());
@@ -294,7 +300,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
-                createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), previousTask, clock, taskContext)
+                createOrReplaceTaskAction(configuration, jobStore, versionSupplier, refJobView.getJobHolder(), previousTask, clock, taskContext)
         );
         return Optional.of(storeAction);
     }
@@ -318,6 +324,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                                 refJobView.getJob(),
                                 refTask,
                                 RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build(),
+                                versionSupplier,
                                 titusRuntime
                         ));
                     }
@@ -415,10 +422,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 .orElse(false);
     }
 
-    private List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
+    private List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel,
+                                                  JobStore titusStore, VersionSupplier versionSupplier) {
         if (!hasJobState(referenceModel, JobState.Finished)) {
             if (hasJobState(referenceModel, JobState.KillInitiated) && DifferenceResolverUtils.allDone(storeModel)) {
-                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId()));
+                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId(), versionSupplier));
             }
         } else {
             if (!BasicJobActions.isClosed(referenceModel)) {

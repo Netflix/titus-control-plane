@@ -64,6 +64,7 @@ import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -139,6 +140,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.TimeWindowMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.TwoLevelResourceMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.UnhealthyTasksLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.UnlimitedDisruptionBudgetRateMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.VersionMixin;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.scheduler.model.Match;
@@ -272,6 +274,7 @@ public class ObjectMappers {
         objectMapper.addMixIn(Image.class, ImageMixin.class);
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
         objectMapper.addMixIn(NetworkConfiguration.class, NetworkConfigurationMixin.class);
+        objectMapper.addMixIn(Version.class, VersionMixin.class);
 
         objectMapper.addMixIn(IpAddressLocation.class, IpAddressLocationMixin.class);
         objectMapper.addMixIn(IpAddressAllocation.class, IpAddressAllocationMixin.class);
