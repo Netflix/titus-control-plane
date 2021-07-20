@@ -111,7 +111,8 @@ public class FallbackJobServiceGatewayTest {
                 cellConnector,
                 cellRouter,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration),
+                titusRuntime
         );
 
         remoteJobServiceGateway = new RemoteJobServiceGateway(fedConfig, fedConnector, cellRouter, grpcConfiguration);

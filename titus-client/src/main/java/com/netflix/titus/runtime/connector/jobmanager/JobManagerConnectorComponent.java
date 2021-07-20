@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 
 import javax.inject.Named;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
@@ -30,8 +31,8 @@ public class JobManagerConnectorComponent {
     public static final String JOB_MANAGER_CHANNEL = "jobManagerChannel";
 
     @Bean
-    public JobManagementClient getJobManagementClient(ReactorJobManagementServiceStub stub) {
-        return new RemoteJobManagementClient(stub);
+    public JobManagementClient getJobManagementClient(ReactorJobManagementServiceStub stub, TitusRuntime titusRuntime) {
+        return new RemoteJobManagementClient("extClient", stub, titusRuntime);
     }
 
     @Bean

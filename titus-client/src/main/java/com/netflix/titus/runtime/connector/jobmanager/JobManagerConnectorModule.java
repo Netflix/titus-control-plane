@@ -22,6 +22,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
@@ -31,11 +32,22 @@ public class JobManagerConnectorModule extends AbstractModule {
 
     public static final String MANAGED_CHANNEL_NAME = "ManagedChannel";
 
+    private final String clientName;
+
+    public JobManagerConnectorModule(String clientName) {
+        this.clientName = clientName;
+    }
+
     @Override
     protected void configure() {
-        bind(JobManagementClient.class).to(RemoteJobManagementClient.class);
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
+    }
+
+    @Provides
+    @Singleton
+    public JobManagementClient getJobManagementClient(ReactorJobManagementServiceStub stub, TitusRuntime titusRuntime) {
+        return new RemoteJobManagementClient(clientName, stub, titusRuntime);
     }
 
     @Provides

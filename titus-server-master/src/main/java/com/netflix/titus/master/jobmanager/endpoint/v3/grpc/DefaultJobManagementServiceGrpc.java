@@ -813,42 +813,46 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private List<JobChangeNotification> createJobsSnapshot(
             Predicate<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, List<com.netflix.titus.api.jobmanager.model.job.Task>>> jobsPredicate,
             Predicate<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task>> tasksPredicate) {
+        long now = titusRuntime.getClock().wallTime();
         List<JobChangeNotification> snapshot = new ArrayList<>();
 
         List<com.netflix.titus.api.jobmanager.model.job.Job<?>> coreJobs =
                 jobOperations.findJobs(jobsPredicate, 0, Integer.MAX_VALUE / 2);
-        coreJobs.forEach(coreJob -> snapshot.add(toJobChangeNotification(coreJob)));
+        coreJobs.forEach(coreJob -> snapshot.add(toJobChangeNotification(coreJob, now)));
 
         List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task>> coreTasks =
                 jobOperations.findTasks(tasksPredicate, 0, Integer.MAX_VALUE / 2);
-        coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task.getRight())));
+        coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task.getRight(), now)));
 
         return snapshot;
     }
 
     private List<JobChangeNotification> createJobSnapshot(String jobId) {
+        long now = titusRuntime.getClock().wallTime();
         List<JobChangeNotification> snapshot = new ArrayList<>();
 
         com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalArgumentException("Job with id " + jobId + " not found"));
-        snapshot.add(toJobChangeNotification(coreJob));
+        snapshot.add(toJobChangeNotification(coreJob, now));
 
         List<com.netflix.titus.api.jobmanager.model.job.Task> coreTasks = jobOperations.getTasks(jobId);
-        coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task)));
+        coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task, now)));
 
         return snapshot;
     }
 
-    private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob) {
+    private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob, long now) {
         Job grpcJob = grpcObjectsCache.getJob(coreJob);
         return JobChangeNotification.newBuilder()
                 .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder().setJob(grpcJob))
+                .setTimestamp(now)
                 .build();
     }
 
-    private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Task coreTask) {
+    private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Task coreTask, long now) {
         com.netflix.titus.grpc.protogen.Task grpcTask = grpcObjectsCache.getTask(coreTask);
         return JobChangeNotification.newBuilder()
                 .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(grpcTask))
+                .setTimestamp(now)
                 .build();
     }
 

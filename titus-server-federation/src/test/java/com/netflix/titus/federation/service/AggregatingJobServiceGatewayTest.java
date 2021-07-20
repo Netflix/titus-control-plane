@@ -35,7 +35,10 @@ import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.event.EventPropagationUtil;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -98,6 +101,8 @@ public class AggregatingJobServiceGatewayTest {
     private static final long GRPC_REQUEST_TIMEOUT_MS = 1_000L;
     private static final long GRPC_PRIMARY_FALLBACK_TIMEOUT_MS = 100L;
 
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     @Rule
     public GrpcServerRule remoteFederationRule = new GrpcServerRule().directExecutor();
 
@@ -156,7 +161,8 @@ public class AggregatingJobServiceGatewayTest {
                 cellConnector,
                 cellRouter,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration),
+                titusRuntime
         );
 
         clock = Clocks.test();
@@ -647,7 +653,9 @@ public class AggregatingJobServiceGatewayTest {
         expected.add(mergedMarker);
 
         testSubscriber.awaitValueCount(7, 1, TimeUnit.SECONDS);
-        List<JobChangeNotification> onNextEvents = testSubscriber.getOnNextEvents();
+        List<JobChangeNotification> onNextEvents = testSubscriber.getOnNextEvents().stream()
+                .map(this::removeEventPropagationData)
+                .collect(Collectors.toList());
         assertThat(onNextEvents).last().isEqualTo(mergedMarker);
         assertThat(onNextEvents).containsExactlyInAnyOrder(expected.toArray(new JobChangeNotification[expected.size()]));
 
@@ -658,9 +666,28 @@ public class AggregatingJobServiceGatewayTest {
         cellTwoUpdates.onNext(cellTwoUpdate);
 
         testSubscriber.awaitValueCount(9, 1, TimeUnit.SECONDS);
-        onNextEvents = testSubscriber.getOnNextEvents();
+        onNextEvents = testSubscriber.getOnNextEvents().stream()
+                .map(this::removeEventPropagationData)
+                .collect(Collectors.toList());
         assertThat(onNextEvents).last().isNotEqualTo(mergedMarker);
         assertThat(onNextEvents).contains(withStackName(cellOneUpdate), withStackName(cellTwoUpdate));
+    }
+
+    private JobChangeNotification removeEventPropagationData(JobChangeNotification event) {
+        if (event.getNotificationCase() == JobChangeNotification.NotificationCase.JOBUPDATE) {
+            JobDescriptor.Builder jobDescriptorBuilder = event.getJobUpdate().getJob().getJobDescriptor().toBuilder();
+            jobDescriptorBuilder.removeAttributes(EventPropagationUtil.EVENT_ATTRIBUTE_PROPAGATION_STAGES);
+            return event.toBuilder()
+                    .setJobUpdate(event.getJobUpdate().toBuilder()
+                            .setJob(event.getJobUpdate().getJob().toBuilder()
+                                    .setJobDescriptor(jobDescriptorBuilder.build())
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build();
+        }
+        return event;
     }
 
     @Test
@@ -846,8 +873,6 @@ public class AggregatingJobServiceGatewayTest {
         assertThat(createdJob).isPresent();
         assertThat(createdJob.get().getAttributesMap()).containsEntry(JOB_ATTRIBUTES_STACK, stackName);
     }
-
-
 
     private List<Job> walkAllFindJobsPages(int pageWalkSize) {
         return walkAllPages(

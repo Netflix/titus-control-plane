@@ -32,6 +32,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.StringExt;
@@ -69,6 +70,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationUtil;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
@@ -87,6 +89,7 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_ST
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
+import static com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationUtil.CHECKPOINT_FED_CLIENT;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.emptyGrpcPagination;
@@ -104,6 +107,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     private final CellConnector cellConnector;
     private final AggregatingCellClient aggregatingClient;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
+    private final TitusRuntime titusRuntime;
     private final CellRouter router;
 
     @Inject
@@ -112,7 +116,8 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                                         CellConnector cellConnector,
                                         CellRouter router,
                                         AggregatingCellClient aggregatingClient,
-                                        AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
+                                        AggregatingJobManagementServiceHelper jobManagementServiceHelper,
+                                        TitusRuntime titusRuntime) {
 
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
@@ -120,6 +125,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         this.router = router;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -493,10 +499,12 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         switch (notification.getNotificationCase()) {
             case JOBUPDATE:
                 Job job = addStackName(notification.getJobUpdate().getJob());
+                job = JobEventPropagationUtil.recordChannelLatency(CHECKPOINT_FED_CLIENT, job, notification.getTimestamp(), titusRuntime.getClock());
                 JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();
                 return notification.toBuilder().setJobUpdate(jobUpdate).build();
             case TASKUPDATE:
                 Task task = addStackName(notification.getTaskUpdate().getTask());
+                task = JobEventPropagationUtil.recordChannelLatency(CHECKPOINT_FED_CLIENT, task, notification.getTimestamp(), titusRuntime.getClock());
                 TaskUpdate taskUpdate = notification.getTaskUpdate().toBuilder().setTask(task).build();
                 return notification.toBuilder().setTaskUpdate(taskUpdate).build();
             default:

@@ -126,7 +126,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer,
                                     TitusRuntime titusRuntime) {
         super(new SanitizingJobServiceGateway(
-                new GrpcJobServiceGateway(client, tunablesConfiguration),
+                new GrpcJobServiceGateway(client, tunablesConfiguration, titusRuntime),
                 new ExtendedJobSanitizer(
                         jobManagerConfiguration,
                         jobAssertions,
