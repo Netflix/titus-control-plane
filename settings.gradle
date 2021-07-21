@@ -16,7 +16,7 @@ include 'titus-common',\
         'titus-server-runtime',\
         'titus-testkit'
 
-['kube', 'elasticsearch'].each {
+['kube', 'elasticsearch', 'jooq-common'].each {
     def projectName = "titus-common-ext-$it"
     include projectName
 
@@ -41,7 +41,6 @@ include 'titus-common',\
  'cassandra-testkit',
  'eureka',
  'job-validator',
- 'jooq-common',
  'jooq-relocation',
  'jooq-activity-queue',
  'jooq-job-activity-history',

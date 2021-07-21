@@ -19,14 +19,12 @@ ext.jooqVersion = '3.13.2'
 ext.psql = '42.2.8'
 
 dependencies {
-    compile "org.springframework:spring-web:${springVersion}"
-    compile "org.springframework.boot:spring-boot:${springBootVersion}"
-
     compile project(':titus-common')
     compile project(':titus-api')
-    compile project(':titus-server-runtime')
 
     implementation("org.jooq:jooq:${jooqVersion}")
+
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonVersion}"
 
     // DB -  Drivers
     compile "org.postgresql:postgresql:${psql}"
@@ -43,7 +41,6 @@ dependencies {
 
     // Hikari DataSource for connection pooling to the DB
     compile 'com.zaxxer:HikariCP:3.2.0'
-    compile project(':titus-server-runtime')
 
     testCompile project(':titus-testkit')
 }

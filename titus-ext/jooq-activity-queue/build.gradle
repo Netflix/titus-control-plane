@@ -31,7 +31,7 @@ dependencies {
 
     compile project(':titus-common')
     compile project(':titus-api')
-    compile project(':titus-ext-jooq-common')
+    compile project(':titus-common-ext-jooq-common')
 
     implementation("org.jooq:jooq:${jooqVersion}")
 
