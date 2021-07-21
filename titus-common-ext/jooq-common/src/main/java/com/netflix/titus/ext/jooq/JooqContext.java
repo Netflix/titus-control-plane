@@ -28,4 +28,7 @@ public interface JooqContext {
     DataSource getDataSource();
 
     DefaultDSLContext getDslContext();
+
+    default void close() {
+    }
 }

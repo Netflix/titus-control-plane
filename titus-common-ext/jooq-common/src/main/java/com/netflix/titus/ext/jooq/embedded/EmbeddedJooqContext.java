@@ -37,7 +37,7 @@ public class EmbeddedJooqContext implements JooqContext {
 
     private static final SQLDialect DEFAULT_DIALECT = SQLDialect.POSTGRES;
 
-    private final DataSource dataSource;
+    private final HikariDataSource dataSource;
     private final EmbeddedPostgresService embeddedPostgresService;
     private final DefaultDSLContext dslContext;
 
@@ -77,6 +77,11 @@ public class EmbeddedJooqContext implements JooqContext {
 
         this.dataSource = new HikariDataSource(hikariConfig);
         this.dslContext = new DefaultDSLContext(dataSource, DEFAULT_DIALECT);
+    }
+
+    public void close() {
+        dslContext.close();
+        dataSource.close();
     }
 
     public DataSource getDataSource() {
