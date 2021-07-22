@@ -48,6 +48,7 @@ import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.FeatureFlagModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorModule;
+import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationUtil;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerDataReplicationModule;
 import com.netflix.titus.runtime.connector.machine.MachineConnectorModule;
@@ -106,7 +107,7 @@ public final class TitusGatewayModule extends AbstractModule {
 
         install(new GatewayEndpointModule(enableREST));
         install(new TitusMasterConnectorModule());
-        install(new JobManagerConnectorModule());
+        install(new JobManagerConnectorModule(JobEventPropagationUtil.CHECKPOINT_GATEWAY_CLIENT));
         install(new JobManagerDataReplicationModule());
         install(new EvictionConnectorModule());
         install(new MachineConnectorModule());

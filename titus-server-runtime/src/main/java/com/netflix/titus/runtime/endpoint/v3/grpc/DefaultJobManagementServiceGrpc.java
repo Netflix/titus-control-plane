@@ -23,6 +23,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.SystemLogService;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
@@ -69,14 +70,17 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final JobServiceGateway jobServiceGateway;
     private final SystemLogService systemLog;
     private final CallMetadataResolver callMetadataResolver;
+    private final TitusRuntime titusRuntime;
 
     @Inject
     public DefaultJobManagementServiceGrpc(JobServiceGateway jobServiceGateway,
                                            SystemLogService systemLog,
-                                           CallMetadataResolver callMetadataResolver) {
+                                           CallMetadataResolver callMetadataResolver,
+                                           TitusRuntime titusRuntime) {
         this.jobServiceGateway = jobServiceGateway;
         this.systemLog = systemLog;
         this.callMetadataResolver = callMetadataResolver;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -152,7 +156,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
         Subscription subscription = jobServiceGateway.observeJobs(request, resolveCallMetadata()).subscribe(
-                responseObserver::onNext,
+                value -> responseObserver.onNext(
+                        value.toBuilder().setTimestamp(titusRuntime.getClock().wallTime()).build()
+                ),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );

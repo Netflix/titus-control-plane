@@ -39,6 +39,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.PageResult;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -62,11 +63,15 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class RemoteJobManagementClient implements JobManagementClient {
 
+    private final String clientName;
     private final ReactorJobManagementServiceStub stub;
+    private final TitusRuntime titusRuntime;
 
     @Inject
-    public RemoteJobManagementClient(ReactorJobManagementServiceStub stub) {
+    public RemoteJobManagementClient(String clientName, ReactorJobManagementServiceStub stub, TitusRuntime titusRuntime) {
+        this.clientName = clientName;
         this.stub = stub;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -186,7 +191,13 @@ public class RemoteJobManagementClient implements JobManagementClient {
                     .map(event -> {
                         switch (event.getNotificationCase()) {
                             case JOBUPDATE:
-                                Job newJob = GrpcJobManagementModelConverters.toCoreJob(event.getJobUpdate().getJob());
+                                Job newJob = JobEventPropagationUtil.recordChannelLatency(
+                                        clientName,
+                                        GrpcJobManagementModelConverters.toCoreJob(event.getJobUpdate().getJob()),
+                                        event.getTimestamp(),
+                                        titusRuntime.getClock()
+                                );
+
                                 Job oldJob = jobMap.get(newJob.getId());
                                 jobMap.put(newJob.getId(), newJob);
                                 return oldJob == null
@@ -196,7 +207,12 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 com.netflix.titus.grpc.protogen.Task grpcTask = event.getTaskUpdate().getTask();
                                 Job job = jobMap.get(grpcTask.getJobId());
 
-                                Task newTask = GrpcJobManagementModelConverters.toCoreTask(job, grpcTask);
+                                Task newTask = JobEventPropagationUtil.recordChannelLatency(
+                                        clientName,
+                                        GrpcJobManagementModelConverters.toCoreTask(job, grpcTask),
+                                        event.getTimestamp(),
+                                        titusRuntime.getClock()
+                                );
                                 Task oldTask = taskMap.get(newTask.getId());
                                 taskMap.put(newTask.getId(), newTask);
 

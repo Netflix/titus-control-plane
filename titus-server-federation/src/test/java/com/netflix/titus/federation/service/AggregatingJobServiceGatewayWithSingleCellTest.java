@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.model.Page;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.federation.service.router.ApplicationCellRouter;
@@ -59,6 +61,8 @@ import static org.mockito.Mockito.when;
 
 public class AggregatingJobServiceGatewayWithSingleCellTest {
     private static final int TASKS_IN_GENERATED_JOBS = 10;
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     @Rule
     public GrpcServerRule remoteFederationRule = new GrpcServerRule().directExecutor();
@@ -109,7 +113,8 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
                 cellConnector,
                 cellRouter,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration),
+                titusRuntime
         );
 
         clock = Clocks.test();

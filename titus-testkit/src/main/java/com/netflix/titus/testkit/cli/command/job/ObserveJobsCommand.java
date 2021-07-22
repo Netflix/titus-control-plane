@@ -16,19 +16,25 @@
 
 package com.netflix.titus.testkit.cli.command.job;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.netflix.titus.grpc.protogen.JobChangeNotification;
-import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
+import com.netflix.titus.common.util.event.EventPropagationTrace;
+import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationMetrics;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
 import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
+import reactor.core.publisher.Flux;
 
 /**
  */
@@ -55,19 +61,35 @@ public class ObserveJobsCommand implements CliCommand {
 
     @Override
     public void execute(CommandContext context) throws Exception {
-        RxGrpcJobManagementService service = new RxGrpcJobManagementService(context.createChannel());
-        Observable<JobChangeNotification> events;
+        JobManagementClient service = context.getJobManagementClient();
+        Flux<JobManagerEvent<?>> events;
 
         if (context.getCLI().hasOption('i')) {
             String jobId = context.getCLI().getOptionValue('i');
-            events = service.observeJob(JobId.newBuilder().setId(jobId).build());
+            events = service.observeJob(jobId);
         } else {
-            events = service.observeJobs();
+            events = service.observeJobs(Collections.emptyMap());
         }
 
+        JobEventPropagationMetrics metrics = JobEventPropagationMetrics.newExternalClientMetrics("cli", context.getTitusRuntime());
+
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicBoolean snapshotRead = new AtomicBoolean();
         events.subscribe(
-                next -> logger.info("Emitted: {}", next),
+                next -> {
+                    logger.info("Emitted: {}", next);
+                    if (next == JobManagerEvent.snapshotMarker()) {
+                        snapshotRead.set(true);
+                    } else if (next instanceof JobUpdateEvent) {
+                        Optional<EventPropagationTrace> trace = metrics.recordJob(((JobUpdateEvent) next).getCurrent(), !snapshotRead.get());
+                        trace.ifPresent(t -> {
+                            logger.info("Event propagation data: stages={}", t);
+                        });
+                    } else if (next instanceof TaskUpdateEvent) {
+                        Optional<EventPropagationTrace> trace = metrics.recordTask(((TaskUpdateEvent) next).getCurrent(), !snapshotRead.get());
+                        trace.ifPresent(t -> logger.info("Event propagation data: {}", t));
+                    }
+                },
                 e -> {
                     ErrorReports.handleReplyError("Error in the event stream", e);
                     latch.countDown();

@@ -101,6 +101,13 @@ public final class SpectatorExt {
     }
 
     /**
+     * Collection of counters for value ranges.
+     */
+    public static ValueRangeCounter newValueRangeCounter(Id rootId, long[] levels, Registry registry) {
+        return new ValueRangeCounter(rootId, levels, registry);
+    }
+
+    /**
      * Creates a composite gauge consisting of a set of basic gauges each with a unique set of discerning tags.
      */
     public static MultiDimensionalGauge multiDimensionalGauge(Id rootId, Collection<String> discerningTagNames, Registry registry) {

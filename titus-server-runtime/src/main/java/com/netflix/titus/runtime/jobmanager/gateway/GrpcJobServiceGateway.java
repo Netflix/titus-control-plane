@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
@@ -45,6 +46,7 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationUtil;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -52,6 +54,7 @@ import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
+import static com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationUtil.CHECKPOINT_GATEWAY_CLIENT;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createMonoVoidRequest;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
@@ -66,12 +69,15 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
     private final GrpcRequestConfiguration configuration;
+    private final TitusRuntime titusRuntime;
 
     @Inject
     public GrpcJobServiceGateway(JobManagementServiceGrpc.JobManagementServiceStub client,
-                                 GrpcRequestConfiguration configuration) {
+                                 GrpcRequestConfiguration configuration,
+                                 TitusRuntime titusRuntime) {
         this.client = client;
         this.configuration = configuration;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -182,9 +188,36 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
-        return createRequestObservable(emitter -> {
+        Observable<JobChangeNotification> source = createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, callMetadata).observeJobs(query, streamObserver);
+        });
+        return source.map(event -> {
+            if (event.getNotificationCase() == JobChangeNotification.NotificationCase.JOBUPDATE) {
+                return event.toBuilder().setJobUpdate(
+                        event.getJobUpdate().toBuilder()
+                                .setJob(JobEventPropagationUtil.recordChannelLatency(
+                                        CHECKPOINT_GATEWAY_CLIENT,
+                                        event.getJobUpdate().getJob(),
+                                        event.getTimestamp(),
+                                        titusRuntime.getClock()
+                                ))
+                                .build()
+                ).build();
+            }
+            if (event.getNotificationCase() == JobChangeNotification.NotificationCase.TASKUPDATE) {
+                return event.toBuilder().setTaskUpdate(
+                        event.getTaskUpdate().toBuilder()
+                                .setTask(JobEventPropagationUtil.recordChannelLatency(
+                                        CHECKPOINT_GATEWAY_CLIENT,
+                                        event.getTaskUpdate().getTask(),
+                                        event.getTimestamp(),
+                                        titusRuntime.getClock()
+                                ))
+                                .build()
+                ).build();
+            }
+            return event;
         });
     }
 

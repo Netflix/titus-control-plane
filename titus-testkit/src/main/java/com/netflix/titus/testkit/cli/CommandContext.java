@@ -21,13 +21,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.agent.RemoteAgentManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.ReactorJobManagementServiceStub;
+import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClient;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CommonCallMetadataUtils;
 import io.grpc.ManagedChannel;
@@ -45,6 +51,8 @@ public class CommandContext {
 
     private static final int DEFAULT_PORT = 8980;
 
+    protected final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     protected final CommandLine commandLine;
     protected final String region;
     protected final String host;
@@ -60,6 +68,10 @@ public class CommandContext {
 
     public CommandLine getCLI() {
         return commandLine;
+    }
+
+    public TitusRuntime getTitusRuntime() {
+        return titusRuntime;
     }
 
     public String getRegion() {
@@ -93,6 +105,15 @@ public class CommandContext {
                         .build();
             }
         };
+    }
+
+    public JobManagementClient getJobManagementClient() {
+        ReactorJobManagementServiceStub reactorStub = getGrpcToReactorClientFactory().apply(
+                JobManagementServiceGrpc.newStub(createChannel()),
+                ReactorJobManagementServiceStub.class,
+                JobManagementServiceGrpc.getServiceDescriptor()
+        );
+        return new RemoteJobManagementClient("cli", reactorStub, titusRuntime);
     }
 
     public AgentManagementClient getAgentManagementClient() {
