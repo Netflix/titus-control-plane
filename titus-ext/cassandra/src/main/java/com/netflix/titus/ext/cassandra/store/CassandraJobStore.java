@@ -47,6 +47,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
@@ -268,7 +269,7 @@ public class CassandraJobStore implements JobStore {
 
                         Job<?> job;
                         try {
-                            job = ObjectMappers.readValue(mapper, effectiveValue, Job.class);
+                            job = deserializeJob(effectiveValue);
                         } catch (Exception e) {
                             logger.error("Cannot map serialized job data to Job class: {}", effectiveValue, e);
                             return Either.ofError(e);
@@ -321,7 +322,7 @@ public class CassandraJobStore implements JobStore {
                 throw JobStoreException.jobDoesNotExist(jobId);
             }
             String value = row.getString(0);
-            return (Job<?>) ObjectMappers.readValue(mapper, value, Job.class);
+            return deserializeJob(value);
         }));
     }
 
@@ -720,6 +721,9 @@ public class CassandraJobStore implements JobStore {
                             return Observable.just(type.cast(row.getLong(0)));
                         }
                         String value = row.getString(0);
+                        if (type.isAssignableFrom(Job.class)) {
+                            return Observable.just(type.cast(deserializeJob(value)));
+                        }
                         if (type.isAssignableFrom(Task.class)) {
                             return Observable.just(type.cast(deserializeTask(value)));
                         }
@@ -730,6 +734,32 @@ public class CassandraJobStore implements JobStore {
                 });
     }
 
+    private Job<?> ensureHasVersion(Job<?> job) {
+        if (job.getVersion() == null || job.getVersion().getTimestamp() < 0) {
+            if (job.getStatus() != null) {
+                Version newVersion = Version.newBuilder().withTimestamp(job.getStatus().getTimestamp()).build();
+                return job.toBuilder().withVersion(newVersion).build();
+            }
+        }
+        return job;
+    }
+
+    private Task ensureHasVersion(Task task) {
+        if (task.getVersion() == null || task.getVersion().getTimestamp() < 0) {
+            if (task.getStatus() != null) {
+                Version newVersion = Version.newBuilder().withTimestamp(task.getStatus().getTimestamp()).build();
+                return task.toBuilder().withVersion(newVersion).build();
+            }
+        }
+        return task;
+    }
+
+    private Job<?> deserializeJob(String value) {
+        Job job = ObjectMappers.readValue(mapper, value, Job.class);
+        job = ensureHasVersion(job);
+        return job;
+    }
+
     private Task deserializeTask(String value) {
         Task task = ObjectMappers.readValue(mapper, value, Task.class);
 
@@ -737,6 +767,8 @@ public class CassandraJobStore implements JobStore {
         if (task.getAttributes() == null) {
             task = task.toBuilder().withAttributes(Collections.emptyMap()).build();
         }
+
+        task = ensureHasVersion(task);
 
         return task;
     }

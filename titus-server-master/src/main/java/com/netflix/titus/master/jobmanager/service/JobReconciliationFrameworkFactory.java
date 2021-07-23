@@ -439,7 +439,7 @@ public class JobReconciliationFrameworkFactory {
 
         // If version is missing (old job objects) create one based on the current job state.
         Job jobWithVersion = job;
-        if (job.getVersion() == null) {
+        if (job.getVersion() == null || job.getVersion().getTimestamp() < 0) {
             Version newVersion = Version.newBuilder().withTimestamp(job.getStatus().getTimestamp()).build();
             jobWithVersion = job.toBuilder().withVersion(newVersion).build();
         }
@@ -467,7 +467,7 @@ public class JobReconciliationFrameworkFactory {
 
         // If version is missing (old task objects) create one based on the current task state.
         Task taskWithVersion = task;
-        if (task.getVersion() == null) {
+        if (task.getVersion() == null || task.getVersion().getTimestamp() < 0) {
             Version newVersion = Version.newBuilder().withTimestamp(task.getStatus().getTimestamp()).build();
             taskWithVersion = task.toBuilder().withVersion(newVersion).build();
         }

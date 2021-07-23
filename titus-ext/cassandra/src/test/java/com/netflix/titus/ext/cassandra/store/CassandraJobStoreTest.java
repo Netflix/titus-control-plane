@@ -33,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
@@ -89,7 +90,7 @@ public class CassandraJobStoreTest {
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
         assertThat(jobsAndErrors.getLeft()).hasSize(1);
         assertThat(jobsAndErrors.getRight()).isEqualTo(0);
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
 
         // Check that archive access does not return anything.
         try {
@@ -115,7 +116,7 @@ public class CassandraJobStoreTest {
         store.storeJob(job).await();
         store.init().await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
     }
 
     @Test
@@ -125,7 +126,7 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
     }
 
     /**
@@ -189,13 +190,13 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Job<BatchJobExt> newJob = job.toBuilder()
                 .withStatus(JobStatus.newBuilder().withState(JobState.Finished).build())
                 .build();
         store.updateJob(newJob).await();
         Pair<List<Job<?>>, Integer> newJobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(newJobsAndErrors.getLeft().get(0)).isEqualTo(newJob);
+        checkRetrievedJob(newJob, newJobsAndErrors.getLeft().get(0));
     }
 
     @Test
@@ -205,7 +206,7 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         store.deleteJob(job).await();
         jobsAndErrors = store.retrieveJobs().toBlocking().first();
         assertThat(jobsAndErrors.getLeft()).isEmpty();
@@ -218,11 +219,11 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
-        assertThat(tasks.getLeft().get(0)).isEqualTo(task);
+        checkRetrievedTask(task, tasks.getLeft().get(0));
 
         // Check that archive access does not return anything.
         Task archivedTask = store.retrieveArchivedTasksForJob(job.getId()).toBlocking().firstOrDefault(null);
@@ -236,11 +237,11 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
-        assertThat(task).isEqualTo(retrievedTask);
+        checkRetrievedTask(task, retrievedTask);
 
         // Check that archive access does not return anything.
         try {
@@ -258,11 +259,11 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
-        assertThat(task).isEqualTo(retrievedTask);
+        checkRetrievedTask(task, retrievedTask);
     }
 
     @Test
@@ -272,17 +273,17 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
-        assertThat(task).isEqualTo(retrievedTask);
+        checkRetrievedTask(task, retrievedTask);
         BatchJobTask newTask = BatchJobTask.newBuilder((BatchJobTask) task)
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
         store.updateTask(newTask).await();
         Task newRetrievedTask = store.retrieveTask(newTask.getId()).toBlocking().first();
-        assertThat(newTask).isEqualTo(newRetrievedTask);
+        checkRetrievedTask(newTask, newRetrievedTask);
     }
 
     @Test
@@ -292,17 +293,17 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task firstTask = createTaskObject(job);
         store.storeTask(firstTask).await();
         Task retrievedTask = store.retrieveTask(firstTask.getId()).toBlocking().first();
-        assertThat(firstTask).isEqualTo(retrievedTask);
+        checkRetrievedTask(firstTask, retrievedTask);
         Task secondTask = createTaskObject(job);
         store.replaceTask(firstTask, secondTask).await();
         Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
         assertThat(tasks.getLeft()).hasSize(1);
         assertThat(tasks.getRight()).isEqualTo(0);
-        assertThat(tasks.getLeft().get(0)).isEqualTo(secondTask);
+        checkRetrievedTask(secondTask, tasks.getLeft().get(0));
     }
 
     @Test
@@ -312,11 +313,11 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
-        assertThat(task).isEqualTo(retrievedTask);
+        checkRetrievedTask(task, retrievedTask);
         store.deleteTask(task).await();
         Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
         assertThat(tasks.getLeft()).isEmpty();
@@ -342,7 +343,7 @@ public class CassandraJobStoreTest {
             store.deleteJob(job).await();
         }
         Job archivedJob = store.retrieveArchivedJob(job.getId()).toBlocking().first();
-        assertThat(archivedJob).isEqualTo(job);
+        checkRetrievedJob(job, archivedJob);
     }
 
     @Test
@@ -361,14 +362,14 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createFinishedTaskObject(job);
         store.storeTask(task).await();
         if (archive) {
             store.deleteTask(task).await();
         }
         Task archivedTask = store.retrieveArchivedTasksForJob(job.getId()).toBlocking().first();
-        assertThat(archivedTask).isEqualTo(task);
+        checkRetrievedTask(task, archivedTask);
     }
 
     @Test
@@ -387,14 +388,14 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createFinishedTaskObject(job);
         store.storeTask(task).await();
         if (archive) {
             store.deleteTask(task).await();
         }
         Task archivedTask = store.retrieveArchivedTask(task.getId()).toBlocking().first();
-        assertThat(archivedTask).isEqualTo(task);
+        checkRetrievedTask(task, archivedTask);
     }
 
     @Test
@@ -439,7 +440,7 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createFinishedTaskObject(job);
         store.storeTask(task).await();
         store.deleteTask(task).await();
@@ -454,7 +455,7 @@ public class CassandraJobStoreTest {
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
-        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+        checkRetrievedJob(job, jobsAndErrors.getLeft().get(0));
         Task task = createFinishedTaskObject(job);
         store.storeTask(task).await();
         store.deleteTask(task).await();
@@ -513,6 +514,29 @@ public class CassandraJobStoreTest {
         return ServiceJobTask.newBuilder()
                 .withId(taskId)
                 .withJobId(job.getId())
+                .withStatus(TaskStatus.newBuilder()
+                        .withState(TaskState.Accepted)
+                        .withTimestamp(System.currentTimeMillis())
+                        .build()
+                )
                 .build();
+    }
+
+    private void checkRetrievedJob(Job<?> job, Job<?> retrievedJob) {
+        if (job.getVersion().equals(Version.undefined())) {
+            assertThat(retrievedJob.getVersion().getTimestamp()).isEqualTo(job.getStatus().getTimestamp());
+            assertThat(retrievedJob.toBuilder().withVersion(Version.undefined()).build()).isEqualTo(job);
+        } else {
+            assertThat(retrievedJob).isEqualTo(job);
+        }
+    }
+
+    private void checkRetrievedTask(Task task, Task retrievedTask) {
+        if (task.getVersion().equals(Version.undefined())) {
+            assertThat(retrievedTask.getVersion().getTimestamp()).isEqualTo(task.getStatus().getTimestamp());
+            assertThat(retrievedTask.toBuilder().withVersion(Version.undefined()).build()).isEqualTo(task);
+        } else {
+            assertThat(retrievedTask).isEqualTo(task);
+        }
     }
 }
