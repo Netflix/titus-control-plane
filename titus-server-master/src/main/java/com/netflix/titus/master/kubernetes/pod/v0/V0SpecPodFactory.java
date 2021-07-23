@@ -127,8 +127,10 @@ public class V0SpecPodFactory implements PodFactory {
 
         V1Container container = new V1Container()
                 .name(taskId)
-                .image("imageIsInContainerInfo")
+                .image(job.getJobDescriptor().getContainer().getImage().toString())
                 .env(toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
+                .command(job.getJobDescriptor().getContainer().getCommand())
+                .args(job.getJobDescriptor().getContainer().getEntryPoint())
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
 
         String schedulerName = FENZO_SCHEDULER;
