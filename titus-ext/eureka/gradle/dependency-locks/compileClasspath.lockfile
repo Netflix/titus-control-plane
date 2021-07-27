@@ -181,6 +181,7 @@ org.mock-server:mockserver-client-java:3.10.4
 org.mock-server:mockserver-core:3.10.4
 org.mock-server:mockserver-netty:3.10.4
 org.mozilla:rhino:1.7R4
+org.pcollections:pcollections:3.1.4
 org.reactivestreams:reactive-streams:1.0.3
 org.reflections:reflections:0.9.10
 org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4

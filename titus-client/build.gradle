@@ -20,5 +20,7 @@ dependencies {
     compile project(':titus-api')
     compile project(':titus-grpc-api')
 
+    compile "org.pcollections:pcollections:3.1.4"
+
     testCompile project(':titus-testkit')
 }
