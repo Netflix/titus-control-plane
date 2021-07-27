@@ -18,10 +18,10 @@ package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -38,6 +38,7 @@ import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetri
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -49,22 +50,26 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
     private final JobManagementClient client;
     private final Map<String, String> filteringCriteria;
+    private final JobSnapshotFactory jobSnapshotFactory;
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
+                                        JobSnapshotFactory jobSnapshotFactory,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
-        this(client, Collections.emptyMap(), metrics, titusRuntime, scheduler);
+        this(client, Collections.emptyMap(), jobSnapshotFactory, metrics, titusRuntime, scheduler);
     }
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         Map<String, String> filteringCriteria,
+                                        JobSnapshotFactory jobSnapshotFactory,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
         super(metrics, titusRuntime, scheduler);
         this.client = client;
         this.filteringCriteria = filteringCriteria;
+        this.jobSnapshotFactory = jobSnapshotFactory;
     }
 
     @Override
@@ -111,27 +116,29 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         }
 
         private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> buildInitialCache() {
-            JobSnapshot.Builder builder = JobSnapshot.newBuilder(UUID.randomUUID().toString());
-
+            Map<String, Job<?>> jobs = new HashMap<>();
+            Map<String, List<Task>> tasksByJobId = new HashMap<>();
             snapshotEvents.forEach(event -> {
                 if (event instanceof JobUpdateEvent) {
-                    builder.addOrUpdateJob(((JobUpdateEvent) event).getCurrent());
+                    Job<?> job = ((JobUpdateEvent) event).getCurrent();
+                    jobs.put(job.getId(), job);
                 } else if (event instanceof TaskUpdateEvent) {
                     TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
                     Task task = taskUpdateEvent.getCurrent();
-                    Job<?> taskJob = builder.getJob(task.getJobId());
+                    Job<?> taskJob = jobs.get(task.getJobId());
                     if (taskJob != null) {
-                        builder.addOrUpdateTask(task, taskUpdateEvent.isMovedFromAnotherJob());
+                        tasksByJobId.computeIfAbsent(task.getJobId(), t -> new ArrayList<>()).add(task);
                     } else {
                         titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                     }
                 }
             });
 
+            JobSnapshot initialSnapshot = jobSnapshotFactory.newSnapshot(jobs, tasksByJobId);
+
             // No longer needed
             snapshotEvents.clear();
 
-            JobSnapshot initialSnapshot = builder.build();
             lastJobSnapshotRef.set(initialSnapshot);
 
             logger.info("Job snapshot loaded: {}", initialSnapshot.toSummaryString());

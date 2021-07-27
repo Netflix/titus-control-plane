@@ -34,10 +34,12 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
@@ -83,8 +85,8 @@ class NeedsMigrationQueryHandler {
         matchingTasks.forEach(task -> matchingJobIds.add(task.getJobId()));
 
         List<com.netflix.titus.grpc.protogen.Job> jobsToReturn = new ArrayList<>();
-        List<Job<?>> allJobs = jobDataReplicator.getCurrent().getJobs();
-        allJobs.forEach(job -> {
+        Map<String, Job<?>> allJobs = jobDataReplicator.getCurrent().getJobMap();
+        allJobs.forEach((jobId, job) -> {
             if (matchingJobIds.contains(job.getId())) {
                 jobsToReturn.add(GrpcJobManagementModelConverters.toGrpcJob(job));
             }
@@ -116,31 +118,32 @@ class NeedsMigrationQueryHandler {
     }
 
     private List<com.netflix.titus.grpc.protogen.Task> findMatchingTasks(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria) {
-        List<Pair<Job<?>, List<Task>>> jobsAndTasks = jobDataReplicator.getCurrent().getJobsAndTasks();
+        JobSnapshot jobSnapshot = jobDataReplicator.getCurrent();
+        Map<String, Job<?>> jobMap = jobSnapshot.getJobMap();
+
         Map<String, TaskRelocationPlan> relocationPlans = relocationDataReplicator.getCurrent().getPlans();
 
         V3TaskQueryCriteriaEvaluator queryFilter = new V3TaskQueryCriteriaEvaluator(queryCriteria, titusRuntime);
         V3TaskQueryCriteriaEvaluator queryFilterWithoutNeedsMigration = new V3TaskQueryCriteriaEvaluator(filterOutNeedsMigration(queryCriteria), titusRuntime);
 
         List<com.netflix.titus.grpc.protogen.Task> matchingTasks = new ArrayList<>();
-        jobsAndTasks.forEach(jobTasksPair -> {
-            Job<?> job = jobTasksPair.getLeft();
-            List<Task> tasks = jobTasksPair.getRight();
-            tasks.forEach(task -> {
-
-                TaskRelocationPlan plan = relocationPlans.get(task.getId());
-
-                Pair<Job<?>, Task> jobTaskPair = Pair.of(job, task);
-                if (plan != null) {
-                    if (queryFilterWithoutNeedsMigration.test(jobTaskPair)) {
-                        matchingTasks.add(newTaskWithRelocationPlan(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo), plan));
+        jobMap.forEach((jobId, job) -> {
+            List<Task> tasks = jobSnapshot.getTasks(jobId);
+            if (!CollectionsExt.isNullOrEmpty(tasks)) {
+                tasks.forEach(task -> {
+                    TaskRelocationPlan plan = relocationPlans.get(task.getId());
+                    Pair<Job<?>, Task> jobTaskPair = Pair.of(job, task);
+                    if (plan != null) {
+                        if (queryFilterWithoutNeedsMigration.test(jobTaskPair)) {
+                            matchingTasks.add(newTaskWithRelocationPlan(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo), plan));
+                        }
+                    } else {
+                        if (queryFilter.test(jobTaskPair)) {
+                            matchingTasks.add(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo));
+                        }
                     }
-                } else {
-                    if (queryFilter.test(jobTaskPair)) {
-                        matchingTasks.add(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo));
-                    }
-                }
-            });
+                });
+            }
         });
         return matchingTasks;
     }
