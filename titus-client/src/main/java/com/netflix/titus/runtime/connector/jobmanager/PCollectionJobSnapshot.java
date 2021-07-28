@@ -26,10 +26,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
@@ -191,11 +193,11 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         }
 
         if (task.getStatus().getState() == TaskState.Finished) {
-            return Optional.of(removeTask(task));
+            return Optional.of(removeTask(task, moved));
         } else if (previous == null) {
             return Optional.of(addNewTask(task));
         }
-        return Optional.of(updateExistingTask(task));
+        return Optional.of(updateExistingTask(task, moved));
     }
 
     private JobSnapshot addNewJob(Job<?> job) {
@@ -217,11 +219,18 @@ public class PCollectionJobSnapshot extends JobSnapshot {
     }
 
     private JobSnapshot removeJob(Job<?> job) {
+        PMap<String, Task> newTaskById = taskById;
+        for (Task task : taskById.values()) {
+            if (task.getJobId().equals(job.getId())) {
+                newTaskById = newTaskById.minus(task.getId());
+            }
+        }
+
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById.minus(job.getId()),
                 tasksByJobId.minus(job.getId()),
-                taskById
+                newTaskById
         );
     }
 
@@ -233,11 +242,16 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 this.snapshotId,
                 jobsById,
                 newTasksByJobId,
-                taskById
+                taskById.plus(task.getId(), task)
         );
     }
 
-    private JobSnapshot updateExistingTask(Task task) {
+    private JobSnapshot updateExistingTask(Task task, boolean moved) {
+        if (moved) {
+            PCollectionJobSnapshot snapshot = (PCollectionJobSnapshot) removeTask(task, true);
+            return snapshot.addNewTask(task);
+        }
+
         String jobId = task.getJobId();
 
         // tasksByJobId
@@ -253,19 +267,22 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         );
     }
 
-    private JobSnapshot removeTask(Task task) {
-        String jobId = task.getJobId();
+    private JobSnapshot removeTask(Task task, boolean moved) {
+        String jobIdIndexToUpdate = moved ?
+                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB) :
+                task.getJobId();
+        Preconditions.checkArgument(StringExt.isNotEmpty(jobIdIndexToUpdate));
 
         // tasksByJobId
-        PSequence<Task> newTasks = removeTask(task, tasksByJobId.get(jobId));
+        PSequence<Task> newTasks = removeTask(task, tasksByJobId.get(jobIdIndexToUpdate));
         Preconditions.checkNotNull(newTasks, "Inconsistent job snapshot. Task %s not found in tasksByJobId collection", task.getId());
-        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
+        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobIdIndexToUpdate, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById,
                 newTasksByJobId,
-                taskById.plus(task.getId(), task)
+                taskById.minus(task.getId())
         );
     }
 

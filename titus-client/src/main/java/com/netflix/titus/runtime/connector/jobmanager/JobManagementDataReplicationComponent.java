@@ -27,7 +27,7 @@ public class JobManagementDataReplicationComponent {
 
     @Bean
     public JobSnapshotFactory getJobSnapshotFactory() {
-        return JobSnapshotFactory.newDefault();
+        return JobSnapshotFactories.newDefault();
     }
 
     @Bean

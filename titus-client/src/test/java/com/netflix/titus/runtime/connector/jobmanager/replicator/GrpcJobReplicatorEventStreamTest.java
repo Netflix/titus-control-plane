@@ -40,7 +40,7 @@ import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetri
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.assertj.core.api.Condition;
@@ -226,7 +226,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private GrpcJobReplicatorEventStream newStream() {
         when(client.observeJobs(any())).thenReturn(ReactorExt.toFlux(dataGenerator.observeJobs(true)));
-        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactory.newLegacy(), new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
+        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newLegacy(), new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
     private StepVerifier.FirstStep<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnectVerifier() {

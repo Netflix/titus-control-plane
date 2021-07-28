@@ -18,19 +18,10 @@ package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 
 public interface JobSnapshotFactory {
     JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId);
-
-    static JobSnapshotFactory newLegacy() {
-        return (jobsById, tasksByJobId) -> LegacyJobSnapshot.newInstance(UUID.randomUUID().toString(), jobsById, tasksByJobId);
-    }
-
-    static JobSnapshotFactory newDefault() {
-        return (jobsById, tasksByJobId) -> PCollectionJobSnapshot.newInstance(UUID.randomUUID().toString(), jobsById, tasksByJobId);
-    }
 }

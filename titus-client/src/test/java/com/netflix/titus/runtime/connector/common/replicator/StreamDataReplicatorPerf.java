@@ -27,7 +27,7 @@ import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.mockito.ArgumentMatchers;
@@ -55,7 +55,7 @@ public class StreamDataReplicatorPerf {
                     .concatWith(Flux.interval(Duration.ofSeconds(1)).take(1).flatMap(tick -> Flux.error(new RuntimeException("Simulated error"))));
         }));
 
-        JobDataReplicator replicator = new JobDataReplicatorProvider(client, JobSnapshotFactory.newDefault(), TitusRuntimes.internal()).get();
+        JobDataReplicator replicator = new JobDataReplicatorProvider(client, JobSnapshotFactories.newDefault(), TitusRuntimes.internal()).get();
         replicator.events().subscribe(System.out::println);
 
         Thread.sleep(3600_000);
