@@ -98,9 +98,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         }
         allJobsLock.lock();
         try {
-            List<Job<?>> acc = new ArrayList<>();
-            jobsById.forEach((jobId, job) -> acc.add(job));
-            this.allJobs = Collections.unmodifiableList(acc);
+            this.allJobs = Collections.unmodifiableList(new ArrayList<>(jobsById.values()));
         } finally {
             allJobsLock.unlock();
         }
@@ -122,9 +120,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         }
         allTasksLock.lock();
         try {
-            List<Task> acc = new ArrayList<>();
-            taskById.forEach((taskId, task) -> acc.add(task));
-            this.allTasks = acc;
+            this.allTasks = Collections.unmodifiableList(new ArrayList<>(taskById.values()));
         } finally {
             allTasksLock.unlock();
         }
