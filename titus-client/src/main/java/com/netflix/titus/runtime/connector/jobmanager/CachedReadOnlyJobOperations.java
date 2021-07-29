@@ -75,7 +75,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
     public List<Job<?>> findJobs(Predicate<Pair<Job<?>, List<Task>>> queryPredicate, int offset, int limit) {
         JobSnapshot snapshot = replicator.getCurrent();
 
-        return snapshot.getJobs().stream()
+        return snapshot.getJobMap().values().stream()
                 .filter(job -> queryPredicate.test(Pair.of(job, snapshot.getTasks(job.getId()))))
                 .skip(offset)
                 .limit(limit)
@@ -86,7 +86,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
     public List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit) {
         JobSnapshot snapshot = replicator.getCurrent();
 
-        return snapshot.getJobs().stream()
+        return snapshot.getJobMap().values().stream()
                 .flatMap(job -> snapshot.getTasks(job.getId()).stream()
                         .filter(task -> queryPredicate.test(Pair.of(job, task)))
                         .map(task -> Pair.<Job<?>, Task>of(job, task))

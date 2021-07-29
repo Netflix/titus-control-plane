@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':titus-common-runtime')
+package com.netflix.titus.runtime.connector.jobmanager;
 
-    compile project(':titus-api')
-    compile project(':titus-grpc-api')
+import java.util.List;
+import java.util.Map;
 
-    compile "org.pcollections:pcollections:3.1.4"
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 
-    testCompile project(':titus-testkit')
+public interface JobSnapshotFactory {
+    JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId);
 }

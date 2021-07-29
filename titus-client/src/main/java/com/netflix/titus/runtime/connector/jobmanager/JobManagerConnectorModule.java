@@ -40,6 +40,7 @@ public class JobManagerConnectorModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(JobSnapshotFactory.class).toInstance(JobSnapshotFactories.newLegacy());
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
     }

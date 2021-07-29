@@ -26,8 +26,15 @@ import org.springframework.context.annotation.Configuration;
 public class JobManagementDataReplicationComponent {
 
     @Bean
-    public JobDataReplicator getJobDataReplicator(JobManagementClient jobManagementClient, TitusRuntime titusRuntime) {
-        return new JobDataReplicatorProvider(jobManagementClient, titusRuntime).get();
+    public JobSnapshotFactory getJobSnapshotFactory() {
+        return JobSnapshotFactories.newDefault();
+    }
+
+    @Bean
+    public JobDataReplicator getJobDataReplicator(JobManagementClient jobManagementClient,
+                                                  JobSnapshotFactory jobSnapshotFactory,
+                                                  TitusRuntime titusRuntime) {
+        return new JobDataReplicatorProvider(jobManagementClient, jobSnapshotFactory, titusRuntime).get();
     }
 
     @Bean
