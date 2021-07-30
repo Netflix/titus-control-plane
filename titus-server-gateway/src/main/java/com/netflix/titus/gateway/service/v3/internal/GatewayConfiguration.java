@@ -27,4 +27,16 @@ public interface GatewayConfiguration {
      */
     @DefaultValue("5000")
     int getMaxTaskPageSize();
+
+    /**
+     * If the cache staleness is above this threshold, it will not be used.
+     */
+    @DefaultValue("5000")
+    long getMaxAcceptableCacheStaleness();
+
+    /**
+     * Configure callers whose queries should be handled from the local cache.
+     */
+    @DefaultValue("NONE")
+    String getQueryFromCacheCallerId();
 }

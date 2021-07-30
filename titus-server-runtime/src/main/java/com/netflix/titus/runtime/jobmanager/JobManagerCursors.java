@@ -28,6 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.model.PaginationEvaluator;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobStatus;
@@ -45,7 +46,25 @@ public final class JobManagerCursors {
 
     private static final Pattern CURSOR_RE = Pattern.compile("(.*)@(\\d+)");
 
+    private static final PaginationEvaluator<com.netflix.titus.api.jobmanager.model.job.Job> JOB_PAGINATION_EVALUATOR = new PaginationEvaluator<>(
+            com.netflix.titus.api.jobmanager.model.job.Job::getId,
+            task -> JobFunctions.findJobStatus(task, JobState.Accepted).orElse(task.getStatus()).getTimestamp()
+    );
+
+    private static final PaginationEvaluator<com.netflix.titus.api.jobmanager.model.job.Task> TASK_PAGINATION_EVALUATOR = new PaginationEvaluator<>(
+            com.netflix.titus.api.jobmanager.model.job.Task::getId,
+            task -> JobFunctions.findTaskStatus(task, TaskState.Accepted).orElse(task.getStatus()).getTimestamp()
+    );
+
     private JobManagerCursors() {
+    }
+
+    public static PaginationEvaluator<com.netflix.titus.api.jobmanager.model.job.Job> newCoreJobPaginationEvaluator() {
+        return JOB_PAGINATION_EVALUATOR;
+    }
+
+    public static PaginationEvaluator<com.netflix.titus.api.jobmanager.model.job.Task> newCoreTaskPaginationEvaluator() {
+        return TASK_PAGINATION_EVALUATOR;
     }
 
     /**

@@ -51,11 +51,13 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
@@ -102,6 +104,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final GrpcRequestConfiguration tunablesConfiguration;
     private final GatewayConfiguration gatewayConfiguration;
     private final JobManagementServiceStub client;
+    private final LocalCacheQueryProcessor localCacheQueryProcessor;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final TaskRelocationDataInjector taskRelocationDataInjector;
@@ -117,6 +120,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                     TaskRelocationDataInjector taskRelocationDataInjector,
                                     NeedsMigrationQueryHandler needsMigrationQueryHandler,
+                                    LocalCacheQueryProcessor localCacheQueryProcessor,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                     DisruptionBudgetSanitizer disruptionBudgetSanitizer,
                                     @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
@@ -140,6 +144,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.tunablesConfiguration = tunablesConfiguration;
         this.gatewayConfiguration = gatewayConfiguration;
         this.client = client;
+        this.localCacheQueryProcessor = localCacheQueryProcessor;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
         this.taskRelocationDataInjector = taskRelocationDataInjector;
@@ -178,6 +183,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     .build()
             );
         }
+
+        if (localCacheQueryProcessor.canUseCache(jobQuery.getFilteringCriteriaMap(), "findJobs", callMetadata)) {
+            return Observable.just(localCacheQueryProcessor.findJobs(jobQuery));
+        }
+
         return super.findJobs(jobQuery, callMetadata);
     }
 
@@ -220,13 +230,21 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             );
         }
 
+        Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(taskQuery.getFilteringCriteriaMap().getOrDefault("taskStates", "")));
+
+        // We use cache only if archived data is not requested to keep the implementation simple.
+        // TODO Support local cache access mixed with archived data.
+        if (localCacheQueryProcessor.canUseCache(taskQuery.getFilteringCriteriaMap(), "findTasks", callMetadata)) {
+            if (!taskStates.contains(TaskState.Finished.name())) {
+                return Observable.just(localCacheQueryProcessor.findTasks(taskQuery));
+            }
+        }
+
         Observable<TaskQueryResult> observable;
         if (v3JobIds.isEmpty()) {
             // Active task set only
             observable = newActiveTaskQueryAction(taskQuery, callMetadata);
         } else {
-            Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(taskQuery.getFilteringCriteriaMap().getOrDefault("taskStates", "")));
-
             if (!taskStates.contains(TaskState.Finished.name())) {
                 // Active task set only
                 observable = newActiveTaskQueryAction(taskQuery, callMetadata);
@@ -251,6 +269,14 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         }
 
         return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
+    }
+
+    @Override
+    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
+        if (localCacheQueryProcessor.canUseCache(query.getFilteringCriteriaMap(), "observeJobs", callMetadata)) {
+            return localCacheQueryProcessor.observeJobs(query);
+        }
+        return super.observeJobs(query, callMetadata);
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {
