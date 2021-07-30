@@ -74,7 +74,9 @@ public class JobSnapshotPerf {
         }
         this.snapshot = legacyMode
                 ? LegacyJobSnapshot.newInstance("test", jobs, taskByJobId)
-                : PCollectionJobSnapshot.newInstance("test", jobs, taskByJobId);
+                : PCollectionJobSnapshot.newInstance(
+                "test", jobs, taskByJobId, false, message -> {
+                });
     }
 
     private Pair<Job<?>, List<Task>> newJobWithTasks() {

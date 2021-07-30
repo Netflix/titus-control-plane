@@ -16,15 +16,11 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
@@ -32,13 +28,13 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.Version;
-import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static com.netflix.titus.runtime.connector.jobmanager.JobSnapshotTestUtil.newJobWithTasks;
+import static com.netflix.titus.runtime.connector.jobmanager.JobSnapshotTestUtil.newSnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
@@ -63,7 +59,7 @@ public class JobSnapshotTest {
         Job<?> job2 = pair2.getLeft();
         List<Task> tasks1 = pair1.getRight();
         List<Task> tasks2 = pair2.getRight();
-        JobSnapshot jobSnapshot = newSnapshot(pair1, pair2);
+        JobSnapshot jobSnapshot = newSnapshot(factory, pair1, pair2);
 
         // getJobMap()
         assertThat(jobSnapshot.getJobMap()).containsKeys(job1.getId(), job2.getId());
@@ -96,7 +92,7 @@ public class JobSnapshotTest {
         Job<?> job2 = pair2.getLeft();
         List<Task> tasks1 = pair1.getRight();
         List<Task> tasks2 = pair2.getRight();
-        JobSnapshot initial = newSnapshot(pair1);
+        JobSnapshot initial = newSnapshot(factory, pair1);
 
         // Add job2
         JobSnapshot updated = initial.updateJob(job2).orElse(null);
@@ -151,7 +147,7 @@ public class JobSnapshotTest {
         Job<?> job1 = pair1.getLeft();
         Job<?> job2 = pair2.getLeft();
         List<Task> tasks1 = pair1.getRight();
-        JobSnapshot initial = newSnapshot(pair1, pair2);
+        JobSnapshot initial = newSnapshot(factory, pair1, pair2);
 
         Task movedTask = tasks1.get(0).toBuilder()
                 .withJobId(job2.getId())
@@ -163,33 +159,5 @@ public class JobSnapshotTest {
         assertThat(updated.getTaskMap()).containsValues(movedTask, tasks1.get(1));
         assertThat(updated.getTasks(job1.getId())).containsExactly(tasks1.get(1));
         assertThat(updated.getTasks(job2.getId())).containsExactly(movedTask);
-
-    }
-
-    private JobSnapshot newSnapshot(Pair<Job<?>, List<Task>>... pairs) {
-        Map<String, Job<?>> jobsById = new HashMap<>();
-        Map<String, List<Task>> tasksByJobId = new HashMap<>();
-        for (Pair<Job<?>, List<Task>> pair : pairs) {
-            Job<?> job = pair.getLeft();
-            jobsById.put(job.getId(), job);
-            tasksByJobId.put(job.getId(), pair.getRight());
-        }
-        return factory.newSnapshot(jobsById, tasksByJobId);
-    }
-
-    private Pair<Job<?>, List<Task>> newJobWithTasks(int jobIdx, int taskCount) {
-        Job<BatchJobExt> job = JobGenerator.oneBatchJob().toBuilder().withId("job#" + jobIdx).build();
-        List<Task> tasks = new ArrayList<>();
-        for (int t = 0; t < taskCount; t++) {
-            tasks.add(newTask(job, t));
-        }
-        return Pair.of(job, tasks);
-    }
-
-    private BatchJobTask newTask(Job<?> job, int taskIdx) {
-        return JobGenerator.oneBatchTask().toBuilder()
-                .withId("task#" + taskIdx + "@" + job.getId())
-                .withJobId(job.getId())
-                .build();
     }
 }

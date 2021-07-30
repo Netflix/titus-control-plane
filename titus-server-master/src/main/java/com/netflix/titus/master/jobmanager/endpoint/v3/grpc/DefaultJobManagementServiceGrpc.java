@@ -816,13 +816,21 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         long now = titusRuntime.getClock().wallTime();
         List<JobChangeNotification> snapshot = new ArrayList<>();
 
-        List<com.netflix.titus.api.jobmanager.model.job.Job<?>> coreJobs =
-                jobOperations.findJobs(jobsPredicate, 0, Integer.MAX_VALUE / 2);
-        coreJobs.forEach(coreJob -> snapshot.add(toJobChangeNotification(coreJob, now)));
-
-        List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task>> coreTasks =
-                jobOperations.findTasks(tasksPredicate, 0, Integer.MAX_VALUE / 2);
-        coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task.getRight(), now)));
+        // Generics casting issue
+        List allJobsAndTasksRaw = jobOperations.getJobsAndTasks();
+        List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, List<com.netflix.titus.api.jobmanager.model.job.Task>>> allJobsAndTasks = allJobsAndTasksRaw;
+        allJobsAndTasks.forEach(pair -> {
+            com.netflix.titus.api.jobmanager.model.job.Job<?> job = pair.getLeft();
+            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = pair.getRight();
+            if (jobsPredicate.test(pair)) {
+                snapshot.add(toJobChangeNotification(job, now));
+            }
+            tasks.forEach(task -> {
+                if (tasksPredicate.test(Pair.of(job, task))) {
+                    snapshot.add(toJobChangeNotification(task, now));
+                }
+            });
+        });
 
         return snapshot;
     }
