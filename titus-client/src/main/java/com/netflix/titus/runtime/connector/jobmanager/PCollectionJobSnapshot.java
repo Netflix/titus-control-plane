@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -31,7 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
@@ -40,11 +40,15 @@ import org.pcollections.TreePVector;
 
 public class PCollectionJobSnapshot extends JobSnapshot {
 
-    private static final JobSnapshot EMPTY = newInstance("empty", HashTreePMap.empty(), Collections.emptyMap());
+    private static final JobSnapshot EMPTY = newInstance(
+            "empty", HashTreePMap.empty(), Collections.emptyMap(), false, message -> {
+            });
 
     private final PMap<String, Job<?>> jobsById;
     private final PMap<String, PSequence<Task>> tasksByJobId;
     private final PMap<String, Task> taskById;
+    private final boolean autoFixInconsistencies;
+    private final Consumer<String> inconsistentDataListener;
 
     private final String signature;
 
@@ -62,9 +66,18 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         return EMPTY;
     }
 
-    public static JobSnapshot newInstance(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+    public static JobSnapshot newInstance(String snapshotId,
+                                          Map<String, Job<?>> jobsById,
+                                          Map<String, List<Task>> tasksByJobId,
+                                          boolean autoFixInconsistencies,
+                                          Consumer<String> inconsistentDataListener) {
         Map<String, PSequence<Task>> mTasksByJobId = new HashMap<>();
         Map<String, Task> taskById = new HashMap<>();
+        jobsById.forEach((jobId, job) -> {
+            if (!tasksByJobId.containsKey(jobId)) {
+                mTasksByJobId.put(jobId, TreePVector.empty());
+            }
+        });
         tasksByJobId.forEach((jobId, tasks) -> {
             TreePVector<Task> pTasks = TreePVector.from(tasks);
             mTasksByJobId.put(jobId, pTasks);
@@ -75,16 +88,24 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 snapshotId,
                 HashTreePMap.from(jobsById),
                 HashTreePMap.from(mTasksByJobId),
-                HashTreePMap.from(taskById)
+                HashTreePMap.from(taskById),
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
-    private PCollectionJobSnapshot(String snapshotId, PMap<String, Job<?>> jobsById, PMap<String, PSequence<Task>> tasksByJobId,
-                                   PMap<String, Task> taskById) {
+    private PCollectionJobSnapshot(String snapshotId,
+                                   PMap<String, Job<?>> jobsById,
+                                   PMap<String, PSequence<Task>> tasksByJobId,
+                                   PMap<String, Task> taskById,
+                                   boolean autoFixInconsistencies,
+                                   Consumer<String> inconsistentDataListener) {
         super(snapshotId);
         this.jobsById = jobsById;
         this.tasksByJobId = tasksByJobId;
         this.taskById = taskById;
+        this.autoFixInconsistencies = autoFixInconsistencies;
+        this.inconsistentDataListener = inconsistentDataListener;
         this.signature = computeSignature();
     }
 
@@ -180,6 +201,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
 
     public Optional<JobSnapshot> updateTask(Task task, boolean moved) {
         if (!jobsById.containsKey(task.getJobId())) { // Inconsistent data
+            inconsistentData("job %s not found for task %s", task.getJobId(), task.getId());
             return Optional.empty();
         }
 
@@ -201,7 +223,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 this.snapshotId,
                 jobsById.plus(job.getId(), job),
                 tasksByJobId.plus(job.getId(), TreePVector.empty()),
-                taskById
+                taskById,
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
@@ -210,7 +234,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 this.snapshotId,
                 jobsById.plus(job.getId(), job),
                 tasksByJobId,
-                taskById
+                taskById,
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
@@ -226,19 +252,31 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 this.snapshotId,
                 jobsById.minus(job.getId()),
                 tasksByJobId.minus(job.getId()),
-                newTaskById
+                newTaskById,
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
     private JobSnapshot addNewTask(Task task) {
         String jobId = task.getJobId();
-        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobId, tasksByJobId.get(jobId).plus(task));
+        PSequence<Task> tasks = tasksByJobId.get(jobId);
+
+        PSequence<Task> newTasks;
+        if (tasks == null) {
+            newTasks = TreePVector.singleton(task);
+        } else {
+            newTasks = tasks.plus(task);
+        }
+        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById,
                 newTasksByJobId,
-                taskById.plus(task.getId(), task)
+                taskById.plus(task.getId(), task),
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
@@ -252,54 +290,85 @@ public class PCollectionJobSnapshot extends JobSnapshot {
 
         // tasksByJobId
         PSequence<Task> newTasks = replaceTask(task, tasksByJobId.get(jobId));
-        Preconditions.checkNotNull(newTasks, "Inconsistent job snapshot. Task %s not found in tasksByJobId collection", task.getId());
         PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById,
                 newTasksByJobId,
-                taskById.plus(task.getId(), task)
+                taskById.plus(task.getId(), task),
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
     private JobSnapshot removeTask(Task task, boolean moved) {
-        String jobIdIndexToUpdate = moved ?
-                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB) :
-                task.getJobId();
-        Preconditions.checkArgument(StringExt.isNotEmpty(jobIdIndexToUpdate));
+        String jobIdIndexToUpdate;
+        if (moved) {
+            jobIdIndexToUpdate = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB);
+            if (jobIdIndexToUpdate == null) {
+                inconsistentData("moved task %s has no attribute with the original job id", task.getId());
+                return this;
+            }
+        } else {
+            jobIdIndexToUpdate = task.getJobId();
+        }
 
         // tasksByJobId
         PSequence<Task> newTasks = removeTask(task, tasksByJobId.get(jobIdIndexToUpdate));
-        Preconditions.checkNotNull(newTasks, "Inconsistent job snapshot. Task %s not found in tasksByJobId collection", task.getId());
         PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobIdIndexToUpdate, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById,
                 newTasksByJobId,
-                taskById.minus(task.getId())
+                taskById.minus(task.getId()),
+                autoFixInconsistencies,
+                inconsistentDataListener
         );
     }
 
     private PSequence<Task> replaceTask(Task task, PSequence<Task> tasks) {
+        if (tasks == null) {
+            inconsistentData("task %s replacement requested, but the task list is null", task.getId());
+            return TreePVector.singleton(task);
+        }
         for (int i = 0; i < tasks.size(); i++) {
             Task next = tasks.get(i);
             if (next.getId().equals(task.getId())) {
                 return tasks.with(i, task);
             }
         }
-        return null;
+        inconsistentData("task %s replacement requested, but it could not be found in the task list", task.getId());
+        return tasks.plus(task);
     }
 
     private PSequence<Task> removeTask(Task task, PSequence<Task> tasks) {
+        if (tasks == null) {
+            inconsistentData("remove task %s requested, but the task list is null", task.getId());
+            return TreePVector.empty();
+        }
         for (int i = 0; i < tasks.size(); i++) {
             Task next = tasks.get(i);
             if (next.getId().equals(task.getId())) {
                 return tasks.minus(i);
             }
         }
-        return null;
+        inconsistentData("remove task %s requested, but it could not be found in the task list", task.getId());
+        return tasks;
+    }
+
+    private void inconsistentData(String message, Object... args) {
+        String formattedMessage = String.format(message, args);
+        if (inconsistentDataListener != null) {
+            try {
+                inconsistentDataListener.accept(formattedMessage);
+            } catch (Exception ignore) {
+            }
+        }
+        if (!autoFixInconsistencies) {
+            throw new IllegalStateException(formattedMessage);
+        }
     }
 
     @Override

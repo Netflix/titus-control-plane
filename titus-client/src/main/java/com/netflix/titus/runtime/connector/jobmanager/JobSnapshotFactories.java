@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -26,14 +27,27 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 public final class JobSnapshotFactories {
 
     private static final LegacyJobSnapshotFactory LEGACY_JOB_SNAPSHOT_FACTORY = new LegacyJobSnapshotFactory();
-    private static final PCollectionJobSnapshotFactory PCOLLECTION_JOB_SNAPSHOT_FACTORY = new PCollectionJobSnapshotFactory();
+
+    private static final PCollectionJobSnapshotFactory PCOLLECTION_JOB_SNAPSHOT_FACTORY = new PCollectionJobSnapshotFactory(
+            false,
+            message -> {
+            }
+    );
 
     public static JobSnapshotFactory newLegacy() {
         return LEGACY_JOB_SNAPSHOT_FACTORY;
     }
 
+    /**
+     * Default {@link JobSnapshotFactory} throws an exception if inconsistent state is detected.
+     * Use {@link #newDefault(boolean, Consumer)} to change this behavior.
+     */
     public static JobSnapshotFactory newDefault() {
         return PCOLLECTION_JOB_SNAPSHOT_FACTORY;
+    }
+
+    public static JobSnapshotFactory newDefault(boolean autoFixInconsistencies, Consumer<String> inconsistentDataListener) {
+        return new PCollectionJobSnapshotFactory(autoFixInconsistencies, inconsistentDataListener);
     }
 
     private static class LegacyJobSnapshotFactory implements JobSnapshotFactory {
@@ -46,9 +60,23 @@ public final class JobSnapshotFactories {
 
     private static class PCollectionJobSnapshotFactory implements JobSnapshotFactory {
 
+        private final boolean autoFixInconsistencies;
+        private final Consumer<String> inconsistentDataListener;
+
+        private PCollectionJobSnapshotFactory(boolean autoFixInconsistencies, Consumer<String> inconsistentDataListener) {
+            this.autoFixInconsistencies = autoFixInconsistencies;
+            this.inconsistentDataListener = inconsistentDataListener;
+        }
+
         @Override
         public JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
-            return PCollectionJobSnapshot.newInstance(UUID.randomUUID().toString(), jobsById, tasksByJobId);
+            return PCollectionJobSnapshot.newInstance(
+                    UUID.randomUUID().toString(),
+                    jobsById,
+                    tasksByJobId,
+                    autoFixInconsistencies,
+                    inconsistentDataListener
+            );
         }
     }
 }
