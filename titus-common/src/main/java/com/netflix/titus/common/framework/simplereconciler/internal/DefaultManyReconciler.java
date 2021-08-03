@@ -167,6 +167,11 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     }
 
     @Override
+    public int size() {
+        return executors.size();
+    }
+
+    @Override
     public Mono<DATA> apply(String id, Function<DATA, Mono<DATA>> action) {
         return Mono.defer(() -> {
             ReconcilerEngine<DATA> executor = executors.get(id);
