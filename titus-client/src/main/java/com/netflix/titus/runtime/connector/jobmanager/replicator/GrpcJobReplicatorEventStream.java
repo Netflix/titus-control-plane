@@ -22,8 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -33,6 +35,9 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.spectator.SpectatorExt;
+import com.netflix.titus.common.util.spectator.ValueRangeCounter;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
@@ -41,6 +46,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
@@ -48,9 +54,15 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
+    private static final String METRICS_ROOT = "titus.grpcJobReplicatorEventStream.";
+
+    private static final long[] LEVELS = new long[]{1, 10, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 60_000};
+
     private final JobManagementClient client;
     private final Map<String, String> filteringCriteria;
     private final JobSnapshotFactory jobSnapshotFactory;
+    private final ValueRangeCounter eventProcessingLatencies;
+    private final AtomicInteger subscriptionCounter = new AtomicInteger();
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         JobSnapshotFactory jobSnapshotFactory,
@@ -70,52 +82,72 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         this.client = client;
         this.filteringCriteria = filteringCriteria;
         this.jobSnapshotFactory = jobSnapshotFactory;
+
+        PolledMeter.using(titusRuntime.getRegistry()).withName(METRICS_ROOT + "activeSubscriptions").monitorValue(subscriptionCounter);
+        this.eventProcessingLatencies = SpectatorExt.newValueRangeCounter(
+                titusRuntime.getRegistry().createId(METRICS_ROOT + "processingLatency"),
+                LEVELS,
+                titusRuntime.getRegistry()
+        );
     }
 
     @Override
     protected Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnection() {
-        return Flux.defer(() -> {
-            CacheUpdater cacheUpdater = new CacheUpdater();
-            logger.info("Connecting to the job event stream (filteringCriteria={})...", filteringCriteria);
-            return client.observeJobs(filteringCriteria).flatMap(cacheUpdater::onEvent);
-        });
+        return Flux
+                .<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>>create(sink -> {
+                    CacheUpdater cacheUpdater = new CacheUpdater();
+                    logger.info("Connecting to the job event stream (filteringCriteria={})...", filteringCriteria);
+                    Disposable disposable = client.observeJobs(filteringCriteria).subscribe(
+                            jobEvent -> {
+                                long started = titusRuntime.getClock().wallTime();
+                                try {
+                                    cacheUpdater.onEvent(jobEvent).ifPresent(sink::next);
+                                    eventProcessingLatencies.recordLevel(titusRuntime.getClock().wallTime() - started);
+                                } catch (Exception e) {
+                                    // Throw error to force the cache reconnect.
+                                    logger.warn("Unexpected error when handling the job change notification: {}", jobEvent, e);
+                                    ExceptionExt.silent(() -> sink.error(e));
+                                }
+                            },
+                            e -> ExceptionExt.silent(() -> sink.error(e)),
+                            () -> ExceptionExt.silent(sink::complete)
+                    );
+                    sink.onDispose(disposable);
+                })
+                .doOnSubscribe(subscription -> subscriptionCounter.incrementAndGet())
+                .doFinally(signal -> subscriptionCounter.decrementAndGet());
     }
 
     private class CacheUpdater {
 
-        private List<JobManagerEvent<?>> snapshotEvents = new ArrayList<>();
-        private AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
+        private final List<JobManagerEvent<?>> snapshotEvents = new ArrayList<>();
+        private final AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
 
-        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
-            try {
-                if (lastJobSnapshotRef.get() != null) {
-                    return processCacheUpdate(event);
-                }
-                if (event.equals(JobManagerEvent.snapshotMarker())) {
-                    return buildInitialCache();
-                }
-
-                if (event instanceof JobUpdateEvent) {
-                    JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
-                    Job job = jobUpdateEvent.getCurrent();
-                    if (job.getStatus().getState() != JobState.Finished) {
-                        snapshotEvents.add(event);
-                    }
-                } else if (event instanceof TaskUpdateEvent) {
-                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
-                    Task task = taskUpdateEvent.getCurrentTask();
-                    if (task.getStatus().getState() != TaskState.Finished) {
-                        snapshotEvents.add(event);
-                    }
-                }
-            } catch (Exception e) {
-                logger.warn("Unexpected error when handling the job change notification: {}", event, e);
-                return Flux.error(e); // Return error to force the cache reconnect.
+        private Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
+            if (lastJobSnapshotRef.get() != null) {
+                return processCacheUpdate(event);
             }
-            return Flux.empty();
+            if (event.equals(JobManagerEvent.snapshotMarker())) {
+                return Optional.of(buildInitialCache());
+            }
+
+            if (event instanceof JobUpdateEvent) {
+                JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                Job job = jobUpdateEvent.getCurrent();
+                if (job.getStatus().getState() != JobState.Finished) {
+                    snapshotEvents.add(event);
+                }
+            } else if (event instanceof TaskUpdateEvent) {
+                TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+                Task task = taskUpdateEvent.getCurrentTask();
+                if (task.getStatus().getState() != TaskState.Finished) {
+                    snapshotEvents.add(event);
+                }
+            }
+            return Optional.empty();
         }
 
-        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> buildInitialCache() {
+        private ReplicatorEvent<JobSnapshot, JobManagerEvent<?>> buildInitialCache() {
             Map<String, Job<?>> jobs = new HashMap<>();
             Map<String, List<Task>> tasksByJobId = new HashMap<>();
             snapshotEvents.forEach(event -> {
@@ -143,10 +175,10 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
             logger.info("Job snapshot loaded: {}", initialSnapshot.toSummaryString());
 
-            return Flux.just(new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime()));
+            return new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime());
         }
 
-        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> processCacheUpdate(JobManagerEvent<?> event) {
+        private Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> processCacheUpdate(JobManagerEvent<?> event) {
             JobSnapshot lastSnapshot = lastJobSnapshotRef.get();
 
             Optional<JobSnapshot> newSnapshot;
@@ -180,9 +212,9 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             }
             if (newSnapshot.isPresent()) {
                 lastJobSnapshotRef.set(newSnapshot.get());
-                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), coreEvent, titusRuntime.getClock().wallTime()));
+                return Optional.of(new ReplicatorEvent<>(newSnapshot.get(), coreEvent, titusRuntime.getClock().wallTime()));
             }
-            return Flux.empty();
+            return Optional.empty();
         }
 
         private JobManagerEvent<?> toJobCoreEvent(Job newJob) {
