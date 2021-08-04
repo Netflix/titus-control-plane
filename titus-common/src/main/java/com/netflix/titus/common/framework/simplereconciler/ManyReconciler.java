@@ -28,6 +28,7 @@ import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.simplereconciler.internal.DefaultManyReconciler;
+import com.netflix.titus.common.framework.simplereconciler.internal.ShardedManyReconciler;
 import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.closeable.CloseableReference;
@@ -55,6 +56,8 @@ public interface ManyReconciler<DATA> {
 
     Optional<DATA> findById(String id);
 
+    int size();
+
     Mono<DATA> apply(String id, Function<DATA, Mono<DATA>> action);
 
     Flux<List<SimpleReconcilerEvent<DATA>>> changes(String clientId);
@@ -77,6 +80,7 @@ public interface ManyReconciler<DATA> {
         private Scheduler reconcilerScheduler;
         private Scheduler notificationScheduler;
         private TitusRuntime titusRuntime;
+        private int shardCount;
 
         private Builder() {
         }
@@ -86,6 +90,11 @@ public interface ManyReconciler<DATA> {
          */
         public Builder<DATA> withName(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder<DATA> withShardCount(int shardCount) {
+            this.shardCount = shardCount;
             return this;
         }
 
@@ -147,7 +156,10 @@ public interface ManyReconciler<DATA> {
         public ManyReconciler<DATA> build() {
             Preconditions.checkNotNull(name, "Name is null");
             Preconditions.checkNotNull(titusRuntime, "TitusRuntime is null");
+            return shardCount <= 1 ? buildDefaultManyReconciler() : buildShardedManyReconciler();
+        }
 
+        private ManyReconciler<DATA> buildDefaultManyReconciler() {
             CloseableReference<Scheduler> reconcilerSchedulerRef = reconcilerScheduler == null
                     ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-internal-" + name, true), Scheduler::dispose)
                     : CloseableReference.referenceOf(reconcilerScheduler);
@@ -156,6 +168,44 @@ public interface ManyReconciler<DATA> {
                     ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-notification-" + name, true), Scheduler::dispose)
                     : CloseableReference.referenceOf(notificationScheduler);
 
+            return new DefaultManyReconciler<>(
+                    name,
+                    quickCycle,
+                    longCycle,
+                    buildActionProviderSelectorFactory(),
+                    reconcilerSchedulerRef,
+                    notificationSchedulerRef,
+                    titusRuntime
+            );
+        }
+
+        private ManyReconciler<DATA> buildShardedManyReconciler() {
+            Function<Integer, CloseableReference<Scheduler>> reconcilerSchedulerSupplier = shardIndex ->
+                    CloseableReference.referenceOf(
+                            Schedulers.newSingle("reconciler-internal-" + name + "-" + shardIndex, true),
+                            Scheduler::dispose
+                    );
+
+            CloseableReference<Scheduler> notificationSchedulerRef = notificationScheduler == null
+                    ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-notification-" + name, true), Scheduler::dispose)
+                    : CloseableReference.referenceOf(notificationScheduler);
+
+            Function<String, Integer> shardIndexSupplier = id -> id.hashCode() % shardCount;
+
+            return ShardedManyReconciler.newSharedDefaultManyReconciler(
+                    name,
+                    shardCount,
+                    shardIndexSupplier,
+                    quickCycle,
+                    longCycle,
+                    buildActionProviderSelectorFactory(),
+                    reconcilerSchedulerSupplier,
+                    notificationSchedulerRef,
+                    titusRuntime
+            );
+        }
+
+        private ActionProviderSelectorFactory<DATA> buildActionProviderSelectorFactory() {
             List<ReconcilerActionProvider<DATA>> actionProviders = new ArrayList<>();
             if (externalActionProvider == null) {
                 actionProviders.add(new ReconcilerActionProvider<>(getDefaultExternalPolicy(), true, data -> Collections.emptyList()));
@@ -164,16 +214,7 @@ public interface ManyReconciler<DATA> {
             }
             actionProviders.addAll(internalActionProviders.values());
             ActionProviderSelectorFactory<DATA> providerSelector = new ActionProviderSelectorFactory<>(name, actionProviders, titusRuntime);
-
-            return new DefaultManyReconciler<>(
-                    name,
-                    quickCycle,
-                    longCycle,
-                    providerSelector,
-                    reconcilerSchedulerRef,
-                    notificationSchedulerRef,
-                    titusRuntime
-            );
+            return providerSelector;
         }
     }
 }
