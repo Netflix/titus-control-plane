@@ -44,10 +44,8 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
-import com.netflix.titus.runtime.machine.ReactorGatewayMachineGrpcService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -71,7 +69,6 @@ public class TitusGatewayGrpcServer {
     private final AutoScalingServiceImplBase appAutoScalingService;
     private final LoadBalancerServiceImplBase loadBalancerService;
     private final SchedulerServiceImplBase schedulerService;
-    private final ReactorGatewayMachineGrpcService reactorMachineGrpcService;
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final GrpcEndpointConfiguration config;
     private final TitusRuntime titusRuntime;
@@ -90,7 +87,6 @@ public class TitusGatewayGrpcServer {
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             SchedulerServiceImplBase schedulerService,
-            ReactorGatewayMachineGrpcService reactorMachineGrpcService,
             GrpcToReactorServerFactory reactorServerFactory,
             GrpcEndpointConfiguration config,
             TitusRuntime titusRuntime
@@ -102,7 +98,6 @@ public class TitusGatewayGrpcServer {
         this.appAutoScalingService = appAutoScalingService;
         this.loadBalancerService = loadBalancerService;
         this.schedulerService = schedulerService;
-        this.reactorMachineGrpcService = reactorMachineGrpcService;
         this.reactorServerFactory = reactorServerFactory;
         this.config = config;
         this.titusRuntime = titusRuntime;
@@ -143,13 +138,6 @@ public class TitusGatewayGrpcServer {
                 .addService(ServerInterceptors.intercept(
                         schedulerService,
                         createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
-                ))
-                .addService(ServerInterceptors.intercept(
-                        reactorServerFactory.apply(
-                                MachineServiceGrpc.getServiceDescriptor(),
-                                reactorMachineGrpcService
-                        ),
-                        createInterceptors(MachineServiceGrpc.getServiceDescriptor())
                 ))
                 .addService(ServerInterceptors.intercept(
                         loadBalancerService,

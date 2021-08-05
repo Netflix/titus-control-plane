@@ -21,7 +21,6 @@ import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingSpringResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.HealthSpringResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.JobManagementSpringResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.LoadBalancerSpringResource;
-import com.netflix.titus.runtime.machine.MachineSpringResource;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -35,7 +34,6 @@ import org.springframework.context.annotation.Import;
         AutoScalingSpringResource.class,
         LoadBalancerSpringResource.class,
         FederationV2CapacityGroupSpringResource.class,
-        MachineSpringResource.class,
 })
 public class FederationRestComponent {
 }

@@ -33,7 +33,6 @@ import org.springframework.context.annotation.Primary;
         AggregatingJobServiceGateway.class,
         AggregatingAutoScalingService.class,
         AggregatingLoadbalancerService.class,
-        AggregatingReactorMachineServiceStub.class,
         DefaultAggregatingSchedulerService.class,
         DefaultJobActivityHistoryService.class,
         RemoteJobServiceGateway.class,

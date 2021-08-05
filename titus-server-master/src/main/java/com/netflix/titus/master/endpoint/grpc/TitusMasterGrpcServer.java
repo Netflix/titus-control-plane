@@ -48,9 +48,7 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceImplBase;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
-import com.netflix.titus.master.machine.endpoint.grpc.ReactorMasterMachineGrpcService;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Server;
@@ -79,7 +77,6 @@ public class TitusMasterGrpcServer {
     private final LeaderServerInterceptor leaderServerInterceptor;
     private final LoadBalancerServiceImplBase loadBalancerService;
     private final GrpcAdmissionControllerServerInterceptor admissionControllerServerInterceptor;
-    private final ReactorMasterMachineGrpcService reactorMachineGrpcService;
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final TitusRuntime titusRuntime;
     private final ExecutorService grpcCallbackExecutor;
@@ -101,7 +98,6 @@ public class TitusMasterGrpcServer {
             GrpcMasterEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor,
             GrpcAdmissionControllerServerInterceptor admissionControllerServerInterceptor,
-            ReactorMasterMachineGrpcService reactorMachineGrpcService,
             GrpcToReactorServerFactory reactorServerFactory,
             TitusRuntime titusRuntime
     ) {
@@ -116,7 +112,6 @@ public class TitusMasterGrpcServer {
         this.config = config;
         this.leaderServerInterceptor = leaderServerInterceptor;
         this.admissionControllerServerInterceptor = admissionControllerServerInterceptor;
-        this.reactorMachineGrpcService = reactorMachineGrpcService;
         this.reactorServerFactory = reactorServerFactory;
         this.titusRuntime = titusRuntime;
         this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor");
@@ -161,15 +156,6 @@ public class TitusMasterGrpcServer {
                         schedulerService,
                         createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
                 ))
-                .addService(
-                        ServerInterceptors.intercept(
-                                reactorServerFactory.apply(
-                                        MachineServiceGrpc.getServiceDescriptor(),
-                                        reactorMachineGrpcService
-                                ),
-                                createInterceptors(MachineServiceGrpc.getServiceDescriptor())
-                        )
-                )
                 .addService(ServerInterceptors.intercept(
                         loadBalancerService,
                         createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())
