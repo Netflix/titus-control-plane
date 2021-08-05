@@ -16,6 +16,9 @@
 
 package com.netflix.titus.api.appscale.model;
 
+import com.netflix.titus.common.model.sanitizer.ClassInvariant;
+
+@ClassInvariant(expr = "@asserts.validateScalingPolicy(#this)")
 public class AutoScalingPolicy {
     private final String refId;
     private final PolicyConfiguration policyConfiguration;

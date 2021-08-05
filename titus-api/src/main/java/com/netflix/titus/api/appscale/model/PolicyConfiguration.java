@@ -16,8 +16,6 @@
 
 package com.netflix.titus.api.appscale.model;
 
-import com.google.common.base.Preconditions;
-
 public class PolicyConfiguration {
 
     private final String name;
@@ -106,7 +104,6 @@ public class PolicyConfiguration {
         }
 
         public PolicyConfiguration build() {
-            Preconditions.checkNotNull(alarmConfiguration, "AlarmConfiguration is null");
             return new PolicyConfiguration(name, policyType, stepScalingPolicyConfiguration, alarmConfiguration, targetTrackingPolicy);
         }
     }

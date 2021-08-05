@@ -19,17 +19,24 @@ package com.netflix.titus.master.appscale.endpoint.v3.grpc;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
+import com.netflix.titus.api.appscale.model.sanitizer.ScalingPolicySanitizerBuilder;
 import com.netflix.titus.api.appscale.service.AppScaleManager;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
+import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
@@ -38,20 +45,41 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnErro
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
     private AppScaleManager appScaleManager;
-
+    private EntitySanitizer entitySanitizer;
 
     @Inject
-    public DefaultAutoScalingServiceGrpc(AppScaleManager appScaleManager) {
+    public DefaultAutoScalingServiceGrpc(AppScaleManager appScaleManager, @Named(ScalingPolicySanitizerBuilder.SCALING_POLICY_SANITIZER) EntitySanitizer entitySanitizer) {
         this.appScaleManager = appScaleManager;
+        this.entitySanitizer = entitySanitizer;
     }
 
     @Override
     public void setAutoScalingPolicy(com.netflix.titus.grpc.protogen.PutPolicyRequest request,
                                      io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.ScalingPolicyID> responseObserver) {
-        appScaleManager.createAutoScalingPolicy(InternalModelConverters.toAutoScalingPolicy(request)).subscribe(
-                id -> responseObserver.onNext(GrpcModelConverters.toScalingPolicyId(id)),
-                e -> safeOnError(logger, e, responseObserver),
-                () -> responseObserver.onCompleted());
+        validateAndConvertAutoScalingPolicyToCoreModel(request).flatMap(
+                validatedRequest -> ReactorExt.toMono(appScaleManager.createAutoScalingPolicy(validatedRequest).toSingle()))
+                .subscribe(
+                        id -> responseObserver.onNext(GrpcModelConverters.toScalingPolicyId(id)),
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> responseObserver.onCompleted());
+    }
+
+    private Mono<AutoScalingPolicy> validateAndConvertAutoScalingPolicyToCoreModel(PutPolicyRequest request) {
+        return Mono.defer(() -> {
+            AutoScalingPolicy autoScalingPolicy;
+            try {
+                autoScalingPolicy = InternalModelConverters.toAutoScalingPolicy(request);
+            } catch (Exception exe) {
+                return Mono.error(TitusServiceException.invalidArgument("Error when converting GRPC object to internal representation: " + exe.getMessage()));
+            }
+            return Mono.fromCallable(() -> entitySanitizer.validate(autoScalingPolicy))
+                    .flatMap(violations -> {
+                        if (!violations.isEmpty()) {
+                            return Mono.error(TitusServiceException.invalidArgument(violations));
+                        }
+                        return Mono.just(autoScalingPolicy);
+                    });
+        });
     }
 
     @Override
