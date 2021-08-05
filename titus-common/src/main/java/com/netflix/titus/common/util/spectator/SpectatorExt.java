@@ -108,6 +108,17 @@ public final class SpectatorExt {
     }
 
     /**
+     * Collection of counters for value ranges with a dynamic set of tag names.
+     */
+    public static MetricSelector<ValueRangeCounter> newValueRangeCounter(Id rootId, String[] tagNames, long[] levels, Registry registry) {
+        return new DynamicTagProcessor<>(
+                rootId,
+                tagNames,
+                id -> new ValueRangeCounter(id, levels, registry)
+        );
+    }
+
+    /**
      * Creates a composite gauge consisting of a set of basic gauges each with a unique set of discerning tags.
      */
     public static MultiDimensionalGauge multiDimensionalGauge(Id rootId, Collection<String> discerningTagNames, Registry registry) {
