@@ -26,6 +26,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.api.appscale.service.AppScaleManager;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
@@ -47,6 +48,7 @@ import rx.schedulers.Schedulers;
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Applied;
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleted;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class DefaultAutoScalingServiceGrpcTest {
     private static Logger log = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpcTest.class);
@@ -59,7 +61,7 @@ public class DefaultAutoScalingServiceGrpcTest {
             AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
             Schedulers.immediate(),
             TitusRuntimes.test());
-    private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);
+    private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager, mock(EntitySanitizer.class));
 
     @Before
     public void setUp() throws Exception {
