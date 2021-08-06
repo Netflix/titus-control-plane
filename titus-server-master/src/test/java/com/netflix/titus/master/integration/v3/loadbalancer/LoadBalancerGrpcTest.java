@@ -32,7 +32,7 @@ import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.buildPageSupplier;
-import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMasterWithKubeIntegration;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
@@ -59,7 +59,7 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
 
     public final TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusCell.aTitusCell()
-                    .withMaster(basicMaster(new SimulatedCloud()))
+                    .withMaster(basicMasterWithKubeIntegration(EmbeddedKubeClusters.basicCluster(2)))
                     .withDefaultGateway()
                     .build(),
             false // FIXME These tests fail when run via TitusFederation

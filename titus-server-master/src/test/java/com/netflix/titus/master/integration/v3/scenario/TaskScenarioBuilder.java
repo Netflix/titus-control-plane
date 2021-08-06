@@ -18,17 +18,17 @@ package com.netflix.titus.master.integration.v3.scenario;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.aws.AwsInstanceType;
@@ -42,11 +42,14 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeNode;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeUtil;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.kubernetes.client.openapi.models.V1Pod;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.TaskStatus.Reason;
 import org.slf4j.Logger;
@@ -60,8 +63,8 @@ import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUt
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.discoverActiveTest;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.toMesosTaskState;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toCoreTaskState;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcTaskState;
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
 
 /**
  *
@@ -78,6 +81,7 @@ public class TaskScenarioBuilder {
     private final ExtTestSubscriber<Task> eventStreamSubscriber = new ExtTestSubscriber<>();
     private final Subscription eventStreamSubscription;
 
+    private final EmbeddedKubeCluster kubeCluster;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final DiagnosticReporter diagnosticReporter;
 
@@ -89,21 +93,28 @@ public class TaskScenarioBuilder {
                                SchedulingService<? extends TaskRequest> schedulingService,
                                DiagnosticReporter diagnosticReporter) {
         this.jobClient = titusOperations.getV3GrpcClient();
+        this.kubeCluster = titusOperations.getKubeCluster();
         this.evictionClient = titusOperations.getBlockingGrpcEvictionClient();
         this.jobScenarioBuilder = jobScenarioBuilder;
         this.eventStreamSubscription = eventStream.subscribe(eventStreamSubscriber);
         this.schedulingService = schedulingService;
         this.diagnosticReporter = diagnosticReporter;
-        eventStream.take(1).flatMap(task ->
-                titusOperations.awaitTaskExecutorHolderOf(task.getId())
-        ).subscribe(holder -> {
-            taskExecutionHolder = holder;
-            logger.info("TaskExecutorHolder set for task {}", holder.getTaskId());
-        });
+        if (kubeCluster == null) {
+            eventStream.take(1).flatMap(task ->
+                    titusOperations.awaitTaskExecutorHolderOf(task.getId())
+            ).subscribe(holder -> {
+                taskExecutionHolder = holder;
+                logger.info("TaskExecutorHolder set for task {}", holder.getTaskId());
+            }, e -> logger.error("Error in the event stream", e));
+        }
     }
 
     void stop() {
         eventStreamSubscription.unsubscribe();
+    }
+
+    public boolean isKube() {
+        return kubeCluster != null;
     }
 
     public JobScenarioBuilder toJob() {
@@ -123,21 +134,32 @@ public class TaskScenarioBuilder {
         return taskExecutionHolder;
     }
 
+    public TaskScenarioBuilder moveToKillInitiated() {
+        return internalKill(false, false, false);
+    }
+
     public TaskScenarioBuilder killTask() {
-        return internalKill(false, false);
+        return internalKill(false, false, true);
+    }
+
+    public TaskScenarioBuilder completeKillInitiated() {
+        Task task = getTask();
+        Preconditions.checkState(task.getStatus().getState() == TaskState.KillInitiated, "Expected task in KillInitiated state");
+        kubeCluster.moveToFinishedSuccess(task.getId());
+        return this;
     }
 
     public TaskScenarioBuilder killTaskAndShrink() {
-        return internalKill(true, false);
+        return internalKill(true, false, true);
     }
 
     public TaskScenarioBuilder killTaskAndShrinkWithMinCheck() {
-        return internalKill(true, true);
+        return internalKill(true, true, true);
     }
 
-    private TaskScenarioBuilder internalKill(boolean shrink, boolean preventMinSizeUpdate) {
+    private TaskScenarioBuilder internalKill(boolean shrink, boolean preventMinSizeUpdate, boolean moveToFinished) {
         String taskId = getTask().getId();
-        logger.info("[{}] Killing task: jobId={}, taskId={}, shrink={}, xx={}...", discoverActiveTest(),
+        logger.info("[{}] Killing task: jobId={}, taskId={}, shrink={}, preventMinSizeUpdate={}...", discoverActiveTest(),
                 jobScenarioBuilder.getJobId(), taskId, shrink, preventMinSizeUpdate);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
@@ -151,6 +173,11 @@ public class TaskScenarioBuilder {
                 responseObserver
         );
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectStateUpdates(TaskStatus.TaskState.KillInitiated);
+        if (moveToFinished) {
+            kubeCluster.moveToFinishedSuccess(taskId);
+        }
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
@@ -217,12 +244,38 @@ public class TaskScenarioBuilder {
 
     public TaskScenarioBuilder failTaskExecution() {
         logger.info("[{}] Transition task to failed state", discoverActiveTest());
-        taskExecutionHolder.transitionTo(Protos.TaskState.TASK_FAILED, Reason.REASON_COMMAND_EXECUTOR_FAILED, "Simulated task execution failure");
+        if (isKube()) {
+            kubeCluster.moveToFinishedFailed(getTask().getId(), "Simulated task execution failure");
+        } else {
+            taskExecutionHolder.transitionTo(Protos.TaskState.TASK_FAILED, Reason.REASON_COMMAND_EXECUTOR_FAILED, "Simulated task execution failure");
+        }
+        return this;
+    }
+
+    public TaskScenarioBuilder transitionToFailed() {
+        logger.info("[{}] Moving task to failed state", discoverActiveTest());
+        kubeCluster.moveToFinishedFailed(getTask().getId(), "marked as failed");
         return this;
     }
 
     public TaskScenarioBuilder transitionTo(TaskStatus.TaskState... taskStates) {
         logger.info("[{}] Transition task on agent through states {}", discoverActiveTest(), asList(taskStates));
+
+        Task task = getTask();
+        if (JobFunctions.isOwnedByKubeScheduler(task)) {
+            for (TaskStatus.TaskState taskState : taskStates) {
+                if (taskState == TaskStatus.TaskState.StartInitiated) {
+                    kubeCluster.moveToStartInitiatedState(task.getId());
+                } else if (taskState == TaskStatus.TaskState.Started) {
+                    kubeCluster.moveToStartedState(task.getId());
+                } else if (taskState == TaskStatus.TaskState.KillInitiated) {
+                    kubeCluster.moveToKillInitiatedState(task.getId(), 0);
+                } else if (taskState == TaskStatus.TaskState.Finished) {
+                    kubeCluster.moveToFinishedSuccess(task.getId());
+                }
+            }
+            return this;
+        }
 
         for (TaskStatus.TaskState taskState : taskStates) {
             getTaskExecutionHolder().transitionTo(toMesosTaskState(taskState));
@@ -241,7 +294,31 @@ public class TaskScenarioBuilder {
 
     public TaskScenarioBuilder transitionUntil(TaskStatus.TaskState taskState) {
         logger.info("[{}] Transition task on agent to state {}", discoverActiveTest(), taskState);
+        return kubeCluster != null ? transitionUntilKube(taskState) : transitionUntilMesos(taskState);
+    }
 
+    private TaskScenarioBuilder transitionUntilKube(TaskStatus.TaskState taskState) {
+        String taskId = getTask().getId();
+        TaskState coreTaskState = EmbeddedKubeUtil.getPodState(kubeCluster.getPods().get(taskId));
+        TaskStatus.TaskState currentState = toGrpcTaskState(coreTaskState);
+        int startingPoint = currentState.ordinal();
+        int targetPoint = taskState.ordinal();
+        for (int next = startingPoint + 1; next <= targetPoint; next++) {
+            TaskStatus.TaskState nextState = TaskStatus.TaskState.forNumber(next);
+            if (nextState != TaskStatus.TaskState.KillInitiated) {
+                if (nextState == TaskStatus.TaskState.StartInitiated) {
+                    kubeCluster.moveToStartInitiatedState(taskId);
+                } else if (nextState == TaskStatus.TaskState.Started) {
+                    kubeCluster.moveToStartedState(taskId);
+                } else if (nextState == TaskStatus.TaskState.Finished) {
+                    kubeCluster.moveToFinishedSuccess(taskId);
+                }
+            }
+        }
+        return this;
+    }
+
+    private TaskScenarioBuilder transitionUntilMesos(TaskStatus.TaskState taskState) {
         TaskExecutorHolder taskHolder = getTaskExecutionHolder();
 
         TaskStatus.TaskState currentState = ScenarioBuilderUtil.fromMesosTaskState(taskHolder.getTaskStatus().getState());
@@ -256,13 +333,35 @@ public class TaskScenarioBuilder {
         return this;
     }
 
+    public TaskScenarioBuilder expectAllTasksInKube() {
+        Task task = getTask();
+        logger.info("[{}] Expecting task {} Kube", discoverActiveTest(), task.getId());
+
+        try {
+            await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> kubeCluster.getPods().containsKey(task.getId()));
+        } catch (Exception e) {
+            diagnosticReporter.reportWhenTaskNotScheduled(task.getId());
+            throw e;
+        }
+        return this;
+    }
+
     public TaskScenarioBuilder expectTaskOnAgent() {
-        logger.info("[{}] Expecting task {} on agent", discoverActiveTest(), getTask().getId());
+        Task task = getTask();
+        logger.info("[{}] Expecting task {} on agent", discoverActiveTest(), task.getId());
+
+        // In kube mode TJC is not doing any scheduling so we have to do it explicitly.
+        if (JobFunctions.isOwnedByKubeScheduler(task)) {
+            kubeCluster.schedule();
+            expectStateAndReasonUpdateSkipOther(TaskStatus.TaskState.Launched, "SCHEDULED");
+            kubeCluster.moveToStartInitiatedState(task.getId());
+            return this;
+        }
 
         try {
             await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> taskExecutionHolder != null);
         } catch (Exception e) {
-            diagnosticReporter.reportWhenTaskNotScheduled(getTask().getId());
+            diagnosticReporter.reportWhenTaskNotScheduled(task.getId());
             throw e;
         }
         return this;
@@ -282,6 +381,18 @@ public class TaskScenarioBuilder {
 
     public TaskScenarioBuilder expectInstanceType(AwsInstanceType expectedInstanceType) {
         logger.info("[{}] Expecting current task to run on instance type {}", discoverActiveTest(), expectedInstanceType);
+        Task task = getTask();
+        if (JobFunctions.isOwnedByKubeScheduler(task)) {
+            V1Pod pod = kubeCluster.getPods().get(task.getId());
+            String nodeId = pod.getSpec().getNodeName();
+            EmbeddedKubeNode node = kubeCluster.getFleet().getNodes().get(nodeId);
+            String instanceType = node.getServerGroup().getInstanceType();
+            Preconditions.checkArgument(
+                    expectedInstanceType.name().equalsIgnoreCase(instanceType),
+                    "Task is expected to run on AWS instance %s, but is running on %s", expectedInstanceType, instanceType
+            );
+            return this;
+        }
         Preconditions.checkArgument(
                 getTaskExecutionHolder().getInstanceType() == expectedInstanceType,
                 "Task is expected to run on AWS instance %s, but is running on %s", expectedInstanceType, getTaskExecutionHolder().getInstanceType()
@@ -291,9 +402,12 @@ public class TaskScenarioBuilder {
 
     public TaskScenarioBuilder expectZoneId(String expectedZoneId) {
         logger.info("[{}] Expecting current task to run in zone {}", discoverActiveTest(), expectedZoneId);
+        String taskId = getTask().getId();
+        String zone = kubeCluster.getPlacementZone(taskId);
         Preconditions.checkArgument(
-                getTaskExecutionHolder().getAgent().getZoneId().equals(expectedZoneId),
-                "Task is expected to run in zone %s, but is running on %s", expectedZoneId, getTaskExecutionHolder().getAgent().getZoneId()
+                zone.equalsIgnoreCase(expectedZoneId),
+                "Task %s is expected to run in zone %s, but is running in %s (node %s)",
+                taskId, expectedZoneId, zone, kubeCluster.getPods().get(taskId).getSpec().getNodeName()
         );
         return this;
     }
@@ -307,11 +421,12 @@ public class TaskScenarioBuilder {
         return this;
     }
 
-    public TaskScenarioBuilder expectNoTaskContext(String key) {
-        logger.info("[{}] Expecting current task to not have taskContext key {}", discoverActiveTest(), key);
+    public TaskScenarioBuilder expectStaticIpAllocationInPod(String ipAllocationId) {
+        logger.info("[{}] Expecting pod to have static IP allocation {}", discoverActiveTest(), ipAllocationId);
+        String actual = kubeCluster.getEmbeddedPods().get(getTask().getId()).getStaticIpAllocation();
         Preconditions.checkArgument(
-                !getTask().getTaskContext().containsKey(key),
-                "Task context contains {}", key
+                ipAllocationId.equals(actual),
+                "Different static IP allocations: expected={}, actual={}", ipAllocationId, actual
         );
         return this;
     }
@@ -330,33 +445,36 @@ public class TaskScenarioBuilder {
         return this;
     }
 
-    public TaskScenarioBuilder expectStateUpdateSkipOther(TaskStatus.TaskState expectedState) {
-        logger.info("[{}] Expecting task state {} (skipping other)...", discoverActiveTest(), expectedState);
+    public TaskScenarioBuilder expectStateAndReasonUpdateSkipOther(TaskStatus.TaskState expectedState, String reasonCode) {
+        logger.info("[{}] Expecting task state and reason {}/{} (skipping other)...", discoverActiveTest(), expectedState, reasonCode);
 
         Stopwatch stopWatch = Stopwatch.createStarted();
         TaskState expectedCoreState = toCoreTaskState(expectedState);
-        expectTaskUpdate(task -> task.getStatus().getState().ordinal() < expectedCoreState.ordinal(), task -> task.getStatus().getState() == expectedCoreState, "Expected state: " + expectedCoreState);
+        expectTaskUpdate(
+                task -> task.getStatus().getState().ordinal() <= expectedCoreState.ordinal(),
+                task -> {
+                    com.netflix.titus.api.jobmanager.model.job.TaskStatus taskStatus = task.getStatus();
+                    return taskStatus.getState() == expectedCoreState && Objects.equals(reasonCode, taskStatus.getReasonCode());
+                },
+                "Expected state: " + expectedCoreState
+        );
 
         logger.info("[{}] Expected task state {} received in {}[ms]", discoverActiveTest(), expectedState, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
-    public TaskScenarioBuilder expectOneOfStateUpdates(TaskStatus.TaskState... taskStates) {
-        logger.info("[{}] Expecting task state from set {}...", discoverActiveTest(), asList(taskStates));
-
-        Set<TaskState> coreTaskStates = stream(taskStates).map(GrpcJobManagementModelConverters::toCoreTaskState).collect(Collectors.toSet());
+    public TaskScenarioBuilder expectStateUpdateSkipOther(TaskStatus.TaskState expectedState) {
+        logger.info("[{}] Expecting task state {} (skipping other)...", discoverActiveTest(), expectedState);
 
         Stopwatch stopWatch = Stopwatch.createStarted();
-        Task receivedTask = expectTaskUpdate(task -> coreTaskStates.contains(task.getStatus().getState()), "Expecting one of task states " + coreTaskStates);
+        TaskState expectedCoreState = toCoreTaskState(expectedState);
+        expectTaskUpdate(
+                task -> task.getStatus().getState().ordinal() < expectedCoreState.ordinal(),
+                task -> task.getStatus().getState() == expectedCoreState,
+                "Expected state: " + expectedCoreState
+        );
 
-        logger.info("[{}] Expected task state {} received in {}[ms]", discoverActiveTest(), receivedTask.getStatus().getState(), stopWatch.elapsed(TimeUnit.MILLISECONDS));
-        return this;
-    }
-
-    public TaskScenarioBuilder assertTask(Predicate<Task> predicate, String message) {
-        logger.info("[{}] Asserting task {}...", discoverActiveTest(), message);
-
-        Preconditions.checkArgument(predicate.test(getTask()), message);
+        logger.info("[{}] Expected task state {} received in {}[ms]", discoverActiveTest(), expectedState, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 

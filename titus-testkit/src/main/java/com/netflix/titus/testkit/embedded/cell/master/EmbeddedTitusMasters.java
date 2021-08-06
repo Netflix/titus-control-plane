@@ -16,7 +16,8 @@
 
 package com.netflix.titus.testkit.embedded.cell.master;
 
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 
 /**
  * A collection of preconfigured {@link EmbeddedTitusMaster} instances with different configuration tuning targets.
@@ -26,9 +27,9 @@ public final class EmbeddedTitusMasters {
     /**
      * Embedded TitusMaster with configuration tuned up for faster execution, to make test fast.
      */
-    public static EmbeddedTitusMaster basicMaster(SimulatedCloud simulatedCloud) {
+    public static EmbeddedTitusMaster basicMasterWithKubeIntegration(EmbeddedKubeCluster embeddedKubeCluster) {
         return EmbeddedTitusMaster.aTitusMaster()
-                .withSimulatedCloud(simulatedCloud)
+                .withEmbeddedKubeCluster(embeddedKubeCluster)
                 .withProperty("titus.agent.cacheRefreshIntervalMs", "500")
                 .withProperty("titus.agent.fullCacheRefreshIntervalMs", "500")
                 .withProperty("titus.agent.synchronizeWithInstanceCacheIntervalMs", "500")
@@ -55,7 +56,9 @@ public final class EmbeddedTitusMasters {
                 .withProperty("titus.master.loadBalancer.engineEnabled", "true")
                 .withProperty("titusMaster.eviction.eventStreamQuotaUpdateIntervalMs", "100")
                 .withProperty("titus.features.jobManager.disruptionBudget.whiteList", ".*")
-                .withProperty("titus.features.jobManager.kubeSchedulerFeature.fenzoGpuEnabled", "true")
+                .withProperty("titus.feature.kubeSchedulerEnabled", "true")
+                .withProperty("titusMaster.kubernetes.pod.gpuResourcePoolNames", EmbeddedKubeClusters.RESOURCE_POOL_GPU)
+                .withProperty("titusMaster.directKube.ebsVolumePvEnabled", "true")
                 .build();
     }
 }

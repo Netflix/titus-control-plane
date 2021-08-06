@@ -67,6 +67,7 @@ public class TestStreamObserver<T> implements ClientResponseObserver<Object, T> 
         this.error = error;
         this.mappedError = exceptionMapper(error);
         eventSubject.onError(error);
+        System.out.println("ERROR!!!!!!!!!!!!!!!!!!!!!");
         doFinish();
     }
 

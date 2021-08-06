@@ -32,8 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
@@ -49,7 +47,7 @@ import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.master.integration.v3.job.JobTestUtils.submitBadJob;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCellWithCustomZones;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 
@@ -59,20 +57,17 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = batchJobDescriptors(batchOfSizeAndEbsVolumes(1)).getValue();
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = serviceJobDescriptors(serviceOfSizeAndEbsVolumes(1)).getValue();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCellWithCustomZones(2, "us-east-1a"));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
     @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
 
     private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getMaster().getV3BlockingGrpcClient();
     }
 
@@ -217,6 +212,7 @@ public class JobEbsVolumesTest extends BaseIntegrationTest {
 
         jobsScenarioBuilder.schedule(serviceJobDescriptorWithIps, jobScenarioBuilder ->
                 jobScenarioBuilder
+                        .expectAllTasksCreated()
                         .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 0))
                         .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 1))
                         .expectSome(1, taskScenarioBuilder -> matchingEbsAndIpIndex(taskScenarioBuilder.getTask(), ebsVolumes, ipAllocations, 2))

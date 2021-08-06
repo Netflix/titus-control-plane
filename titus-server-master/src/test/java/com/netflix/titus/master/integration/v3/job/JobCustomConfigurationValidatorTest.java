@@ -24,8 +24,6 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.Status;
@@ -35,11 +33,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.runtime.TitusEntitySanitizerModule.CUSTOM_JOB_CONFIGURATION_ROOT;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,23 +44,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(IntegrationTest.class)
 public class JobCustomConfigurationValidatorTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(1)
+    @Rule
+    public final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCell(1)
             .toMaster(master -> master
                     .withProperty(CUSTOM_JOB_CONFIGURATION_ROOT + ".pattern", ".*")
                     .withProperty(CUSTOM_JOB_CONFIGURATION_ROOT + ".maxBatchJobSize", "1"
                     )
             ));
 
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
-    @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder);
-
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 

@@ -20,8 +20,8 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import org.junit.Before;
@@ -40,7 +40,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CapacityManagementTest extends BaseIntegrationTest {
 
     @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloud(2)));
+    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
+            EmbeddedTitusMasters.basicMasterWithKubeIntegration(EmbeddedKubeClusters.basicCluster(2)));
 
     private TitusMasterClient client;
 
@@ -54,7 +55,7 @@ public class CapacityManagementTest extends BaseIntegrationTest {
      * a server group.
      */
     @Test(timeout = 30_000)
-    public void addCriticalTierJobSla() throws Exception {
+    public void addCriticalTierJobSla() {
         ApplicationSLA applicationSLA = ApplicationSlaSample.CriticalLarge.build();
 
         String location = client.addApplicationSLA(asRepresentation(applicationSLA)).toBlocking().first();

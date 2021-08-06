@@ -16,50 +16,64 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.model.EfsMount;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeUtil;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.titanframework.messages.TitanProtos;
 
-/**
- */
 public class JobAsserts {
     public static Predicate<Job> jobInState(JobState expectedState) {
         return job -> job.getStatus().getState() == expectedState;
     }
 
-    public static Predicate<Task> taskInState(TaskState expectedState) {
-        return task -> task.getStatus().getState() == expectedState;
-    }
-
-    public static Predicate<TaskExecutorHolder> containerWithResources(ContainerResources containerResources, int diskMbMin) {
-        return taskExecutorHolder -> {
-            if (taskExecutorHolder.getTaskCPUs() != containerResources.getCpu()) {
+    public static Predicate<V1Pod> podWithResources(ContainerResources containerResources, int diskMbMin) {
+        return pod -> {
+            ResourceDimension podResources = EmbeddedKubeUtil.fromPodToResourceDimension(pod);
+            if (podResources.getCpu() != containerResources.getCpu()) {
                 return false;
             }
-            if (taskExecutorHolder.getTaskMem() != containerResources.getMemoryMB()) {
+            if (podResources.getMemoryMB() != containerResources.getMemoryMB()) {
                 return false;
             }
             int diskMB = Math.max(containerResources.getDiskMB(), diskMbMin);
-            if (taskExecutorHolder.getTaskDisk() != diskMB) {
+            if (podResources.getDiskMB() != diskMB) {
                 return false;
             }
-            if (taskExecutorHolder.getTaskNetworkMbs() != containerResources.getNetworkMbps()) {
+            if (podResources.getNetworkMbs() != containerResources.getNetworkMbps()) {
                 return false;
             }
             return true;
         };
     }
 
-    public static Predicate<TaskExecutorHolder> containerWithEfsMounts(List<EfsMount> expectedEfsMounts) {
-        return taskExecutorHolder -> {
-            List<EfsMount> actualEfsMounts = taskExecutorHolder.getEfsMounts();
+    public static Predicate<V1Pod> podWithEfsMounts(List<EfsMount> expectedEfsMounts) {
+        return pod -> {
+            String containerInfoStr = pod.getMetadata().getAnnotations().get("containerInfo");
+            byte[] decodedContainerInfo = Base64.getDecoder().decode(containerInfoStr);
+
+            TitanProtos.ContainerInfo containerInfo;
+            try {
+                containerInfo = TitanProtos.ContainerInfo.parseFrom(decodedContainerInfo);
+            } catch (IOException e) {
+                throw new IllegalStateException("Cannot parse containerInfo");
+            }
+            List<EfsMount> actualEfsMounts = containerInfo.getEfsConfigInfoList().stream().map(c -> EfsMount.newBuilder()
+                    .withEfsId(c.getEfsFsId())
+                    .withMountPoint(c.getMountPoint())
+                    .withEfsRelativeMountPoint(c.getEfsFsRelativeMntPoint())
+                    .withMountPerm(EfsMount.MountPerm.valueOf(c.getMntPerms().name()))
+                    .build()
+            ).collect(Collectors.toList());
             return expectedEfsMounts.equals(actualEfsMounts);
         };
     }

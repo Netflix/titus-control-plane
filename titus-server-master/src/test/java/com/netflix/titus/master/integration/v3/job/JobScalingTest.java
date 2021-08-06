@@ -24,8 +24,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
@@ -34,32 +32,24 @@ import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class JobScalingTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCell(2));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
     @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
-
-    @Before
-    public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
-    }
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
 
     @After
     public void tearDown() throws Exception {

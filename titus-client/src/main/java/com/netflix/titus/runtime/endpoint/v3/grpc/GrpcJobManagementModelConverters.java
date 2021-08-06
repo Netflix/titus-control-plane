@@ -1016,35 +1016,32 @@ public final class GrpcJobManagementModelConverters {
 
     public static com.netflix.titus.grpc.protogen.TaskStatus toGrpcTaskStatus(TaskStatus status) {
         com.netflix.titus.grpc.protogen.TaskStatus.Builder builder = com.netflix.titus.grpc.protogen.TaskStatus.newBuilder();
-        switch (status.getState()) {
-            case Accepted:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Accepted);
-                break;
-            case Launched:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Launched);
-                break;
-            case StartInitiated:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.StartInitiated);
-                break;
-            case Started:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Started);
-                break;
-            case Disconnected:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Disconnected);
-                break;
-            case KillInitiated:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.KillInitiated);
-                break;
-            case Finished:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Finished);
-                break;
-            default:
-                builder.setState(com.netflix.titus.grpc.protogen.TaskStatus.TaskState.UNRECOGNIZED);
-        }
+        builder.setState(toGrpcTaskState(status.getState()));
         applyNotNull(status.getReasonCode(), builder::setReasonCode);
         applyNotNull(status.getReasonMessage(), builder::setReasonMessage);
         builder.setTimestamp(status.getTimestamp());
         return builder.build();
+    }
+
+    public static com.netflix.titus.grpc.protogen.TaskStatus.TaskState toGrpcTaskState(TaskState coreTaskState) {
+        switch (coreTaskState) {
+            case Accepted:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Accepted;
+            case Launched:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Launched;
+            case StartInitiated:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.StartInitiated;
+            case Started:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Started;
+            case Disconnected:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Disconnected;
+            case KillInitiated:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.KillInitiated;
+            case Finished:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.Finished;
+            default:
+                return com.netflix.titus.grpc.protogen.TaskStatus.TaskState.UNRECOGNIZED;
+        }
     }
 
     public static List<com.netflix.titus.grpc.protogen.TaskStatus> toGrpcTaskStatusHistory(List<TaskStatus> statusHistory) {

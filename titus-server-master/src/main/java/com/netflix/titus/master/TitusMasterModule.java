@@ -44,6 +44,7 @@ import com.netflix.titus.master.health.HealthModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
 import com.netflix.titus.master.kubernetes.KubeModule;
+import com.netflix.titus.master.kubernetes.controller.KubeControllerModule;
 import com.netflix.titus.master.kubernetes.pod.KubePodModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
 import com.netflix.titus.master.mesos.KubeClientStubModule;
@@ -68,16 +69,22 @@ import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
  */
 public class TitusMasterModule extends AbstractModule {
 
-    private final boolean enableREST;
-    private final boolean enableKube;
-
-    public TitusMasterModule() {
-        this(true, true);
+    public enum Mode {
+        MESOS,
+        KUBE,
+        EMBEDDED_KUBE,
     }
 
-    public TitusMasterModule(boolean enableREST, boolean enableKube) {
+    private final boolean enableREST;
+    private final Mode mode;
+
+    public TitusMasterModule() {
+        this(true, Mode.KUBE);
+    }
+
+    public TitusMasterModule(boolean enableREST, Mode mode) {
         this.enableREST = enableREST;
-        this.enableKube = enableKube;
+        this.mode = mode;
     }
 
     @Override
@@ -98,8 +105,11 @@ public class TitusMasterModule extends AbstractModule {
         install(new MesosModule());
 
         // Kubernetes
-        if (enableKube) {
+        if (mode == Mode.KUBE) {
             install(new KubeModule());
+        } else if (mode == Mode.EMBEDDED_KUBE) {
+            install(new KubeControllerModule());
+            install(new KubePodModule());
         } else {
             install(new KubeClientStubModule());
             install(new KubePodModule());

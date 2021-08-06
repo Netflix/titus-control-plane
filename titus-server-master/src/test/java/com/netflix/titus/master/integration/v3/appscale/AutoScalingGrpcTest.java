@@ -58,7 +58,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
     private static final long TIMEOUT_MS = 30_000;
 
     @Rule
-    public final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(2));
+    public final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicKubeCell(2));
 
     @Before
     public void setUp() throws Exception {

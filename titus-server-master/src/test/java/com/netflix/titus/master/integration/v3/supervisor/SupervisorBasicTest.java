@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SupervisorBasicTest extends BaseIntegrationTest {
 
     @ClassRule
-    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(1));
+    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicKubeCell(1));
 
     private final SupervisorServiceBlockingStub blockingGrpcClient = titusStackResource.getMaster().getSupervisorBlockingGrpcClient();
 

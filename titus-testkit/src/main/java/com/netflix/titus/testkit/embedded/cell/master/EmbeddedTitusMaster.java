@@ -49,6 +49,7 @@ import com.netflix.titus.api.audit.model.AuditLogEvent;
 import com.netflix.titus.api.audit.service.AuditLogService;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import com.netflix.titus.api.connector.cloud.noop.NoOpInstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.json.ObjectMappers;
@@ -102,11 +103,14 @@ import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedAgentConfiguration;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.testkit.embedded.cloud.connector.local.NoOpMesosSchedulerDriver;
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriver;
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriverFactory;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeModule;
 import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -139,6 +143,7 @@ public class EmbeddedTitusMaster {
     private final SimulatedCloud simulatedCloud;
     private final InstanceCloudConnector cloudInstanceConnector;
     private final MesosSchedulerDriverFactory mesosSchedulerDriverFactory;
+    private final EmbeddedKubeCluster embeddedKubeCluster;
     private final Pair<String, Integer> remoteCloud;
 
     private LifecycleInjector injector;
@@ -176,12 +181,20 @@ public class EmbeddedTitusMaster {
         }
         config.setProperties(embeddedProperties);
 
-        if (builder.remoteCloud == null) {
+        if (builder.embeddedKubeCluster != null) {
+            this.embeddedKubeCluster = builder.embeddedKubeCluster;
+            this.remoteCloud = null;
+            this.simulatedCloud = null;
+            this.cloudInstanceConnector = null;
+            this.mesosSchedulerDriverFactory = null;
+        } else if (builder.remoteCloud == null) {
+            this.embeddedKubeCluster = null;
             this.simulatedCloud = builder.simulatedCloud == null ? new SimulatedCloud() : builder.simulatedCloud;
             this.remoteCloud = null;
             this.cloudInstanceConnector = new SimulatedLocalInstanceCloudConnector(simulatedCloud);
             this.mesosSchedulerDriverFactory = new SimulatedLocalMesosSchedulerDriverFactory(simulatedCloud);
         } else {
+            this.embeddedKubeCluster = null;
             this.simulatedCloud = null;
             this.remoteCloud = builder.remoteCloud;
 
@@ -200,6 +213,18 @@ public class EmbeddedTitusMaster {
         Stopwatch timer = Stopwatch.createStarted();
         logger.info("Starting Titus Master");
 
+        TitusMasterModule.Mode mode = embeddedKubeCluster != null ? TitusMasterModule.Mode.EMBEDDED_KUBE : TitusMasterModule.Mode.MESOS;
+        Module embeddedKubeModule;
+        if (embeddedKubeCluster == null) {
+            embeddedKubeModule = new AbstractModule() {
+                @Override
+                protected void configure() {
+                }
+            };
+        } else {
+            embeddedKubeModule = new EmbeddedKubeModule(embeddedKubeCluster);
+        }
+
         opportunisticCpuAvailability.clear();
         injector = InjectorBuilder.fromModules(
                 Modules.override(new TitusRuntimeModule(false)).with(new AbstractModule() {
@@ -209,13 +234,21 @@ public class EmbeddedTitusMaster {
                         bind(Registry.class).toInstance(new DefaultRegistry());
                     }
                 }),
-                Modules.override(new TitusMasterModule(enableREST, false))
+                embeddedKubeModule,
+                Modules.override(new TitusMasterModule(enableREST, mode))
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {
-                                      bind(InstanceCloudConnector.class).toInstance(cloudInstanceConnector);
-                                      bind(MesosSchedulerDriverFactory.class).toInstance(mesosSchedulerDriverFactory);
-
+                                      if (cloudInstanceConnector == null) {
+                                          bind(InstanceCloudConnector.class).toInstance(new NoOpInstanceCloudConnector());
+                                      } else {
+                                          bind(InstanceCloudConnector.class).toInstance(cloudInstanceConnector);
+                                      }
+                                      if (embeddedKubeCluster != null) {
+                                          bind(MesosSchedulerDriverFactory.class).toInstance((framework, mesosMaster, scheduler) -> new NoOpMesosSchedulerDriver());
+                                      } else if (mesosSchedulerDriverFactory != null) {
+                                          bind(MesosSchedulerDriverFactory.class).toInstance(mesosSchedulerDriverFactory);
+                                      }
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
                                       bind(AgentStore.class).toInstance(agentStore);
@@ -451,12 +484,17 @@ public class EmbeddedTitusMaster {
         return injector.getInstance(TitusMasterGrpcServer.class).getGrpcPort();
     }
 
+    public EmbeddedKubeCluster getEmbeddedKubeCluster() {
+        return embeddedKubeCluster;
+    }
+
     public Builder toBuilder() {
         Builder builder = new Builder()
                 .withApiPort(apiPort)
                 .withGrpcPort(grpcPort)
                 .withCellName(cellName)
                 .withSimulatedCloud(simulatedCloud)
+                .withEmbeddedKubeCluster(embeddedKubeCluster)
                 .withProperties(properties)
                 .withEnableDisruptionBudget(enableDisruptionBudget)
                 .withV3JobStore(jobStore);
@@ -488,6 +526,7 @@ public class EmbeddedTitusMaster {
         private List<SimulatedTitusAgentCluster> agentClusters = new ArrayList<>();
         private SimulatedCloud simulatedCloud;
         private Pair<String, Integer> remoteCloud;
+        private EmbeddedKubeCluster embeddedKubeCluster;
         private SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor;
 
         public Builder() {
@@ -566,8 +605,15 @@ public class EmbeddedTitusMaster {
             );
         }
 
+        public Builder withEmbeddedKubeCluster(EmbeddedKubeCluster embeddedKubeCluster) {
+            Preconditions.checkState(this.simulatedCloud == null, "Simulated cloud already configured");
+            this.embeddedKubeCluster = embeddedKubeCluster;
+            return this;
+        }
+
         public Builder withSimulatedCloud(SimulatedCloud simulatedCloud) {
             Preconditions.checkState(this.simulatedCloud == null, "Simulated cloud already configured");
+            Preconditions.checkState(this.embeddedKubeCluster == null, "Simulated cloud already configured");
             Preconditions.checkState(remoteCloud == null, "Remote simulated cloud already configured");
             this.simulatedCloud = simulatedCloud;
             return this;

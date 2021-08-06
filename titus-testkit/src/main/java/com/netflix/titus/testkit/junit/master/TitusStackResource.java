@@ -26,6 +26,7 @@ import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
 import org.junit.rules.ExternalResource;
 
 public class TitusStackResource extends ExternalResource {
@@ -78,5 +79,9 @@ public class TitusStackResource extends ExternalResource {
 
     public EmbeddedTitusOperations getOperations() {
         return federation.map(EmbeddedTitusFederation::getTitusOperations).orElse(embeddedTitusCells.get(0).getTitusOperations());
+    }
+
+    public EmbeddedKubeCluster getEmbeddedKubeCluster(int cellIdx) {
+        return embeddedTitusCells.get(cellIdx).getEmbeddedKubeCluster();
     }
 }

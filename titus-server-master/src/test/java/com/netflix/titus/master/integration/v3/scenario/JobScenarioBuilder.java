@@ -65,10 +65,12 @@ import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverte
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -160,16 +162,24 @@ public class JobScenarioBuilder {
                         e -> logger.error("Task event stream in job {} terminated with an error", jobId, e),
                         () -> logger.info("Task event stream in job {} completed", jobId)
                 );
-        Observable<JobChangeNotification> snapshotMarker = connectableEventStream.filter(e -> e.getNotificationCase() == NotificationCase.SNAPSHOTEND);
+        Observable<JobChangeNotification> snapshotMarker = connectableEventStream.takeUntil(e -> e.getNotificationCase() == NotificationCase.SNAPSHOTEND);
 
         this.eventStreamSubscription = connectableEventStream.connect();
         client.observeJob(JobId.newBuilder().setId(jobId).build(), jobEvents);
 
-        snapshotMarker.take(1).timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).toBlocking().first();
+        snapshotMarker.timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).toBlocking().last();
     }
 
     void stop() {
         eventStreamSubscription.unsubscribe();
+    }
+
+    public boolean isKube() {
+        return titusOperations.getKubeCluster() != null;
+    }
+
+    public EmbeddedKubeCluster getKube() {
+        return titusOperations.getKubeCluster();
     }
 
     public JobsScenarioBuilder toJobs() {
@@ -490,6 +500,11 @@ public class JobScenarioBuilder {
         return this;
     }
 
+    public JobScenarioBuilder schedule() {
+        titusOperations.getKubeCluster().schedule();
+        return this;
+    }
+
     public JobScenarioBuilder expectTasksOnAgents(int count) {
         logger.info("[{}] Expecting {} tasks to be running on agents...", discoverActiveTest(), count);
 
@@ -533,7 +548,7 @@ public class JobScenarioBuilder {
             List<TaskHolder> lastTaskHolders = getLastTaskHolders();
             return lastTaskHolders.stream().filter(t -> {
                 TaskState state = t.getTaskScenarioBuilder().getTask().getStatus().getState();
-                return state != TaskState.Finished;
+                return state != TaskState.KillInitiated;
 
             }).count() <= size;
         });
@@ -609,6 +624,20 @@ public class JobScenarioBuilder {
         );
         if (!allMatch) {
             throw new IllegalStateException("TaskExecutorHolder predicate is false for one or more tasks. " + message);
+        }
+        return this;
+    }
+
+    public JobScenarioBuilder assertEachPod(Predicate<V1Pod> podPredicate, String message) {
+        List<TaskHolder> lastTaskHolders = getLastTaskHolders();
+        boolean allMatch = lastTaskHolders.stream().allMatch(taskHolder -> {
+                    Task task = taskHolder.getTaskScenarioBuilder().getTask();
+                    V1Pod pod = titusOperations.getKubeCluster().getPods().get(task.getId());
+                    return podPredicate.test(pod);
+                }
+        );
+        if (!allMatch) {
+            throw new IllegalStateException("Pod predicate is false for one or more tasks. " + message);
         }
         return this;
     }

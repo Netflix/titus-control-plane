@@ -34,8 +34,6 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.job.CellAssertions;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells;
@@ -61,20 +59,17 @@ import static org.junit.Assert.fail;
 @Category(IntegrationTest.class)
 public class JobObserveTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(4));
-
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
+    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicKubeCell(4));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
     @Rule
-    public RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
+    public RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
 
     private JobManagementServiceStub client;
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3GrpcClient();
     }
 
@@ -85,7 +80,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         for (int i = 0; i < 2; i++) {
             String jobId = jobsScenarioBuilder.scheduleAndReturnJob(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder
                     .template(startTasksInNewJob())
-                    .killJob()
+                    .template(ScenarioTemplates.killJob())
             ).getId();
 
             JobChangeNotification event;
