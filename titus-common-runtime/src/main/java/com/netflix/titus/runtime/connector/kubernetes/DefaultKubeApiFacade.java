@@ -120,21 +120,29 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
-    public void deleteNode(String nodeName) throws ApiException {
-        coreV1Api.deleteNode(
-                nodeName,
-                null,
-                null,
-                0,
-                null,
-                BACKGROUND,
-                null
-        );
+    public void deleteNode(String nodeName) throws KubeApiException {
+        try {
+            coreV1Api.deleteNode(
+                    nodeName,
+                    null,
+                    null,
+                    0,
+                    null,
+                    BACKGROUND,
+                    null
+            );
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
-    public void createNamespacedPod(String namespace, V1Pod pod) throws ApiException {
-        coreV1Api.createNamespacedPod(namespace, pod, null, null, null);
+    public void createNamespacedPod(String namespace, V1Pod pod) throws KubeApiException {
+        try {
+            coreV1Api.createNamespacedPod(namespace, pod, null, null, null);
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
@@ -145,69 +153,89 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
-    public void deleteNamespacedPod(String namespace, String podName) throws ApiException {
-        coreV1Api.deleteNamespacedPod(
-                podName,
-                namespace,
-                null,
-                null,
-                0,
-                null,
-                BACKGROUND,
-                null
-        );
+    public void deleteNamespacedPod(String namespace, String podName) throws KubeApiException {
+        try {
+            coreV1Api.deleteNamespacedPod(
+                    podName,
+                    namespace,
+                    null,
+                    null,
+                    0,
+                    null,
+                    BACKGROUND,
+                    null
+            );
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
-    public void deleteNamespacedPod(String namespace, String podName, int deleteGracePeriod) throws ApiException {
-        coreV1Api.deleteNamespacedPod(
-                podName,
-                namespace,
-                null,
-                null,
-                deleteGracePeriod,
-                null,
-                null,
-                null
-        );
+    public void deleteNamespacedPod(String namespace, String podName, int deleteGracePeriod) throws KubeApiException {
+        try {
+            coreV1Api.deleteNamespacedPod(
+                    podName,
+                    namespace,
+                    null,
+                    null,
+                    deleteGracePeriod,
+                    null,
+                    null,
+                    null
+            );
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
-    public void deleteNamespacedPersistentVolumeClaim(String namespace, String volumeClaimName) throws ApiException {
-        coreV1Api.deleteNamespacedPersistentVolumeClaim(
-                volumeClaimName,
-                namespace,
-                null,
-                null,
-                0,
-                null,
-                null,
-                null
-        );
+    public void deleteNamespacedPersistentVolumeClaim(String namespace, String volumeClaimName) throws KubeApiException {
+        try {
+            coreV1Api.deleteNamespacedPersistentVolumeClaim(
+                    volumeClaimName,
+                    namespace,
+                    null,
+                    null,
+                    0,
+                    null,
+                    null,
+                    null
+            );
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
-    public void replacePersistentVolume(V1PersistentVolume persistentVolume) throws ApiException {
-        coreV1Api.replacePersistentVolume(
-                KubeUtil.getMetadataName(persistentVolume.getMetadata()),
-                persistentVolume,
-                null,
-                null,
-                null
-        );
+    public void replacePersistentVolume(V1PersistentVolume persistentVolume) throws KubeApiException {
+        try {
+            coreV1Api.replacePersistentVolume(
+                    KubeUtil.getMetadataName(persistentVolume.getMetadata()),
+                    persistentVolume,
+                    null,
+                    null,
+                    null
+            );
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
-    public void deletePersistentVolume(String volumeName) throws ApiException {
-        coreV1Api.deletePersistentVolume(
-                volumeName,
-                null,
-                null,
-                0,
-                null,
-                null,
-                null
-        );
+    public void deletePersistentVolume(String volumeName) throws KubeApiException {
+        try {
+            coreV1Api.deletePersistentVolume(
+                    volumeName,
+                    null,
+                    null,
+                    0,
+                    null,
+                    null,
+                    null
+            );
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
@@ -235,13 +263,21 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
-    public void createPersistentVolume(V1PersistentVolume v1PersistentVolume) throws ApiException {
-        coreV1Api.createPersistentVolume(v1PersistentVolume, null, null, null);
+    public void createPersistentVolume(V1PersistentVolume v1PersistentVolume) throws KubeApiException {
+        try {
+            coreV1Api.createPersistentVolume(v1PersistentVolume, null, null, null);
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override
-    public void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) throws ApiException {
-        coreV1Api.createNamespacedPersistentVolumeClaim(namespace, v1PersistentVolumeClaim, null, null, null);
+    public void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) throws KubeApiException {
+        try {
+            coreV1Api.createNamespacedPersistentVolumeClaim(namespace, v1PersistentVolumeClaim, null, null, null);
+        } catch (ApiException e) {
+            throw new KubeApiException(e);
+        }
     }
 
     @Override

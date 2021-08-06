@@ -49,9 +49,9 @@ import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
@@ -185,10 +185,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             } catch (JsonSyntaxException e) {
                 // this is probably successful. the generated client has the wrong response type
                 metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
-            } catch (ApiException e) {
+            } catch (KubeApiException e) {
                 metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
 
-                if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && task.getStatus().getState() == TaskState.Accepted) {
+                if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND && task.getStatus().getState() == TaskState.Accepted) {
                     sendEvent(PodEvent.onPodNotFound(task,
                             TaskStatus.newBuilder()
                                     .withState(TaskState.Finished)
@@ -260,7 +260,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 kubeApiFacade.createPersistentVolume(v1PersistentVolume);
                 logger.info("Created persistent volume {} in {}ms", v1PersistentVolume, timer.elapsed(TimeUnit.MILLISECONDS));
                 metrics.persistentVolumeCreateSuccess(timer.elapsed(TimeUnit.MILLISECONDS));
-            } catch (ApiException apiException) {
+            } catch (KubeApiException apiException) {
                 if (isEbsVolumeConflictException(apiException)) {
                     logger.info("Persistent volume already exists {}", v1PersistentVolume);
                 } else {
@@ -286,7 +286,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 long latencyMs = timer.elapsed(TimeUnit.MILLISECONDS);
                 logger.info("Created persistent volume claim {} in {}ms", v1PersistentVolumeClaim, latencyMs);
                 metrics.persistentVolumeClaimCreateSuccess(latencyMs);
-            } catch (ApiException apiException) {
+            } catch (KubeApiException apiException) {
                 if (isEbsVolumeConflictException(apiException)) {
                     logger.info("Persistent volume claim already exists {}", v1PersistentVolumeClaim);
                 } else {
@@ -417,9 +417,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return Optional.ofNullable(kubeApiFacade.getNodeInformer().getIndexer().getByKey(nodeName));
     }
 
-    private static boolean isEbsVolumeConflictException(ApiException apiException) {
-        return apiException.getCode() == 409 &&
-                apiException.getMessage().equals("Conflict") &&
-                apiException.getResponseBody().contains("AlreadyExists");
+    private static boolean isEbsVolumeConflictException(KubeApiException apiException) {
+        return apiException.getErrorCode() == KubeApiException.ErrorCode.CONFLICT_ALREADY_EXISTS;
     }
 }

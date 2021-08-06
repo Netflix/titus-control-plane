@@ -33,8 +33,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPvEssentials;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 
 /**
  * Garbage collects persistent volumes that are not associated with active/non-terminal jobs.
@@ -116,8 +115,8 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
             kubeApiFacade.deletePersistentVolume(volumeName);
             logger.info("Successfully deleted persistent volume {}", formatPvEssentials(pv));
             return true;
-        } catch (ApiException e) {
-            if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+        } catch (KubeApiException e) {
+            if (e.getErrorCode() != KubeApiException.ErrorCode.NOT_FOUND) {
                 // If we did not find the PV return true as it is removed
                 logger.info("Delete for persistent volume {} not found", formatPvEssentials(pv));
                 return true;

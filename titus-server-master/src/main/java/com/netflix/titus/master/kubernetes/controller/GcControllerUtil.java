@@ -18,14 +18,13 @@ package com.netflix.titus.master.kubernetes.controller;
 
 import com.google.gson.JsonSyntaxException;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 
 public final class GcControllerUtil {
 
@@ -37,8 +36,8 @@ public final class GcControllerUtil {
         } catch (JsonSyntaxException e) {
             // this will be counted as successful as the response type mapping in the client is incorrect
             return true;
-        } catch (ApiException e) {
-            if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+        } catch (KubeApiException e) {
+            if (e.getErrorCode() != KubeApiException.ErrorCode.NOT_FOUND) {
                 logger.error("Failed to delete node: {} with error: ", nodeName, e);
             }
         } catch (Exception e) {
@@ -55,8 +54,8 @@ public final class GcControllerUtil {
         } catch (JsonSyntaxException e) {
             // this will be counted as successful as the response type mapping in the client is incorrect
             return true;
-        } catch (ApiException e) {
-            if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+        } catch (KubeApiException e) {
+            if (e.getErrorCode() != KubeApiException.ErrorCode.NOT_FOUND) {
                 logger.error("Failed to delete pod: {} with error: ", podName, e);
             }
         } catch (Exception e) {

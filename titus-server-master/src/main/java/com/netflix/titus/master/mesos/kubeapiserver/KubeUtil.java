@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,7 +39,6 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
-import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
@@ -55,10 +53,8 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1Toleration;
-import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public class KubeUtil {
 

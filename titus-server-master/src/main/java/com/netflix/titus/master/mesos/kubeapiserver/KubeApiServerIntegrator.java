@@ -61,10 +61,10 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
@@ -102,7 +102,6 @@ import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.f
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.FAILED;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.PENDING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.RUNNING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.SUCCEEDED;
@@ -296,8 +295,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             kubeApiFacade.deleteNamespacedPod(DEFAULT_NAMESPACE, taskId, directKubeConfiguration.getDeleteGracePeriodSeconds());
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
-        } catch (ApiException e) {
-            if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && taskKilledInAccepted(taskId)) {
+        } catch (KubeApiException e) {
+            if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND && taskKilledInAccepted(taskId)) {
                 publishContainerEvent(taskId, Finished, REASON_TASK_KILLED, "", Optional.empty());
             } else {
                 logger.error("Failed to kill task: {} with error: {}", taskId, KubeUtil.toErrorDetails(e), e);

@@ -18,7 +18,6 @@ package com.netflix.titus.runtime.connector.kubernetes;
 
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
@@ -33,33 +32,33 @@ public interface KubeApiFacade {
 
     // Nodes
 
-    void deleteNode(String nodeName) throws ApiException;
+    void deleteNode(String nodeName) throws KubeApiException;
 
     SharedIndexInformer<V1Node> getNodeInformer();
 
     // Pods
 
-    void createNamespacedPod(String namespace, V1Pod pod) throws ApiException;
+    void createNamespacedPod(String namespace, V1Pod pod) throws KubeApiException;
 
     Mono<V1Pod> createNamespacedPodAsync(String namespace, V1Pod pod);
 
-    void deleteNamespacedPod(String namespace, String nodeName) throws ApiException;
+    void deleteNamespacedPod(String namespace, String nodeName) throws KubeApiException;
 
-    void deleteNamespacedPod(String namespace, String podName, int deleteGracePeriod) throws ApiException;
+    void deleteNamespacedPod(String namespace, String podName, int deleteGracePeriod) throws KubeApiException;
 
     SharedIndexInformer<V1Pod> getPodInformer();
 
     // Persistent volumes
 
-    void createPersistentVolume(V1PersistentVolume v1PersistentVolume) throws ApiException;
+    void createPersistentVolume(V1PersistentVolume v1PersistentVolume) throws KubeApiException;
 
-    void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) throws ApiException;
+    void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) throws KubeApiException;
 
-    void deleteNamespacedPersistentVolumeClaim(String namespace, String volumeClaimName) throws ApiException;
+    void deleteNamespacedPersistentVolumeClaim(String namespace, String volumeClaimName) throws KubeApiException;
 
-    void replacePersistentVolume(V1PersistentVolume persistentVolume) throws ApiException;
+    void replacePersistentVolume(V1PersistentVolume persistentVolume) throws KubeApiException;
 
-    void deletePersistentVolume(String volumeName) throws ApiException;
+    void deletePersistentVolume(String volumeName) throws KubeApiException;
 
     SharedIndexInformer<V1PersistentVolume> getPersistentVolumeInformer();
 
