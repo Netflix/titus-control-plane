@@ -18,13 +18,12 @@ package com.netflix.titus.runtime.connector.kubernetes;
 
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
-import okhttp3.Call;
+import reactor.core.publisher.Mono;
 
 /**
  * {@link KubeApiFacade} encapsulates Kube Java, except the entity model and the informer API. The latter is
@@ -42,7 +41,7 @@ public interface KubeApiFacade {
 
     void createNamespacedPod(String namespace, V1Pod pod) throws ApiException;
 
-    Call createNamespacedPodAsync(String namespace, V1Pod pod, ApiCallback<V1Pod> callback) throws ApiException;
+    Mono<V1Pod> createNamespacedPodAsync(String namespace, V1Pod pod);
 
     void deleteNamespacedPod(String namespace, String nodeName) throws ApiException;
 
@@ -52,7 +51,7 @@ public interface KubeApiFacade {
 
     // Persistent volumes
 
-    void createPersistentVolume(V1PersistentVolume v1PersistentVolume)throws ApiException;
+    void createPersistentVolume(V1PersistentVolume v1PersistentVolume) throws ApiException;
 
     void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) throws ApiException;
 

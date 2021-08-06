@@ -64,13 +64,6 @@ public class KubeUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeUtil.class);
 
-    /**
-     * Like {@link Function}, but with {@link ApiException} throws clause.
-     */
-    public interface KubeFunction<I, O> {
-        O apply(I argument) throws ApiException;
-    }
-
     private static final String SUCCEEDED = "Succeeded";
 
     private static final String FAILED = "Failed";
@@ -298,42 +291,6 @@ public class KubeUtil {
                 apiException.getCode(),
                 Evaluators.getOrDefault(apiException.getResponseBody(), "<not set>")
         );
-    }
-
-    public static <T> Mono<T> toReact(KubeFunction<ApiCallback<T>, Call> handler) {
-        return Mono.create(sink -> {
-            Call call;
-            try {
-                call = handler.apply(new ApiCallback<T>() {
-                    @Override
-                    public void onFailure(ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
-                        sink.error(e);
-                    }
-
-                    @Override
-                    public void onSuccess(T result, int statusCode, Map<String, List<String>> responseHeaders) {
-                        if (result == null) {
-                            sink.success();
-                        } else {
-                            sink.success(result);
-                        }
-                    }
-
-                    @Override
-                    public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {
-                    }
-
-                    @Override
-                    public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {
-                    }
-                });
-            } catch (ApiException e) {
-                sink.error(e);
-                return;
-            }
-
-            sink.onCancel(call::cancel);
-        });
     }
 
     /**

@@ -240,8 +240,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         List<Mono<Void>> podAddActions = new ArrayList<>(assignments.getCount());
         for (TaskInfoRequest request : assignments) {
             V1Pod v1Pod = taskInfoToPod(request);
-            Mono<Void> podAddAction = KubeUtil
-                    .<V1Pod>toReact(handler -> kubeApiFacade.createNamespacedPodAsync(DEFAULT_NAMESPACE, v1Pod, handler))
+            Mono<Void> podAddAction = kubeApiFacade.createNamespacedPodAsync(DEFAULT_NAMESPACE, v1Pod)
                     .doOnSubscribe(subscription -> {
                         launchTaskCounter.increment();
                         logger.info("creating pod: {}", formatPodEssentials(v1Pod));

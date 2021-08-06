@@ -18,12 +18,11 @@ package com.netflix.titus.runtime.connector.kubernetes;
 
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
-import okhttp3.Call;
+import reactor.core.publisher.Mono;
 
 public class NoOpKubeApiFacade implements KubeApiFacade {
 
@@ -38,7 +37,7 @@ public class NoOpKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
-    public Call createNamespacedPodAsync(String namespace, V1Pod pod, ApiCallback<V1Pod> callback) {
+    public Mono<V1Pod> createNamespacedPodAsync(String namespace, V1Pod pod) {
         throw new IllegalStateException("Kubernetes not supported");
     }
 
