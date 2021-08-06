@@ -107,16 +107,7 @@ public class PersistentVolumeClaimGcController extends BaseGcController<V1Persis
             // If the PVC is deleted while still in use by a pod (though that is not expected), the PVC
             // will not be removed until no pod is using it.
             // https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPersistentVolumeClaim(
-                    volumeClaimName,
-                    DEFAULT_NAMESPACE,
-                    null,
-                    null,
-                    0,
-                    null,
-                    null,
-                    null
-            );
+            kubeApiFacade.deleteNamespacedPersistentVolumeClaim(DEFAULT_NAMESPACE, volumeClaimName);
             logger.info("Successfully deleted persistent volume claim {}", formatPvcEssentials(pvc));
             return true;
         } catch (ApiException e) {

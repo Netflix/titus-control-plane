@@ -337,14 +337,11 @@ public class KubeUtil {
     }
 
     /**
-     * Get pod name
+     * Get Kube object name
      */
+    @Deprecated
     public static String getMetadataName(V1ObjectMeta metadata) {
-        if (metadata == null) {
-            return "";
-        }
-
-        return metadata.getName();
+        return com.netflix.titus.runtime.connector.kubernetes.KubeUtil.getMetadataName(metadata);
     }
 
     public static Optional<V1NodeCondition> findNodeCondition(V1Node node, String type) {

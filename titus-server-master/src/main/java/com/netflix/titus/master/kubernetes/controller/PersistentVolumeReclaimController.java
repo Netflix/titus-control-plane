@@ -26,7 +26,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeBuilder;
@@ -92,13 +91,7 @@ public class PersistentVolumeReclaimController extends BaseGcController<V1Persis
                 .withSpec(new V1PersistentVolumeSpecBuilder(spec).build().claimRef(null))
                 .build();
         try {
-            kubeApiFacade.getCoreV1Api().replacePersistentVolume(
-                    KubeUtil.getMetadataName(updatedPv.getMetadata()),
-                    updatedPv,
-                    null,
-                    null,
-                    null
-            );
+            kubeApiFacade.replacePersistentVolume(updatedPv);
             logger.info("Successfully reclaimed pv {}", formatPvEssentials(updatedPv));
         } catch (Exception e) {
             logger.error("Failed to reclaim pv {} with error: ", formatPvEssentials(v1PersistentVolume), e);

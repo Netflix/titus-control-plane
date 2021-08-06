@@ -29,11 +29,9 @@ import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucke
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimStatus;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +50,6 @@ public class PersistentVolumeClaimGcControllerTest {
     private final KubeApiFacade kubeApiFacade = mock(KubeApiFacade.class);
     private final LocalScheduler scheduler = mock(LocalScheduler.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-    private final CoreV1Api coreV1Api = mock(CoreV1Api.class);
 
     private final PersistentVolumeClaimGcController pvcGcController = new PersistentVolumeClaimGcController(
             titusRuntime,
@@ -62,11 +59,6 @@ public class PersistentVolumeClaimGcControllerTest {
             kubeApiFacade,
             v3JobOperations
     );
-
-    @Before
-    public void setUp() {
-        when(kubeApiFacade.getCoreV1Api()).thenReturn(coreV1Api);
-    }
 
     /**
      * Tests that a PVC that is Bound is not GC'd.

@@ -113,15 +113,7 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
             // If the PV is deleted while still associated with a PVC (though that is not expected), the PV
             // will not be removed until it is no longer bound to a PVC.
             // https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection
-            kubeApiFacade.getCoreV1Api().deletePersistentVolume(
-                    volumeName,
-                    null,
-                    null,
-                    0,
-                    null,
-                    null,
-                    null
-            );
+            kubeApiFacade.deletePersistentVolume(volumeName);
             logger.info("Successfully deleted persistent volume {}", formatPvEssentials(pv));
             return true;
         } catch (ApiException e) {

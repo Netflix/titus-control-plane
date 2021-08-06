@@ -21,16 +21,13 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PersistentVolumeReclaimControllerTest {
 
@@ -41,7 +38,6 @@ public class PersistentVolumeReclaimControllerTest {
     private final ControllerConfiguration controllerConfiguration = mock(ControllerConfiguration.class);
     private final KubeApiFacade kubeApiFacade = mock(KubeApiFacade.class);
     private final LocalScheduler scheduler = mock(LocalScheduler.class);
-    private final CoreV1Api coreV1Api = mock(CoreV1Api.class);
 
     private final PersistentVolumeReclaimController pvcReclaimController = new PersistentVolumeReclaimController(
             titusRuntime,
@@ -50,11 +46,6 @@ public class PersistentVolumeReclaimControllerTest {
             controllerConfiguration,
             kubeApiFacade
     );
-
-    @Before
-    public void setUp() {
-        when(kubeApiFacade.getCoreV1Api()).thenReturn(coreV1Api);
-    }
 
     /**
      * Tests that a bound VPC is not selected for reclamation.

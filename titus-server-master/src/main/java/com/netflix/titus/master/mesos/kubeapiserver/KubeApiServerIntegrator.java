@@ -226,7 +226,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", formatPodEssentials(v1Pod));
                 logger.debug("complete pod data: {}", v1Pod);
-                kubeApiFacade.getCoreV1Api().createNamespacedPod(DEFAULT_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.createNamespacedPod(DEFAULT_NAMESPACE, v1Pod);
                 podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (Exception e) {
                 String errorMessage = KubeUtil.toErrorDetails(e);
@@ -241,9 +241,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         for (TaskInfoRequest request : assignments) {
             V1Pod v1Pod = taskInfoToPod(request);
             Mono<Void> podAddAction = KubeUtil
-                    .<V1Pod>toReact(handler -> kubeApiFacade.getCoreV1Api().createNamespacedPodAsync(
-                            DEFAULT_NAMESPACE, v1Pod, null, null, null, handler
-                    ))
+                    .<V1Pod>toReact(handler -> kubeApiFacade.createNamespacedPodAsync(DEFAULT_NAMESPACE, v1Pod, handler))
                     .doOnSubscribe(subscription -> {
                         launchTaskCounter.increment();
                         logger.info("creating pod: {}", formatPodEssentials(v1Pod));
@@ -296,16 +294,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         killTaskCounter.increment();
         try {
             logger.info("Terminating pod: {} by setting deletionTimestamp", taskId);
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
-                    taskId,
-                    DEFAULT_NAMESPACE,
-                    null,
-                    null,
-                    directKubeConfiguration.getDeleteGracePeriodSeconds(),
-                    null,
-                    null,
-                    null
-            );
+            kubeApiFacade.deleteNamespacedPod(DEFAULT_NAMESPACE, taskId, directKubeConfiguration.getDeleteGracePeriodSeconds());
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {

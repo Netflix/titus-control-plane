@@ -18,28 +18,62 @@ package com.netflix.titus.runtime.connector.kubernetes;
 
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
+import okhttp3.Call;
 
 public class NoOpKubeApiFacade implements KubeApiFacade {
 
     @Override
-    public ApiClient getApiClient() {
+    public void deleteNode(String nodeName) {
         throw new IllegalStateException("Kubernetes not supported");
     }
 
     @Override
-    public CoreV1Api getCoreV1Api() {
+    public void createNamespacedPod(String namespace, V1Pod pod) {
         throw new IllegalStateException("Kubernetes not supported");
     }
 
     @Override
-    public CustomObjectsApi getCustomObjectsApi() {
+    public Call createNamespacedPodAsync(String namespace, V1Pod pod, ApiCallback<V1Pod> callback) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void deleteNamespacedPod(String namespace, String podName) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void deleteNamespacedPod(String namespace, String podName, int deleteGracePeriod) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void deleteNamespacedPersistentVolumeClaim(String namespace, String volumeClaimName) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void createPersistentVolume(V1PersistentVolume v1PersistentVolume) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void replacePersistentVolume(V1PersistentVolume persistentVolume) {
+        throw new IllegalStateException("Kubernetes not supported");
+    }
+
+    @Override
+    public void deletePersistentVolume(String volumeName) {
         throw new IllegalStateException("Kubernetes not supported");
     }
 

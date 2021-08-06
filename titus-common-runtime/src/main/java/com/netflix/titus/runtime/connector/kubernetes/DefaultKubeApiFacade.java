@@ -29,6 +29,7 @@ import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource
 import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
+import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -50,6 +51,11 @@ import static com.netflix.titus.runtime.connector.kubernetes.KubeApiClients.crea
 
 @Singleton
 public class DefaultKubeApiFacade implements KubeApiFacade {
+
+    public static final String FAILED = "Failed";
+    public static final String BACKGROUND = "Background";
+
+    public static final String DEFAULT_NAMESPACE = "default";
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFacade.class);
 
@@ -116,21 +122,92 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
-    public ApiClient getApiClient() {
-        activate();
-        return apiClient;
+    public void deleteNode(String nodeName) throws ApiException {
+        coreV1Api.deleteNode(
+                nodeName,
+                null,
+                null,
+                0,
+                null,
+                BACKGROUND,
+                null
+        );
     }
 
     @Override
-    public CoreV1Api getCoreV1Api() {
-        activate();
-        return coreV1Api;
+    public void createNamespacedPod(String namespace, V1Pod pod) throws ApiException {
+        coreV1Api.createNamespacedPod(DEFAULT_NAMESPACE, pod, null, null, null);
     }
 
     @Override
-    public CustomObjectsApi getCustomObjectsApi() {
-        activate();
-        return customObjectsApi;
+    public Call createNamespacedPodAsync(String namespace, V1Pod pod, ApiCallback<V1Pod> callback) throws ApiException {
+        return coreV1Api.createNamespacedPodAsync(namespace, pod, null, null, null, callback);
+    }
+
+    @Override
+    public void deleteNamespacedPod(String namespace, String podName) throws ApiException {
+        coreV1Api.deleteNamespacedPod(
+                podName,
+                namespace,
+                null,
+                null,
+                0,
+                null,
+                BACKGROUND,
+                null
+        );
+    }
+
+    @Override
+    public void deleteNamespacedPod(String namespace, String podName, int deleteGracePeriod) throws ApiException {
+        coreV1Api.deleteNamespacedPod(
+                podName,
+                namespace,
+                null,
+                null,
+                deleteGracePeriod,
+                null,
+                null,
+                null
+        );
+    }
+
+    @Override
+    public void deleteNamespacedPersistentVolumeClaim(String namespace, String volumeClaimName) throws ApiException {
+        coreV1Api.deleteNamespacedPersistentVolumeClaim(
+                volumeClaimName,
+                namespace,
+                null,
+                null,
+                0,
+                null,
+                null,
+                null
+        );
+    }
+
+    @Override
+    public void replacePersistentVolume(V1PersistentVolume persistentVolume) throws ApiException {
+        coreV1Api.replacePersistentVolume(
+                KubeUtil.getMetadataName(persistentVolume.getMetadata()),
+                persistentVolume,
+                null,
+                null,
+                null
+        );
+    }
+
+    @Override
+    public void deletePersistentVolume(String volumeName) throws ApiException {
+        coreV1Api.deletePersistentVolume(
+                volumeName,
+                null,
+                null,
+                0,
+                null,
+                null,
+                null
+        );
     }
 
     @Override
@@ -155,6 +232,16 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     public SharedIndexInformer<V1PersistentVolumeClaim> getPersistentVolumeClaimInformer() {
         activate();
         return persistentVolumeClaimInformer;
+    }
+
+    @Override
+    public void createPersistentVolume(V1PersistentVolume v1PersistentVolume) throws ApiException {
+        coreV1Api.createPersistentVolume(v1PersistentVolume, null, null, null);
+    }
+
+    @Override
+    public void createNamespacedPersistentVolumeClaim(String namespace, V1PersistentVolumeClaim v1PersistentVolumeClaim) throws ApiException {
+        coreV1Api.createNamespacedPersistentVolumeClaim(namespace, v1PersistentVolumeClaim, null, null, null);
     }
 
     @Override

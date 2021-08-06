@@ -24,7 +24,6 @@ import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.BACKGROUND;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 
@@ -33,15 +32,7 @@ public final class GcControllerUtil {
     public static boolean deleteNode(KubeApiFacade kubeApiFacade, Logger logger, V1Node node) {
         String nodeName = KubeUtil.getMetadataName(node.getMetadata());
         try {
-            kubeApiFacade.getCoreV1Api().deleteNode(
-                    nodeName,
-                    null,
-                    null,
-                    0,
-                    null,
-                    BACKGROUND,
-                    null
-            );
+            kubeApiFacade.deleteNode(nodeName);
             return true;
         } catch (JsonSyntaxException e) {
             // this will be counted as successful as the response type mapping in the client is incorrect
@@ -59,16 +50,7 @@ public final class GcControllerUtil {
     public static boolean deletePod(KubeApiFacade kubeApiFacade, Logger logger, V1Pod pod) {
         String podName = KubeUtil.getMetadataName(pod.getMetadata());
         try {
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
-                    podName,
-                    DEFAULT_NAMESPACE,
-                    null,
-                    null,
-                    0,
-                    null,
-                    BACKGROUND,
-                    null
-            );
+            kubeApiFacade.deleteNamespacedPod(DEFAULT_NAMESPACE, podName);
             return true;
         } catch (JsonSyntaxException e) {
             // this will be counted as successful as the response type mapping in the client is incorrect
