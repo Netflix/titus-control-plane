@@ -30,9 +30,6 @@ public class ScalingPolicyAssertions {
             return Collections.emptyMap();
         }
         PolicyConfiguration policyConfiguration = autoScalingPolicy.getPolicyConfiguration();
-        if (policyConfiguration == null) {
-            return Collections.emptyMap();
-        }
 
         Map<String, String> violations = new HashMap<>();
         if ((policyConfiguration.getStepScalingPolicyConfiguration() != null) == (policyConfiguration.getTargetTrackingPolicy() != null)) {
