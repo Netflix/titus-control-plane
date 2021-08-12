@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -146,5 +147,12 @@ public final class DateTimeExt {
         double rate = itemsPerInterval / (double) interval * ratio;
 
         return String.format("%.2f %s/%s", rate, rateType, toTimeUnitAbbreviation(matchedTimeUnit));
+    }
+
+    /**
+     * Get the {@link OffsetDateTime} representation from specified epoch in milliseconds.
+     */
+    public static OffsetDateTime fromMillis(long epochMillis) {
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
     }
 }

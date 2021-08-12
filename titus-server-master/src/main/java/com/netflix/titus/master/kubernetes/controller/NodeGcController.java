@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.controller;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -139,8 +140,8 @@ public class NodeGcController extends BaseGcController<V1Node> {
     }
 
     private boolean hasConditionGracePeriodElapsed(V1NodeCondition condition, long gracePeriodMs) {
-        DateTime lastHeartbeatTime = condition.getLastHeartbeatTime();
-        return lastHeartbeatTime != null && clock.isPast(lastHeartbeatTime.getMillis() + gracePeriodMs);
+        OffsetDateTime lastHeartbeatTime = condition.getLastHeartbeatTime();
+        return lastHeartbeatTime != null && clock.isPast(lastHeartbeatTime.toInstant().toEpochMilli() + gracePeriodMs);
     }
 
     private boolean isAgentInstanceNotAvailable(String nodeName) {

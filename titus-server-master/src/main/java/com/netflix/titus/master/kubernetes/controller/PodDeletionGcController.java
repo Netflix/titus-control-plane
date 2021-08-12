@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.controller;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -92,7 +93,7 @@ public class PodDeletionGcController extends BaseGcController<V1Pod> {
         if (pod == null || pod.getMetadata() == null || pod.getStatus() == null) {
             return false;
         }
-        DateTime deletionTimestamp = pod.getMetadata().getDeletionTimestamp();
+        OffsetDateTime deletionTimestamp = pod.getMetadata().getDeletionTimestamp();
         return deletionTimestamp != null && PENDING.equalsIgnoreCase(pod.getStatus().getPhase());
     }
 
@@ -105,13 +106,13 @@ public class PodDeletionGcController extends BaseGcController<V1Pod> {
         }
 
         Long terminationGracePeriodSeconds = spec.getTerminationGracePeriodSeconds();
-        DateTime deletionTimestamp = metadata.getDeletionTimestamp();
+        OffsetDateTime deletionTimestamp = metadata.getDeletionTimestamp();
         if (terminationGracePeriodSeconds == null || deletionTimestamp == null) {
             return false;
         }
 
         long terminationGracePeriodMs = terminationGracePeriodSeconds * 1000L;
-        return clock.isPast(deletionTimestamp.getMillis() + terminationGracePeriodMs
+        return clock.isPast(deletionTimestamp.toInstant().toEpochMilli() + terminationGracePeriodMs
                 + kubeControllerConfiguration.getPodsPastTerminationGracePeriodMs());
     }
 }

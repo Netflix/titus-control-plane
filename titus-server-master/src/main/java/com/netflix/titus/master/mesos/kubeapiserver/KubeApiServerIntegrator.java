@@ -17,6 +17,7 @@
 package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -697,9 +698,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
         String taskId = task.getId();
         V1ContainerStateTerminated containerStateTerminated = terminatedContainerStatusOpt.get();
-        DateTime startedAt = containerStateTerminated.getStartedAt();
+        OffsetDateTime startedAt = containerStateTerminated.getStartedAt();
         if (startedAt != null) {
-            Optional<Long> timestampOpt = Optional.of(startedAt.getMillis());
+            Optional<Long> timestampOpt = Optional.of(startedAt.toInstant().toEpochMilli());
             Optional<TaskStatus> startInitiatedOpt = JobFunctions.findTaskStatus(task, StartInitiated);
             if (!startInitiatedOpt.isPresent()) {
                 logger.debug("Publishing missing task status: StartInitiated for task: {}", taskId);

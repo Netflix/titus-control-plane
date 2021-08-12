@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.connector;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -86,15 +87,15 @@ public class NodePredicates {
 
 
     static boolean isNodeConditionTransitionedRecently(V1NodeCondition nodeCondition, int thresholdSeconds) {
-        DateTime threshold = DateTime.now().minusSeconds(thresholdSeconds);
+        OffsetDateTime threshold = OffsetDateTime.now().minusSeconds(thresholdSeconds);
         if (nodeCondition.getLastTransitionTime() != null) {
             return nodeCondition.getLastTransitionTime().isAfter(threshold);
         }
         return false;
     }
 
-    static boolean isTransitionedRecently(DateTime nodeTransitionTime, int thresholdSeconds) {
-        DateTime threshold = DateTime.now().minusSeconds(thresholdSeconds);
+    static boolean isTransitionedRecently(OffsetDateTime nodeTransitionTime, int thresholdSeconds) {
+        OffsetDateTime threshold = OffsetDateTime.now().minusSeconds(thresholdSeconds);
         if (nodeTransitionTime != null) {
             return nodeTransitionTime.isAfter(threshold);
         }

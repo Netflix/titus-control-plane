@@ -27,6 +27,7 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
@@ -110,7 +111,7 @@ public class NodeGcControllerTest {
     @Test
     void nodeReadyConditionTimestampIsNotPastGracePeriod() {
         long now = clock.wallTime();
-        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(DateTimeExt.fromMillis(now));
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())
@@ -125,7 +126,7 @@ public class NodeGcControllerTest {
     void nodeReadyConditionTimestampIsPastGracePeriod() {
         long now = clock.wallTime();
         clock.advanceTime(Duration.ofMillis(NODE_GC_GRACE_PERIOD + 1));
-        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(DateTimeExt.fromMillis(now));
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())
@@ -145,7 +146,7 @@ public class NodeGcControllerTest {
     void agentInstanceNotInAgentManagement() {
         long now = clock.wallTime();
         clock.advanceTime(Duration.ofMillis(NODE_GC_GRACE_PERIOD + 1));
-        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(DateTimeExt.fromMillis(now));
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())
@@ -163,7 +164,7 @@ public class NodeGcControllerTest {
     void agentInstanceNotInAgentManagementCache() {
         long now = clock.wallTime();
         clock.advanceTime(Duration.ofMillis(NODE_GC_GRACE_PERIOD + 1));
-        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(DateTimeExt.fromMillis(now));
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())
@@ -194,7 +195,7 @@ public class NodeGcControllerTest {
     void agentInstanceIsNotStopped() {
         long now = clock.wallTime();
         clock.advanceTime(Duration.ofMillis(NODE_GC_GRACE_PERIOD + 1));
-        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(DateTimeExt.fromMillis(now));
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())
@@ -216,7 +217,7 @@ public class NodeGcControllerTest {
     void agentInstanceIsStopped() {
         long now = clock.wallTime();
         clock.advanceTime(Duration.ofMillis(NODE_GC_GRACE_PERIOD + 1));
-        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(DateTimeExt.fromMillis(now));
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())

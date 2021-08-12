@@ -25,6 +25,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
@@ -71,7 +72,7 @@ public class PodUnknownGcControllerTest {
         when(kubeControllerConfiguration.getPodUnknownGracePeriodMs()).thenReturn(POD_UNKNOWN_GRACE_PERIOD);
 
         V1Pod pod = new V1Pod()
-                .metadata(new V1ObjectMeta().name(POD_NAME).creationTimestamp(new DateTime(clock.wallTime())))
+                .metadata(new V1ObjectMeta().name(POD_NAME).creationTimestamp(DateTimeExt.fromMillis(clock.wallTime())))
                 .status(new V1PodStatus().phase(RUNNING));
 
         clock.advanceTime(Duration.ofMillis(POD_UNKNOWN_GRACE_PERIOD + 1));
@@ -88,7 +89,7 @@ public class PodUnknownGcControllerTest {
         when(kubeControllerConfiguration.getPodUnknownGracePeriodMs()).thenReturn(POD_UNKNOWN_GRACE_PERIOD);
 
         V1Pod pod = new V1Pod()
-                .metadata(new V1ObjectMeta().name(POD_NAME).creationTimestamp(new DateTime(clock.wallTime())))
+                .metadata(new V1ObjectMeta().name(POD_NAME).creationTimestamp(DateTimeExt.fromMillis(clock.wallTime())))
                 .status(new V1PodStatus().phase(RUNNING));
 
         clock.advanceTime(Duration.ofMillis(POD_UNKNOWN_GRACE_PERIOD + 1));

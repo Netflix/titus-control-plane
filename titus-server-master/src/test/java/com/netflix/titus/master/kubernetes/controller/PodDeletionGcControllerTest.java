@@ -21,6 +21,7 @@ import java.time.Duration;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
@@ -78,7 +79,7 @@ public class PodDeletionGcControllerTest {
                 .metadata(
                         new V1ObjectMeta()
                                 .name(POD_NAME)
-                                .deletionTimestamp(new DateTime(clock.wallTime()))
+                                .deletionTimestamp(DateTimeExt.fromMillis(clock.wallTime()))
                 )
                 .spec(
                         new V1PodSpec()
@@ -100,7 +101,7 @@ public class PodDeletionGcControllerTest {
                 .metadata(
                         new V1ObjectMeta()
                                 .name(POD_NAME)
-                                .deletionTimestamp(new DateTime(clock.wallTime()))
+                                .deletionTimestamp(DateTimeExt.fromMillis(clock.wallTime()))
                 )
                 .spec(
                         new V1PodSpec()
@@ -120,7 +121,7 @@ public class PodDeletionGcControllerTest {
                 .metadata(
                         new V1ObjectMeta()
                                 .name(POD_NAME)
-                                .deletionTimestamp(new DateTime(clock.wallTime()))
+                                .deletionTimestamp(DateTimeExt.fromMillis(clock.wallTime()))
                 )
                 .spec(new V1PodSpec())
                 .status(new V1PodStatus().phase(PENDING));
@@ -137,7 +138,7 @@ public class PodDeletionGcControllerTest {
                 .metadata(
                         new V1ObjectMeta()
                                 .name(POD_NAME)
-                                .deletionTimestamp(new DateTime(clock.wallTime()))
+                                .deletionTimestamp(DateTimeExt.fromMillis(clock.wallTime()))
                 )
                 .spec(new V1PodSpec())
                 .status(new V1PodStatus().phase(RUNNING));
