@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.controller;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -108,8 +109,8 @@ public class PodUnknownGcController extends BaseGcController<V1Pod> {
             return false;
         }
 
-        DateTime creationTimestamp = metadata.getCreationTimestamp();
+        OffsetDateTime creationTimestamp = metadata.getCreationTimestamp();
         return creationTimestamp != null &&
-                clock.isPast(creationTimestamp.getMillis() + kubeControllerConfiguration.getPodUnknownGracePeriodMs());
+                clock.isPast(creationTimestamp.toInstant().toEpochMilli() + kubeControllerConfiguration.getPodUnknownGracePeriodMs());
     }
 }

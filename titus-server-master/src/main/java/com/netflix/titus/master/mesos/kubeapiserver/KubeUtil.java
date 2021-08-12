@@ -111,7 +111,7 @@ public class KubeUtil {
         return pod.getStatus().getContainerStatuses().stream()
                 .filter(status -> status.getState() != null && status.getState().getTerminated() != null && status.getState().getTerminated().getFinishedAt() != null)
                 .findFirst()
-                .map(terminatedState -> terminatedState.getState().getTerminated().getFinishedAt().getMillis());
+                .map(terminatedState -> terminatedState.getState().getTerminated().getFinishedAt().toInstant().toEpochMilli());
     }
 
     public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {

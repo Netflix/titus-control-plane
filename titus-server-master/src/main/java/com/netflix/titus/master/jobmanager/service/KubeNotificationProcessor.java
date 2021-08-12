@@ -397,13 +397,13 @@ public class KubeNotificationProcessor {
             if (containerState.getRunning() == null || containerState.getRunning().getStartedAt() == null) {
                 return task;
             }
-            startAtTimestamp = containerState.getRunning().getStartedAt().getMillis();
+            startAtTimestamp = containerState.getRunning().getStartedAt().toInstant().toEpochMilli();
         } else { // TaskState.Finished
             if (containerState.getTerminated() == null || containerState.getTerminated().getStartedAt() == null) {
                 // It must be the case where the container setup failed.
                 return fillInMissingStatesForContainerSetupFailure(podWrapper, task);
             }
-            startAtTimestamp = containerState.getTerminated().getStartedAt().getMillis();
+            startAtTimestamp = containerState.getTerminated().getStartedAt().toInstant().toEpochMilli();
         }
 
         TaskStatus.Builder statusTemplate = TaskStatus.newBuilder()

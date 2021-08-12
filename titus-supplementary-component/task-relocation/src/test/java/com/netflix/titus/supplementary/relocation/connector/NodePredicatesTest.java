@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.connector;
 
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.regex.Pattern;
@@ -44,12 +45,12 @@ public class NodePredicatesTest {
     @Test
     public void nodeConditionTransitionThreshold() {
         V1NodeCondition nodeCondition1 = new V1NodeCondition();
-        nodeCondition1.setLastTransitionTime(DateTime.now().minusMinutes(10));
+        nodeCondition1.setLastTransitionTime(OffsetDateTime.now().minusMinutes(10));
         boolean isTransitionRecent = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition1, 300);
         assertThat(isTransitionRecent).isFalse();
 
         V1NodeCondition nodeCondition2 = new V1NodeCondition();
-        nodeCondition2.setLastTransitionTime(DateTime.now().minusSeconds(100));
+        nodeCondition2.setLastTransitionTime(OffsetDateTime.now().minusSeconds(100));
         boolean isTransitionRecent2 = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition2, 300);
         assertThat(isTransitionRecent2).isTrue();
     }
@@ -59,14 +60,14 @@ public class NodePredicatesTest {
         V1Node v1Node = new V1Node();
 
         V1NodeCondition condition1 = new V1NodeCondition();
-        condition1.setLastTransitionTime(DateTime.now().minusMinutes(10));
+        condition1.setLastTransitionTime(OffsetDateTime.now().minusMinutes(10));
         condition1.setType("CorruptedMemoryFailure");
         condition1.setMessage("There isn't that much corrupt memory");
         condition1.setReason("CorruptedMemoryIsUnderThreshold");
         condition1.setStatus("true");
 
         V1NodeCondition condition2 = new V1NodeCondition();
-        condition2.setLastTransitionTime(DateTime.now().minusMinutes(10));
+        condition2.setLastTransitionTime(OffsetDateTime.now().minusMinutes(10));
         condition2.setType("EniCarrierProblem");
         condition2.setMessage("Enis are working");
         condition2.setReason("EnisAreWorking");
@@ -94,12 +95,12 @@ public class NodePredicatesTest {
         taint1.setEffect("NoSchedule");
         taint1.setKey("node.titus.netflix.com/tier");
         taint1.setValue("Critical");
-        taint1.setTimeAdded(DateTime.now().minusMinutes(20));
+        taint1.setTimeAdded(OffsetDateTime.now().minusMinutes(20));
 
         V1Taint taint2 = new V1Taint();
         taint2.setEffect("NoSchedule");
         taint2.setKey("node.kubernetes.io/unreachable");
-        taint2.setTimeAdded(DateTime.now().minusMinutes(10));
+        taint2.setTimeAdded(OffsetDateTime.now().minusMinutes(10));
 
         v1NodeSpec.setTaints(Arrays.asList(taint1, taint2));
         v1Node.setSpec(v1NodeSpec);

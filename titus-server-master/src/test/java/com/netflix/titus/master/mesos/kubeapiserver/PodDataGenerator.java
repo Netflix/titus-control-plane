@@ -16,11 +16,13 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.DateTimeExt;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
@@ -30,7 +32,6 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
-import org.joda.time.DateTime;
 
 public class PodDataGenerator {
 
@@ -141,7 +142,7 @@ public class PodDataGenerator {
             pod.getStatus().containerStatuses(Collections.singletonList(
                     new V1ContainerStatus().state(
                             new V1ContainerState().running(
-                                    new V1ContainerStateRunning().startedAt(new DateTime(timestamp))
+                                    new V1ContainerStateRunning().startedAt(DateTimeExt.fromMillis(timestamp))
                             )
                     )
             ));
@@ -166,7 +167,7 @@ public class PodDataGenerator {
             if (pod.getMetadata() == null) {
                 pod.metadata(new V1ObjectMeta());
             }
-            pod.getMetadata().deletionTimestamp(DateTime.now());
+            pod.getMetadata().deletionTimestamp(OffsetDateTime.now());
             return pod;
         };
     }

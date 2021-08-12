@@ -73,7 +73,7 @@ public class PodWrapper {
     public Optional<Long> findFinishedAt() {
         V1ContainerState containerState = findContainerState().orElse(null);
         if (containerState != null && containerState.getTerminated() != null && containerState.getTerminated().getFinishedAt() != null) {
-            return Optional.of(containerState.getTerminated().getFinishedAt().getMillis());
+            return Optional.of(containerState.getTerminated().getFinishedAt().toInstant().toEpochMilli());
         }
         return Optional.empty();
     }

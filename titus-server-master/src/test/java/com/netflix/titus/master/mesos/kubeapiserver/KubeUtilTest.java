@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -99,9 +100,9 @@ public class KubeUtilTest {
         );
         assertThat(KubeUtil.findFinishedTimestamp(pod)).isEmpty();
 
-        DateTime now = DateTime.now();
+        OffsetDateTime now = OffsetDateTime.now();
         pod.getStatus().getContainerStatuses().get(1).getState().getTerminated().finishedAt(now);
-        assertThat(KubeUtil.findFinishedTimestamp(pod)).contains(now.getMillis());
+        assertThat(KubeUtil.findFinishedTimestamp(pod)).contains(now.toInstant().toEpochMilli());
     }
 
     private V1Node newNodeWithoutZone(V1Taint... taints) {

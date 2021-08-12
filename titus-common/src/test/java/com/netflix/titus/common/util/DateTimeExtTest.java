@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -70,5 +71,12 @@ public class DateTimeExtTest {
     public void testToRateString() {
         assertThat(toRateString(1, 1, TimeUnit.MILLISECONDS, "action")).isEqualTo("1.00 action/ms");
         assertThat(toRateString(60, 5, TimeUnit.SECONDS, "action")).isEqualTo("5.00 action/min");
+    }
+
+    @Test
+    public void testFromMillis() {
+        long timestamp = 1234;
+        OffsetDateTime dateTime = DateTimeExt.fromMillis(timestamp);
+        assertThat(dateTime.toInstant().toEpochMilli()).isEqualTo(timestamp);
     }
 }
