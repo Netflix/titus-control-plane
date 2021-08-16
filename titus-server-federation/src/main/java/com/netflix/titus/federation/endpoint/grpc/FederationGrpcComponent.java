@@ -18,16 +18,14 @@ package com.netflix.titus.federation.endpoint.grpc;
 
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobActivityHistoryServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobActivityHistoryServiceGrpc;
-import com.netflix.titus.runtime.machine.ReactorGatewayMachineGrpcService;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import({
-        ReactorGatewayMachineGrpcService.class,
         DefaultHealthServiceGrpc.class,
         AggregatingSchedulerServiceGrpc.class,
         DefaultJobManagementServiceGrpc.class,
