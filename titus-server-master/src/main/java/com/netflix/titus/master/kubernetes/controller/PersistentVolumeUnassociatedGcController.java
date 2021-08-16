@@ -116,7 +116,7 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
             logger.info("Successfully deleted persistent volume {}", formatPvEssentials(pv));
             return true;
         } catch (KubeApiException e) {
-            if (e.getErrorCode() != KubeApiException.ErrorCode.NOT_FOUND) {
+            if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND) {
                 // If we did not find the PV return true as it is removed
                 logger.info("Delete for persistent volume {} not found", formatPvEssentials(pv));
                 return true;

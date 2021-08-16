@@ -110,7 +110,7 @@ public class PersistentVolumeClaimGcController extends BaseGcController<V1Persis
             logger.info("Successfully deleted persistent volume claim {}", formatPvcEssentials(pvc));
             return true;
         } catch (KubeApiException e) {
-            if (e.getErrorCode() != KubeApiException.ErrorCode.NOT_FOUND) {
+            if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND) {
                 // If we did not find the PVC return true as it is removed
                 logger.info("Delete for persistent volume claim {} not found", formatPvcEssentials(pvc));
                 return true;
