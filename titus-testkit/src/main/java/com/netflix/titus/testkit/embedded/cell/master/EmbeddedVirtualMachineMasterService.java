@@ -16,10 +16,6 @@
 
 package com.netflix.titus.testkit.embedded.cell.master;
 
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -27,7 +23,6 @@ import com.google.inject.Injector;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterServiceMesosImpl;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -36,23 +31,6 @@ import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMe
 @Singleton
 public class EmbeddedVirtualMachineMasterService extends VirtualMachineMasterServiceMesosImpl {
 
-    private static final MesosMasterResolver FIXED_RESOLVER = new MesosMasterResolver() {
-        @Override
-        public Optional<String> resolveCanonical() {
-            return Optional.of("mesos-server");
-        }
-
-        @Override
-        public Optional<InetSocketAddress> resolveLeader() {
-            return Optional.of(new InetSocketAddress("mesos-server", 5050));
-        }
-
-        @Override
-        public List<InetSocketAddress> resolveMesosAddresses() {
-            return Collections.singletonList(new InetSocketAddress("mesos-server", 5050));
-        }
-    };
-
     @Inject
     public EmbeddedVirtualMachineMasterService(MasterConfiguration config,
                                                SchedulerConfiguration schedulerConfiguration,
@@ -60,7 +38,7 @@ public class EmbeddedVirtualMachineMasterService extends VirtualMachineMasterSer
                                                MesosSchedulerDriverFactory mesosSchedulerDriverFactory,
                                                Injector injector,
                                                TitusRuntime titusRuntime) {
-        super(config, schedulerConfiguration, mesosConfiguration, FIXED_RESOLVER, mesosSchedulerDriverFactory, injector, titusRuntime);
+        super(config, schedulerConfiguration, mesosConfiguration, mesosSchedulerDriverFactory, injector, titusRuntime);
     }
 
     SimulatedLocalMesosSchedulerDriver getSimulatedMesosDriver() {

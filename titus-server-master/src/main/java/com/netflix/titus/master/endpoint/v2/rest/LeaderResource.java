@@ -17,8 +17,7 @@
 package com.netflix.titus.master.endpoint.v2.rest;
 
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Collections;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -29,31 +28,24 @@ import javax.ws.rs.core.MediaType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
 import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
-import com.netflix.titus.master.mesos.MesosMasterResolver;
 
 /**
+ *
  */
 @Path(LeaderEndpoint.PATH_API_V2_LEADER)
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class LeaderResource implements LeaderEndpoint {
 
-    private final MesosMasterResolver mesosMasterResolver;
     private final MasterMonitor masterMonitor;
 
     @Inject
-    public LeaderResource(MasterMonitor masterMonitor, MesosMasterResolver mesosMasterResolver) {
+    public LeaderResource(MasterMonitor masterMonitor) {
         this.masterMonitor = masterMonitor;
-        this.mesosMasterResolver = mesosMasterResolver;
     }
 
     @GET
     public LeaderRepresentation getLeader() {
-        String mesosLeader = mesosMasterResolver.resolveLeader().map(LeaderResource::inetToString).orElse(null);
-        List<String> mesosAddresses = mesosMasterResolver.resolveMesosAddresses().stream()
-                .map(LeaderResource::inetToString)
-                .collect(Collectors.toList());
-
         MasterDescription masterDescription = masterMonitor.getLatestLeader();
 
         LeaderRepresentation.Builder builder = LeaderRepresentation.newBuilder()
@@ -62,8 +54,8 @@ public class LeaderResource implements LeaderEndpoint {
                 .withApiPort(masterDescription.getApiPort())
                 .withApiStatusUri(masterDescription.getApiStatusUri())
                 .withCreateTime(masterDescription.getCreateTime())
-                .withMesosLeader(mesosLeader)
-                .withMesosServers(mesosAddresses);
+                .withMesosLeader("mesos-removed")
+                .withMesosServers(Collections.singletonList("mesos-removed"));
 
         return builder.build();
     }

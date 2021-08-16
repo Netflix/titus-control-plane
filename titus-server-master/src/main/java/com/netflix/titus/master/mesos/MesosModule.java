@@ -25,13 +25,11 @@ import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.runtime.health.guice.HealthModule;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeOpportunisticResourceProvider;
 import com.netflix.titus.master.mesos.kubeapiserver.LegacyKubeModule;
-import com.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
 import com.netflix.titus.master.scheduler.opportunistic.NoOpportunisticCpus;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import reactor.core.scheduler.Schedulers;
@@ -44,20 +42,12 @@ public class MesosModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(MesosMasterResolver.class).to(DefaultMesosMasterResolver.class);
         bind(MesosSchedulerDriverFactory.class).to(StdSchedulerDriverFactory.class);
         bind(VirtualMachineMasterServiceActivator.class).asEagerSingleton();
 
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_INTEGRATION)).to(VirtualMachineMasterServiceMesosImpl.class);
 
         bind(WorkerStateMonitor.class).asEagerSingleton();
-
-        install(new HealthModule() {
-            @Override
-            protected void configureHealth() {
-                bindAdditionalHealthIndicator().to(MesosHealthIndicator.class);
-            }
-        });
 
         install(new LegacyKubeModule());
     }
