@@ -49,10 +49,9 @@ import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
@@ -154,18 +153,18 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     public Mono<V1Pod> launchTask(Job job, Task task) {
         boolean isEbsVolumePvEnabled = configuration.isEbsVolumePvEnabled();
         return Mono.fromCallable(() -> {
-            try {
-                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true, isEbsVolumePvEnabled);
-                logger.info("creating pod: {}", formatPodEssentials(v1Pod));
-                logger.debug("complete pod data: {}", v1Pod);
-                return v1Pod;
-            } catch (Exception e) {
-                logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
-                throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
-            }
-        })
+                    try {
+                        V1Pod v1Pod = podFactory.buildV1Pod(job, task, true, isEbsVolumePvEnabled);
+                        logger.info("creating pod: {}", formatPodEssentials(v1Pod));
+                        logger.debug("complete pod data: {}", v1Pod);
+                        return v1Pod;
+                    } catch (Exception e) {
+                        logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
+                        throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
+                    }
+                })
                 .flatMap(v1Pod -> isEbsVolumePvEnabled
-                        ? launchEbsVolume(job, task, v1Pod, kubeApiFacade.getCoreV1Api()).then(Mono.just(v1Pod))
+                        ? launchEbsVolume(job, task, v1Pod).then(Mono.just(v1Pod))
                         : Mono.just(v1Pod))
                 .flatMap(v1Pod -> launchPod(task, v1Pod))
                 .subscribeOn(apiClientScheduler)
@@ -181,25 +180,15 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             Stopwatch timer = Stopwatch.createStarted();
             try {
                 logger.info("Deleting pod: {}", taskId);
-                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
-                        taskId,
-                        KUBERNETES_NAMESPACE,
-                        null,
-                        null,
-                        DELETE_GRACE_PERIOD_SECONDS,
-                        null,
-                        null,
-                        null
-                );
-
+                kubeApiFacade.deleteNamespacedPod(KUBERNETES_NAMESPACE, taskId, DELETE_GRACE_PERIOD_SECONDS);
                 metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (JsonSyntaxException e) {
                 // this is probably successful. the generated client has the wrong response type
                 metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
-            } catch (ApiException e) {
+            } catch (KubeApiException e) {
                 metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
 
-                if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && task.getStatus().getState() == TaskState.Accepted) {
+                if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND && task.getStatus().getState() == TaskState.Accepted) {
                     sendEvent(PodEvent.onPodNotFound(task,
                             TaskStatus.newBuilder()
                                     .withState(TaskState.Finished)
@@ -231,7 +220,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     /**
      * Launches/creates any EBS persistent volumes or claims associated with the task/pod.
      */
-    private Mono<Void> launchEbsVolume(Job<?> job, Task task, V1Pod v1Pod, CoreV1Api coreV1Api) {
+    private Mono<Void> launchEbsVolume(Job<?> job, Task task, V1Pod v1Pod) {
         // We currently only handle a single volume per-pod
         Optional<V1Volume> optionalV1Volume = CollectionsExt.nonNull(v1Pod.getSpec().getVolumes())
                 .stream()
@@ -255,12 +244,12 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
         // Create a persistent volume followed by a claim for that volume
         // If the attempt to create the PVC fails, the PV will be subsequently garbage collected
-        return launchEbsPersistentVolume(ebsVolume, coreV1Api)
-                .flatMap(v1PersistentVolume -> launchPersistentVolumeClaim(v1PersistentVolume, v1Pod, coreV1Api))
+        return launchEbsPersistentVolume(ebsVolume)
+                .flatMap(v1PersistentVolume -> launchPersistentVolumeClaim(v1PersistentVolume, v1Pod))
                 .then();
     }
 
-    private Mono<V1PersistentVolume> launchEbsPersistentVolume(EbsVolume ebsVolume, CoreV1Api coreV1Api) {
+    private Mono<V1PersistentVolume> launchEbsPersistentVolume(EbsVolume ebsVolume) {
         return Mono.defer(() -> {
             Stopwatch timer = Stopwatch.createStarted();
 
@@ -268,10 +257,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             logger.info("Creating persistent volume {}", v1PersistentVolume);
 
             try {
-                coreV1Api.createPersistentVolume(v1PersistentVolume, null, null, null);
+                kubeApiFacade.createPersistentVolume(v1PersistentVolume);
                 logger.info("Created persistent volume {} in {}ms", v1PersistentVolume, timer.elapsed(TimeUnit.MILLISECONDS));
                 metrics.persistentVolumeCreateSuccess(timer.elapsed(TimeUnit.MILLISECONDS));
-            } catch (ApiException apiException) {
+            } catch (KubeApiException apiException) {
                 if (isEbsVolumeConflictException(apiException)) {
                     logger.info("Persistent volume already exists {}", v1PersistentVolume);
                 } else {
@@ -285,7 +274,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         });
     }
 
-    private Mono<V1PersistentVolumeClaim> launchPersistentVolumeClaim(V1PersistentVolume v1PersistentVolume, V1Pod v1Pod, CoreV1Api coreV1Api) {
+    private Mono<V1PersistentVolumeClaim> launchPersistentVolumeClaim(V1PersistentVolume v1PersistentVolume, V1Pod v1Pod) {
         return Mono.defer(() -> {
             Stopwatch timer = Stopwatch.createStarted();
 
@@ -293,11 +282,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             logger.info("Creating persistent volume claim {}", v1PersistentVolumeClaim);
 
             try {
-                coreV1Api.createNamespacedPersistentVolumeClaim(KUBERNETES_NAMESPACE, v1PersistentVolumeClaim, null, null, null);
+                kubeApiFacade.createNamespacedPersistentVolumeClaim(KUBERNETES_NAMESPACE, v1PersistentVolumeClaim);
                 long latencyMs = timer.elapsed(TimeUnit.MILLISECONDS);
                 logger.info("Created persistent volume claim {} in {}ms", v1PersistentVolumeClaim, latencyMs);
                 metrics.persistentVolumeClaimCreateSuccess(latencyMs);
-            } catch (ApiException apiException) {
+            } catch (KubeApiException apiException) {
                 if (isEbsVolumeConflictException(apiException)) {
                     logger.info("Persistent volume claim already exists {}", v1PersistentVolumeClaim);
                 } else {
@@ -317,7 +306,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             try {
                 fitKubeInjection.ifPresent(i -> i.beforeImmediate(KubeFitAction.ErrorKind.POD_CREATE_ERROR.name()));
 
-                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod);
                 pods.putIfAbsent(task.getId(), v1Pod);
 
                 metrics.launchSuccess(task, v1Pod, timer.elapsed(TimeUnit.MILLISECONDS));
@@ -428,9 +417,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return Optional.ofNullable(kubeApiFacade.getNodeInformer().getIndexer().getByKey(nodeName));
     }
 
-    private static boolean isEbsVolumeConflictException(ApiException apiException) {
-        return apiException.getCode() == 409 &&
-                apiException.getMessage().equals("Conflict") &&
-                apiException.getResponseBody().contains("AlreadyExists");
+    private static boolean isEbsVolumeConflictException(KubeApiException apiException) {
+        return apiException.getErrorCode() == KubeApiException.ErrorCode.CONFLICT_ALREADY_EXISTS;
     }
 }

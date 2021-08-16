@@ -67,7 +67,6 @@ public class PersistentVolumeUnassociatedGcControllerTest {
     @Before
     public void setUp() {
         when(kubeControllerConfiguration.getPersistentVolumeUnassociatedGracePeriodMs()).thenReturn(PERSISTENT_VOLUME_GRACE_PERIOD_MS);
-        when(kubeApiFacade.getCoreV1Api()).thenReturn(coreV1Api);
     }
 
     /**

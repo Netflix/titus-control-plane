@@ -31,8 +31,8 @@ import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucke
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeModelConverters;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.isTerminalState;
 import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPvcEssentials;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 
 /**
  * Garbage collects persistent volume claims that are not associated with active/non-terminal tasks.
@@ -107,20 +106,11 @@ public class PersistentVolumeClaimGcController extends BaseGcController<V1Persis
             // If the PVC is deleted while still in use by a pod (though that is not expected), the PVC
             // will not be removed until no pod is using it.
             // https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPersistentVolumeClaim(
-                    volumeClaimName,
-                    DEFAULT_NAMESPACE,
-                    null,
-                    null,
-                    0,
-                    null,
-                    null,
-                    null
-            );
+            kubeApiFacade.deleteNamespacedPersistentVolumeClaim(DEFAULT_NAMESPACE, volumeClaimName);
             logger.info("Successfully deleted persistent volume claim {}", formatPvcEssentials(pvc));
             return true;
-        } catch (ApiException e) {
-            if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+        } catch (KubeApiException e) {
+            if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND) {
                 // If we did not find the PVC return true as it is removed
                 logger.info("Delete for persistent volume claim {} not found", formatPvcEssentials(pvc));
                 return true;

@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,7 +39,6 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
-import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
@@ -55,21 +53,12 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1Toleration;
-import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public class KubeUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeUtil.class);
-
-    /**
-     * Like {@link Function}, but with {@link ApiException} throws clause.
-     */
-    public interface KubeFunction<I, O> {
-        O apply(I argument) throws ApiException;
-    }
 
     private static final String SUCCEEDED = "Succeeded";
 
@@ -300,51 +289,12 @@ public class KubeUtil {
         );
     }
 
-    public static <T> Mono<T> toReact(KubeFunction<ApiCallback<T>, Call> handler) {
-        return Mono.create(sink -> {
-            Call call;
-            try {
-                call = handler.apply(new ApiCallback<T>() {
-                    @Override
-                    public void onFailure(ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
-                        sink.error(e);
-                    }
-
-                    @Override
-                    public void onSuccess(T result, int statusCode, Map<String, List<String>> responseHeaders) {
-                        if (result == null) {
-                            sink.success();
-                        } else {
-                            sink.success(result);
-                        }
-                    }
-
-                    @Override
-                    public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {
-                    }
-
-                    @Override
-                    public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {
-                    }
-                });
-            } catch (ApiException e) {
-                sink.error(e);
-                return;
-            }
-
-            sink.onCancel(call::cancel);
-        });
-    }
-
     /**
-     * Get pod name
+     * Get Kube object name
      */
+    @Deprecated
     public static String getMetadataName(V1ObjectMeta metadata) {
-        if (metadata == null) {
-            return "";
-        }
-
-        return metadata.getName();
+        return com.netflix.titus.runtime.connector.kubernetes.KubeUtil.getMetadataName(metadata);
     }
 
     public static Optional<V1NodeCondition> findNodeCondition(V1Node node, String type) {

@@ -62,10 +62,10 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
@@ -103,7 +103,6 @@ import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.f
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.FAILED;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.PENDING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.RUNNING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.SUCCEEDED;
@@ -227,7 +226,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", formatPodEssentials(v1Pod));
                 logger.debug("complete pod data: {}", v1Pod);
-                kubeApiFacade.getCoreV1Api().createNamespacedPod(DEFAULT_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.createNamespacedPod(DEFAULT_NAMESPACE, v1Pod);
                 podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (Exception e) {
                 String errorMessage = KubeUtil.toErrorDetails(e);
@@ -241,10 +240,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         List<Mono<Void>> podAddActions = new ArrayList<>(assignments.getCount());
         for (TaskInfoRequest request : assignments) {
             V1Pod v1Pod = taskInfoToPod(request);
-            Mono<Void> podAddAction = KubeUtil
-                    .<V1Pod>toReact(handler -> kubeApiFacade.getCoreV1Api().createNamespacedPodAsync(
-                            DEFAULT_NAMESPACE, v1Pod, null, null, null, handler
-                    ))
+            Mono<Void> podAddAction = kubeApiFacade.createNamespacedPodAsync(DEFAULT_NAMESPACE, v1Pod)
                     .doOnSubscribe(subscription -> {
                         launchTaskCounter.increment();
                         logger.info("creating pod: {}", formatPodEssentials(v1Pod));
@@ -297,20 +293,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         killTaskCounter.increment();
         try {
             logger.info("Terminating pod: {} by setting deletionTimestamp", taskId);
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
-                    taskId,
-                    DEFAULT_NAMESPACE,
-                    null,
-                    null,
-                    directKubeConfiguration.getDeleteGracePeriodSeconds(),
-                    null,
-                    null,
-                    null
-            );
+            kubeApiFacade.deleteNamespacedPod(DEFAULT_NAMESPACE, taskId, directKubeConfiguration.getDeleteGracePeriodSeconds());
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
-        } catch (ApiException e) {
-            if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && taskKilledInAccepted(taskId)) {
+        } catch (KubeApiException e) {
+            if (e.getErrorCode() == KubeApiException.ErrorCode.NOT_FOUND && taskKilledInAccepted(taskId)) {
                 publishContainerEvent(taskId, Finished, REASON_TASK_KILLED, "", Optional.empty());
             } else {
                 logger.error("Failed to kill task: {} with error: {}", taskId, KubeUtil.toErrorDetails(e), e);
