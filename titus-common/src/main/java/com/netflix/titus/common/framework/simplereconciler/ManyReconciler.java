@@ -190,7 +190,7 @@ public interface ManyReconciler<DATA> {
                     ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-notification-" + name, true), Scheduler::dispose)
                     : CloseableReference.referenceOf(notificationScheduler);
 
-            Function<String, Integer> shardIndexSupplier = id -> id.hashCode() % shardCount;
+            Function<String, Integer> shardIndexSupplier = id -> Math.abs(id.hashCode()) % shardCount;
 
             return ShardedManyReconciler.newSharedDefaultManyReconciler(
                     name,
