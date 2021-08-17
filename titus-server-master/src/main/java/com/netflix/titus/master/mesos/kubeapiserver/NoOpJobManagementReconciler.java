@@ -18,8 +18,9 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 
 import javax.inject.Singleton;
 
+import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.ContainerEvent;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
+import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import reactor.core.publisher.Flux;
 
 @Singleton

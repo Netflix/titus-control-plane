@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
+package com.netflix.titus.master.kubernetes.client.model;
 
 import java.util.Objects;
-import java.util.Optional;
 
-import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
-import io.kubernetes.client.openapi.models.V1Node;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 
-public class PodUpdatedEvent extends PodEvent {
+public class PodNotFoundEvent extends PodEvent {
 
-    private final V1Pod oldPod;
-    private final Optional<V1Node> node;
+    private final Task task;
+    private final TaskStatus finalTaskStatus;
 
-    PodUpdatedEvent(V1Pod oldPod, V1Pod newPod, Optional<V1Node> node) {
-        super(newPod);
-        this.oldPod = oldPod;
-        this.node = node;
+    PodNotFoundEvent(Task task, TaskStatus finalTaskStatus) {
+        super(new V1Pod().metadata(new V1ObjectMeta().name(task.getId())));
+        this.task = task;
+        this.finalTaskStatus = finalTaskStatus;
     }
 
-    public V1Pod getOldPod() {
-        return oldPod;
+    public Task getTask() {
+        return task;
     }
 
-    public Optional<V1Node> getNode() {
-        return node;
+    public TaskStatus getFinalTaskStatus() {
+        return finalTaskStatus;
     }
 
     @Override
@@ -53,24 +53,22 @@ public class PodUpdatedEvent extends PodEvent {
         if (!super.equals(o)) {
             return false;
         }
-        PodUpdatedEvent that = (PodUpdatedEvent) o;
-        return Objects.equals(oldPod, that.oldPod) &&
-                Objects.equals(node, that.node);
+        PodNotFoundEvent that = (PodNotFoundEvent) o;
+        return Objects.equals(task, that.task) &&
+                Objects.equals(finalTaskStatus, that.finalTaskStatus);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), oldPod, node);
+        return Objects.hash(super.hashCode(), task, finalTaskStatus);
     }
 
     @Override
     public String toString() {
-        return "PodUpdatedEvent{" +
-                "taskId='" + taskId + '\'' +
+        return "PodNotFoundEvent{" +
+                "taskId=" + task.getId() +
                 ", sequenceNumber=" + sequenceNumber +
-                ", pod=" + KubeObjectFormatter.formatPodEssentials(pod) +
-                ", oldPod=" + KubeObjectFormatter.formatPodEssentials(oldPod) +
-                ", node=" + node.map(n -> n.getMetadata().getName()).orElse("<not_assigned>") +
+                ", finalTaskStatus=" + finalTaskStatus +
                 '}';
     }
 }

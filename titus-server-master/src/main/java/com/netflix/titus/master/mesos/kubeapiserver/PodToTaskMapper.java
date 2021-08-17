@@ -26,8 +26,9 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodPhase;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
+import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.client.model.PodPhase;
+import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import io.kubernetes.client.openapi.models.V1Node;
 
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;

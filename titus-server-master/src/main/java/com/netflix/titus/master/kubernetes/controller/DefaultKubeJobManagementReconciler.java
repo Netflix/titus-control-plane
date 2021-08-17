@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.master.kubernetes.controller;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -54,9 +54,10 @@ import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEvent;
+import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
+import com.netflix.titus.master.kubernetes.client.model.PodEvent;
+import com.netflix.titus.master.kubernetes.client.model.PodNotFoundEvent;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;

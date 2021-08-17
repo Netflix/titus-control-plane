@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
+package com.netflix.titus.master.kubernetes.client.model;
 
 import java.util.Optional;
 

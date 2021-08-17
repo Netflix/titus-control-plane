@@ -46,8 +46,8 @@ import com.netflix.titus.master.kubernetes.pod.taint.DefaultTaintTolerationFacto
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.DefaultTopologyFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
-import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
-import com.netflix.titus.master.mesos.kubeapiserver.DefaultContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 public class KubePodModule extends AbstractModule {

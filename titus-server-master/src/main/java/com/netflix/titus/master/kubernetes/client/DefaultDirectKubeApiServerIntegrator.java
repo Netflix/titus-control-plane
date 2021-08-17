@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct;
+package com.netflix.titus.master.kubernetes.client;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -44,11 +44,11 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.kubernetes.client.model.PodDeletedEvent;
+import com.netflix.titus.master.kubernetes.client.model.PodEvent;
+import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
@@ -66,7 +66,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPodEssentials;
+import static com.netflix.titus.master.kubernetes.KubeObjectFormatter.formatPodEssentials;
 
 @Singleton
 public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServerIntegrator {

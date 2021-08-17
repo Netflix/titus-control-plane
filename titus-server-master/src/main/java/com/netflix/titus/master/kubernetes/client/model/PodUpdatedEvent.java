@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
+package com.netflix.titus.master.kubernetes.client.model;
 
 import java.util.Objects;
 import java.util.Optional;
 
-import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
+import com.netflix.titus.master.kubernetes.KubeObjectFormatter;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 
-public class PodDeletedEvent extends PodEvent {
+public class PodUpdatedEvent extends PodEvent {
 
-    private final boolean deletedFinalStateUnknown;
+    private final V1Pod oldPod;
     private final Optional<V1Node> node;
 
-    PodDeletedEvent(V1Pod pod, boolean deletedFinalStateUnknown, Optional<V1Node> node) {
-        super(pod);
-        this.deletedFinalStateUnknown = deletedFinalStateUnknown;
+    PodUpdatedEvent(V1Pod oldPod, V1Pod newPod, Optional<V1Node> node) {
+        super(newPod);
+        this.oldPod = oldPod;
         this.node = node;
     }
 
-    public boolean isDeletedFinalStateUnknown() {
-        return deletedFinalStateUnknown;
+    public V1Pod getOldPod() {
+        return oldPod;
     }
 
     public Optional<V1Node> getNode() {
@@ -53,23 +53,23 @@ public class PodDeletedEvent extends PodEvent {
         if (!super.equals(o)) {
             return false;
         }
-        PodDeletedEvent that = (PodDeletedEvent) o;
-        return deletedFinalStateUnknown == that.deletedFinalStateUnknown &&
+        PodUpdatedEvent that = (PodUpdatedEvent) o;
+        return Objects.equals(oldPod, that.oldPod) &&
                 Objects.equals(node, that.node);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), deletedFinalStateUnknown, node);
+        return Objects.hash(super.hashCode(), oldPod, node);
     }
 
     @Override
     public String toString() {
-        return "PodDeletedEvent{" +
+        return "PodUpdatedEvent{" +
                 "taskId='" + taskId + '\'' +
                 ", sequenceNumber=" + sequenceNumber +
                 ", pod=" + KubeObjectFormatter.formatPodEssentials(pod) +
-                ", deletedFinalStateUnknown=" + deletedFinalStateUnknown +
+                ", oldPod=" + KubeObjectFormatter.formatPodEssentials(oldPod) +
                 ", node=" + node.map(n -> n.getMetadata().getName()).orElse("<not_assigned>") +
                 '}';
     }

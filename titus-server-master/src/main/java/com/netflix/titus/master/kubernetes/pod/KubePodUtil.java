@@ -39,7 +39,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeModelConverters;
+import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1EnvVar;
