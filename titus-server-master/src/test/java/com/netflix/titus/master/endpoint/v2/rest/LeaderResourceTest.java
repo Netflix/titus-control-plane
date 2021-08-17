@@ -16,13 +16,10 @@
 
 package com.netflix.titus.master.endpoint.v2.rest;
 
-import java.net.InetSocketAddress;
-import java.util.Optional;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
-import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
@@ -35,7 +32,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -47,14 +43,9 @@ public class LeaderResourceTest {
             "masterHost", "127.0.0.1", 7001, "/api/status", System.currentTimeMillis()
     );
 
-    private static final InetSocketAddress LEADER_ADDRESS = new InetSocketAddress("masterLeader", 5050);
-    private static final InetSocketAddress NON_LEADER_ADDRESS = new InetSocketAddress("masterNonLeader", 5050);
-
     private static MasterMonitor masterMonitor = mock(MasterMonitor.class);
 
-    private static MesosMasterResolver mesosMasterResolver = mock(MesosMasterResolver.class);
-
-    private static final LeaderResource restService = new LeaderResource(masterMonitor, mesosMasterResolver);
+    private static final LeaderResource restService = new LeaderResource(masterMonitor);
 
     @ClassRule
     public static final JaxRsServerResource<LeaderResource> jaxRsServer = JaxRsServerResource.newBuilder(restService)
@@ -74,8 +65,6 @@ public class LeaderResourceTest {
     @Test(timeout = 30_000)
     public void testLeaderReply() {
         when(masterMonitor.getLatestLeader()).thenReturn(LATEST_MASTER);
-        when(mesosMasterResolver.resolveLeader()).thenReturn(Optional.of(LEADER_ADDRESS));
-        when(mesosMasterResolver.resolveMesosAddresses()).thenReturn(asList(LEADER_ADDRESS, NON_LEADER_ADDRESS));
 
         testClient.get().uri("/api/v2/leader").exchange()
                 .expectBody(LeaderRepresentation.class)
@@ -84,8 +73,6 @@ public class LeaderResourceTest {
                     assertThat(result.getHostIP()).isEqualTo("127.0.0.1");
                     assertThat(result.getApiPort()).isEqualTo(7001);
                     assertThat(result.getApiStatusUri()).isEqualTo("/api/status");
-                    assertThat(result.getMesosLeader()).isEqualTo("masterLeader:5050");
-                    assertThat(result.getMesosServers()).containsExactly("masterLeader:5050", "masterNonLeader:5050");
                 });
     }
 }

@@ -25,6 +25,7 @@ import com.netflix.titus.master.health.service.HealthService;
 public class HealthModule extends AbstractModule {
     @Override
     protected void configure() {
+        install(new com.netflix.runtime.health.guice.HealthModule());
         bind(HealthImplBase.class).to(DefaultHealthServiceGrpc.class);
         bind(HealthService.class).to(DefaultHealthService.class);
     }

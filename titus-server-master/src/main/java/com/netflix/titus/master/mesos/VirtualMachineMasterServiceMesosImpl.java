@@ -68,7 +68,6 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private MesosSchedulerCallbackHandler mesosCallbackHandler;
     private ExecutorService executor;
     private final MesosConfiguration mesosConfiguration;
-    private MesosMasterResolver mesosMasterResolver;
     private Subject<LeaseRescindedEvent, LeaseRescindedEvent> vmLeaseRescindedObserver;
     private Subject<ContainerEvent, ContainerEvent> vmTaskStatusObserver;
     private ObjectMapper mapper = new ObjectMapper();
@@ -86,13 +85,11 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     public VirtualMachineMasterServiceMesosImpl(MasterConfiguration config,
                                                 SchedulerConfiguration schedulerConfiguration,
                                                 MesosConfiguration mesosConfiguration,
-                                                MesosMasterResolver mesosMasterResolver,
                                                 MesosSchedulerDriverFactory mesosDriverFactory,
                                                 Injector injector,
                                                 TitusRuntime titusRuntime) {
         this.config = config;
         this.mesosConfiguration = mesosConfiguration;
-        this.mesosMasterResolver = mesosMasterResolver;
         this.mesosDriverFactory = mesosDriverFactory;
         this.injector = injector;
         this.titusRuntime = titusRuntime;
@@ -269,15 +266,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
                 .setCheckpoint(true)
                 .build();
 
-        String mesosMaster = timed(
-                "Resolving Mesos master address",
-                () -> {
-                    Optional<String> mm = mesosMasterResolver.resolveCanonical();
-                    if (!mm.isPresent()) {
-                        throw new IllegalStateException("Mesos master address not configured");
-                    }
-                    return mm;
-                }).get();
+        String mesosMaster = "mesos-server";
 
         mesosDriver = timed(
                 "Creating Mesos driver using factory " + mesosDriverFactory.getClass().getSimpleName(),
