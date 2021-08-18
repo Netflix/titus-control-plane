@@ -17,6 +17,7 @@
 package com.netflix.titus.ext.jobactivityhistory;
 
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.ext.jooq.JooqConfiguration;
 import com.netflix.titus.ext.jooq.JooqContext;
@@ -58,20 +59,24 @@ public class JooqJobActivityContextComponent {
     @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration")JooqConfiguration jooqConfiguration,
+                                                 ConfigurableApplicationContext applicationContext,
+                                                 TitusRuntime titusRuntime) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "jobactivity");
+            return new EmbeddedJooqContext(applicationContext, "jobactivity", titusRuntime);
         }
-        return new ProductionJooqContext(jooqConfiguration);
+        return new ProductionJooqContext(jooqConfiguration, titusRuntime);
     }
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration")JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration")JooqConfiguration jooqConfiguration,
+                                              ConfigurableApplicationContext applicationContext,
+                                              TitusRuntime titusRuntime) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "activity");
+            return new EmbeddedJooqContext(applicationContext, "activity", titusRuntime);
         }
-        return new ProductionJooqContext(jooqConfiguration);
+        return new ProductionJooqContext(jooqConfiguration, titusRuntime);
     }
 
     @Bean

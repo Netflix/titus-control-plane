@@ -20,8 +20,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.jooq.Configuration;
+import org.jooq.impl.DefaultConfiguration;
 import org.jooq.impl.DefaultDSLContext;
 import org.postgresql.PGProperty;
 
@@ -32,7 +36,7 @@ public class ProductionJooqContext implements JooqContext {
     private final DefaultDSLContext dslContext;
 
     @Inject
-    public ProductionJooqContext(JooqConfiguration jooqConfiguration) {
+    public ProductionJooqContext(JooqConfiguration jooqConfiguration, TitusRuntime titusRuntime) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
 
@@ -44,9 +48,13 @@ public class ProductionJooqContext implements JooqContext {
         hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
         hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
         hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
-        
+
         this.dataSource = new HikariDataSource(hikariConfig);
-        this.dslContext = new DefaultDSLContext(dataSource, DEFAULT_DIALECT);
+        Configuration config = new DefaultConfiguration()
+                .derive(dataSource)
+                .derive(DEFAULT_DIALECT)
+                .derive(ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "jooq", jooqConfiguration.getExecutorPoolSize()));
+        this.dslContext = new DefaultDSLContext(config);
     }
 
     public DataSource getDataSource() {

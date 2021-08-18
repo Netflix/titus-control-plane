@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.jooq.activity;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.ext.jooq.JooqConfiguration;
 import com.netflix.titus.ext.jooq.JooqContext;
@@ -38,11 +39,13 @@ public class JooqActivityContextComponent {
     }
 
     @Bean
-    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration,
+                                      ConfigurableApplicationContext applicationContext,
+                                      TitusRuntime titusRuntime) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "relocation");
+            return new EmbeddedJooqContext(applicationContext, "activity", titusRuntime);
         }
-        return new ProductionJooqContext(jooqConfiguration);
+        return new ProductionJooqContext(jooqConfiguration, titusRuntime);
     }
 
     @Bean
