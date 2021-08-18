@@ -116,6 +116,7 @@ public class KubeUtil {
                             annotations.getOrDefault("IpAddress", "UnknownIpAddress"),
                             annotations.get("EniIPv6Address"),
                             annotations.getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
+                            annotations.getOrDefault("NetworkMode", "UnknownNetworkMode"),
                             annotations.getOrDefault("EniId", "UnknownEniId"),
                             annotations.getOrDefault("ResourceId", "UnknownResourceId")
                     )

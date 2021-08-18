@@ -323,9 +323,9 @@ public class KubeNotificationProcessor {
         Task fixedTask = fillInMissingStates(podWrapper, updatedTask);
         Task taskWithExecutorData;
         if (executorDetailsOpt.isPresent()) {
-            taskWithExecutorData = JobManagerUtil.attachTitusExecutorData(fixedTask, executorDetailsOpt);
+            taskWithExecutorData = JobManagerUtil.attachTitusExecutorNetworkData(fixedTask, executorDetailsOpt);
         } else {
-            taskWithExecutorData = JobManagerUtil.attachKubeletData(fixedTask, podWrapper);
+            taskWithExecutorData = JobManagerUtil.attachKubeletNetworkData(fixedTask, podWrapper);
         }
         Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
         Task taskWithAnnotations = addMissingAttributes(podWrapper, taskWithNodeMetadata);

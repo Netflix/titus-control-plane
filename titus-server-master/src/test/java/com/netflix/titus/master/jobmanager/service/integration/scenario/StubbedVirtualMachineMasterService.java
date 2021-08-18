@@ -28,6 +28,7 @@ import com.netflix.fenzo.functions.Action1;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.TaskAssignments;
@@ -58,7 +59,13 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
         return new TitusExecutorDetails(
                 CollectionsExt.asMap("nfvpc", "1.2.3.4"),
                 new TitusExecutorDetails.NetworkConfiguration(
-                        true, "1.2.3.4", "2600:1f18:2772:d500:6410:ec14:39ca:30d7", "1.1.1.1", "eni-12345", "eni-resource-1"
+                        true,
+                        "1.2.3.4",
+                        "2600:1f18:2772:d500:6410:ec14:39ca:30d7",
+                        "1.1.1.1",
+                        NetworkConfiguration.NetworkMode.Ipv6AndIpv4.toString(),
+                        "eni-12345",
+                        "eni-resource-1"
                 ));
     }
 

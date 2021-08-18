@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 
 /**
  * Titus executor data model for reporting back resource allocation data.
@@ -85,6 +87,8 @@ public class TitusExecutorDetails {
 
         private final String ipV6Address;
 
+        private final String networkMode;
+
         private final String eniIPAddress;
 
         private final String eniID;
@@ -96,11 +100,13 @@ public class TitusExecutorDetails {
                 @JsonProperty("IPAddress") String ipAddress,
                 @JsonProperty("IPV6Address") String ipV6Address,
                 @JsonProperty("EniIPAddress") String eniIPAddress,
+                @JsonProperty("NetworkMode") String networkMode,
                 @JsonProperty("EniID") String eniID,
                 @JsonProperty("ResourceID") String resourceID) {
             this.isRoutableIP = isRoutableIP;
             this.ipAddress = ipAddress;
             this.ipV6Address = ipV6Address;
+            this.networkMode = networkMode;
             this.eniIPAddress = eniIPAddress;
             this.eniID = eniID;
             this.resourceID = resourceID;
@@ -126,6 +132,11 @@ public class TitusExecutorDetails {
             return eniIPAddress;
         }
 
+        @JsonProperty("NetworkMode")
+        public String getNetworkMode() {
+            return networkMode;
+        }
+
         @JsonProperty("EniID")
         public String getEniID() {
             return eniID;
@@ -148,6 +159,7 @@ public class TitusExecutorDetails {
             return isRoutableIP == that.isRoutableIP &&
                     Objects.equals(ipAddress, that.ipAddress) &&
                     Objects.equals(ipV6Address, that.ipV6Address) &&
+                    Objects.equals(networkMode, that.networkMode) &&
                     Objects.equals(eniIPAddress, that.eniIPAddress) &&
                     Objects.equals(eniID, that.eniID) &&
                     Objects.equals(resourceID, that.resourceID);
@@ -155,7 +167,7 @@ public class TitusExecutorDetails {
 
         @Override
         public int hashCode() {
-            return Objects.hash(isRoutableIP, ipAddress, ipV6Address, eniIPAddress, eniID, resourceID);
+            return Objects.hash(isRoutableIP, ipAddress, ipV6Address, eniIPAddress, networkMode, eniID, resourceID);
         }
 
         @Override
@@ -165,9 +177,24 @@ public class TitusExecutorDetails {
                     ", ipAddress='" + ipAddress + '\'' +
                     ", ipV6Address='" + ipV6Address + '\'' +
                     ", eniIPAddress='" + eniIPAddress + '\'' +
+                    ", networkMode='" + networkMode + '\'' +
                     ", eniID='" + eniID + '\'' +
                     ", resourceID='" + resourceID + '\'' +
                     '}';
+        }
+
+        public String getPrimaryIpAddress() {
+            // For backward-compatibility reasons, the "primary ip" is considered the v4 address
+            // if we have one (if we are not in the transition mode), otherwise ipv6
+            if (StringExt.isNotEmpty(ipAddress)) {
+                if (!networkMode.equals(NetworkMode.Ipv6AndIpv4Fallback.toString())) {
+                    return ipAddress;
+                }
+            }
+            if (StringExt.isNotEmpty(ipV6Address)) {
+                return ipV6Address;
+            }
+            return "";
         }
     }
 }

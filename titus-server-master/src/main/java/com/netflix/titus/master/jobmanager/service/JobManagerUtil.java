@@ -48,7 +48,6 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -57,6 +56,7 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 import org.apache.mesos.Protos;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
@@ -133,21 +133,31 @@ public final class JobManagerUtil {
             }
 
             Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
-            Task newTaskWithPlacementData = attachTitusExecutorData(newTask, detailsOpt);
+            Task newTaskWithPlacementData = attachTitusExecutorNetworkData(newTask, detailsOpt);
             return Optional.of(newTaskWithPlacementData);
         };
     }
 
-    public static Task attachTitusExecutorData(Task task, Optional<TitusExecutorDetails> detailsOpt) {
+    public static Task attachTitusExecutorNetworkData(Task task, Optional<TitusExecutorDetails> detailsOpt) {
         return detailsOpt.map(details -> {
             TitusExecutorDetails.NetworkConfiguration networkConfiguration = details.getNetworkConfiguration();
             if (networkConfiguration != null) {
+                String ipv4 = networkConfiguration.getIpAddress();
+                String ipv6 = networkConfiguration.getIpV6Address();
+                String primaryIP = networkConfiguration.getPrimaryIpAddress();
                 Map<String, String> newContext = new HashMap<>(task.getTaskContext());
                 BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
 
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, networkConfiguration.getIpAddress());
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, networkConfiguration.getIpAddress());
-                Evaluators.acceptNotNull(networkConfiguration.getIpV6Address(), ipv6 -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, ipv6));
+                if (networkConfiguration.getNetworkMode().equals(NetworkMode.Ipv6AndIpv4Fallback.toString())) {
+                    // In the IPV6_ONLY_WITH_TRANSITION mode, the ipv4 on the pod doesn't represent
+                    // a unique IP for that pod, but a shared one. This should not be consumed
+                    // as a normal ip by normal tools, and deserves a special attribute
+                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, ipv4);
+                } else {
+                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, ipv4);
+                }
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, primaryIP);
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, ipv6);
                 contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, networkConfiguration.getEniID());
                 parseEniResourceId(networkConfiguration.getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
 
@@ -157,7 +167,7 @@ public final class JobManagerUtil {
         }).orElse(task);
     }
 
-    public static Task attachKubeletData(Task task, PodWrapper podWrapper) {
+    public static Task attachKubeletNetworkData(Task task, PodWrapper podWrapper) {
         if (podWrapper.getV1Pod().getStatus() == null) {
             return task;
         }

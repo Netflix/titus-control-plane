@@ -58,6 +58,13 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
     public static final String TASK_ATTRIBUTES_CONTAINER_IPV4 = "task.containerIPv4";
     public static final String TASK_ATTRIBUTES_CONTAINER_IPV6 = "task.containerIPv6";
+    /*
+     * TASK_ATTRIBUTES_TRANSITION_IPV4 is a special IP that represents the IP that
+     * Tasks in the special Ipv6AndIpv4Fallback network Mode use.
+     * It represents a kind of "NAT" ip. It should not be considered the normal
+     * IPv4 for a task (you cannot ssh to it), therefore it gets a distinct attribute.
+     */
+    public static final String TASK_ATTRIBUTES_TRANSITION_IPV4 = "task.transitionIPv4";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX = "task.networkInterfaceIndex";
     public static final String TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE = "task.executorUriOverride";
