@@ -411,6 +411,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
                             networkConfiguration.getIpAddress(),
                             null,
                             networkConfiguration.getEniIPAddress(),
+                            "UnknownNetworkMode",
                             networkConfiguration.getEniID(),
                             networkConfiguration.getResourceID()
                     )

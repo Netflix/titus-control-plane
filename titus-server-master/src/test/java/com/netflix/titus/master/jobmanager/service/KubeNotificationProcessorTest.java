@@ -173,6 +173,7 @@ public class KubeNotificationProcessorTest {
                         "1.2.3.4",
                         "",
                         "1.2.3.4",
+                        "Ipv4Only",
                         "eniId123",
                         "resourceId123"
                 ))),
@@ -187,6 +188,41 @@ public class KubeNotificationProcessorTest {
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_STACK, "myStack");
+    }
+
+    @Test
+    public void testUpdateTaskStatusVKWithTransitionNetworkMode() {
+        V1Pod pod = newPod(TASK.getId(), andRunning());
+        V1Node node = newNode(andIpAddress("2.2.2.2"), andNodeAnnotations(
+                TITUS_NODE_DOMAIN + "ami", "ami123",
+                TITUS_NODE_DOMAIN + "stack", "myStack"
+        ));
+        Task updatedTask = processor.updateTaskStatus(
+                new PodWrapper(pod),
+                TaskStatus.newBuilder().withState(TaskState.Started).build(),
+                Optional.of(new TitusExecutorDetails(Collections.emptyMap(), new TitusExecutorDetails.NetworkConfiguration(
+                        true,
+                        "192.0.2.1",
+                        "2001:db8:0:1234:0:567:8:1",
+                        "192.0.2.1",
+                        "Ipv6AndIpv4Fallback",
+                        "eniId123",
+                        "resourceId123"
+                ))),
+                Optional.of(node),
+                TASK,
+                false
+        ).orElse(null);
+
+        Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
+        assertThat(pastStates).contains(TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated);
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "2.2.2.2");
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "2001:db8:0:1234:0:567:8:1");
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, "2001:db8:0:1234:0:567:8:1");
+        // In IPv6 + transition mode, there should *not* be a ipv4. That would be confusing because such a v4 would not
+        // be unique to that task, and tools would try to use it, people would try to ssh to it, etc.
+        assertThat(updatedTask.getTaskContext()).doesNotContainKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4);
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, "192.0.2.1");
     }
 
     @Test

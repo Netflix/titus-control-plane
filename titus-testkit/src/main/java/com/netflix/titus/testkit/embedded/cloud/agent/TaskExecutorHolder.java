@@ -219,6 +219,7 @@ public class TaskExecutorHolder {
                             containerIp,
                             null,
                             containerIp,
+                            "UnknownNetworkMode",
                             "simulatedENI-" + eniID,
                             "resource-eni-" + eniID
                     )
