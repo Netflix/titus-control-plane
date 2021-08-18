@@ -17,6 +17,7 @@
 package com.netflix.titus.ext.jooq.activity;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.ext.jooq.JooqConfiguration;
 import com.netflix.titus.ext.jooq.JooqContext;
@@ -32,6 +33,11 @@ import org.springframework.core.env.Environment;
 @Configuration
 @ConditionalOnProperty(name = "titus.ext.jooq.activity.enabled", havingValue = "true", matchIfMissing = true)
 public class JooqActivityContextComponent {
+
+    @Bean
+    public TitusRuntime getTitusRuntime() {
+        return TitusRuntimes.internal();
+    }
 
     @Bean
     public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {

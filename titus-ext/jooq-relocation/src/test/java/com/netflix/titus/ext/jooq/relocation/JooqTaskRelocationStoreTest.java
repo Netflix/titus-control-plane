@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.ext.jooq.JooqContext;
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +32,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.test.StepVerifier;
@@ -50,6 +53,11 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 )
 @DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqTaskRelocationStoreTest {
+
+    @Bean
+    public TitusRuntime getTitusRuntime() {
+        return TitusRuntimes.internal();
+    }
 
     @Autowired
     public JooqContext jooqContext;
