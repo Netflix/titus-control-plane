@@ -29,6 +29,7 @@ import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import org.apache.mesos.Protos;
@@ -219,7 +220,7 @@ public class TaskExecutorHolder {
                             containerIp,
                             null,
                             containerIp,
-                            "UnknownNetworkMode",
+                            NetworkConfiguration.NetworkMode.UnknownNetworkMode.toString(),
                             "simulatedENI-" + eniID,
                             "resource-eni-" + eniID
                     )

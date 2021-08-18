@@ -48,7 +48,6 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -57,6 +56,7 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 import org.apache.mesos.Protos;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
@@ -148,7 +148,7 @@ public final class JobManagerUtil {
                 Map<String, String> newContext = new HashMap<>(task.getTaskContext());
                 BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
 
-                if (networkConfiguration.getNetworkMode() == "Ipv6AndIpv4Fallback") {
+                if (networkConfiguration.getNetworkMode().equals(NetworkMode.Ipv6AndIpv4Fallback.toString())) {
                     // In the IPV6_ONLY_WITH_TRANSITION mode, the ipv4 on the pod doesn't represent
                     // a unique IP for that pod, but a shared one. This should not be consumed
                     // as a normal ip by normal tools, and deserves a special attribute

@@ -38,6 +38,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
@@ -173,7 +174,7 @@ public class KubeNotificationProcessorTest {
                         "1.2.3.4",
                         "",
                         "1.2.3.4",
-                        "Ipv4Only",
+                        NetworkConfiguration.NetworkMode.Ipv4Only.toString(),
                         "eniId123",
                         "resourceId123"
                 ))),
@@ -205,7 +206,7 @@ public class KubeNotificationProcessorTest {
                         "192.0.2.1",
                         "2001:db8:0:1234:0:567:8:1",
                         "192.0.2.1",
-                        "Ipv6AndIpv4Fallback",
+                        NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString(),
                         "eniId123",
                         "resourceId123"
                 ))),
