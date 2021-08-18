@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 
 /**
  * Titus executor data model for reporting back resource allocation data.
@@ -184,12 +186,12 @@ public class TitusExecutorDetails {
         public String getPrimaryIpAddress() {
             // For backward-compatibility reasons, the "primary ip" is considered the v4 address
             // if we have one (if we are not in the transition mode), otherwise ipv6
-            if (ipAddress != null && !ipAddress.equals("")) {
-                if (!networkMode.equals("Ipv6AndIpv4Fallback")) {
+            if (StringExt.isNotEmpty(ipAddress)) {
+                if (!networkMode.equals(NetworkMode.Ipv6AndIpv4Fallback.toString())) {
                     return ipAddress;
                 }
             }
-            if (ipV6Address != null && !ipV6Address.equals("")) {
+            if (StringExt.isNotEmpty(ipV6Address)) {
                 return ipV6Address;
             }
             return "";
