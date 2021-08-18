@@ -18,13 +18,17 @@ package com.netflix.titus.ext.jooq.embedded;
 
 import javax.sql.DataSource;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.ext.jooq.JooqContext;
 import com.netflix.titus.ext.jooq.profile.DatabaseProfile;
 import com.netflix.titus.ext.jooq.profile.DatabaseProfileLoader;
 import com.netflix.titus.ext.jooq.profile.DatabaseProfiles;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.jooq.Configuration;
 import org.jooq.SQLDialect;
+import org.jooq.impl.DefaultConfiguration;
 import org.jooq.impl.DefaultDSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +41,25 @@ public class EmbeddedJooqContext implements JooqContext {
 
     private static final SQLDialect DEFAULT_DIALECT = SQLDialect.POSTGRES;
 
+    /**
+     * Embedded jooq context is used in the integration tests only, so modest pool size is sufficient.
+     */
+    private static final int DEFAULT_EXECUTOR_POOL_SIZE = 50;
+
     private final HikariDataSource dataSource;
     private final EmbeddedPostgresService embeddedPostgresService;
     private final DefaultDSLContext dslContext;
 
-    public EmbeddedJooqContext(ConfigurableApplicationContext context, String profileName) {
+    public EmbeddedJooqContext(ConfigurableApplicationContext context,
+                               String profileName,
+                               TitusRuntime titusRuntime) {
+        this(context, profileName, DEFAULT_EXECUTOR_POOL_SIZE, titusRuntime);
+    }
+
+    public EmbeddedJooqContext(ConfigurableApplicationContext context,
+                               String profileName,
+                               int executorPoolSize,
+                               TitusRuntime titusRuntime) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
 
@@ -76,7 +94,11 @@ public class EmbeddedJooqContext implements JooqContext {
         hikariConfig.setLeakDetectionThreshold(3000);
 
         this.dataSource = new HikariDataSource(hikariConfig);
-        this.dslContext = new DefaultDSLContext(dataSource, DEFAULT_DIALECT);
+        Configuration config = new DefaultConfiguration()
+                .derive(dataSource)
+                .derive(DEFAULT_DIALECT)
+                .derive(ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "jooq", executorPoolSize));
+        this.dslContext = new DefaultDSLContext(config);
     }
 
     public void close() {

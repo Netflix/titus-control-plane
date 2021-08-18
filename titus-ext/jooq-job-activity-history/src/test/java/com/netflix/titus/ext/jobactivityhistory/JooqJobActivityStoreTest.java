@@ -38,11 +38,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.core.publisher.Flux;
@@ -62,22 +61,27 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
         },
         classes = {
                 JooqJobActivityContextComponent.class,
+                JooqJobActivityStoreTest.class,
         }
 )
 
 @DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqJobActivityStoreTest {
-    private final static Logger logger = LoggerFactory.getLogger(JooqJobActivityStoreTest.class);
 
-    private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
-    private DataGenerator<BatchJobTask> batchTasksGenerator = JobGenerator.batchTasks(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
+    private final DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
+    private final DataGenerator<BatchJobTask> batchTasksGenerator = JobGenerator.batchTasks(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
 
     private JooqJobActivityStore jooqJobActivityStore;
     public AtomicLong queueIndex = new AtomicLong(0);
 
     JobActivityConnectorStubs jobActivityConnectorStubs = new JobActivityConnectorStubs();
 
-    private TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
+    private final TitusRuntime titusRuntime = jobActivityConnectorStubs.getTitusRuntime();
+
+    @Bean
+    public TitusRuntime getTitusRuntime() {
+        return titusRuntime;
+    }
 
     @Autowired
     @Qualifier("producerJooqConfiguration")
@@ -126,17 +130,17 @@ public class JooqJobActivityStoreTest {
         long assignedQueueIndex = queueIndex.getAndIncrement();
         DSLContext producerDslContext = producerJooqContext.getDslContext();
         return JooqUtils.executeAsyncMono(() -> {
-            int numInserts = producerDslContext
-                    .insertInto(ACTIVITY_QUEUE,
-                            ACTIVITY_QUEUE.QUEUE_INDEX,
-                            ACTIVITY_QUEUE.EVENT_TYPE,
-                            ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                    .values(assignedQueueIndex,
-                            (short) recordType.ordinal(),
-                            serializedRecord)
-                    .execute();
-            return numInserts;
-        }, producerDslContext)
+                    int numInserts = producerDslContext
+                            .insertInto(ACTIVITY_QUEUE,
+                                    ACTIVITY_QUEUE.QUEUE_INDEX,
+                                    ACTIVITY_QUEUE.EVENT_TYPE,
+                                    ACTIVITY_QUEUE.SERIALIZED_EVENT)
+                            .values(assignedQueueIndex,
+                                    (short) recordType.ordinal(),
+                                    serializedRecord)
+                            .execute();
+                    return numInserts;
+                }, producerDslContext)
                 .onErrorMap(e -> {
                     System.out.println("FAIL");
                     return JobActivityStoreException.jobActivityUpdateRecordException(recordId, e);

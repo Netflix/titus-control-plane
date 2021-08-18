@@ -16,6 +16,8 @@
 
 package com.netflix.titus.ext.jooq.activity;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.ext.jooq.JooqConfiguration;
 import com.netflix.titus.ext.jooq.JooqContext;
@@ -33,16 +35,23 @@ import org.springframework.core.env.Environment;
 public class JooqActivityContextComponent {
 
     @Bean
+    public TitusRuntime getTitusRuntime() {
+        return TitusRuntimes.internal();
+    }
+
+    @Bean
     public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.jooq.activity", environment);
     }
 
     @Bean
-    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, ConfigurableApplicationContext applicationContext) {
+    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration,
+                                      ConfigurableApplicationContext applicationContext,
+                                      TitusRuntime titusRuntime) {
         if (jooqConfiguration.isInMemoryDb()) {
-            return new EmbeddedJooqContext(applicationContext, "relocation");
+            return new EmbeddedJooqContext(applicationContext, "activity", titusRuntime);
         }
-        return new ProductionJooqContext(jooqConfiguration);
+        return new ProductionJooqContext(jooqConfiguration, titusRuntime);
     }
 
     @Bean

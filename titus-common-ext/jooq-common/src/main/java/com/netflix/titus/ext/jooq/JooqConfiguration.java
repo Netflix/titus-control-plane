@@ -28,4 +28,7 @@ public interface JooqConfiguration {
 
     @DefaultValue("true")
     boolean isCreateSchemaIfNotExist();
+
+    @DefaultValue("100")
+    int getExecutorPoolSize();
 }
