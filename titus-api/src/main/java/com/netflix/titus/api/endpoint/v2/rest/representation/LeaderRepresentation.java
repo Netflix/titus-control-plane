@@ -16,8 +16,6 @@
 
 package com.netflix.titus.api.endpoint.v2.rest.representation;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,24 +26,18 @@ public class LeaderRepresentation {
     private final int apiPort;
     private final String apiStatusUri;
     private final long createTime;
-    private final String mesosLeader;
-    private final List<String> mesosServers;
 
     @JsonCreator
     public LeaderRepresentation(@JsonProperty("hostname") String hostname,
                                 @JsonProperty("hostIP") String hostIP,
                                 @JsonProperty("apiPort") int apiPort,
                                 @JsonProperty("apiStatusUri") String apiStatusUri,
-                                @JsonProperty("createTime") long createTime,
-                                @JsonProperty("mesosLeader") String mesosLeader,
-                                @JsonProperty("mesosServers") List<String> mesosServers) {
+                                @JsonProperty("createTime") long createTime) {
         this.hostname = hostname;
         this.hostIP = hostIP;
         this.apiPort = apiPort;
         this.apiStatusUri = apiStatusUri;
         this.createTime = createTime;
-        this.mesosLeader = mesosLeader;
-        this.mesosServers = mesosServers;
     }
 
     public String getHostname() {
@@ -68,14 +60,6 @@ public class LeaderRepresentation {
         return createTime;
     }
 
-    public String getMesosLeader() {
-        return mesosLeader;
-    }
-
-    public List<String> getMesosServers() {
-        return mesosServers;
-    }
-
     public static Builder newBuilder() {
         return new Builder();
     }
@@ -86,8 +70,6 @@ public class LeaderRepresentation {
         private int apiPort;
         private String apiStatusUri;
         private long createTime;
-        private String mesosLeader;
-        private List<String> mesosServers;
 
         private Builder() {
         }
@@ -117,19 +99,8 @@ public class LeaderRepresentation {
             return this;
         }
 
-        public Builder withMesosLeader(String mesosLeader) {
-            this.mesosLeader = mesosLeader;
-            return this;
-        }
-
-        public Builder withMesosServers(List<String> mesosServers) {
-            this.mesosServers = mesosServers;
-            return this;
-        }
-
         public LeaderRepresentation build() {
-            LeaderRepresentation leaderRepresentation = new LeaderRepresentation(hostname, hostIP, apiPort, apiStatusUri, createTime, mesosLeader, mesosServers);
-            return leaderRepresentation;
+            return new LeaderRepresentation(hostname, hostIP, apiPort, apiStatusUri, createTime);
         }
     }
 }
