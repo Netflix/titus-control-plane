@@ -16,8 +16,6 @@
 
 package com.netflix.titus.master.endpoint.v2.rest;
 
-import java.net.InetSocketAddress;
-import java.util.Collections;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -53,14 +51,8 @@ public class LeaderResource implements LeaderEndpoint {
                 .withHostIP(masterDescription.getHostIP())
                 .withApiPort(masterDescription.getApiPort())
                 .withApiStatusUri(masterDescription.getApiStatusUri())
-                .withCreateTime(masterDescription.getCreateTime())
-                .withMesosLeader("mesos-removed")
-                .withMesosServers(Collections.singletonList("mesos-removed"));
+                .withCreateTime(masterDescription.getCreateTime());
 
         return builder.build();
-    }
-
-    private static String inetToString(InetSocketAddress a) {
-        return a.getHostString() + ':' + a.getPort();
     }
 }
