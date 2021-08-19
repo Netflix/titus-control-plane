@@ -25,7 +25,6 @@ include 'titus-common',\
 }
 
 [
-        'job-activity-history', 'job-activity-history-springboot',
         'task-relocation', 'task-relocation-springboot',
         'tasks-publisher', 'tasks-publisher-springboot'
 ].each {
@@ -42,8 +41,6 @@ include 'titus-common',\
  'eureka',
  'job-validator',
  'jooq-relocation',
- 'jooq-activity-queue',
- 'jooq-job-activity-history',
  'zookeeper'].each {
     def projectName = "titus-ext-$it"
     include projectName
