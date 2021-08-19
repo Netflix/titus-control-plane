@@ -20,16 +20,16 @@ import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnec
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
 import com.netflix.titus.api.health.HealthIndicator;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 @Configuration
 public class ClusterMembershipServiceComponent {
 
     @Bean
-    public ClusterMembershipServiceConfiguration getClusterMembershipServiceConfigurationBean(Environment environment) {
-        return new ClusterMembershipServiceConfigurationBean(environment, "titus.clusterMembership");
+    public ClusterMembershipServiceConfiguration getClusterMembershipServiceConfigurationBean(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(ClusterMembershipServiceConfiguration.class, "titus.clusterMembership", titusRuntime.getMyEnvironment());
     }
 
     @Bean

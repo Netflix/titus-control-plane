@@ -38,6 +38,7 @@ import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.framework.fit.FitRegistry;
 import com.netflix.titus.common.framework.fit.FitUtil;
 import com.netflix.titus.common.jhiccup.JHiccupModule;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -98,12 +99,15 @@ public class TitusRuntimeModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(Config config, SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, systemLogService, systemExitOnFailure, systemAbortListener, registry);
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(
+                MyEnvironments.newArchaius(config),
+                codeInvariants, systemLogService, systemExitOnFailure, systemAbortListener, registry
+        );
 
         // Setup FIT component hierarchy
         FitFramework fitFramework = titusRuntime.getFitFramework();

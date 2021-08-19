@@ -16,18 +16,18 @@
 
 package com.netflix.titus.runtime.connector.kubernetes;
 
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import io.kubernetes.client.openapi.ApiClient;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
 public class KubeConnectorComponent {
 
     @Bean
-    public KubeConnectorConfiguration getKubeConnectorConfiguration(Environment environment) {
+    public KubeConnectorConfiguration getKubeConnectorConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(KubeConnectorConfiguration.class, "titus.kubeClient", environment);
     }
 

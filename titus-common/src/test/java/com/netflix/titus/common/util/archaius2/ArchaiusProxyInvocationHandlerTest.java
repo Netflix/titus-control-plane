@@ -24,24 +24,25 @@ import java.util.Set;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.titus.common.environment.MyEnvironments;
+import com.netflix.titus.common.environment.MyMutableEnvironment;
 import com.netflix.titus.common.util.CollectionsExt;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class SpringProxyInvocationHandlerTest {
+public class ArchaiusProxyInvocationHandlerTest {
 
-    private final MockEnvironment environment = new MockEnvironment();
+    private final MyMutableEnvironment environment = MyEnvironments.newMutable();
 
     private SomeConfiguration configuration;
 
     @Before
     public void setUp() {
         environment.setProperty("annotationPrefix.intWithNoDefault", "11");
-        this.configuration = Archaius2Ext.newConfiguration(SomeConfiguration.class, environment, 0);
+        this.configuration = Archaius2Ext.newConfiguration(SomeConfiguration.class, environment);
     }
 
     @Test
@@ -123,7 +124,7 @@ public class SpringProxyInvocationHandlerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateFailsOnPropertiesWithoutValue() {
-        Archaius2Ext.newConfiguration(SomeConfiguration.class, new MockEnvironment());
+        Archaius2Ext.newConfiguration(SomeConfiguration.class, MyEnvironments.newMutable());
     }
 
     @Test

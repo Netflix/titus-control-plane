@@ -17,21 +17,21 @@
 package com.netflix.titus.runtime.connector.common.reactor;
 
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.GrpcRequestConfigurationBean;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CommonCallMetadataUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 @Configuration
 public class GrpcToReactorClientFactoryComponent {
 
     @Bean
-    public GrpcRequestConfiguration getChannelTunablesConfiguration(Environment environment) {
-        return new GrpcRequestConfigurationBean(environment);
+    public GrpcRequestConfiguration getChannelTunablesConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(GrpcRequestConfiguration.class, "titus.connector.channelTunables", titusRuntime.getMyEnvironment());
     }
 
     @Bean

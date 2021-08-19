@@ -18,95 +18,63 @@ package com.netflix.titus.common.runtime;
 
 import java.time.Duration;
 
-import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.environment.MyEnvironment;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
-import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
-import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
-import com.netflix.titus.common.util.code.LoggingCodeInvariants;
-import com.netflix.titus.common.util.code.LoggingCodePointTracker;
-import com.netflix.titus.common.util.code.RecordingCodeInvariants;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
+import org.springframework.core.env.Environment;
 import rx.schedulers.TestScheduler;
 
 public final class TitusRuntimes {
 
-    private static final Duration LOCAL_SCHEDULER_LOOP_INTERVAL_MS = Duration.ofMillis(100);
-
     private TitusRuntimes() {
     }
 
+    public static TitusRuntime internal(MyEnvironment environment) {
+        return DefaultTitusRuntime.newBuilder()
+                .withMyEnvironment(environment)
+                .build();
+    }
+
+    public static TitusRuntime internal(Environment environment) {
+        return DefaultTitusRuntime.newBuilder()
+                .withMyEnvironment(MyEnvironments.newSpring(environment))
+                .build();
+    }
+
     public static TitusRuntime internal(Duration localSchedulerLoopInterval) {
-        return new DefaultTitusRuntime(
-                new LoggingCodePointTracker(),
-                LoggingCodeInvariants.getDefault(),
-                LoggingSystemLogService.getInstance(),
-                false,
-                LoggingSystemAbortListener.getDefault(),
-                localSchedulerLoopInterval,
-                new DefaultRegistry(),
-                Clocks.system(),
-                false
-        );
+        return DefaultTitusRuntime.newBuilder()
+                .withLocalSchedulerLoopInterval(localSchedulerLoopInterval)
+                .build();
     }
 
     public static TitusRuntime internal() {
-        return internal(LOCAL_SCHEDULER_LOOP_INTERVAL_MS);
+        return DefaultTitusRuntime.newBuilder().build();
     }
 
     public static TitusRuntime internal(boolean fitEnabled) {
-        return new DefaultTitusRuntime(
-                new LoggingCodePointTracker(),
-                LoggingCodeInvariants.getDefault(),
-                LoggingSystemLogService.getInstance(),
-                false,
-                LoggingSystemAbortListener.getDefault(),
-                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
-                new DefaultRegistry(),
-                Clocks.system(),
-                fitEnabled
-        );
+        return DefaultTitusRuntime.newBuilder().withFitFramework(true).build();
     }
 
     public static TitusRuntime test() {
-        return new DefaultTitusRuntime(
-                new LoggingCodePointTracker(),
-                new RecordingCodeInvariants(),
-                LoggingSystemLogService.getInstance(),
-                false,
-                LoggingSystemAbortListener.getDefault(),
-                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
-                new DefaultRegistry(),
-                Clocks.test(),
-                true
-        );
+        return DefaultTitusRuntime.newBuilder()
+                .withClock(Clocks.test())
+                .withFitFramework(true)
+                .build();
     }
 
     public static TitusRuntime test(TestClock clock) {
-        return new DefaultTitusRuntime(
-                new LoggingCodePointTracker(),
-                new RecordingCodeInvariants(),
-                LoggingSystemLogService.getInstance(),
-                false,
-                LoggingSystemAbortListener.getDefault(),
-                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
-                new DefaultRegistry(),
-                clock,
-                true
-        );
+        return DefaultTitusRuntime.newBuilder()
+                .withClock(clock)
+                .withFitFramework(true)
+                .build();
     }
 
     public static TitusRuntime test(TestScheduler testScheduler) {
-        return new DefaultTitusRuntime(
-                new LoggingCodePointTracker(),
-                new RecordingCodeInvariants(),
-                LoggingSystemLogService.getInstance(),
-                false,
-                LoggingSystemAbortListener.getDefault(),
-                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
-                new DefaultRegistry(),
-                Clocks.testScheduler(testScheduler),
-                true
-        );
+        return DefaultTitusRuntime.newBuilder()
+                .withClock(Clocks.testScheduler(testScheduler))
+                .withFitFramework(true)
+                .build();
     }
 }

@@ -28,8 +28,10 @@ import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.archaius2.ObjectConfigurationResolver;
 import com.netflix.titus.common.util.closeable.CloseableDependency;
@@ -54,8 +56,8 @@ public class TitusEntitySanitizerComponent {
     public static final String JOB_CONFIGURATION_RESOLVER = "jobConfigurationResolver";
 
     @Bean
-    public JobConfiguration getJobConfiguration(Environment environment) {
-        return Archaius2Ext.newConfiguration(JobConfiguration.class, environment);
+    public JobConfiguration getJobConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(JobConfiguration.class, titusRuntime.getMyEnvironment());
     }
 
     @Bean
@@ -118,7 +120,7 @@ public class TitusEntitySanitizerComponent {
                 environment,
                 JobDescriptor::getApplicationName,
                 CustomJobConfiguration.class,
-                Archaius2Ext.newConfiguration(CustomJobConfiguration.class, DEFAULT_CUSTOM_JOB_CONFIGURATION_ROOT, environment),
+                Archaius2Ext.newConfiguration(CustomJobConfiguration.class, DEFAULT_CUSTOM_JOB_CONFIGURATION_ROOT, MyEnvironments.newSpring(environment)),
                 Flux.interval(Duration.ofSeconds(1))
         );
         return CloseableDependency.of(ref);

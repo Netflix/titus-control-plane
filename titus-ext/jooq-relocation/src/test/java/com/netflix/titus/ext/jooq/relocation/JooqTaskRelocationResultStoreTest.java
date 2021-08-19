@@ -27,7 +27,6 @@ import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.ext.jooq.JooqContext;
 import org.junit.After;
 import org.junit.Before;
@@ -36,7 +35,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
-import org.springframework.mock.env.MockEnvironment;
+import org.springframework.core.env.Environment;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.test.StepVerifier;
@@ -58,17 +57,19 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 @DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class JooqTaskRelocationResultStoreTest {
 
-    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
-
     @Bean
-    public TitusRuntime getTitusRuntime() {
-        return titusRuntime;
+    public TitusRuntime getTitusRuntime(Environment environment) {
+        return TitusRuntimes.internal(environment);
     }
+
+    @Autowired
+    public TitusRuntime titusRuntime;
 
     @Autowired
     public JooqContext jooqContext;
 
-    private final JooqRelocationConfiguration configuration = Archaius2Ext.newConfiguration(JooqRelocationConfiguration.class, new MockEnvironment());
+    @Autowired
+    public JooqRelocationConfiguration configuration;
 
     private JooqTaskRelocationResultStore store;
 

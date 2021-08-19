@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,26 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector;
+package com.netflix.titus.common.environment.internal;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import com.netflix.titus.common.util.SpringConfigurationUtil;
+import com.netflix.titus.common.environment.MyEnvironment;
 import org.springframework.core.env.Environment;
 
-@Singleton
-public class GrpcRequestConfigurationBean implements GrpcRequestConfiguration {
+public class MySpringEnvironment implements MyEnvironment {
 
     private final Environment environment;
 
-    @Inject
-    public GrpcRequestConfigurationBean(Environment environment) {
+    public MySpringEnvironment(Environment environment) {
         this.environment = environment;
     }
 
     @Override
-    public long getRequestTimeoutMs() {
-        return SpringConfigurationUtil.getLong(environment, "titus.connector.channelTunables.requestTimeoutMs", DEFAULT_REQUEST_TIMEOUT_MS);
+    public String getProperty(String key) {
+        return environment.getProperty(key);
     }
 
     @Override
-    public long getStreamingTimeoutMs() {
-        return SpringConfigurationUtil.getLong(environment, "titus.connector.channelTunables.streamingTimeoutMs", DEFAULT_STREAMING_TIMEOUT_MS);
+    public String getProperty(String key, String defaultValue) {
+        return environment.getProperty(key, defaultValue);
     }
 }

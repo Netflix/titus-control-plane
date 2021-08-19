@@ -22,12 +22,14 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.api.Config;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -134,12 +136,12 @@ public final class TitusGatewayModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(Config config, SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, systemLogService, false, systemAbortListener, registry);
+        return new DefaultTitusRuntime(MyEnvironments.newArchaius(config), codeInvariants, systemLogService, false, systemAbortListener, registry);
     }
 
     @Provides

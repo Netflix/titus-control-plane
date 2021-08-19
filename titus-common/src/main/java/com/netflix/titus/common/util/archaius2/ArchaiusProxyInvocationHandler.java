@@ -34,19 +34,17 @@ import com.google.common.base.Preconditions;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.unit.TimeUnitExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
 
-class SpringProxyInvocationHandler implements InvocationHandler {
+class ArchaiusProxyInvocationHandler implements InvocationHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(SpringProxyInvocationHandler.class);
-
-    private static final long DEFAULT_REFRESH_INTERVAL_MS = 1_000;
+    private static final Logger logger = LoggerFactory.getLogger(ArchaiusProxyInvocationHandler.class);
 
     private interface MethodHandler {
         Object get() throws Throwable;
@@ -54,16 +52,14 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
     private final Class<?> apiInterface;
     private final String prefix;
-    private final Environment environment;
-    private final long refreshIntervalMs;
+    private final MyEnvironment environment;
 
     private final Map<Method, MethodHandler> methodWrappers;
 
-    SpringProxyInvocationHandler(Class<?> apiInterface, String prefix, Environment environment, long refreshIntervalMs) {
+    ArchaiusProxyInvocationHandler(Class<?> apiInterface, String prefix, MyEnvironment environment) {
         Preconditions.checkArgument(apiInterface.isInterface(), "Not interface: %s", apiInterface);
 
         this.apiInterface = apiInterface;
-        this.refreshIntervalMs = refreshIntervalMs;
 
         String effectivePrefix = prefix;
         if (prefix == null) {
@@ -73,7 +69,6 @@ class SpringProxyInvocationHandler implements InvocationHandler {
         this.prefix = StringExt.isEmpty(effectivePrefix) ? "" : (effectivePrefix.endsWith(".") ? effectivePrefix : effectivePrefix + '.');
         this.environment = environment;
 
-        long expiryTime = System.currentTimeMillis() + refreshIntervalMs;
         Map<Method, MethodHandler> methodWrappers = new HashMap<>();
         for (Method method : apiInterface.getMethods()) {
             Preconditions.checkArgument(
@@ -81,7 +76,7 @@ class SpringProxyInvocationHandler implements InvocationHandler {
                     "Method with no parameters expected or a default method"
             );
             if (!method.isDefault()) {
-                methodWrappers.put(method, new PropertyMethodHandler(method, expiryTime));
+                methodWrappers.put(method, new PropertyMethodHandler(method));
             }
         }
         this.methodWrappers = methodWrappers;
@@ -116,16 +111,12 @@ class SpringProxyInvocationHandler implements InvocationHandler {
         return builder.toString();
     }
 
-    static <I> I newProxy(Class<I> apiInterface, String prefix, Environment environment) {
-        return newProxy(apiInterface, prefix, environment, DEFAULT_REFRESH_INTERVAL_MS);
-    }
-
-    static <I> I newProxy(Class<I> apiInterface, String prefix, Environment environment, long refreshIntervalMs) {
+    static <I> I newProxy(Class<I> apiInterface, String prefix, MyEnvironment environment) {
         Preconditions.checkArgument(apiInterface.isInterface(), "Java interface expected");
         return (I) Proxy.newProxyInstance(
                 apiInterface.getClassLoader(),
                 new Class[]{apiInterface},
-                new SpringProxyInvocationHandler(apiInterface, prefix, environment, refreshIntervalMs)
+                new ArchaiusProxyInvocationHandler(apiInterface, prefix, environment)
         );
     }
 
@@ -138,7 +129,7 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         private volatile ValueHolder valueHolder;
 
-        private PropertyMethodHandler(Method method, long expiryTime) {
+        private PropertyMethodHandler(Method method) {
             this.method = method;
             this.key = buildKeyName(method);
             this.baseKeyName = buildKeyBaseName(key);
@@ -146,25 +137,17 @@ class SpringProxyInvocationHandler implements InvocationHandler {
             DefaultValue defaultAnnotation = method.getAnnotation(DefaultValue.class);
             this.defaultValue = defaultAnnotation == null ? null : defaultAnnotation.value();
 
-            this.valueHolder = new ValueHolder(method, environment.getProperty(key, defaultValue), expiryTime);
+            this.valueHolder = new ValueHolder(method, environment.getProperty(key, defaultValue));
         }
 
         @Override
         public Object get() {
-            long now = System.currentTimeMillis();
-
-            if (refreshIntervalMs > 0) {
-                if (valueHolder.getExpiryTime() > now) {
-                    return valueHolder.getValue();
-                }
-            }
-
             String currentString = environment.getProperty(key, defaultValue);
             if (Objects.equals(currentString, valueHolder.getStringValue())) {
                 return valueHolder.getValue();
             }
             try {
-                this.valueHolder = new ValueHolder(method, currentString, now + refreshIntervalMs);
+                this.valueHolder = new ValueHolder(method, currentString);
             } catch (Exception e) {
                 // Do not propagate exception. Return the previous result.
                 logger.debug("Bad property value: key={}, value={}", key, currentString);
@@ -200,14 +183,12 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         private final String stringValue;
         private final Object value;
-        private final long expiryTime;
 
-        private ValueHolder(Method method, String stringValue, long expiryTime) {
+        private ValueHolder(Method method, String stringValue) {
             Class<?> valueType = method.getReturnType();
             Preconditions.checkArgument(!valueType.isPrimitive() || stringValue != null, "Configuration value cannot be null for primitive types");
 
             this.stringValue = stringValue;
-            this.expiryTime = expiryTime;
 
             if (stringValue == null) {
                 if (List.class.isAssignableFrom(valueType)) {
@@ -249,10 +230,6 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         private Object getValue() {
             return value;
-        }
-
-        private long getExpiryTime() {
-            return expiryTime;
         }
 
         private List<String> parseList(Type elementType, String stringValue) {

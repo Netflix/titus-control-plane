@@ -57,8 +57,7 @@ public class TaskRelocationSandbox {
     private final AnnotationConfigApplicationContext container;
     private final BlockingQueue<ManagedChannel> channels = new LinkedBlockingQueue<>();
 
-    public TaskRelocationSandbox(RelocationConnectorStubs relocationConnectorStubs) {
-        MockEnvironment config = new MockEnvironment();
+    public TaskRelocationSandbox(RelocationConnectorStubs relocationConnectorStubs, MockEnvironment config) {
         config.setProperty("titus.relocation.endpoint.port", "0");
         config.setProperty("titus.relocation.relocationScheduleIntervalMs", "100");
         config.setProperty("titus.relocation.deschedulingIntervalMs", "100");

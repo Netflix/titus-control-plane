@@ -30,19 +30,18 @@ import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TaskRelocationWorkflowComponent {
     @Bean
-    public RelocationConfiguration getRelocationConfiguration(Environment environment) {
-        return Archaius2Ext.newConfiguration(RelocationConfiguration.class, environment);
+    public RelocationConfiguration getRelocationConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(RelocationConfiguration.class, titusRuntime.getMyEnvironment());
     }
 
     @Bean
-    public EvictionConfiguration getEvictionConfiguration(Environment environment) {
-        return Archaius2Ext.newConfiguration(EvictionConfiguration.class, environment);
+    public EvictionConfiguration getEvictionConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(EvictionConfiguration.class, titusRuntime.getMyEnvironment());
     }
 
     @Bean

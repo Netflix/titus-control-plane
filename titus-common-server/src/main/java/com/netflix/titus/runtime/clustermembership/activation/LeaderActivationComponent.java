@@ -16,15 +16,16 @@
 
 package com.netflix.titus.runtime.clustermembership.activation;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LeaderActivationComponent {
 
     @Bean
-    public LeaderActivationConfiguration getLeaderActivationConfiguration(Environment environment) {
-        return new LeaderActivationConfigurationBean(environment);
+    public LeaderActivationConfiguration getLeaderActivationConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(LeaderActivationConfiguration.class, titusRuntime.getMyEnvironment());
     }
 }

@@ -17,11 +17,11 @@
 package com.netflix.titus.runtime.connector.titusmaster;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 @Configuration
 public class ConfigurationLeaderResolverComponent {
@@ -29,8 +29,8 @@ public class ConfigurationLeaderResolverComponent {
     public static final String TITUS_MASTER_CHANNEL = "titusMasterChannel";
 
     @Bean
-    public TitusMasterClientConfiguration getTitusMasterClientConfiguration(Environment environment) {
-        return new TitusMasterClientConfigurationBean(environment);
+    public TitusMasterClientConfiguration getTitusMasterClientConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(TitusMasterClientConfiguration.class, "titus.masterClient", titusRuntime.getMyEnvironment());
     }
 
     @Bean

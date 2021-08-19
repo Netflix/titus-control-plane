@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import reactor.test.StepVerifier;
@@ -55,8 +56,8 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 public class JooqTaskRelocationStoreTest {
 
     @Bean
-    public TitusRuntime getTitusRuntime() {
-        return TitusRuntimes.internal();
+    public TitusRuntime getTitusRuntime(Environment environment) {
+        return TitusRuntimes.internal(environment);
     }
 
     @Autowired

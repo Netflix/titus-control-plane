@@ -16,6 +16,7 @@
 
 package com.netflix.titus.federation.endpoint;
 
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
@@ -44,7 +45,7 @@ public class FederationEndpointComponent {
     private static final String UNIDENTIFIED = "unidentified";
 
     @Bean
-    public EndpointConfiguration getGrpcEndpointConfiguration(Environment environment) {
+    public EndpointConfiguration getGrpcEndpointConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(EndpointConfiguration.class, environment);
     }
 

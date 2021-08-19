@@ -27,20 +27,19 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 @Configuration
 @ConditionalOnProperty(name = "titus.ext.jooq.relocation.enabled", havingValue = "true", matchIfMissing = true)
 public class JooqRelocationContextComponent {
 
     @Bean
-    public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
-        return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.jooq.relocation", environment);
+    public JooqConfiguration getJooqPropertyConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.jooq.relocation", titusRuntime.getMyEnvironment());
     }
 
     @Bean
-    public JooqRelocationConfiguration getJooqRelocationConfiguration(Environment environment) {
-        return Archaius2Ext.newConfiguration(JooqRelocationConfiguration.class, environment);
+    public JooqRelocationConfiguration getJooqRelocationConfiguration(TitusRuntime titusRuntime) {
+        return Archaius2Ext.newConfiguration(JooqRelocationConfiguration.class, titusRuntime.getMyEnvironment());
     }
 
     @Bean
