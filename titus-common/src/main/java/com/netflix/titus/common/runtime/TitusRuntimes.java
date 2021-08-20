@@ -21,6 +21,7 @@ import java.time.Duration;
 import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import com.netflix.titus.common.util.code.RecordingCodeInvariants;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import org.springframework.core.env.Environment;
@@ -54,12 +55,13 @@ public final class TitusRuntimes {
     }
 
     public static TitusRuntime internal(boolean fitEnabled) {
-        return DefaultTitusRuntime.newBuilder().withFitFramework(true).build();
+        return DefaultTitusRuntime.newBuilder().withFitFramework(fitEnabled).build();
     }
 
     public static TitusRuntime test() {
         return DefaultTitusRuntime.newBuilder()
                 .withClock(Clocks.test())
+                .withCodeInvariants(new RecordingCodeInvariants())
                 .withFitFramework(true)
                 .build();
     }
@@ -67,6 +69,7 @@ public final class TitusRuntimes {
     public static TitusRuntime test(TestClock clock) {
         return DefaultTitusRuntime.newBuilder()
                 .withClock(clock)
+                .withCodeInvariants(new RecordingCodeInvariants())
                 .withFitFramework(true)
                 .build();
     }
@@ -74,6 +77,7 @@ public final class TitusRuntimes {
     public static TitusRuntime test(TestScheduler testScheduler) {
         return DefaultTitusRuntime.newBuilder()
                 .withClock(Clocks.testScheduler(testScheduler))
+                .withCodeInvariants(new RecordingCodeInvariants())
                 .withFitFramework(true)
                 .build();
     }
