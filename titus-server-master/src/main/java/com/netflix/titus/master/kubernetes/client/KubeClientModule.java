@@ -23,11 +23,8 @@ import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.master.kubernetes.controller.DefaultKubeJobManagementReconciler;
-import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator;
-import com.netflix.titus.master.mesos.kubeapiserver.NoOpJobManagementReconciler;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
@@ -66,15 +63,5 @@ public class KubeClientModule extends AbstractModule {
             return injector.getInstance(JobControllerKubeApiFacade.class);
         }
         return new NoOpKubeApiFacade();
-    }
-
-    @Provides
-    @Singleton
-    public KubeJobManagementReconciler getKubeJobManagementReconciler(MesosConfiguration mesosConfiguration,
-                                                                      Injector injector) {
-        if (mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
-            return injector.getInstance(DefaultKubeJobManagementReconciler.class);
-        }
-        return new NoOpJobManagementReconciler();
     }
 }
