@@ -26,6 +26,8 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.common.environment.MyEnvironments;
+import com.netflix.titus.common.environment.MyMutableEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clock;
@@ -47,6 +49,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.mock.env.MockEnvironment;
 
 import static com.netflix.titus.common.util.CollectionsExt.last;
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
@@ -57,14 +60,15 @@ public class TaskRelocationIntegrationTest {
 
     private static final int RELOCATION_TIME_MS = 100;
 
-    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+    private final MockEnvironment environment = new MockEnvironment();
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal(environment);
     private final Clock clock = titusRuntime.getClock();
 
     private final RelocationConnectorStubs relocationConnectorStubs = TestDataFactory.activeRemovableSetup(titusRuntime);
     private final ReadOnlyJobOperations jobOperations = relocationConnectorStubs.getJobOperations();
 
     @Rule
-    public final TaskRelocationResourceSandbox serverResource = new TaskRelocationResourceSandbox(relocationConnectorStubs);
+    public final TaskRelocationResourceSandbox serverResource = new TaskRelocationResourceSandbox(relocationConnectorStubs, environment);
 
     private TaskRelocationSandbox sandbox;
 

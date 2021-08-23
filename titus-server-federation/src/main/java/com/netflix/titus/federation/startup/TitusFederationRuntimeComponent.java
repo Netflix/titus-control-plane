@@ -19,6 +19,8 @@ package com.netflix.titus.federation.startup;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.jhiccup.JHiccupComponent;
+import com.netflix.titus.common.environment.MyEnvironment;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -65,21 +67,21 @@ public class TitusFederationRuntimeComponent {
     }
 
     @Bean
-    public TitusRuntime getTitusRuntime(SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(Environment environment, SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, systemLogService, true, systemAbortListener, registry);
+        return new DefaultTitusRuntime(MyEnvironments.newSpring(environment), codeInvariants, systemLogService, true, systemAbortListener, registry);
     }
 
     @Bean
-    public TitusFederationConfiguration getTitusFederationConfiguration(Environment environment) {
+    public TitusFederationConfiguration getTitusFederationConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(TitusFederationConfiguration.class, environment);
     }
 
     @Bean
-    public GrpcConfiguration getGrpcConfiguration(Environment environment) {
+    public GrpcConfiguration getGrpcConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(GrpcConfiguration.class, environment);
     }
 }

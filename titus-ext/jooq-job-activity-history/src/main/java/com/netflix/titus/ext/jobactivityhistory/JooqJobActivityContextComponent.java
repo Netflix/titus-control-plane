@@ -17,6 +17,9 @@
 package com.netflix.titus.ext.jobactivityhistory;
 
 
+import javax.inject.Named;
+
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.ext.jooq.JooqConfiguration;
@@ -30,9 +33,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.env.Environment;
-
-import javax.inject.Named;
 
 @Configuration
 public class JooqJobActivityContextComponent {
@@ -40,14 +40,14 @@ public class JooqJobActivityContextComponent {
     @Bean
     @Qualifier("jobActivityJooqConfiguration")
     @Named("jobActivityJooqConfiguration")
-    public JooqConfiguration getJooqPropertyConfiguration(Environment environment) {
+    public JooqConfiguration getJooqPropertyConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobactivity", environment);
     }
 
     @Bean
     @Qualifier("producerJooqConfiguration")
     @Named("producerJooqConfiguration")
-    public JooqConfiguration getJooqPropertyProducerConfiguration(Environment environment) {
+    public JooqConfiguration getJooqPropertyProducerConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(JooqConfiguration.class, "titus.ext.supplementary.jobproducer", environment);
     }
 
@@ -59,7 +59,7 @@ public class JooqJobActivityContextComponent {
     @Bean
     @Primary
     @Qualifier("jobActivityJooqContext")
-    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration")JooqConfiguration jooqConfiguration,
+    public JooqContext getJobActivityJooqContext(@Named("jobActivityJooqConfiguration") JooqConfiguration jooqConfiguration,
                                                  ConfigurableApplicationContext applicationContext,
                                                  TitusRuntime titusRuntime) {
         if (jooqConfiguration.isInMemoryDb()) {
@@ -70,7 +70,7 @@ public class JooqJobActivityContextComponent {
 
     @Bean
     @Qualifier("producerJooqContext")
-    public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration")JooqConfiguration jooqConfiguration,
+    public JooqContext getJooqProducerContext(@Named("producerJooqConfiguration") JooqConfiguration jooqConfiguration,
                                               ConfigurableApplicationContext applicationContext,
                                               TitusRuntime titusRuntime) {
         if (jooqConfiguration.isInMemoryDb()) {

@@ -17,6 +17,8 @@
 package com.netflix.titus.common.util.archaius2;
 
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.common.environment.MyEnvironment;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.util.closeable.CloseableReference;
 import org.junit.After;
 import org.junit.Test;
@@ -36,7 +38,7 @@ public class PeriodicallyRefreshingObjectConfigurationResolverTest {
             configuration,
             MyObject::getName,
             MyObjectConfig.class,
-            Archaius2Ext.newConfiguration(MyObjectConfig.class, "default", configuration, 0),
+            Archaius2Ext.newConfiguration(MyObjectConfig.class, "default", MyEnvironments.newSpring(configuration)),
             updateTrigger
     );
 

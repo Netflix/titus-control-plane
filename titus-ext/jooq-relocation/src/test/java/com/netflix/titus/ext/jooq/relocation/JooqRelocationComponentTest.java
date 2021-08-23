@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -42,8 +43,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class JooqRelocationComponentTest {
 
     @Bean
-    public TitusRuntime getTitusRuntime() {
-        return TitusRuntimes.internal();
+    public TitusRuntime getTitusRuntime(Environment environment) {
+        return TitusRuntimes.internal(environment);
     }
 
     @Autowired

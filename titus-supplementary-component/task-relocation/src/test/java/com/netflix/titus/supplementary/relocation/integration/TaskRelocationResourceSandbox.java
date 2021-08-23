@@ -16,22 +16,26 @@
 
 package com.netflix.titus.supplementary.relocation.integration;
 
+import com.netflix.titus.common.environment.MyMutableEnvironment;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import org.junit.rules.ExternalResource;
+import org.springframework.mock.env.MockEnvironment;
 
 public class TaskRelocationResourceSandbox extends ExternalResource {
 
     private final RelocationConnectorStubs relocationConnectorStubs;
+    private final MockEnvironment environment;
 
     private TaskRelocationSandbox taskRelocationSandbox;
 
-    public TaskRelocationResourceSandbox(RelocationConnectorStubs relocationConnectorStubs) {
+    public TaskRelocationResourceSandbox(RelocationConnectorStubs relocationConnectorStubs, MockEnvironment environment) {
         this.relocationConnectorStubs = relocationConnectorStubs;
+        this.environment = environment;
     }
 
     @Override
     protected void before() {
-        this.taskRelocationSandbox = new TaskRelocationSandbox(relocationConnectorStubs);
+        this.taskRelocationSandbox = new TaskRelocationSandbox(relocationConnectorStubs, environment);
     }
 
     public TaskRelocationSandbox getTaskRelocationSandbox() {

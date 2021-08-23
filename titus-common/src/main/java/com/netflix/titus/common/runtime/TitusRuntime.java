@@ -16,7 +16,10 @@
 
 package com.netflix.titus.common.runtime;
 
+import java.time.Duration;
+
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.util.code.CodeInvariants;
@@ -28,6 +31,12 @@ import rx.Observable;
  * Collection of core services used by all Titus components.
  */
 public interface TitusRuntime {
+
+    /**
+     * Returns the configured {@link MyEnvironment} instance.
+     */
+    MyEnvironment getMyEnvironment();
+
     /**
      * Returns the configured {@link CodePointTracker} instance.
      */
@@ -81,4 +90,28 @@ public interface TitusRuntime {
      * send a signal/alert to an administrator about the incident.
      */
     void beforeAbort(SystemAbortEvent event);
+
+    interface Builder {
+        Builder withMyEnvironment(MyEnvironment myEnvironment);
+
+        Builder withCodePointTracker(CodePointTracker codePointTracker);
+
+        Builder withCodeInvariants(CodeInvariants codeInvariants);
+
+        Builder withSystemLogService(SystemLogService systemLogService);
+
+        Builder withSystemExitOnFailure(boolean systemExitOnFailure);
+
+        Builder withSystemAbortListener(SystemAbortListener systemAbortListener);
+
+        Builder withRegistry(Registry registry);
+
+        Builder withClock(Clock clock);
+
+        Builder withFitFramework(boolean fitEnabled);
+
+        Builder withLocalSchedulerLoopInterval(Duration localSchedulerLoopInterval);
+
+        TitusRuntime build();
+    }
 }

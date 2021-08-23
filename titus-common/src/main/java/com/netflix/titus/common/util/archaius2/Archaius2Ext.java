@@ -32,6 +32,8 @@ import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.PropertyRepository;
 import com.netflix.archaius.config.MapConfig;
+import com.netflix.titus.common.environment.MyEnvironment;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.closeable.CloseableReference;
@@ -120,24 +122,12 @@ public final class Archaius2Ext {
         return factory.newProxy(configType, prefix);
     }
 
-    public static <C> C newConfiguration(Class<C> configType, Environment environment, long refreshIntervalMs) {
-        return SpringProxyInvocationHandler.newProxy(configType, null, environment, refreshIntervalMs);
+    public static <C> C newConfiguration(Class<C> configType, MyEnvironment environment) {
+        return ArchaiusProxyInvocationHandler.newProxy(configType, null, environment);
     }
 
-    public static <C> C newConfiguration(Class<C> configType, Environment environment) {
-        return SpringProxyInvocationHandler.newProxy(configType, null, environment);
-    }
-
-    /**
-     * Archaius2 dynamic proxy for Spring environment. This implementation supports only features used in Titus.
-     * To check what is, and what is not supported please check SpringProxyInvocationHandlerTest.
-     */
-    public static <C> C newConfiguration(Class<C> configType, String prefix, Environment environment, long refreshIntervalMs) {
-        return SpringProxyInvocationHandler.newProxy(configType, prefix, environment, refreshIntervalMs);
-    }
-
-    public static <C> C newConfiguration(Class<C> configType, String prefix, Environment environment) {
-        return SpringProxyInvocationHandler.newProxy(configType, prefix, environment);
+    public static <C> C newConfiguration(Class<C> configType, String prefix, MyEnvironment environment) {
+        return ArchaiusProxyInvocationHandler.newProxy(configType, prefix, environment);
     }
 
     /**
@@ -173,6 +163,7 @@ public final class Archaius2Ext {
      * @return resolver instance with a closable reference. Calling {@link CloseableReference#close()}, terminates
      * configuration update subscription.
      */
+    @Deprecated
     public static <OBJECT, CONFIG> CloseableReference<ObjectConfigurationResolver<OBJECT, CONFIG>> newObjectConfigurationResolver(
             String prefix,
             Environment environment,
@@ -181,10 +172,11 @@ public final class Archaius2Ext {
             CONFIG defaultConfig,
             Flux<Long> updateTrigger) {
         String formattedPrefix = SpringConfig.formatPrefix(prefix);
+        MyEnvironment wrapper = MyEnvironments.newSpring(environment);
         return PeriodicallyRefreshingObjectConfigurationResolver.newInstance(
                 new SpringConfig(formattedPrefix, environment),
                 selectorFieldAccessor,
-                root -> newConfiguration(configType, formattedPrefix + root, environment, 0),
+                root -> newConfiguration(configType, formattedPrefix + root, wrapper),
                 defaultConfig,
                 updateTrigger
         );

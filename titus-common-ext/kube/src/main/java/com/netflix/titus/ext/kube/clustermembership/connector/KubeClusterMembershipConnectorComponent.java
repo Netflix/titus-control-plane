@@ -20,6 +20,7 @@ import java.time.Duration;
 
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnector;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import io.kubernetes.client.openapi.ApiClient;
@@ -27,7 +28,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 @Configuration
 @ConditionalOnProperty(name = "titus.ext.kube.enabled", havingValue = "true", matchIfMissing = true)
@@ -36,7 +36,7 @@ public class KubeClusterMembershipConnectorComponent {
     public static final String LOCAL_MEMBER_INITIAL = "localMemberInitial";
 
     @Bean
-    public KubeClusterMembershipConfiguration getKubeClusterMembershipConfiguration(Environment environment) {
+    public KubeClusterMembershipConfiguration getKubeClusterMembershipConfiguration(MyEnvironment environment) {
         return Archaius2Ext.newConfiguration(KubeClusterMembershipConfiguration.class, KubeClusterMembershipConfiguration.PREFIX, environment);
     }
 
