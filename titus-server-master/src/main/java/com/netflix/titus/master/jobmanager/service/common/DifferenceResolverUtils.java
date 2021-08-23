@@ -54,7 +54,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID;

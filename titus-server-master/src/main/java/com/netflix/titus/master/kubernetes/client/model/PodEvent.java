@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
+package com.netflix.titus.master.kubernetes.client.model;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
+import com.netflix.titus.master.kubernetes.KubeObjectFormatter;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 

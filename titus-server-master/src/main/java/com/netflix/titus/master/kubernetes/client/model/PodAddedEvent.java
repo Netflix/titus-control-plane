@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
+package com.netflix.titus.master.kubernetes.client.model;
 
-import com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter;
+import com.netflix.titus.master.kubernetes.KubeObjectFormatter;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 public class PodAddedEvent extends PodEvent {

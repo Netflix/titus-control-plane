@@ -30,7 +30,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.DefaultContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
 import com.netflix.titus.runtime.connector.kubernetes.DefaultKubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;

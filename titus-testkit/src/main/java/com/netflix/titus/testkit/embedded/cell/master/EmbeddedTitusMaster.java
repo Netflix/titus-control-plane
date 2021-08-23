@@ -209,7 +209,7 @@ public class EmbeddedTitusMaster {
                         bind(Registry.class).toInstance(new DefaultRegistry());
                     }
                 }),
-                Modules.override(new TitusMasterModule(enableREST))
+                Modules.override(new TitusMasterModule(enableREST, false))
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {

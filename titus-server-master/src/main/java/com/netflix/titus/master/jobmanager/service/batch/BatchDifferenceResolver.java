@@ -69,8 +69,8 @@ import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActio
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;

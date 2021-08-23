@@ -41,7 +41,7 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPvEssentials;
+import static com.netflix.titus.master.kubernetes.KubeObjectFormatter.formatPvEssentials;
 
 /**
  * Garbage collects persistent volumes that are not associated with active/non-terminal jobs.

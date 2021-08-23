@@ -30,15 +30,15 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeModelConverters;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
+import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.isTerminalState;
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeObjectFormatter.formatPvcEssentials;
+import static com.netflix.titus.master.kubernetes.KubeObjectFormatter.formatPvcEssentials;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 
 /**

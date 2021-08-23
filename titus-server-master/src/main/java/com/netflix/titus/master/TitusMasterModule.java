@@ -44,7 +44,9 @@ import com.netflix.titus.master.health.HealthModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
 import com.netflix.titus.master.kubernetes.KubeModule;
+import com.netflix.titus.master.kubernetes.pod.KubePodModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
+import com.netflix.titus.master.mesos.KubeClientStubModule;
 import com.netflix.titus.master.mesos.MesosModule;
 import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
@@ -67,13 +69,15 @@ import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 public class TitusMasterModule extends AbstractModule {
 
     private final boolean enableREST;
+    private final boolean enableKube;
 
     public TitusMasterModule() {
-        this(true);
+        this(true, true);
     }
 
-    public TitusMasterModule(boolean enableREST) {
+    public TitusMasterModule(boolean enableREST, boolean enableKube) {
         this.enableREST = enableREST;
+        this.enableKube = enableKube;
     }
 
     @Override
@@ -94,7 +98,12 @@ public class TitusMasterModule extends AbstractModule {
         install(new MesosModule());
 
         // Kubernetes
-        install(new KubeModule());
+        if (enableKube) {
+            install(new KubeModule());
+        } else {
+            install(new KubeClientStubModule());
+            install(new KubePodModule());
+        }
 
         // Storage
         install(new StoreModule());

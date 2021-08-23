@@ -51,7 +51,7 @@ import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent.FailedSchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;

@@ -51,7 +51,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeActi
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import rx.Completable;
 import rx.Observable;
 

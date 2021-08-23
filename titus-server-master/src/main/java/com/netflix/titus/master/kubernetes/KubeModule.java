@@ -17,6 +17,7 @@
 package com.netflix.titus.master.kubernetes;
 
 import com.google.inject.AbstractModule;
+import com.netflix.titus.master.kubernetes.client.KubeClientModule;
 import com.netflix.titus.master.kubernetes.controller.KubeControllerModule;
 import com.netflix.titus.master.kubernetes.pod.KubePodModule;
 
@@ -24,6 +25,7 @@ public class KubeModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        install(new KubeClientModule());
         install(new KubeControllerModule());
         install(new KubePodModule());
     }

@@ -24,6 +24,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 
+import static com.netflix.titus.master.kubernetes.controller.DefaultKubeJobManagementReconciler.GC_UNKNOWN_PODS;
 import static com.netflix.titus.master.kubernetes.controller.NodeGcController.NODE_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeClaimGcController.PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeReclaimController.PERSISTENT_VOLUME_RECLAIM_CONTROLLER;
@@ -37,6 +38,7 @@ public class KubeControllerModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(KubeJobManagementReconciler.class).to(DefaultKubeJobManagementReconciler.class);
         bind(NodeGcController.class).asEagerSingleton();
         bind(PodOnUnknownNodeGcController.class).asEagerSingleton();
         bind(PodDeletionGcController.class).asEagerSingleton();
@@ -51,6 +53,13 @@ public class KubeControllerModule extends AbstractModule {
     @Singleton
     public KubeControllerConfiguration getKubeControllerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(KubeControllerConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    @Named(GC_UNKNOWN_PODS)
+    public FixedIntervalTokenBucketConfiguration getGcUnknownPodsTokenBucketConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titusMaster.kube.gcUnknownPodsTokenBucket");
     }
 
     @Provides

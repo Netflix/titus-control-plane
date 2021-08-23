@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.client;
+package com.netflix.titus.master.kubernetes.client;
 
 import java.util.List;
 import java.util.Map;
@@ -23,8 +23,8 @@ import java.util.function.Function;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeFitAction;
+import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.kubernetes.client.KubeFitAction;
 import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.SharedIndexInformer;

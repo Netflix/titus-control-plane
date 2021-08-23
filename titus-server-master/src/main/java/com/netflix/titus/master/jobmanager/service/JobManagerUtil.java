@@ -54,7 +54,7 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
+import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 import org.apache.mesos.Protos;
