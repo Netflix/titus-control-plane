@@ -262,17 +262,20 @@ public class PodToTaskMapper {
      * </ul>
      */
     private Either<TaskStatus, String> handlePodFinished() {
-        TaskState taskState = task.getStatus().getState();
         String reasonCode;
+        String reasonMessage = podWrapper.getMessage();
         if (podWrapper.getPodPhase() == PodPhase.SUCCEEDED) {
             reasonCode = resolveFinalTaskState(REASON_NORMAL);
         } else { // PodPhase.FAILED
             reasonCode = resolveFinalTaskState(REASON_FAILED);
+            if (task.getStatus().getState() == KillInitiated) {
+                reasonMessage = "Titus task terminated by a user";
+            }
         }
         return Either.ofValue(TaskStatus.newBuilder()
                 .withState(Finished)
                 .withReasonCode(effectiveFinalReasonCode(reasonCode))
-                .withReasonMessage(podWrapper.getMessage())
+                .withReasonMessage(reasonMessage)
                 .withTimestamp(titusRuntime.getClock().wallTime())
                 .build()
         );

@@ -97,7 +97,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodScheduledAndLaunched() {
         Task task = newTask(TaskState.Accepted);
-        V1Pod pod = newPod(andPhase("Pending"),andMessage("junit"),  andWaiting(), andScheduled());
+        V1Pod pod = newPod(andPhase("Pending"), andMessage("junit"), andWaiting(), andScheduled());
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Launched, TaskStatus.REASON_POD_SCHEDULED);
     }
@@ -148,6 +148,14 @@ public class PodToTaskMapperTest {
         V1Pod pod = newPod(andPhase("Failed"), andMessage("junit"), andScheduled(), andTerminated(), andReason("exit -1"));
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_FAILED);
+    }
+
+    @Test
+    public void testPodTerminated() {
+        Task task = newTask(TaskState.KillInitiated);
+        V1Pod pod = newPod(andPhase("Failed"), andMessage("pod running"), andScheduled(), andTerminated(), andReason("terminated"));
+        Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
+        assertValue(result, TaskState.Finished, REASON_TASK_KILLED, "Titus task terminated by a user");
     }
 
     @Test
@@ -221,7 +229,7 @@ public class PodToTaskMapperTest {
                 newTask(TaskState.KillInitiated),
                 TaskStatus.newBuilder().withState(TaskState.KillInitiated).withReasonCode(TaskStatus.REASON_STUCK_IN_STATE).build()
         );
-        V1Pod pod = newPod(andPhase(podPhase),andMessage("junit"),  andScheduled());
+        V1Pod pod = newPod(andPhase(podPhase), andMessage("junit"), andScheduled());
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR, "junit");
     }
