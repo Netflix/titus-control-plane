@@ -87,10 +87,13 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
      */
     @Test(timeout = 30_000)
     public void testSubmitSimpleBatchJobWhichEndsOk() throws Exception {
+        JobDescriptor<BatchJobExt> tmpJob =
+                appendJobDescriptorAttribute(ONE_TASK_BATCH_JOB, JobAttributes.JOB_ATTRIBUTES_CREATED_BY, "embeddedFederationClient");
+        tmpJob = appendJobDescriptorAttribute(tmpJob, JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL, "embeddedCell");
+        final JobDescriptor<BatchJobExt> expectedJob = tmpJob;
+
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
-                .inJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(
-                        appendJobDescriptorAttribute(ONE_TASK_BATCH_JOB, JobAttributes.JOB_ATTRIBUTES_CREATED_BY, "embeddedFederationClient"))
-                )
+                .inJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(expectedJob))
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachContainer(
                         containerWithResources(ONE_TASK_BATCH_JOB.getContainer().getContainerResources(), jobConfiguration.getMinDiskSizeMB()),
