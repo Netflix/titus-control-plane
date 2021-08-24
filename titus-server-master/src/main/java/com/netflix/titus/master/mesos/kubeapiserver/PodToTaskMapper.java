@@ -127,6 +127,7 @@ public class PodToTaskMapper {
         }
 
         String reasonCode;
+        String message = podWrapper.getMessage();
         if (podWrapper.getPodPhase() == PodPhase.PENDING || podWrapper.getPodPhase() == PodPhase.RUNNING) {
             // Pod in pending phase which is being deleted must have been terminated, as it was never run.
             // Pod in running state that did not complete must have been terminated as well.
@@ -139,6 +140,9 @@ public class PodToTaskMapper {
             reasonCode = resolveFinalTaskState(REASON_NORMAL);
         } else if (podWrapper.getPodPhase() == PodPhase.FAILED) {
             reasonCode = resolveFinalTaskState(REASON_FAILED);
+            if(taskState == KillInitiated) {
+                message = "Titus task terminated by a user";
+            }
         } else {
             titusRuntime.getCodeInvariants().inconsistent("Pod: %s has unknown phase mapping: %s", podWrapper.getName(), podWrapper.getPodPhase());
             reasonCode = REASON_UNKNOWN;
@@ -147,7 +151,7 @@ public class PodToTaskMapper {
         return Either.ofValue(TaskStatus.newBuilder()
                 .withState(Finished)
                 .withReasonCode(effectiveFinalReasonCode(reasonCode))
-                .withReasonMessage(podWrapper.getMessage())
+                .withReasonMessage(message)
                 .withTimestamp(now)
                 .build()
         );
