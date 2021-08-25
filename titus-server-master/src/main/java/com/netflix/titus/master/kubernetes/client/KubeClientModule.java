@@ -24,13 +24,14 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
 import io.kubernetes.client.openapi.ApiClient;
 
 public class KubeClientModule extends AbstractModule {
+
+    public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
 
     @Override
     protected void configure() {
@@ -49,7 +50,7 @@ public class KubeClientModule extends AbstractModule {
         return KubeApiClients.createApiClient(
                 configuration.getKubeApiServerUrl(),
                 configuration.getKubeConfigPath(),
-                KubeApiServerIntegrator.CLIENT_METRICS_PREFIX,
+                CLIENT_METRICS_PREFIX,
                 titusRuntime,
                 0L,
                 configuration.isCompressionEnabledForKubeApiClient()
