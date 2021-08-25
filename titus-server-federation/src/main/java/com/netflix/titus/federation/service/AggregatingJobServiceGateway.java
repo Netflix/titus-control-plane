@@ -145,6 +145,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
         JobDescriptor.Builder jobDescriptorBuilder = addStackName(jobDescriptor.toBuilder());
         jobDescriptorBuilder = removeFederationAttributes(jobDescriptorBuilder);
+        jobDescriptorBuilder = addRoutingCell(jobDescriptorBuilder, cell);
         JobDescriptor jd = jobDescriptorBuilder.build();
 
         return createRequestObservable(emitter -> {
@@ -460,10 +461,14 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return result.toCompletable();
     }
 
+    private JobDescriptor.Builder addRoutingCell(JobDescriptor.Builder jobDescriptorBuilder, Cell cell) {
+        return jobDescriptorBuilder
+                .putAttributes(JOB_ATTRIBUTE_ROUTING_CELL, cell.getName());
+    }
+
     private JobDescriptor.Builder removeFederationAttributes(JobDescriptor.Builder jobDescriptorBuilder) {
         return jobDescriptorBuilder
-                .removeAttributes(JOB_ATTRIBUTES_FEDERATED_JOB_ID)
-                .removeAttributes(JOB_ATTRIBUTE_ROUTING_CELL);
+                .removeAttributes(JOB_ATTRIBUTES_FEDERATED_JOB_ID);
     }
 
     private JobQueryResult addStackName(JobQueryResult result) {
