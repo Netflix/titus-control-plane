@@ -23,19 +23,12 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
-import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1Taint;
-import org.joda.time.DateTime;
 
 public class NodePredicates {
-
-    public static Predicate<AgentInstance> getFenzoNodePredicate(SharedIndexInformer<V1Node> nodeInformer) {
-        return agentInstance -> isOwnedByScheduler("fenzo", nodeInformer.getIndexer().getByKey(agentInstance.getId()));
-    }
 
     public static Predicate<V1Node> getKubeSchedulerNodePredicate() {
         return node -> isOwnedByScheduler("kubeScheduler", node);

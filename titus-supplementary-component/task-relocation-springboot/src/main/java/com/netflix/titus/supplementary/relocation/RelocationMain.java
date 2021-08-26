@@ -26,8 +26,6 @@ import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipIn
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
 import com.netflix.titus.runtime.clustermembership.endpoint.rest.ClusterMembershipRestEndpointComponent;
 import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
-import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
-import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorComponent;
@@ -64,8 +62,6 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
         LeaderActivationComponent.class,
 
         // Agent connector
-        AgentManagerConnectorComponent.class,
-        AgentManagementDataReplicationComponent.class,
         NodeDataResolverComponent.class,
 
         // Job connector
@@ -86,12 +82,6 @@ public class RelocationMain {
     @Bean
     public HealthIndicator getHealthIndicator() {
         return HealthIndicators.alwaysHealthy();
-    }
-
-    @Bean
-    @Named(AgentManagerConnectorComponent.AGENT_CHANNEL)
-    public Channel getAgentManagerChannel(@Named(TITUS_MASTER_CHANNEL) Channel channel) {
-        return channel;
     }
 
     @Bean

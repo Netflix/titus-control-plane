@@ -23,14 +23,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -48,13 +45,10 @@ import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.model.job.JobTestFunctions;
 import org.junit.Test;
 
-import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withApplicationName;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withDisruptionBudget;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
-import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
-import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.selfManagedPolicy;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
@@ -70,8 +64,6 @@ public class TaskMigrationDeschedulerTest {
 
     private final TestClock clock = (TestClock) titusRuntime.getClock();
 
-    private final MutableDataGenerator<AgentInstanceGroup> flexInstanceGroupGenerator = new MutableDataGenerator<>(agentServerGroups(Tier.Flex, 10));
-
     private final MutableDataGenerator<Job<ServiceJobExt>> jobGenerator = new MutableDataGenerator<>(
             JobGenerator.serviceJobs(oneTaskServiceJobDescriptor().but(
                     ofServiceSize(4),
@@ -79,24 +71,24 @@ public class TaskMigrationDeschedulerTest {
             ))
     );
 
-    private final RelocationConnectorStubs dataGenerator = new RelocationConnectorStubs()
-            .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("active1"), inState(InstanceGroupLifecycleState.Active)))
-            .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("removable1"), inState(InstanceGroupLifecycleState.Removable)))
+    private final RelocationConnectorStubs relocationConnectorStubs = new RelocationConnectorStubs()
+            .addActiveInstanceGroup("active1", 10)
+            .addRemovableInstanceGroup("removable1", 10)
             .addJob(jobGenerator.getValue().but(withJobId("job1")).but(withApplicationName("app1")))
             .addJob(jobGenerator.getValue().but(withJobId("job2")))
             .addJob(jobGenerator.getValue().but(withJobId("jobToMigrate")));
 
-    private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
+    private final ReadOnlyJobOperations jobOperations = relocationConnectorStubs.getJobOperations();
 
-    private final NodeDataResolver nodeDataResolver = dataGenerator.getNodeDataResolver();
+    private final NodeDataResolver nodeDataResolver = relocationConnectorStubs.getNodeDataResolver();
 
 
     @Test
     public void testImmediateMigrations() {
-        dataGenerator.addJobAttribute("jobToMigrate", RelocationAttributes.RELOCATION_REQUIRED_BY_IMMEDIATELY, "" + (clock.wallTime() + 1));
+        relocationConnectorStubs.addJobAttribute("jobToMigrate", RelocationAttributes.RELOCATION_REQUIRED_BY_IMMEDIATELY, "" + (clock.wallTime() + 1));
 
         Task task0 = jobOperations.getTasks("jobToMigrate").get(0);
-        dataGenerator.place("active1", task0);
+        relocationConnectorStubs.place("active1", task0);
 
         Map<String, DeschedulingResult> immediateEvictions = newDescheduler(Collections.emptyMap()).findAllImmediateEvictions();
         assertThat(immediateEvictions).hasSize(1).containsKey(task0.getId());
@@ -106,8 +98,8 @@ public class TaskMigrationDeschedulerTest {
     public void testSelfMigration() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
 
-        dataGenerator.place("removable1", job1Task0);
-        dataGenerator.setQuota("job1", 1);
+        relocationConnectorStubs.place("removable1", job1Task0);
+        relocationConnectorStubs.setQuota("job1", 1);
 
         TaskRelocationPlan job1Task0Plan = TaskRelocationPlan.newBuilder()
                 .withTaskId(job1Task0.getId())
@@ -122,8 +114,8 @@ public class TaskMigrationDeschedulerTest {
     public void testSelfMigrationAfterDeadline() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
 
-        dataGenerator.place("removable1", job1Task0);
-        dataGenerator.setQuota("job1", 1);
+        relocationConnectorStubs.place("removable1", job1Task0);
+        relocationConnectorStubs.setQuota("job1", 1);
 
         TaskRelocationPlan job1Task0Plan = TaskRelocationPlan.newBuilder()
                 .withTaskId(job1Task0.getId())
@@ -142,9 +134,9 @@ public class TaskMigrationDeschedulerTest {
         String agent1 = removableAgents.get(0).getId();
         String agent2 = removableAgents.get(1).getId();
         List<Task> tasksOfJob1 = jobOperations.getTasks("job1");
-        dataGenerator.placeOnAgent(agent1, tasksOfJob1.get(0), tasksOfJob1.get(1));
-        dataGenerator.placeOnAgent(agent2, tasksOfJob1.get(2));
-        dataGenerator.setQuota("job1", 1);
+        relocationConnectorStubs.placeOnAgent(agent1, tasksOfJob1.get(0), tasksOfJob1.get(1));
+        relocationConnectorStubs.placeOnAgent(agent2, tasksOfJob1.get(2));
+        relocationConnectorStubs.setQuota("job1", 1);
 
         Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isPresent();
@@ -173,8 +165,8 @@ public class TaskMigrationDeschedulerTest {
     public void testFailures() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
 
-        dataGenerator.place("removable1", job1Task0);
-        dataGenerator.setQuota("job1", 0);
+        relocationConnectorStubs.place("removable1", job1Task0);
+        relocationConnectorStubs.setQuota("job1", 0);
 
         DeschedulingFailure failure = newDescheduler(Collections.emptyMap()).getDeschedulingFailure(job1Task0);
         assertThat(failure.getReasonMessage()).contains("job quota");
@@ -183,9 +175,9 @@ public class TaskMigrationDeschedulerTest {
     @Test
     public void testJobRequiredMigrationBy() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
-        dataGenerator.place("active1", job1Task0);
-        dataGenerator.setQuota("job1", 1);
-        dataGenerator.addJobAttribute("job1", RelocationAttributes.RELOCATION_REQUIRED_BY, "" + clock.wallTime());
+        relocationConnectorStubs.place("active1", job1Task0);
+        relocationConnectorStubs.setQuota("job1", 1);
+        relocationConnectorStubs.addJobAttribute("job1", RelocationAttributes.RELOCATION_REQUIRED_BY, "" + clock.wallTime());
 
         clock.advanceTime(Duration.ofSeconds(1));
         Map<String, DeschedulingResult> results = newDescheduler(Collections.emptyMap()).findRequestedJobOrTaskMigrations();
@@ -195,9 +187,9 @@ public class TaskMigrationDeschedulerTest {
     @Test
     public void testTaskRequiredMigration() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
-        dataGenerator.place("active1", job1Task0);
-        dataGenerator.setQuota("job1", 1);
-        dataGenerator.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
+        relocationConnectorStubs.place("active1", job1Task0);
+        relocationConnectorStubs.setQuota("job1", 1);
+        relocationConnectorStubs.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
 
         clock.advanceTime(Duration.ofSeconds(1));
         Map<String, DeschedulingResult> results = newDescheduler(Collections.emptyMap()).findRequestedJobOrTaskMigrations();
@@ -207,8 +199,8 @@ public class TaskMigrationDeschedulerTest {
     @Test
     public void testSystemQuotaExemption() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
-        dataGenerator.place("active1", job1Task0);
-        dataGenerator.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
+        relocationConnectorStubs.place("active1", job1Task0);
+        relocationConnectorStubs.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
 
         EvictionQuotaTracker evictionQuotaTracker = mock(EvictionQuotaTracker.class);
         when(evictionQuotaTracker.getSystemEvictionQuota()).thenReturn(0L);
@@ -230,11 +222,11 @@ public class TaskMigrationDeschedulerTest {
     @Test
     public void testAgentInstanceRequiredMigration() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
-        dataGenerator.place("active1", job1Task0);
-        dataGenerator.setQuota("job1", 1);
+        relocationConnectorStubs.place("active1", job1Task0);
+        relocationConnectorStubs.setQuota("job1", 1);
         job1Task0 = jobOperations.findTaskById(job1Task0.getId()).get().getRight();
 
-        dataGenerator.addInstanceAttribute(job1Task0.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID), RelocationAttributes.RELOCATION_REQUIRED, "true");
+        relocationConnectorStubs.markNodeRelocationRequired(job1Task0.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
         Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isNotEmpty();
     }
@@ -245,7 +237,7 @@ public class TaskMigrationDeschedulerTest {
         return new TaskMigrationDescheduler(
                 plannedAheadTaskRelocationPlans,
                 new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById),
-                new EvictionQuotaTracker(dataGenerator.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
+                new EvictionQuotaTracker(relocationConnectorStubs.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
                 () -> "foo|bar",
                 jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
                 tasksById,

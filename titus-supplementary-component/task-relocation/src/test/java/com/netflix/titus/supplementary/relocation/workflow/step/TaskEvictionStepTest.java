@@ -56,7 +56,7 @@ public class TaskEvictionStepTest extends AbstractTaskRelocationTest {
         relocationConnectorStubs.setQuota("job1", 1);
 
         Task task = jobOperations.getTasks().get(0);
-        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, task);
+        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID, task);
 
         TaskRelocationPlan taskRelocationPlan = oneMigrationPlan().toBuilder().withTaskId(task.getId()).build();
 

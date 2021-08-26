@@ -23,6 +23,7 @@ public class Node {
     private final String id;
     private final String serverGroupId;
 
+    private String ipAddress;
     private boolean relocationNotAllowed;
     private boolean relocationRequired;
     private boolean relocationRequiredImmediately;
@@ -37,6 +38,10 @@ public class Node {
 
     public String getId() {
         return id;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
     }
 
     public String getServerGroupId() {
@@ -85,12 +90,18 @@ public class Node {
         private boolean relocationRequiredImmediately;
         private boolean serverGroupRelocationRequired;
         private boolean inBadCondition;
+        private String ipAddress;
 
         private Builder() {
         }
 
         public Builder withId(String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder withIpAddress(String ipAddress) {
+            this.ipAddress = ipAddress;
             return this;
         }
 
@@ -128,6 +139,7 @@ public class Node {
             Preconditions.checkNotNull(id, "instance id is null");
             Preconditions.checkNotNull(serverGroupId, "server group id is null");
             Node node = new Node(id, serverGroupId);
+            node.ipAddress = ipAddress;
             node.relocationNotAllowed = this.relocationNotAllowed;
             node.relocationRequiredImmediately = this.relocationRequiredImmediately;
             node.relocationRequired = this.relocationRequired;

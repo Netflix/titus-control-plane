@@ -183,7 +183,7 @@ public class JobComponentStub {
         stubbedJobData.changeContainerHealth(taskId, healthState);
     }
 
-    public void place(String taskId, AgentInstance agentInstance) {
+    public void place(String taskId, String agentId, String agentIpAddress) {
         stubbedJobData.changeTask(taskId, task ->
                 task.toBuilder()
                         .withStatus(TaskStatus.newBuilder()
@@ -193,9 +193,14 @@ public class JobComponentStub {
                                 .withTimestamp(clock.wallTime())
                                 .build()
                         )
-                        .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentInstance.getId())
-                        .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, agentInstance.getIpAddress())
+                        .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentId)
+                        .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, agentIpAddress)
                         .build());
+
+    }
+
+    public void place(String taskId, AgentInstance agentInstance) {
+        place(taskId, agentInstance.getId(), agentInstance.getIpAddress());
     }
 
     public void forget(Task task) {

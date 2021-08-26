@@ -20,19 +20,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -46,15 +40,9 @@ import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Taint;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
-import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofBatchSize;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LABEL_MACHINE_GROUP;
-import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
-import static com.netflix.titus.testkit.model.agent.AgentGenerator.tiers;
-import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -62,8 +50,8 @@ import static org.mockito.Mockito.when;
 
 public class TestDataFactory {
 
-    public static final String ACTIVE_INSTANCE_GROUP = "active1";
-    public static final String REMOVABLE_INSTANCE_GROUP = "removable1";
+    public static final String ACTIVE_INSTANCE_GROUP_ID = "active1";
+    public static final String REMOVABLE_INSTANCE_GROUP_ID = "removable1";
 
     public static DisruptionBudget newSelfManagedDisruptionBudget(long relocationTimeMs) {
         return DisruptionBudget.newBuilder()
@@ -96,11 +84,9 @@ public class TestDataFactory {
     }
 
     public static RelocationConnectorStubs activeRemovableSetup(TitusRuntime titusRuntime) {
-        MutableDataGenerator<AgentInstanceGroup> flexInstanceGroupGenerator = new MutableDataGenerator<>(agentServerGroups(Tier.Flex, 10));
-
         return new RelocationConnectorStubs(titusRuntime)
-                .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId(ACTIVE_INSTANCE_GROUP), inState(InstanceGroupLifecycleState.Active)))
-                .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId(REMOVABLE_INSTANCE_GROUP), inState(InstanceGroupLifecycleState.Removable)));
+                .addActiveInstanceGroup(ACTIVE_INSTANCE_GROUP_ID, 10)
+                .addRemovableInstanceGroup(REMOVABLE_INSTANCE_GROUP_ID, 10);
     }
 
 
