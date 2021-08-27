@@ -16,8 +16,10 @@
 
 package com.netflix.titus.runtime.clustermembership.activation;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+@Configuration(prefix = "titus.leaderActivation.controller")
 public interface LeaderActivationConfiguration {
 
     @DefaultValue("false")

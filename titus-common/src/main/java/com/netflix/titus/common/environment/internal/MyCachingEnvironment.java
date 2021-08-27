@@ -76,6 +76,7 @@ public class MyCachingEnvironment implements MyEnvironment, Closeable {
                 }
             }
         };
+        updaterThread.setDaemon(true);
         updaterThread.start();
     }
 
