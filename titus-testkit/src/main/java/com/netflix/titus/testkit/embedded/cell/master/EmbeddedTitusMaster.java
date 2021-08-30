@@ -186,7 +186,7 @@ public class EmbeddedTitusMaster {
             this.remoteCloud = builder.remoteCloud;
 
             ManagedChannel cloudChannel = ManagedChannelBuilder.forAddress(remoteCloud.getLeft(), remoteCloud.getRight())
-                    .usePlaintext(true)
+                    .usePlaintext()
                     .build();
             this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(cloudChannel);
             this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(cloudChannel, TitusRuntimes.internal());
@@ -388,7 +388,7 @@ public class EmbeddedTitusMaster {
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
             this.grpcChannel = ManagedChannelBuilder.forAddress("127.0.0.1", getGrpcPort())
-                    .usePlaintext(true)
+                    .usePlaintext()
                     .build();
         }
         return grpcChannel;

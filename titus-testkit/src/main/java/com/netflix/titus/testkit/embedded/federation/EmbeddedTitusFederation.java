@@ -212,7 +212,7 @@ public class EmbeddedTitusFederation {
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
             this.grpcChannel = ManagedChannelBuilder.forAddress("localhost", getGrpcPort())
-                    .usePlaintext(true)
+                    .usePlaintext()
                     .build();
         }
         return grpcChannel;

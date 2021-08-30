@@ -92,7 +92,7 @@ public class TitusClientImplTest {
         final ManagedChannel channel = InProcessChannelBuilder
                 .forName("testServer")
                 .directExecutor()
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
         final JobManagementServiceStub jobManagementServiceStub = JobManagementServiceGrpc.newStub(channel);
         final JobManagementServiceFutureStub jobManagementServiceFutureStub = JobManagementServiceGrpc.newFutureStub(channel);

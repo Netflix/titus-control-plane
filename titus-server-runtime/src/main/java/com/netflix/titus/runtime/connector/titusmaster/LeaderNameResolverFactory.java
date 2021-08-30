@@ -36,7 +36,7 @@ public final class LeaderNameResolverFactory extends NameResolver.Factory {
     }
 
     @Override
-    public LeaderNameResolver newNameResolver(URI targetUri, Attributes params) {
+    public LeaderNameResolver newNameResolver(URI targetUri, NameResolver.Args args) {
         if (SCHEME.equals(targetUri.getScheme())) {
             return new LeaderNameResolver(targetUri, leaderResolver, port, titusRuntime);
         } else {

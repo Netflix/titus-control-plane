@@ -40,7 +40,7 @@ public class SimulatedRemoteInstanceCloudConnectorTest extends AbstractSimulated
         this.injector = RemoteConnectorUtil.createSimulatedCloudGrpcServer(cloud, grpcPort);
 
         this.channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
         return new SimulatedRemoteInstanceCloudConnector(channel);
     }

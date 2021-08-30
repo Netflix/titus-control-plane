@@ -1,14 +1,13 @@
 package com.netflix.titus.federation.service;
 
-import io.grpc.ManagedChannel;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import io.grpc.util.RoundRobinLoadBalancerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.util.concurrent.TimeUnit;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
-import java.util.concurrent.TimeUnit;
+
+import io.grpc.ManagedChannel;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultRemoteFederationConnector implements RemoteFederationConnector {
     private static final Logger logger = LoggerFactory.getLogger(DefaultRemoteFederationConnector.class);
@@ -19,8 +18,8 @@ public class DefaultRemoteFederationConnector implements RemoteFederationConnect
     @Inject
     public DefaultRemoteFederationConnector(RemoteFederationInfoResolver remoteFederationInfoResolver) {
         channel = NettyChannelBuilder.forTarget(remoteFederationInfoResolver.resolve().getAddress())
-                .usePlaintext(true)
-                .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
+                .usePlaintext()
+                .defaultLoadBalancingPolicy("round_robin")
                 .build();
     }
 

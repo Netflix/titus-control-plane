@@ -2,22 +2,18 @@
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
 cglib:cglib-nodep:3.1
-com.google.android:annotations:4.1.1.4
-com.google.api.grpc:proto-google-common-protos:1.12.0
+com.google.api.grpc:proto-google-common-protos:2.0.1
 com.google.code.findbugs:jsr305:3.0.2
-com.google.code.gson:gson:2.7
-com.google.errorprone:error_prone_annotations:2.3.2
+com.google.errorprone:error_prone_annotations:2.1.3
 com.google.guava:guava:25.1-jre
 com.google.j2objc:j2objc-annotations:1.1
-com.google.protobuf:protobuf-java:3.7.1
+com.google.protobuf:protobuf-java:3.17.2
 com.jayway.awaitility:awaitility:1.7.0
-io.grpc:grpc-context:1.20.0
-io.grpc:grpc-core:1.20.0
-io.grpc:grpc-protobuf-lite:1.20.0
-io.grpc:grpc-protobuf:1.20.0
-io.grpc:grpc-stub:1.20.0
-io.opencensus:opencensus-api:0.19.2
-io.opencensus:opencensus-contrib-grpc-metrics:0.19.2
+io.grpc:grpc-api:1.39.0
+io.grpc:grpc-context:1.39.0
+io.grpc:grpc-protobuf-lite:1.39.0
+io.grpc:grpc-protobuf:1.39.0
+io.grpc:grpc-stub:1.39.0
 io.projectreactor:reactor-core:3.4.2
 io.projectreactor:reactor-test:3.4.2
 junit:junit-dep:4.11
@@ -26,7 +22,7 @@ net.bytebuddy:byte-buddy-agent:1.10.5
 net.bytebuddy:byte-buddy:1.10.5
 org.assertj:assertj-core:3.8.0
 org.checkerframework:checker-qual:2.0.0
-org.codehaus.mojo:animal-sniffer-annotations:1.17
+org.codehaus.mojo:animal-sniffer-annotations:1.14
 org.hamcrest:hamcrest-core:1.3
 org.hamcrest:hamcrest-library:1.3
 org.mockito:mockito-core:3.3.3
