@@ -103,7 +103,7 @@ public class TaskRelocationSandbox {
     public ManagedChannel getGrpcChannel() {
         int port = container.getBean(TaskRelocationGrpcServerRunner.class).getServer().getPort();
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", port)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
         channels.add(channel);
         return channel;

@@ -78,7 +78,7 @@ public class ClusterMembershipServerResource extends ExternalResource {
         server.start();
 
         this.channel = ManagedChannelBuilder.forAddress("localhost", server.getPort())
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
 
         this.client = new DefaultGrpcToReactorClientFactory<>(

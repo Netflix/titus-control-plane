@@ -28,7 +28,6 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.federation.model.Cell;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import io.grpc.util.RoundRobinLoadBalancerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +47,8 @@ public class DefaultCellConnector implements CellConnector {
                     .collect(Collectors.toMap(
                             cell -> cell,
                             cell -> NettyChannelBuilder.forTarget(cell.getAddress())
-                                    .usePlaintext(true)
-                                    .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
+                                    .usePlaintext()
+                                    .defaultLoadBalancingPolicy("round_robin")
                                     .build()
                     ));
         } else {

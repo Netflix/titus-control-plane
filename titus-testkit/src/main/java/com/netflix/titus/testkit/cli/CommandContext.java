@@ -80,10 +80,10 @@ public class CommandContext {
 
     public synchronized ManagedChannel createChannel() {
         ManagedChannelBuilder channelBuilder = ManagedChannelBuilder.forAddress(host, port)
-                .usePlaintext(true);
+                .usePlaintext();
         if (channelBuilder instanceof NettyChannelBuilder) {
             NettyChannelBuilder nettyChannelBuilder = (NettyChannelBuilder) channelBuilder;
-            nettyChannelBuilder.maxHeaderListSize(128 * 1024);
+            nettyChannelBuilder.maxInboundMetadataSize(128 * 1024);
         }
         ManagedChannel channel = channelBuilder.build();
 

@@ -45,7 +45,7 @@ public class SimulatedRemoteMesosSchedulerDriverTest extends AbstractSimulatedMe
         this.injector = RemoteConnectorUtil.createSimulatedCloudGrpcServer(cloud, grpcPort);
 
         this.channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
         this.factory = new SimulatedRemoteMesosSchedulerDriverFactory(channel, TitusRuntimes.internal());
         return factory.createDriver(framework, "N/A", callbackHandler);

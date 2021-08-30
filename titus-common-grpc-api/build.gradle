@@ -17,8 +17,8 @@ dependencies {
     compile "io.grpc:grpc-stub:${grpcVersion}"
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
 
-    protoPluginDeps "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
-    protoPluginDeps "com.google.protobuf:protoc:${protobufVersion}"
+    protoPluginDeps "io.grpc:protoc-gen-grpc-java:${grpcVersionOSAware}"
+    protoPluginDeps "com.google.protobuf:protoc:${protobufVersionOSAware}"
 }
 
 if (project.hasProperty("idlLocal")) {
@@ -55,11 +55,11 @@ def getResolvedDependencyFromProtoPluginDeps(dependency) {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+        artifact = "com.google.protobuf:protoc:${protobufVersionOSAware}"
     }
     plugins {
         grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersionOSAware}"
         }
     }
     generateProtoTasks {

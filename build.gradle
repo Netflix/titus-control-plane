@@ -13,6 +13,7 @@ buildscript {
 plugins {
     id 'nebula.netflixoss' version '9.1.0'
     id 'nebula.ospackage' version '8.5.6'
+    id "com.google.osdetector" version "1.7.0"
 }
 
 ext.useMavenLocal = project.hasProperty('useMavenLocal') ? project.getProperty('useMavenLocal').toBoolean() : false
@@ -89,9 +90,15 @@ subprojects {
         fenzoVersion = '1.1.0-rc.9'
         spectatorVersion = '0.59.+'
         mesosVersion = '1.7.2'
-        protobufVersion = '3.7.+'
         postgresqlVersion = '42.2.9'
-        grpcVersion = '1.20.+'
+        protobufVersion = '3.7.+'
+        protobufVersionOSAware = protobufVersion
+        grpcVersion = '1.39.+'
+        grpcVersionOSAware = grpcVersion
+        if (osdetector.os == "osx") {
+            protobufVersionOSAware += ':osx-x86_64'
+            grpcVersionOSAware += ':osx-x86_64'
+        }
         protobufJavaUtilVersion = '3.5.+'
         googleTruthVersion = '0.34' // pinned to avoid a transitive dependency on guava > 20.x
         swaggerVersion = '1.5.12'

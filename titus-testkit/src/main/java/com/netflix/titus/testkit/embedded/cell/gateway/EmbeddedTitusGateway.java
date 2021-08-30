@@ -242,8 +242,8 @@ public class EmbeddedTitusGateway {
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
             this.grpcChannel = NettyChannelBuilder.forAddress("localhost", getGrpcPort())
-                    .usePlaintext(true)
-                    .maxHeaderListSize(65536)
+                    .usePlaintext()
+                    .maxInboundMetadataSize(65536)
                     .build();
         }
         return grpcChannel;

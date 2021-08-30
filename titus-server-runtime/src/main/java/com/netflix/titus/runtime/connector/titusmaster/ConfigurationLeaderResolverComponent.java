@@ -43,8 +43,8 @@ public class ConfigurationLeaderResolverComponent {
         return NettyChannelBuilder
                 .forTarget("leader://titusmaster")
                 .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
-                .usePlaintext(true)
-                .maxHeaderListSize(65536)
+                .usePlaintext()
+                .maxInboundMetadataSize(65536)
                 .build();
     }
 }

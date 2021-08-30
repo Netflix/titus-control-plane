@@ -60,7 +60,7 @@ public class GrpcClusterMembershipNameResolverFactory extends NameResolver.Facto
 
     @Nullable
     @Override
-    public NameResolver newNameResolver(URI targetUri, Attributes params) {
+    public NameResolver newNameResolver(URI targetUri, NameResolver.Args args) {
         Preconditions.checkState(!closed, "Name resolver already closed");
 
         return allocatedResolvers.computeIfAbsent(targetUri, uri -> {
