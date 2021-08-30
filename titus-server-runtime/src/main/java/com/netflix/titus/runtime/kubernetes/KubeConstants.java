@@ -74,6 +74,8 @@ public final class KubeConstants {
 
     public static final String POD_LABEL_SUBNETS = TITUS_POD_DOMAIN + "subnets";
 
+    public static final String POD_LABEL_RELOCATION_BINPACK = TITUS_POD_DOMAIN + "relocation-binpack";
+
     public static final String POD_LABEL_JOB_ID = TITUS_V3_JOB_DOMAIN + "job-id";
 
     public static final String POD_LABEL_TASK_ID = TITUS_V3_JOB_DOMAIN + "task-id";
@@ -175,6 +177,16 @@ public final class KubeConstants {
     public static final String POD_ENV_TITUS_TASK_INSTANCE_ID = "TITUS_TASK_INSTANCE_ID";
     public static final String POD_ENV_TITUS_TASK_ORIGINAL_ID = "TITUS_TASK_ORIGINAL_ID";
     public static final String POD_ENV_TITUS_TASK_INDEX = "TITUS_TASK_INDEX";
+
+    /*
+     * Label selector operators. See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+     */
+    public static final String SELECTOR_OPERATOR_IN = "In";
+    public static final String SELECTOR_OPERATOR_NOT_IN = "NotIn";
+    public static final String SELECTOR_OPERATOR_EXISTS = "Exists";
+    public static final String SELECTOR_OPERATOR_DOES_NOT_EXIST = "DoesNotExist";
+    public static final String SELECTOR_OPERATOR_GT = "Gt";
+    public static final String SELECTOR_OPERATOR_LT = "Lt";
 
     /*
      * API Constants

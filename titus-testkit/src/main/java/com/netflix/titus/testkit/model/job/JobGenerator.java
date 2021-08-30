@@ -176,6 +176,14 @@ public class JobGenerator {
         );
     }
 
+    public static Job<ServiceJobExt> oneServiceJob() {
+        return serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
+    }
+
+    public static ServiceJobTask oneServiceTask() {
+        return JobGenerator.serviceTasks(oneServiceJob()).getValue();
+    }
+
     public static Job<BatchJobExt> oneBatchJob() {
         return batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue();
     }

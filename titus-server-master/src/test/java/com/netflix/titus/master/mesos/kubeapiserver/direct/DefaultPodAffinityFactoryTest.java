@@ -20,27 +20,34 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.affinity.DefaultPodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobEbsVolumeGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.model.job.JobIpAllocationGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
+import io.kubernetes.client.openapi.models.V1LabelSelectorRequirement;
 import io.kubernetes.client.openapi.models.V1NodeSelector;
 import io.kubernetes.client.openapi.models.V1NodeSelectorRequirement;
+import io.kubernetes.client.openapi.models.V1PodAffinityTerm;
+import io.kubernetes.client.openapi.models.V1WeightedPodAffinityTerm;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -54,12 +61,14 @@ public class DefaultPodAffinityFactoryTest {
     private static final String SPECIFIC_GPU_INSTANCE_TYPE = "p4.2xlarge";
 
     private final KubePodConfiguration configuration = Mockito.mock(KubePodConfiguration.class);
+    private final FeatureActivationConfiguration featureConfiguration = Mockito.mock(FeatureActivationConfiguration.class);
 
-    private final DefaultPodAffinityFactory factory = new DefaultPodAffinityFactory(configuration, new ExplicitJobPodResourcePoolResolver(), TitusRuntimes.test());
+    private final DefaultPodAffinityFactory factory = new DefaultPodAffinityFactory(configuration, featureConfiguration, new ExplicitJobPodResourcePoolResolver(), TitusRuntimes.test());
 
     @Before
     public void setUp() throws Exception {
         when(configuration.getDefaultGpuInstanceTypes()).thenReturn(Collections.singletonList(DEFAULT_GPU_INSTANCE_TYPE));
+        when(featureConfiguration.isRelocationBinpackingEnabled()).thenReturn(true);
     }
 
     @Test
@@ -152,6 +161,43 @@ public class DefaultPodAffinityFactoryTest {
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getKey()).isEqualTo(KubeConstants.NODE_LABEL_ZONE);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo(ipAddressAllocations.get(0).getIpAddressAllocation().getIpAddressLocation().getAvailabilityZone());
+    }
+
+    @Test
+    public void relocationBinPacking() {
+        Job<ServiceJobExt> job = JobGenerator.oneServiceJob();
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().but(
+                jd -> jd.getDisruptionBudget().toBuilder()
+                        .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+        )).build();
+        ServiceJobTask task = JobGenerator.oneServiceTask();
+        V1Affinity affinity = factory.buildV1Affinity(job, task).getLeft();
+        List<V1WeightedPodAffinityTerm> podAffinityTerms = affinity.getPodAffinity().getPreferredDuringSchedulingIgnoredDuringExecution();
+        assertThat(podAffinityTerms).hasSize(1);
+        V1PodAffinityTerm podAffinityTerm = podAffinityTerms.get(0).getPodAffinityTerm();
+        assertThat(podAffinityTerm.getTopologyKey()).isEqualTo(KubeConstants.NODE_LABEL_MACHINE_ID);
+        assertThat(podAffinityTerm.getLabelSelector().getMatchExpressions()).hasSize(1);
+        V1LabelSelectorRequirement affinityRequirement = podAffinityTerm.getLabelSelector().getMatchExpressions().get(0);
+        assertThat(affinityRequirement.getKey()).isEqualTo(KubeConstants.POD_LABEL_RELOCATION_BINPACK);
+        assertThat(affinityRequirement.getOperator()).isEqualTo(KubeConstants.SELECTOR_OPERATOR_EXISTS);
+
+        List<V1WeightedPodAffinityTerm> antiAffinityTerms = affinity.getPodAntiAffinity().getPreferredDuringSchedulingIgnoredDuringExecution();
+        assertThat(antiAffinityTerms).hasSize(1);
+        V1PodAffinityTerm antiAffinityTerm = antiAffinityTerms.get(0).getPodAffinityTerm();
+        assertThat(antiAffinityTerm.getTopologyKey()).isEqualTo(KubeConstants.NODE_LABEL_MACHINE_ID);
+        assertThat(antiAffinityTerm.getLabelSelector().getMatchExpressions()).hasSize(1);
+        V1LabelSelectorRequirement antiAffinityRequirement = antiAffinityTerm.getLabelSelector().getMatchExpressions().get(0);
+        assertThat(antiAffinityRequirement.getKey()).isEqualTo(KubeConstants.POD_LABEL_RELOCATION_BINPACK);
+        assertThat(antiAffinityRequirement.getOperator()).isEqualTo(KubeConstants.SELECTOR_OPERATOR_DOES_NOT_EXIST);
+    }
+
+    @Test
+    public void relocationBinPackingNegative() {
+        Job<ServiceJobExt> job = JobGenerator.oneServiceJob();
+        ServiceJobTask task = JobGenerator.oneServiceTask();
+        V1Affinity affinity = factory.buildV1Affinity(job, task).getLeft();
+        assertThat(affinity.getPodAffinity()).isNull();
+        assertThat(affinity.getPodAntiAffinity()).isNull();
     }
 
     private Job<BatchJobExt> newJobWithHardConstraint(String name, String value) {

@@ -25,10 +25,12 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocationUtils;
@@ -46,6 +48,7 @@ import io.kubernetes.client.openapi.models.V1NodeAffinity;
 import io.kubernetes.client.openapi.models.V1NodeSelector;
 import io.kubernetes.client.openapi.models.V1NodeSelectorRequirement;
 import io.kubernetes.client.openapi.models.V1NodeSelectorTerm;
+import io.kubernetes.client.openapi.models.V1PodAffinity;
 import io.kubernetes.client.openapi.models.V1PodAffinityTerm;
 import io.kubernetes.client.openapi.models.V1PodAntiAffinity;
 import io.kubernetes.client.openapi.models.V1PreferredSchedulingTerm;
@@ -59,16 +62,20 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
     private static final int EXCLUSIVE_HOST_WEIGHT = 100;
     private static final int UNIQUE_HOST_WEIGHT = 100;
     private static final int NODE_AFFINITY_WEIGHT = 100;
+    private static final int RELOCATION_AFFINITY_WEIGHT = 50;
 
     private final KubePodConfiguration configuration;
+    private final FeatureActivationConfiguration featureConfiguration;
     private final PodResourcePoolResolver podResourcePoolResolver;
     private final TitusRuntime titusRuntime;
 
     @Inject
     public DefaultPodAffinityFactory(KubePodConfiguration configuration,
+                                     FeatureActivationConfiguration featureConfiguration,
                                      PodResourcePoolResolver podResourcePoolResolver,
                                      TitusRuntime titusRuntime) {
         this.configuration = configuration;
+        this.featureConfiguration = featureConfiguration;
         this.podResourcePoolResolver = podResourcePoolResolver;
         this.titusRuntime = titusRuntime;
     }
@@ -94,6 +101,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             processJobConstraints(toLowerCaseKeys(job.getJobDescriptor().getContainer().getSoftConstraints()), false);
             processResourcePoolConstraints();
             processZoneConstraints();
+            processRelocationAffinity();
         }
 
         private void processJobConstraints(Map<String, String> constraints, boolean hard) {
@@ -146,7 +154,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                     .labelSelector(new V1LabelSelector()
                             .addMatchExpressionsItem(new V1LabelSelectorRequirement()
                                     .key(KubeConstants.POD_LABEL_TASK_ID)
-                                    .operator("Exists")
+                                    .operator(KubeConstants.SELECTOR_OPERATOR_EXISTS)
                             ))
                     .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID);
 
@@ -166,7 +174,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                     .labelSelector(new V1LabelSelector()
                             .addMatchExpressionsItem(new V1LabelSelectorRequirement()
                                     .key(KubeConstants.POD_LABEL_JOB_ID)
-                                    .operator("In")
+                                    .operator(KubeConstants.SELECTOR_OPERATOR_IN)
                                     .values(Collections.singletonList(job.getId()))
                             ))
                     .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID);
@@ -197,7 +205,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
         private void addNodeAffinityRequiredSelectorConstraint(String key, List<String> values) {
             V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirement()
                     .key(key)
-                    .operator("In")
+                    .operator(KubeConstants.SELECTOR_OPERATOR_IN)
                     .values(values);
 
             V1NodeSelector nodeSelector = getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
@@ -226,7 +234,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
             V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirement()
                     .key(key)
-                    .operator("In")
+                    .operator(KubeConstants.SELECTOR_OPERATOR_IN)
                     .values(values);
 
             term.addMatchExpressionsItem(requirement);
@@ -285,11 +293,54 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             }
         }
 
+        private void processRelocationAffinity() {
+            if (!featureConfiguration.isRelocationBinpackingEnabled() || !shouldBinpackForRelocation()) {
+                return;
+            }
+            getPodAffinity().addPreferredDuringSchedulingIgnoredDuringExecutionItem(
+                    new V1WeightedPodAffinityTerm()
+                            .weight(RELOCATION_AFFINITY_WEIGHT)
+                            .podAffinityTerm(new V1PodAffinityTerm()
+                                    .labelSelector(new V1LabelSelector()
+                                            .addMatchExpressionsItem(new V1LabelSelectorRequirement()
+                                                    .key(KubeConstants.POD_LABEL_RELOCATION_BINPACK)
+                                                    .operator(KubeConstants.SELECTOR_OPERATOR_EXISTS)
+                                            )
+                                    )
+                                    .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID)
+                            )
+            );
+            getPodAntiAffinity().addPreferredDuringSchedulingIgnoredDuringExecutionItem(
+                    new V1WeightedPodAffinityTerm()
+                            .weight(RELOCATION_AFFINITY_WEIGHT)
+                            .podAffinityTerm(new V1PodAffinityTerm()
+                                    .labelSelector(new V1LabelSelector()
+                                            .addMatchExpressionsItem(new V1LabelSelectorRequirement()
+                                                    .key(KubeConstants.POD_LABEL_RELOCATION_BINPACK)
+                                                    .operator(KubeConstants.SELECTOR_OPERATOR_DOES_NOT_EXIST)
+                                            )
+                                    )
+                                    .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID)
+                            )
+            );
+        }
+
+        private boolean shouldBinpackForRelocation() {
+            return job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy() instanceof SelfManagedDisruptionBudgetPolicy;
+        }
+
         private V1NodeAffinity getNodeAffinity() {
             if (v1Affinity.getNodeAffinity() == null) {
                 v1Affinity.nodeAffinity(new V1NodeAffinity());
             }
             return v1Affinity.getNodeAffinity();
+        }
+
+        private V1PodAffinity getPodAffinity() {
+            if (v1Affinity.getPodAffinity() == null) {
+                v1Affinity.podAffinity(new V1PodAffinity());
+            }
+            return v1Affinity.getPodAffinity();
         }
 
         private V1PodAntiAffinity getPodAntiAffinity() {
