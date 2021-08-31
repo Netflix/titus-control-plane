@@ -302,6 +302,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     @Override
     public Observable<String> createAutoScalingPolicy(AutoScalingPolicy autoScalingPolicy) {
+        logger.info("Adding new AutoScalingPolicy {}", autoScalingPolicy);
         if (autoScalingPolicy.getJobId() == null || autoScalingPolicy.getPolicyConfiguration() == null) {
             return Observable.error(AutoScalePolicyException.invalidScalingPolicy(autoScalingPolicy.getRefId(),
                     String.format("JobID Or PolicyConfiguration missing for %s", autoScalingPolicy.getRefId())));
