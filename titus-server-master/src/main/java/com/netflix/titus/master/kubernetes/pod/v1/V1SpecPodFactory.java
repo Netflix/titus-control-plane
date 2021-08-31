@@ -178,8 +178,9 @@ public class V1SpecPodFactory implements PodFactory {
         annotations.put(POD_USER_ENV_VARS_START_INDEX, String.valueOf(userEnvBeginIndex));
 
         Map<String, String> labels = new HashMap<>();
-        labels.put("v3.job.titus.netflix.com/job-id", job.getId());
-        labels.put("v3.job.titus.netflix.com/task-id", taskId);
+        labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
+        labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
+        JobManagerUtil.getRelocationBinpackMode(job).ifPresent(mode -> labels.put(KubeConstants.POD_LABEL_RELOCATION_BINPACK, mode));
 
         JobDescriptor<?> jobDescriptor = job.getJobDescriptor();
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();

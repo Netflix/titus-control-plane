@@ -30,13 +30,13 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocationUtils;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ResourcePoolAssignment;
@@ -294,7 +294,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
         }
 
         private void processRelocationAffinity() {
-            if (!featureConfiguration.isRelocationBinpackingEnabled() || !shouldBinpackForRelocation()) {
+            if (!featureConfiguration.isRelocationBinpackingEnabled() || !JobManagerUtil.getRelocationBinpackMode(job).isPresent()) {
                 return;
             }
             getPodAffinity().addPreferredDuringSchedulingIgnoredDuringExecutionItem(
@@ -323,10 +323,6 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                                     .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID)
                             )
             );
-        }
-
-        private boolean shouldBinpackForRelocation() {
-            return job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy() instanceof SelfManagedDisruptionBudgetPolicy;
         }
 
         private V1NodeAffinity getNodeAffinity() {

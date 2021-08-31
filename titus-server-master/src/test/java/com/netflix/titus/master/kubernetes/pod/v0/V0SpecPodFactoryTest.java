@@ -28,14 +28,18 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
@@ -45,7 +49,6 @@ import com.netflix.titus.master.kubernetes.pod.legacy.TitusProvidedContainerEnvF
 import com.netflix.titus.master.kubernetes.pod.legacy.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
-import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
@@ -62,6 +65,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -243,5 +247,22 @@ public class V0SpecPodFactoryTest {
         String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
         assertThat(networkModeAnnotationValue).isEqualTo("UnknownNetworkMode");
     }
+
+    @Test
+    public void relocationLabel() {
+        Job<ServiceJobExt> job = JobGenerator.oneServiceJob();
+        Job<ServiceJobExt> selfManagedJob = job.toBuilder().withJobDescriptor(job.getJobDescriptor().but(
+                jd -> jd.getDisruptionBudget().toBuilder()
+                        .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+        )).build();
+        ServiceJobTask task = JobGenerator.oneServiceTask();
+        when(podAffinityFactory.buildV1Affinity(any(), eq(task))).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        assertThat(pod.getMetadata().getLabels()).doesNotContainKey(KubeConstants.POD_LABEL_RELOCATION_BINPACK);
+        V1Pod selfManagedPod = podFactory.buildV1Pod(selfManagedJob, task, true, false);
+        assertThat(selfManagedPod.getMetadata().getLabels()).containsEntry(KubeConstants.POD_LABEL_RELOCATION_BINPACK, "SelfManaged");
+    }
+
 }
 

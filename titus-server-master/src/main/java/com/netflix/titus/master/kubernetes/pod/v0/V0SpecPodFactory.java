@@ -112,6 +112,7 @@ public class V0SpecPodFactory implements PodFactory {
         Map<String, String> labels = new HashMap<>();
         labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
         labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
+        JobManagerUtil.getRelocationBinpackMode(job).ifPresent(mode -> labels.put(KubeConstants.POD_LABEL_RELOCATION_BINPACK, mode));
 
         String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
         labels.put(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup);

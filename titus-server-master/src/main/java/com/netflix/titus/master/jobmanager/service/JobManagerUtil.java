@@ -40,6 +40,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.ApplicationSLA;
@@ -50,13 +51,13 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 import org.apache.mesos.Protos;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
@@ -85,7 +86,6 @@ public final class JobManagerUtil {
 
     public static Pair<Tier, String> getTierAssignment(Job job, ApplicationSlaManagementService capacityGroupService) {
         return getTierAssignment(job.getJobDescriptor(), capacityGroupService);
-
     }
 
     public static Pair<Tier, String> getTierAssignment(JobDescriptor<?> jobDescriptor, ApplicationSlaManagementService capacityGroupService) {
@@ -250,6 +250,15 @@ public final class JobManagerUtil {
         } catch (IOException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * @return {@link Optional#empty()} when no binpacking should be applied for task relocation purposes
+     */
+    public static Optional<String> getRelocationBinpackMode(Job<?> job) {
+        return job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy() instanceof SelfManagedDisruptionBudgetPolicy
+                ? Optional.of("SelfManaged")
+                : Optional.empty();
     }
 
     public static Optional<String> getExecutorUriOverride(Config config,
