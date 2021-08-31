@@ -59,7 +59,7 @@ public class MustBeRelocatedTaskStoreUpdateStepTest extends AbstractTaskRelocati
 
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, newSelfManagedDisruptionBudget(1_000));
         relocationConnectorStubs.addJob(job);
-        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, jobOperations.getTasks().get(0));
+        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID, jobOperations.getTasks().get(0));
 
         when(store.createOrUpdateTaskRelocationPlans(anyList())).thenReturn(Mono.just(Collections.singletonMap("task1", Optional.empty())));
 

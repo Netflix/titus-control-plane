@@ -45,7 +45,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStepTest extends AbstractTas
     public void testMigrationOfTasksWithPolicy() {
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, newSelfManagedDisruptionBudget(1_000));
         relocationConnectorStubs.addJob(job);
-        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, jobOperations.getTasks().get(0));
+        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID, jobOperations.getTasks().get(0));
 
         Map<String, TaskRelocationPlan> result = step.collectTasksThatMustBeRelocated();
         assertThat(result).hasSize(1);
@@ -55,7 +55,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStepTest extends AbstractTas
     public void testTaskWithNoDisruptionBudgetIsNotMigrated() {
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, JobFunctions.getNoDisruptionBudgetMarker());
         relocationConnectorStubs.addJob(job);
-        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, jobOperations.getTasks().get(0));
+        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID, jobOperations.getTasks().get(0));
 
         Map<String, TaskRelocationPlan> result = step.collectTasksThatMustBeRelocated();
         assertThat(result).isEmpty();
@@ -66,7 +66,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStepTest extends AbstractTas
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, newSelfManagedDisruptionBudget(1_000));
         relocationConnectorStubs.addJob(job);
         Task task = jobOperations.getTasks().get(0);
-        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, task);
+        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID, task);
 
         Map<String, TaskRelocationPlan> firstResult = step.collectTasksThatMustBeRelocated();
         assertThat(firstResult).hasSize(1);

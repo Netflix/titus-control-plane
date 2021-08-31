@@ -16,27 +16,26 @@
 
 package com.netflix.titus.supplementary.relocation;
 
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.time.TestClock;
-import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
-import org.mockito.Mockito;
-
-import static org.mockito.Mockito.mock;
 
 public abstract class AbstractTaskRelocationTest {
 
     protected final TitusRuntime titusRuntime;
     protected final TestClock clock;
 
+    protected final RelocationConfiguration configuration = Archaius2Ext.newConfiguration(RelocationConfiguration.class);
+
+    protected final KubeApiFacade kubeApiFacade = TestDataFactory.mockKubeApiFacade();
+
     protected final RelocationConnectorStubs relocationConnectorStubs;
 
-    protected final ReadOnlyAgentOperations agentOperations;
     protected final NodeDataResolver nodeDataResolver;
     protected final ReadOnlyJobOperations jobOperations;
 
@@ -48,9 +47,7 @@ public abstract class AbstractTaskRelocationTest {
         this.titusRuntime = relocationConnectorStubs.getTitusRuntime();
         this.clock = (TestClock) titusRuntime.getClock();
 
-        this.agentOperations = relocationConnectorStubs.getAgentOperations();
-        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, mock(AgentDataReplicator.class),
-                instance -> true, mock(RelocationConfiguration.class), TestDataFactory.mockKubeApiFacade());
+        this.nodeDataResolver = relocationConnectorStubs.getNodeDataResolver();
         this.jobOperations = relocationConnectorStubs.getJobOperations();
         this.evictionOperations = relocationConnectorStubs.getEvictionOperations();
         this.evictionServiceClient = relocationConnectorStubs.getEvictionServiceClient();

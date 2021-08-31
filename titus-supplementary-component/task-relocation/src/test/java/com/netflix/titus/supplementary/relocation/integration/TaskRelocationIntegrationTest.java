@@ -26,8 +26,6 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
-import com.netflix.titus.common.environment.MyEnvironments;
-import com.netflix.titus.common.environment.MyMutableEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clock;
@@ -82,7 +80,7 @@ public class TaskRelocationIntegrationTest {
 
     @Test(timeout = 60_000)
     public void testPlannedRelocation() throws Exception {
-        Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP);
+        Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID);
         relocationConnectorStubs.setQuota(task.getJobId(), 1);
 
         // Get the plan
@@ -106,7 +104,7 @@ public class TaskRelocationIntegrationTest {
         assertThat(firstEvent).isNotNull();
         assertThat(firstEvent.getEventCase()).isEqualTo(EventCase.SNAPSHOTEND);
 
-        Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP);
+        Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP_ID);
         relocationConnectorStubs.setQuota(task.getJobId(), 1);
 
         RelocationEvent secondEvent = events.takeNext(30, TimeUnit.SECONDS);
