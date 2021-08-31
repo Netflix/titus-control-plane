@@ -18,6 +18,7 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Names;
+import com.netflix.titus.master.mesos.NoOpVirtualMachineMasterService;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 
 public class LegacyKubeModule extends AbstractModule {
@@ -26,6 +27,6 @@ public class LegacyKubeModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
+        bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).toInstance(new NoOpVirtualMachineMasterService());
     }
 }
