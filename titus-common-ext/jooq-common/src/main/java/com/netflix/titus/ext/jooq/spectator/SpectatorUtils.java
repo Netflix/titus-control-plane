@@ -14,27 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooq;
+package com.netflix.titus.ext.jooq.spectator;
 
-import com.netflix.archaius.api.annotations.DefaultValue;
+class SpectatorUtils {
 
-public interface JooqConfiguration {
+    static final long[] LEVELS = new long[]{1, 10, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 60_000};
 
-    @DefaultValue("jdbc://localhost")
-    String getDatabaseUrl();
-
-    @DefaultValue("false")
-    boolean isInMemoryDb();
-
-    @DefaultValue("true")
-    boolean isCreateSchemaIfNotExist();
-
-    /**
-     * Set to true, to enable Jooq own thread executor pool. If set to false, it uses the default shared ForkJoin pool.
-     */
-    @DefaultValue("true")
-    boolean isOwnExecutorPool();
-
-    @DefaultValue("100")
-    int getExecutorPoolSize();
 }

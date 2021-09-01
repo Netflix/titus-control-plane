@@ -24,6 +24,8 @@ import com.netflix.titus.ext.jooq.JooqContext;
 import com.netflix.titus.ext.jooq.profile.DatabaseProfile;
 import com.netflix.titus.ext.jooq.profile.DatabaseProfileLoader;
 import com.netflix.titus.ext.jooq.profile.DatabaseProfiles;
+import com.netflix.titus.ext.jooq.spectator.SpectatorHikariMetricsTrackerFactory;
+import com.netflix.titus.ext.jooq.spectator.SpectatorJooqExecuteListener;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.Configuration;
@@ -53,15 +55,20 @@ public class EmbeddedJooqContext implements JooqContext {
     public EmbeddedJooqContext(ConfigurableApplicationContext context,
                                String profileName,
                                TitusRuntime titusRuntime) {
-        this(context, profileName, DEFAULT_EXECUTOR_POOL_SIZE, titusRuntime);
+        this(context, profileName, true, DEFAULT_EXECUTOR_POOL_SIZE, titusRuntime);
     }
 
     public EmbeddedJooqContext(ConfigurableApplicationContext context,
                                String profileName,
+                               boolean ownExecutorPool,
                                int executorPoolSize,
                                TitusRuntime titusRuntime) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
+        hikariConfig.setMetricsTrackerFactory(new SpectatorHikariMetricsTrackerFactory(
+                titusRuntime.getRegistry().createId("titus.jooq.hikari"),
+                titusRuntime
+        ));
 
         DatabaseProfiles profiles = DatabaseProfileLoader.loadLocal();
         logger.info("Loaded embedded database profiles: {}", profiles);
@@ -97,7 +104,13 @@ public class EmbeddedJooqContext implements JooqContext {
         Configuration config = new DefaultConfiguration()
                 .derive(dataSource)
                 .derive(DEFAULT_DIALECT)
-                .derive(ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "jooq", executorPoolSize));
+                .derive(new SpectatorJooqExecuteListener(
+                        titusRuntime.getRegistry().createId("titus.jooq.executorListener"),
+                        titusRuntime
+                ));
+        if (ownExecutorPool) {
+            config = config.derive(ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "jooq", executorPoolSize));
+        }
         this.dslContext = new DefaultDSLContext(config);
     }
 
