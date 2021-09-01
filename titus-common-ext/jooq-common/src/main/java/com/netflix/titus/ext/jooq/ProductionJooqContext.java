@@ -22,6 +22,8 @@ import javax.sql.DataSource;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.ext.jooq.spectator.SpectatorHikariMetricsTrackerFactory;
+import com.netflix.titus.ext.jooq.spectator.SpectatorJooqExecuteListener;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.Configuration;
@@ -39,6 +41,10 @@ public class ProductionJooqContext implements JooqContext {
     public ProductionJooqContext(JooqConfiguration jooqConfiguration, TitusRuntime titusRuntime) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setAutoCommit(true);
+        hikariConfig.setMetricsTrackerFactory(new SpectatorHikariMetricsTrackerFactory(
+                titusRuntime.getRegistry().createId("titus.jooq.hikari"),
+                titusRuntime
+        ));
 
         // Connection management
         hikariConfig.setConnectionTimeout(10000);
@@ -53,7 +59,13 @@ public class ProductionJooqContext implements JooqContext {
         Configuration config = new DefaultConfiguration()
                 .derive(dataSource)
                 .derive(DEFAULT_DIALECT)
-                .derive(ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "jooq", jooqConfiguration.getExecutorPoolSize()));
+                .derive(new SpectatorJooqExecuteListener(
+                        titusRuntime.getRegistry().createId("titus.jooq.executorListener"),
+                        titusRuntime
+                ));
+        if (jooqConfiguration.isOwnExecutorPool()) {
+            config = config.derive(ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "jooq", jooqConfiguration.getExecutorPoolSize()));
+        }
         this.dslContext = new DefaultDSLContext(config);
     }
 
