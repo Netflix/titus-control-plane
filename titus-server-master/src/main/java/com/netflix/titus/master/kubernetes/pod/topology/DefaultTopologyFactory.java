@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -34,6 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.common.util.RegExpExt;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
@@ -50,11 +52,13 @@ public class DefaultTopologyFactory implements TopologyFactory {
 
 
     private final KubePodConfiguration configuration;
+    private final FeatureActivationConfiguration features;
     private final Function<String, Matcher> jobsWithNoSpreadingMatcher;
 
     @Inject
-    public DefaultTopologyFactory(KubePodConfiguration configuration) {
+    public DefaultTopologyFactory(KubePodConfiguration configuration, FeatureActivationConfiguration features) {
         this.configuration = configuration;
+        this.features = features;
 
         this.jobsWithNoSpreadingMatcher = RegExpExt.dynamicMatcher(configuration::getDisabledJobSpreadingPattern,
                 "disabledJobSpreadingPattern", Pattern.DOTALL, logger);
@@ -104,7 +108,7 @@ public class DefaultTopologyFactory implements TopologyFactory {
     }
 
     /**
-     * Spreading is by default enabled for service jobs and disabled for batch jobs.
+     * Spreading is by default enabled for service jobs and disabled for batch jobs or jobs binpacked for relocation.
      */
     private boolean isJobSpreadingEnabled(Job<?> job) {
         if (jobsWithNoSpreadingMatcher.apply(job.getJobDescriptor().getApplicationName()).matches()) {
@@ -114,10 +118,14 @@ public class DefaultTopologyFactory implements TopologyFactory {
             return false;
         }
         String spreadingEnabledAttr = job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SPREADING_ENABLED);
-        if (spreadingEnabledAttr == null) {
-            return isServiceJob(job);
+        if (spreadingEnabledAttr != null) {
+            return Boolean.parseBoolean(spreadingEnabledAttr);
         }
-        return Boolean.parseBoolean(spreadingEnabledAttr);
+        if (features.isRelocationBinpackingEnabled() && JobManagerUtil.getRelocationBinpackMode(job).isPresent()) {
+            // by default do not spread jobs that are marked for binpacking due to relocation
+            return false;
+        }
+        return isServiceJob(job);
     }
 
     /**

@@ -19,12 +19,15 @@ package com.netflix.titus.master.kubernetes.pod.topology;
 import java.util.Collections;
 import java.util.List;
 
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
@@ -50,13 +53,15 @@ public class DefaultTopologyFactoryTest {
     );
 
     private final KubePodConfiguration configuration = mock(KubePodConfiguration.class);
+    private final FeatureActivationConfiguration features = mock(FeatureActivationConfiguration.class);
 
     private TopologyFactory topologyFactory;
 
     @Before
     public void setUp() throws Exception {
-        topologyFactory = new DefaultTopologyFactory(configuration);
+        topologyFactory = new DefaultTopologyFactory(configuration, features);
         when(configuration.getDisabledJobSpreadingPattern()).thenReturn("NONE");
+        when(features.isRelocationBinpackingEnabled()).thenReturn(true);
     }
 
     @Test
@@ -118,6 +123,16 @@ public class DefaultTopologyFactoryTest {
         assertThat(topologyFactory.buildTopologySpreadConstraints(job)).hasSize(1);
 
         when(configuration.getDisabledJobSpreadingPattern()).thenReturn(".*");
+        assertThat(topologyFactory.buildTopologySpreadConstraints(job)).isEmpty();
+    }
+
+    @Test
+    public void jobSpreadingDisabledWhenBinpackingForRelocation() {
+        JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(
+                jd -> jd.getDisruptionBudget().toBuilder()
+                        .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+        );
+        Job<ServiceJobExt> job = JobGenerator.serviceJobs(jobDescriptor).getValue();
         assertThat(topologyFactory.buildTopologySpreadConstraints(job)).isEmpty();
     }
 
