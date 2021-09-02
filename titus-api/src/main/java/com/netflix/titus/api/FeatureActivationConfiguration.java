@@ -54,4 +54,10 @@ public interface FeatureActivationConfiguration {
      */
     @DefaultValue("false")
     boolean isKubeSchedulerEnabled();
+
+    /**
+     * Enable binpacking of tasks based on how hard they are to relocate
+     */
+    @DefaultValue("true")
+    boolean isRelocationBinpackingEnabled();
 }
