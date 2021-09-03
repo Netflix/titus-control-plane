@@ -47,6 +47,7 @@ import com.netflix.titus.api.appscale.store.mixin.PredefinedMetricSpecificationM
 import com.netflix.titus.api.appscale.store.mixin.StepAdjustmentMixIn;
 import com.netflix.titus.api.appscale.store.mixin.StepScalingPolicyConfigurationMixIn;
 import com.netflix.titus.api.appscale.store.mixin.TargetTrackingPolicyMixin;
+import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -94,6 +95,7 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.store.mixin.AvailabilityPercentageLimitDisruptionBudgetPolicyMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.BasicContainerMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.BatchJobExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.BatchJobTaskMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.CapacityMixin;
@@ -271,6 +273,7 @@ public class ObjectMappers {
         objectMapper.addMixIn(ContainerResources.class, ContainerResourcesMixin.class);
         objectMapper.addMixIn(SecurityProfile.class, SecurityProfileMixin.class);
         objectMapper.addMixIn(Container.class, ContainerMixin.class);
+        objectMapper.addMixIn(BasicContainer.class, BasicContainerMixin.class);
         objectMapper.addMixIn(Image.class, ImageMixin.class);
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
         objectMapper.addMixIn(NetworkConfiguration.class, NetworkConfigurationMixin.class);

@@ -25,7 +25,9 @@ import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -54,6 +56,7 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
+import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Volume;
@@ -262,6 +265,24 @@ public class V0SpecPodFactoryTest {
         assertThat(pod.getMetadata().getLabels()).doesNotContainKey(KubeConstants.POD_LABEL_RELOCATION_BINPACK);
         V1Pod selfManagedPod = podFactory.buildV1Pod(selfManagedJob, task, true, false);
         assertThat(selfManagedPod.getMetadata().getLabels()).containsEntry(KubeConstants.POD_LABEL_RELOCATION_BINPACK, "SelfManaged");
+    }
+
+    @Test
+    public void multipleContainers() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        Image testImage = Image.newBuilder().withName("testImage").withDigest("123").build();
+        List<BasicContainer> extraContainers = Arrays.asList(
+                new BasicContainer("extraContainer1", testImage, null, null, new HashMap<>()),
+                new BasicContainer("extraContainer2", testImage, null, null, new HashMap<>())
+        );
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withExtraContainers(extraContainers).build()).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        List<V1Container> containers = pod.getSpec().getContainers();
+        // 3 containers here, 1 from the main container, 2 from the extras
+        assertThat(containers.size()).isEqualTo(1 + extraContainers.size());
     }
 
 }

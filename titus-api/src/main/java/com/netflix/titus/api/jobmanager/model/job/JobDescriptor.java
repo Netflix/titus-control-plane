@@ -17,6 +17,7 @@
 package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -82,6 +83,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     @Valid
     private final NetworkConfiguration networkConfiguration;
 
+    @CollectionInvariants
+    private final List<BasicContainer> extraContainers;
+
     @Valid
     private final E extensions;
 
@@ -93,6 +97,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                          Container container,
                          DisruptionBudget disruptionBudget,
                          NetworkConfiguration networkConfiguration,
+                         List<BasicContainer> extraContainers,
                          E extensions) {
         this.owner = owner;
         this.applicationName = applicationName;
@@ -114,6 +119,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         } else {
             this.networkConfiguration = networkConfiguration;
         }
+
+        if (extraContainers == null) { extraContainers = Collections.emptyList(); }
+        this.extraContainers = extraContainers;
     }
 
     /**
@@ -173,6 +181,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     public NetworkConfiguration getNetworkConfiguration() { return networkConfiguration; }
 
     /**
+     * Network configuration for a job
+     */
+    public List<BasicContainer> getExtraContainers() { return extraContainers; }
+
+    /**
      * Returns job type specific data.
      */
     public E getExtensions() {
@@ -196,12 +209,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 Objects.equals(container, that.container) &&
                 Objects.equals(disruptionBudget, that.disruptionBudget) &&
                 Objects.equals(networkConfiguration, that.networkConfiguration) &&
+                Objects.equals(extraContainers, that.extraContainers) &&
                 Objects.equals(extensions, that.extensions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extensions);
+        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, extensions);
     }
 
     @Override
@@ -215,6 +229,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 ", container=" + container +
                 ", disruptionBudget=" + disruptionBudget +
                 ", networkConfiguration=" + networkConfiguration +
+                ", extraContainers=" + extraContainers +
                 ", extensions=" + extensions +
                 '}';
     }
@@ -299,6 +314,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 .withContainer(jobDescriptor.getContainer())
                 .withDisruptionBudget(jobDescriptor.getDisruptionBudget())
                 .withNetworkConfiguration(jobDescriptor.getNetworkConfiguration())
+                .withExtraContainers(jobDescriptor.getExtraContainers())
                 .withExtensions(jobDescriptor.getExtensions());
     }
 
@@ -311,6 +327,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         private Container container;
         private DisruptionBudget disruptionBudget;
         private NetworkConfiguration networkConfiguration;
+        private List<BasicContainer> extraContainers;
         private E extensions;
 
         private Builder() {
@@ -356,6 +373,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             return this;
         }
 
+        public Builder<E> withExtraContainers(List<BasicContainer> extraContainersList) {
+            this.extraContainers = extraContainersList;
+            return this;
+        }
+
         public Builder<E> withExtensions(E extensions) {
             this.extensions = extensions;
             return this;
@@ -375,7 +397,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         }
 
         public JobDescriptor<E> build() {
-            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extensions);
+            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, extensions);
             return jobDescriptor;
         }
     }

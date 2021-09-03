@@ -16,10 +16,12 @@
 
 package com.netflix.titus.api.jobmanager.store.mixin;
 
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
@@ -37,6 +39,7 @@ public abstract class JobDescriptorMixin {
                               @JsonProperty("container") Container container,
                               @JsonProperty("disruptionBudget") DisruptionBudget disruptionBudget,
                               @JsonProperty("networkConfiguration") NetworkConfiguration networkConfiguration,
-                              @JsonProperty("extensions") JobDescriptor.JobDescriptorExt extensions) {
+                              @JsonProperty("extraContainers") List<BasicContainer> extraContainers,
+                              @JsonProperty("extensions") JobDescriptor.JobDescriptorExt extensions){
     }
 }

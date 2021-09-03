@@ -18,13 +18,17 @@ package com.netflix.titus.master.kubernetes.pod.v0;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -57,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_DNS_POLICY;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_IMAGE_PULL_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.FENZO_SCHEDULER;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NEVER_RESTART_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_CPU;
@@ -132,6 +137,9 @@ public class V0SpecPodFactory implements PodFactory {
                 .env(toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
 
+        List<V1Container> extraContainers = buildV1ExtraContainers(job.getJobDescriptor().getExtraContainers());
+        List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
+
         String schedulerName = FENZO_SCHEDULER;
         if (useKubeScheduler) {
             ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
@@ -148,7 +156,7 @@ public class V0SpecPodFactory implements PodFactory {
 
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
-                .containers(Collections.singletonList(container))
+                .containers(allContainers)
                 .terminationGracePeriodSeconds(configuration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
@@ -203,5 +211,20 @@ public class V0SpecPodFactory implements PodFactory {
         limits.put(RESOURCE_NETWORK, network);
 
         return new V1ResourceRequirements().requests(requests).limits(limits);
+    }
+
+    private List<V1Container> buildV1ExtraContainers(List<BasicContainer> extraContainers) {
+        if (extraContainers == null) { return Collections.emptyList();};
+        return extraContainers.stream().map(this::buildV1ExtraContainers).collect(Collectors.toList());
+    }
+
+    private V1Container buildV1ExtraContainers(BasicContainer extraContainer) {
+        return new V1Container()
+                .name(extraContainer.getName())
+                .command(extraContainer.getEntryPoint())
+                .args(extraContainer.getCommand())
+                .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), extraContainer.getImage()))
+                .env(toV1EnvVar(extraContainer.getEnv()))
+                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY);
     }
 }
