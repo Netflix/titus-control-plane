@@ -126,6 +126,7 @@ subprojects {
         cassandraUnitVersion = '3.1.1.0'
         mockServerVersion = '3.10.4'
         javaslangVersion = '2.0.6'
+        jnaVersion = '5.9+'
     }
 
     tasks.withType(JavaCompile) {
@@ -167,8 +168,8 @@ subprojects {
         testCompile "org.hamcrest:hamcrest-core:${hamcrestVersion}"
         testCompile "com.jayway.awaitility:awaitility:${awaitilityVersion}"
         testCompile "io.projectreactor:reactor-test:${springReactor}"
-
         testCompile "org.assertj:assertj-core:${assertjVersion}"
+        testCompile "net.java.dev.jna:jna:${jnaVersion}"
     }
 
     def processorTarget = Runtime.runtime.availableProcessors().intdiv(2) ?: 1

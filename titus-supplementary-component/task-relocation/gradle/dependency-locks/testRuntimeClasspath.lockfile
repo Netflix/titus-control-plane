@@ -178,7 +178,7 @@ junit:junit:4.13
 log4j:log4j:1.2.17
 net.bytebuddy:byte-buddy-agent:1.10.5
 net.bytebuddy:byte-buddy:1.10.5
-net.java.dev.jna:jna:4.1.0
+net.java.dev.jna:jna:5.9.0
 net.jpountz.lz4:lz4:1.3.0
 net.minidev:accessors-smart:1.2
 net.minidev:json-smart:2.3

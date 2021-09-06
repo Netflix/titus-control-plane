@@ -20,6 +20,7 @@ junit:junit-dep:4.11
 junit:junit:4.11
 net.bytebuddy:byte-buddy-agent:1.10.5
 net.bytebuddy:byte-buddy:1.10.5
+net.java.dev.jna:jna:5.9.0
 org.assertj:assertj-core:3.8.0
 org.checkerframework:checker-qual:2.0.0
 org.codehaus.mojo:animal-sniffer-annotations:1.14
