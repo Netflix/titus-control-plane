@@ -149,11 +149,6 @@ public final class JobAttributes {
     public static final String JOB_PARAMETER_RESOURCE_POOLS = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "resourcePools";
 
     /**
-     * Request that a job is not migrated to KubeScheduler.
-     */
-    public static final String JOB_PARAMETER_NO_KUBE_SCHEDULER_MIGRATION = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "noKubeSchedulerMigration";
-
-    /**
      * Informs a job intent to allow containers that are running on bad agents to be terminated
      */
     public static final String JOB_PARAMETER_TERMINATE_ON_BAD_AGENT = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "terminateContainerOnBadAgent";

@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
@@ -54,9 +53,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
-import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import org.apache.mesos.Protos;
 
@@ -282,13 +279,6 @@ public final class JobManagerUtil {
         }
 
         return Optional.empty();
-    }
-
-    public static boolean shouldAssignToKubeScheduler(Job job,
-                                                      ApplicationSLA capacityGroupDescriptor,
-                                                      KubePodConfiguration kubePodConfiguration,
-                                                      Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate) {
-        return KubeUtil.findFarzoneId(kubePodConfiguration, job).isPresent() || kubeSchedulerPredicate.test(Pair.of(job.getJobDescriptor(), capacityGroupDescriptor));
     }
 
     private static Optional<String> findAttribute(Map<String, Protos.Attribute> attributes, String name) {

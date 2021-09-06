@@ -75,7 +75,7 @@ import rx.schedulers.TestScheduler;
 import static com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder.RECONCILER_ACTIVE_TIMEOUT_MS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
+public class JobScenarioBuilder {
 
     static final CallMetadata CHANGE_CAPACITY_CALL_METADATA = CallMetadata.newBuilder()
             .withCallers(Collections.singletonList(Caller.newBuilder()
@@ -141,28 +141,28 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return kubeScheduler;
     }
 
-    public JobScenarioBuilder<E> enableKubeIntegration(boolean enabled) {
+    public JobScenarioBuilder enableKubeIntegration(boolean enabled) {
         kubeApiServerIntegrator.enableKubeIntegration(enabled);
         return this;
     }
 
-    public JobScenarioBuilder<E> advance() {
+    public JobScenarioBuilder advance() {
         testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
     }
 
-    public JobScenarioBuilder<E> andThen(Runnable action) {
+    public JobScenarioBuilder andThen(Runnable action) {
         action.run();
         return this;
     }
 
-    public JobScenarioBuilder<E> expectVersionsOrdered() {
+    public JobScenarioBuilder expectVersionsOrdered() {
         expectJobVersionsOrdered();
         expectTaskVersionsOrdered();
         return this;
     }
 
-    public JobScenarioBuilder<E> expectJobVersionsOrdered() {
+    public JobScenarioBuilder expectJobVersionsOrdered() {
         List<Job> revisions = jobStore.getJobRevisions(jobId);
         Job last = revisions.get(0);
         for (int i = 1; i < revisions.size(); i++) {
@@ -172,7 +172,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskVersionsOrdered() {
+    public JobScenarioBuilder expectTaskVersionsOrdered() {
         Map<String, List<Task>> taskGroups = jobStore.getTaskRevisions(jobId);
         taskGroups.forEach((originalId, list) -> {
             Task last = list.get(0);
@@ -184,7 +184,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectFailure(Callable<?> action, Consumer<Throwable> errorEvaluator) {
+    public JobScenarioBuilder expectFailure(Callable<?> action, Consumer<Throwable> errorEvaluator) {
         try {
             action.call();
             throw new IllegalStateException("Expected action to fail");
@@ -194,7 +194,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> advance(long time, TimeUnit timeUnit) {
+    public JobScenarioBuilder advance(long time, TimeUnit timeUnit) {
         long timeMs = timeUnit.toMillis(time);
         long steps = timeMs / RECONCILER_ACTIVE_TIMEOUT_MS;
         if (steps > 0) {
@@ -206,7 +206,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> inActiveTasks(BiFunction<Integer, Integer, Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>>> templateFun) {
+    public JobScenarioBuilder inActiveTasks(BiFunction<Integer, Integer, Function<JobScenarioBuilder, JobScenarioBuilder>> templateFun) {
         List<Task> activeTasks = jobOperations.getTasks(jobId);
         activeTasks.forEach(task -> {
             if (task instanceof BatchJobTask) {
@@ -221,48 +221,48 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> inTask(int taskIdx, int resubmit, Consumer<Task> consumer) {
+    public JobScenarioBuilder inTask(int taskIdx, int resubmit, Consumer<Task> consumer) {
         consumer.accept(findTaskInActiveState(taskIdx, resubmit));
         return this;
     }
 
-    public JobScenarioBuilder<E> allActiveTasks(Consumer<Task> consumer) {
+    public JobScenarioBuilder allActiveTasks(Consumer<Task> consumer) {
         List<Task> activeTasks = jobOperations.getTasks(jobId);
         activeTasks.forEach(consumer);
         return this;
     }
 
-    public JobScenarioBuilder<E> allTasks(Consumer<List<Task>> templateFun) {
+    public JobScenarioBuilder allTasks(Consumer<List<Task>> templateFun) {
         templateFun.accept(jobOperations.getTasks(jobId));
         return this;
     }
 
-    public JobScenarioBuilder<E> inAllTasks(Collection<Task> tasks, BiFunction<Integer, Integer, JobScenarioBuilder<E>> templateFun) {
+    public JobScenarioBuilder inAllTasks(Collection<Task> tasks, BiFunction<Integer, Integer, JobScenarioBuilder> templateFun) {
         tasks.forEach(task -> templateFun.apply(jobStore.getIndex(task.getId()), task.getResubmitNumber()));
         return this;
     }
 
-    public JobScenarioBuilder<E> firstTaskMatch(Predicate<Task> predicate, Consumer<Task> consumer) {
+    public JobScenarioBuilder firstTaskMatch(Predicate<Task> predicate, Consumer<Task> consumer) {
         Task task = jobOperations.getTasks(jobId).stream().filter(predicate).findFirst().orElseThrow(() -> new IllegalStateException("No task matches the given predicate"));
         consumer.accept(task);
         return this;
     }
 
-    public JobScenarioBuilder<E> template(Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> templateFun) {
+    public JobScenarioBuilder template(Function<JobScenarioBuilder, JobScenarioBuilder> templateFun) {
         return templateFun.apply(this);
     }
 
-    public JobScenarioBuilder<E> ignoreAvailableEvents() {
+    public JobScenarioBuilder ignoreAvailableEvents() {
         jobEventsSubscriber.ignoreAvailableEvents();
         storeEventsSubscriber.ignoreAvailableEvents();
         return this;
     }
 
-    public JobScenarioBuilder<E> changeCapacity(int min, int desired, int max) {
+    public JobScenarioBuilder changeCapacity(int min, int desired, int max) {
         return changeCapacity(Capacity.newBuilder().withMin(min).withDesired(desired).withMax(max).build());
     }
 
-    public JobScenarioBuilder<E> changeCapacity(Capacity newCapacity) {
+    public JobScenarioBuilder changeCapacity(Capacity newCapacity) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         CapacityAttributes capacityAttributes = JobModel.newCapacityAttributes(newCapacity).build();
         jobOperations.updateJobCapacityAttributes(jobId, capacityAttributes, CHANGE_CAPACITY_CALL_METADATA).subscribe(subscriber);
@@ -270,7 +270,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> changeJobEnabledStatus(boolean enabled) {
+    public JobScenarioBuilder changeJobEnabledStatus(boolean enabled) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.updateJobStatus(jobId, enabled, callMetadata).subscribe(subscriber);
 
@@ -279,7 +279,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> changServiceJobProcesses(ServiceJobProcesses processes) {
+    public JobScenarioBuilder changServiceJobProcesses(ServiceJobProcesses processes) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.updateServiceJobProcesses(jobId, processes, callMetadata).subscribe(subscriber);
 
@@ -288,7 +288,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> changeDisruptionBudget(DisruptionBudget disruptionBudget) {
+    public JobScenarioBuilder changeDisruptionBudget(DisruptionBudget disruptionBudget) {
         TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
         jobOperations.updateJobDisruptionBudget(jobId, disruptionBudget, callMetadata).subscribe(subscriber);
 
@@ -297,7 +297,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> killJob() {
+    public JobScenarioBuilder killJob() {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.killJob(jobId, "Testing", callMetadata).subscribe(subscriber);
 
@@ -306,7 +306,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> killTask(Task task, Trigger trigger) {
+    public JobScenarioBuilder killTask(Task task, Trigger trigger) {
         TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
         jobOperations.killTask(task.getId(), false, false, trigger, callMetadata).subscribe(subscriber);
 
@@ -315,15 +315,15 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit, Trigger trigger) {
+    public JobScenarioBuilder killTask(int taskIdx, int resubmit, Trigger trigger) {
         return killTask(findTaskInActiveState(taskIdx, resubmit), trigger);
     }
 
-    public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit) {
+    public JobScenarioBuilder killTask(int taskIdx, int resubmit) {
         return killTask(taskIdx, resubmit, Trigger.API);
     }
 
-    public JobScenarioBuilder<E> killTaskAndShrink(Task task) {
+    public JobScenarioBuilder killTaskAndShrink(Task task) {
         TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
         jobOperations.killTask(task.getId(), true, false, Trigger.API, callMetadata).subscribe(subscriber);
 
@@ -332,17 +332,17 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> killTaskAndShrinkNoWait(Task task) {
+    public JobScenarioBuilder killTaskAndShrinkNoWait(Task task) {
         TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
         jobOperations.killTask(task.getId(), true, false, Trigger.API, callMetadata).subscribe(subscriber);
         return this;
     }
 
-    public JobScenarioBuilder<E> killTaskAndShrink(int taskIdx, int resubmit) {
+    public JobScenarioBuilder killTaskAndShrink(int taskIdx, int resubmit) {
         return killTaskAndShrink(findTaskInActiveState(taskIdx, resubmit));
     }
 
-    public JobScenarioBuilder<E> moveTask(int taskIdx, int resubmit, String sourceJobId, String targetJobId) {
+    public JobScenarioBuilder moveTask(int taskIdx, int resubmit, String sourceJobId, String targetJobId) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
 
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
@@ -353,19 +353,19 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> failNextPodCreate(RuntimeException simulatedError) {
+    public JobScenarioBuilder failNextPodCreate(RuntimeException simulatedError) {
         kubeApiServerIntegrator.failNextTaskLaunch(simulatedError);
         return this;
     }
 
-    public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
+    public JobScenarioBuilder assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
         Job<?> job = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalStateException("Unknown job: " + jobId));
         assertThat(JobFunctions.isServiceJob(job)).describedAs("Not a service job: %s", jobId).isTrue();
         serviceJob.accept((Job<ServiceJobExt>) job);
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskInActiveState(int taskIdx, int resubmit, TaskState taskState) {
+    public JobScenarioBuilder expectTaskInActiveState(int taskIdx, int resubmit, TaskState taskState) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
         assertThat(task.getStatus().getState()).isEqualTo(taskState);
 
@@ -381,24 +381,24 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return task;
     }
 
-    public JobScenarioBuilder<E> expectJobEvent() {
+    public JobScenarioBuilder expectJobEvent() {
         return expectJobEvent(job -> {
         });
     }
 
-    public JobScenarioBuilder<E> expectNoJobStateChangeEvent() {
+    public JobScenarioBuilder expectNoJobStateChangeEvent() {
         JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNextJobEvent);
         assertThat(event).isNull();
         return this;
     }
 
-    public JobScenarioBuilder<ServiceJobExt> expectServiceJobEvent(Consumer<Job<ServiceJobExt>> check) {
+    public JobScenarioBuilder expectServiceJobEvent(Consumer<Job<ServiceJobExt>> check) {
         Preconditions.checkState(!batchJob, "Service job expected");
         Consumer checkNoTypeParam = check;
         return expectJobEvent(checkNoTypeParam);
     }
 
-    public JobScenarioBuilder<E> expectJobUpdateEventObject(Consumer<JobUpdateEvent> check) {
+    public JobScenarioBuilder expectJobUpdateEventObject(Consumer<JobUpdateEvent> check) {
         JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNextJobEvent);
         assertThat(event).describedAs("No job update event for job: %s", jobId).isNotNull();
         assertThat(event).isInstanceOf(JobUpdateEvent.class);
@@ -406,7 +406,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectJobEvent(Consumer<Job<?>> check) {
+    public JobScenarioBuilder expectJobEvent(Consumer<Job<?>> check) {
         expectJobUpdateEventObject(jobUpdateEvent -> {
             assertThat(jobUpdateEvent.getCurrent().getId()).isEqualTo(jobId);
             check.accept(jobUpdateEvent.getCurrent());
@@ -431,13 +431,13 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return taskUpdateEvent;
     }
 
-    public JobScenarioBuilder<E> expectTaskEvent(int taskIdx, int resubmit, Consumer<TaskUpdateEvent> validator) {
+    public JobScenarioBuilder expectTaskEvent(int taskIdx, int resubmit, Consumer<TaskUpdateEvent> validator) {
         TaskUpdateEvent event = expectTaskEvent(taskIdx, resubmit);
         validator.accept(event);
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState) {
+    public JobScenarioBuilder expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState) {
         TaskUpdateEvent event = expectTaskEvent(taskIdx, resubmit);
 
         TaskStatus status = event.getCurrent().getStatus();
@@ -446,7 +446,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState, String reasonCode) {
+    public JobScenarioBuilder expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState, String reasonCode) {
         TaskUpdateEvent event = expectTaskEvent(taskIdx, resubmit);
 
         TaskStatus status = event.getCurrent().getStatus();
@@ -456,13 +456,13 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectNoTaskStateChangeEvent() {
+    public JobScenarioBuilder expectNoTaskStateChangeEvent() {
         JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNextTaskEvent);
         assertThat(event).isNull();
         return this;
     }
 
-    public JobScenarioBuilder<E> expectScheduleRequest(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectScheduleRequest(int taskIdx, int resubmit) {
         Task task = jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
 
         if (kubeScheduler) {
@@ -480,13 +480,13 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectServiceJobUpdatedInStore(Consumer<Job<ServiceJobExt>> check) {
+    public JobScenarioBuilder expectServiceJobUpdatedInStore(Consumer<Job<ServiceJobExt>> check) {
         Preconditions.checkState(!batchJob, "Service job expected");
         Consumer checkNoTypeParam = check;
         return expectJobUpdatedInStore(checkNoTypeParam);
     }
 
-    public JobScenarioBuilder<E> expectJobUpdatedInStore(Consumer<Job<?>> check) {
+    public JobScenarioBuilder expectJobUpdatedInStore(Consumer<Job<?>> check) {
         Pair<StoreEvent, ?> storeEventPair = autoAdvance((storeEventsSubscriber::takeNextJobStoreEvent));
         assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.JobUpdated);
 
@@ -496,48 +496,48 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectJobArchivedInStore() {
+    public JobScenarioBuilder expectJobArchivedInStore() {
         Pair<StoreEvent, ?> storeEventPair = storeEventsSubscriber.takeNextJobStoreEvent();
         assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.JobRemoved);
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskAddedToStore(int taskIdx, int resubmit, Consumer<Task> check) {
+    public JobScenarioBuilder expectTaskAddedToStore(int taskIdx, int resubmit, Consumer<Task> check) {
         Task task = expectTaskEvent(taskIdx, resubmit, StoreEvent.TaskAdded);
         check.accept(task);
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskUpdatedInStore(int taskIdx, int resubmit, Consumer<Task> check) {
+    public JobScenarioBuilder expectTaskUpdatedInStore(int taskIdx, int resubmit, Consumer<Task> check) {
         Task task = expectTaskEvent(taskIdx, resubmit, StoreEvent.TaskUpdated);
         check.accept(task);
         return this;
     }
 
-    public JobScenarioBuilder<E> expectedTaskArchivedInStore(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectedTaskArchivedInStore(int taskIdx, int resubmit) {
         expectTaskEvent(taskIdx, resubmit, StoreEvent.TaskRemoved);
         return this;
     }
 
-    public JobScenarioBuilder<E> expectNoStoreUpdate(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectNoStoreUpdate(int taskIdx, int resubmit) {
         Pair<StoreEvent, ?> event = autoAdvance(() -> storeEventsSubscriber.takeNextTaskStoreEvent(taskIdx, resubmit));
         assertThat(event).isNull();
         return this;
     }
 
-    public JobScenarioBuilder<E> expectNoStoreUpdate() {
+    public JobScenarioBuilder expectNoStoreUpdate() {
         Pair<StoreEvent, ?> event = autoAdvance(storeEventsSubscriber::takeNext);
         assertThat(event).isNull();
         return this;
     }
 
-    public JobScenarioBuilder<E> expectPodTerminated(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectPodTerminated(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
         assertThat(kubeApiServerIntegrator.getPods().get(task.getId())).describedAs("Expected not to find task in Kube").isNull();
         return this;
     }
 
-    public JobScenarioBuilder<E> expectMesosTaskKill(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectMesosTaskKill(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
         Pair<StubbedVirtualMachineMasterService.MesosEvent, String> mesosEvent = mesosEventsSubscriber.takeNextMesosEvent(taskIdx, resubmit);
         assertThat(mesosEvent).describedAs("Expected task kill sent to Mesos").isNotNull();
@@ -546,13 +546,13 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectNoMesosEvent() {
+    public JobScenarioBuilder expectNoMesosEvent() {
         Pair<StubbedVirtualMachineMasterService.MesosEvent, String> event = autoAdvance(mesosEventsSubscriber::takeNext);
         assertThat(event).isNull();
         return this;
     }
 
-    public JobScenarioBuilder<E> triggerSchedulerLaunchEvent(int taskIdx, int resubmit) {
+    public JobScenarioBuilder triggerSchedulerLaunchEvent(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
 
         Function<Task, Task> changeFunction = JobManagerUtil.newTaskLaunchConfigurationUpdater(
@@ -578,7 +578,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> triggerFailingSchedulerLaunchEvent(int taskIdx, int resubmit, Consumer<Throwable> assertFun) {
+    public JobScenarioBuilder triggerFailingSchedulerLaunchEvent(int taskIdx, int resubmit, Consumer<Throwable> assertFun) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
 
         Function<Task, Task> changeFunction = JobManagerUtil.newTaskLaunchConfigurationUpdater(
@@ -605,41 +605,41 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> triggerMesosLaunchEvent(int taskIdx, int resubmit) {
+    public JobScenarioBuilder triggerMesosLaunchEvent(int taskIdx, int resubmit) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Launched, "Task launched", 0);
     }
 
-    public JobScenarioBuilder<E> triggerMesosStartInitiatedEvent(int taskIdx, int resubmit) {
+    public JobScenarioBuilder triggerMesosStartInitiatedEvent(int taskIdx, int resubmit) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.StartInitiated, "Starting container", 0);
     }
 
-    public JobScenarioBuilder<E> triggerMesosStartedEvent(int taskIdx, int resubmit) {
+    public JobScenarioBuilder triggerMesosStartedEvent(int taskIdx, int resubmit) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Started, "Task started", 0);
     }
 
-    public JobScenarioBuilder<E> triggerMesosFinishedEvent(int taskIdx, int resubmit) {
+    public JobScenarioBuilder triggerMesosFinishedEvent(int taskIdx, int resubmit) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, TaskStatus.REASON_NORMAL, 0);
     }
 
-    public JobScenarioBuilder<E> triggerMesosFinishedEvent(Task task, int errorCode, String reasonCode) {
+    public JobScenarioBuilder triggerMesosFinishedEvent(Task task, int errorCode, String reasonCode) {
         return triggerMesosEvent(task, TaskState.Finished, reasonCode, errorCode);
     }
 
-    public JobScenarioBuilder<E> triggerMesosFinishedEvent(int taskIdx, int resubmit, int errorCode, String reasonCode) {
+    public JobScenarioBuilder triggerMesosFinishedEvent(int taskIdx, int resubmit, int errorCode, String reasonCode) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, reasonCode, errorCode);
     }
 
-    public JobScenarioBuilder<E> breakStore() {
+    public JobScenarioBuilder breakStore() {
         jobStore.setStoreState(StubbedJobStore.StoreState.Broken);
         return this;
     }
 
-    public JobScenarioBuilder<E> slowStore() {
+    public JobScenarioBuilder slowStore() {
         jobStore.setStoreState(StubbedJobStore.StoreState.Slow);
         return this;
     }
 
-    public JobScenarioBuilder<E> enableStore() {
+    public JobScenarioBuilder enableStore() {
         jobStore.setStoreState(StubbedJobStore.StoreState.Normal);
         return this;
     }
@@ -661,12 +661,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return task;
     }
 
-    private JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, int resubmit, TaskState taskState, String reason, int errorCode) {
+    private JobScenarioBuilder triggerMesosEvent(int taskIdx, int resubmit, TaskState taskState, String reason, int errorCode) {
         Task task = jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
         return triggerMesosEvent(task, taskState, reason, errorCode);
     }
 
-    private JobScenarioBuilder<E> triggerMesosEvent(Task task, TaskState taskState, String reason, int errorCode) {
+    private JobScenarioBuilder triggerMesosEvent(Task task, TaskState taskState, String reason, int errorCode) {
         String reasonMessage;
         if (taskState == TaskState.Finished) {
             reasonMessage = errorCode == 0 ? "Completed successfully" : "Container terminated with an error " + errorCode;
@@ -700,7 +700,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> modifyJobStoreRecord(Function<Job, Job> transformer) {
+    public JobScenarioBuilder modifyJobStoreRecord(Function<Job, Job> transformer) {
         Job<?> storedJob = jobStore.retrieveJob(jobId).toBlocking().first();
         Job updatedJob = VersionSuppliers.nextVersion(transformer.apply(storedJob), versionSupplier);
         assertThat(jobStore.updateJob(updatedJob).get()).isNull();

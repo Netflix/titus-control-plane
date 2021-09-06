@@ -138,7 +138,7 @@ public class JobRateLimitingTest {
         );
     }
 
-    private <E extends JobDescriptorExt> void acceptAndStartNewPartition(JobScenarioBuilder<E> jobScenario, List<Task> tasks) {
+    private <E extends JobDescriptorExt> void acceptAndStartNewPartition(JobScenarioBuilder jobScenario, List<Task> tasks) {
         jobScenario.inAllTasks(filterActiveTasks(tasks, JobsScenarioBuilder.ACTIVE_NOT_STARTED_TASKS_LIMIT), (taskIdx, resubmit) ->
                 jobScenario
                         .template(ScenarioTemplates.acceptTask(taskIdx, resubmit))
@@ -146,7 +146,7 @@ public class JobRateLimitingTest {
         );
     }
 
-    private <E extends JobDescriptorExt> void acceptAndFailNewPartition(JobScenarioBuilder<E> jobScenario, List<Task> tasks) {
+    private <E extends JobDescriptorExt> void acceptAndFailNewPartition(JobScenarioBuilder jobScenario, List<Task> tasks) {
         jobScenario.inAllTasks(filterActiveTasks(tasks, JobsScenarioBuilder.ACTIVE_NOT_STARTED_TASKS_LIMIT), (taskIdx, resubmit) ->
                 jobScenario
                         .template(ScenarioTemplates.acceptTask(taskIdx, resubmit))
@@ -154,7 +154,7 @@ public class JobRateLimitingTest {
         );
     }
 
-    private <E extends JobDescriptorExt> void startNewBatch(JobScenarioBuilder<E> jobScenario, List<Task> tasks) {
+    private <E extends JobDescriptorExt> void startNewBatch(JobScenarioBuilder jobScenario, List<Task> tasks) {
         jobScenario.inAllTasks(filterActiveTasks(tasks, JobsScenarioBuilder.ACTIVE_NOT_STARTED_TASKS_LIMIT), (taskIdx, resubmit) ->
                 jobScenario
                         .template(ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))

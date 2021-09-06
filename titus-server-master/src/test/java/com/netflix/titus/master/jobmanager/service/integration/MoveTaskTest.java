@@ -19,12 +19,12 @@ package com.netflix.titus.master.jobmanager.service.integration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder;
@@ -80,7 +80,7 @@ public class MoveTaskTest {
     @Test
     public void testMoveWithInvalidTargetJob() {
         JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
+        JobScenarioBuilder sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
         String targetJobId = startNewJob(oneTaskBatchJobDescriptor()).getJobId();
 
@@ -94,7 +94,7 @@ public class MoveTaskTest {
     @Test
     public void testMoveWithIncompatibleTargetJob() {
         JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
+        JobScenarioBuilder sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
         JobDescriptor<ServiceJobExt> incompatible = jobDescriptor.but(descriptor ->
                 descriptor.getContainer().but(container -> container.getImage().toBuilder()
@@ -116,7 +116,7 @@ public class MoveTaskTest {
     public void testMoveWithStoreUpdateFailure() {
         JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
         String targetJobId = startNewJob(jobDescriptor).getJobId();
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
+        JobScenarioBuilder sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
 
         try {
@@ -135,7 +135,7 @@ public class MoveTaskTest {
     @Test
     public void testMoveTimeout() {
         JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
+        JobScenarioBuilder sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
         String targetJobId = startNewJob(jobDescriptor).getJobId();
 
@@ -153,11 +153,11 @@ public class MoveTaskTest {
                 });
     }
 
-    private <E extends JobDescriptor.JobDescriptorExt> JobScenarioBuilder<E> startNewJob(JobDescriptor<E> jobDescriptor) {
+    private <E extends JobDescriptor.JobDescriptorExt> JobScenarioBuilder startNewJob(JobDescriptor<E> jobDescriptor) {
         jobsScenarioBuilder.scheduleJob(jobDescriptor, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
         );
-        return (JobScenarioBuilder<E>) CollectionsExt.last(jobsScenarioBuilder.getJobScenarios());
+        return CollectionsExt.last(jobsScenarioBuilder.getJobScenarios());
     }
 }
