@@ -114,6 +114,7 @@ class JobFeatureComplianceChecks {
     /**
      * A feature compliance is violated if there is a default accountId and subnets combination present in the {@link JobManagerConfiguration} for the deployment stack
      * but the container attributes in the {@link JobDescriptor} are missing one or both values.
+     *
      * @param jobManagerConfiguration {@link JobManagerConfiguration}
      * @return feature compliance evaluation
      */
