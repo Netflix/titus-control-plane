@@ -54,11 +54,11 @@ public class KubeSchedulerTest {
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
                 .advance()
-                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks(ScenarioTemplates::acceptTask)
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerMesosFinishedEvent(taskIdx, resubmit, 0))
                 .advance().advance()
-                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks(ScenarioTemplates::acceptTask)
                 .ignoreAvailableEvents()
                 .template(ScenarioTemplates.killJob())
                 .advance()
@@ -81,7 +81,7 @@ public class KubeSchedulerTest {
 
     @Test
     public void testBatchPodCreateFailure() {
-        JobScenarioBuilder<JobDescriptor.JobDescriptorExt> js = jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        JobScenarioBuilder js = jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .failNextPodCreate(new IllegalStateException("simulated pod create error"))
                 .expectJobEvent()
                 .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)

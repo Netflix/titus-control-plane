@@ -16,10 +16,7 @@
 
 package com.netflix.titus.runtime;
 
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -27,28 +24,15 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
-import com.netflix.titus.api.jobmanager.JobConstraints;
-import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.model.ApplicationSLA;
-import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
 import com.netflix.titus.common.util.feature.FeatureGuards;
-import com.netflix.titus.common.util.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
-import static com.netflix.titus.api.FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_AUTHORIZATION_FEATURE;
-import static com.netflix.titus.api.FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 
 public class FeatureFlagModule extends AbstractModule {
-
-    private static final Logger logger = LoggerFactory.getLogger(FeatureFlagModule.class);
 
     @Override
     protected void configure() {
@@ -129,119 +113,5 @@ public class FeatureFlagModule extends AbstractModule {
     @Named(JOB_AUTHORIZATION_FEATURE)
     public FeatureGuardWhiteListConfiguration getJobAuthorizationFeatureGuardConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + JOB_AUTHORIZATION_FEATURE);
-    }
-
-    /* *************************************************************************************************************
-     * Job activity history
-     *
-     * This change was introduced in Q1/2019.
-     */
-
-    @Provides
-    @Singleton
-    @Named(JOB_ACTIVITY_PUBLISH_FEATURE)
-    public Predicate<JobDescriptor> getJobActivityPublishFeaturePredicate(@Named(JOB_ACTIVITY_PUBLISH_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
-        return FeatureGuards.toPredicate(
-                FeatureGuards.fromField(
-                        JobDescriptor::getApplicationName,
-                        FeatureGuards.newWhiteListFromConfiguration(configuration).build()
-                )
-        );
-    }
-
-    @Provides
-    @Singleton
-    @Named(JOB_ACTIVITY_PUBLISH_FEATURE)
-    public FeatureGuardWhiteListConfiguration getJobActivityPublishFeatureGuardConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + JOB_ACTIVITY_PUBLISH_FEATURE);
-    }
-
-    /* *************************************************************************************************************
-     * Kube scheduler integration.
-     *
-     * This change was introduced in Q1/2020.
-     */
-
-    /**
-     * TODO Kube scheduler does not support jobs that require: static IPs
-     */
-    @Provides
-    @Singleton
-    @Named(KUBE_SCHEDULER_FEATURE)
-    public Predicate<Pair<JobDescriptor, ApplicationSLA>> getKubeSchedulerFeaturePredicate(ConfigProxyFactory factory) {
-        KubeSchedulerFeatureConfiguration configuration = factory.newProxy(KubeSchedulerFeatureConfiguration.class);
-
-        FeatureGuardWhiteListConfiguration applicationConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByApplication");
-        FeatureGuardWhiteListConfiguration capacityGroupConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByCapacityGroup");
-        FeatureGuardWhiteListConfiguration tierConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByTier");
-        FeatureGuardWhiteListConfiguration jobTypeConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByJobType");
-        FeatureGuardWhiteListConfiguration jobAttributeConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByJobAttribute");
-
-        Predicate<Pair<JobDescriptor, ApplicationSLA>> routingPredicate = FeatureGuards.toPredicate(
-                FeatureGuards.fromField(p -> p.getLeft().getApplicationName(), FeatureGuards.newWhiteListFromConfiguration(applicationConfiguration).build()),
-                FeatureGuards.fromField(p -> p.getRight().getAppName(), FeatureGuards.newWhiteListFromConfiguration(capacityGroupConfiguration).build()),
-                FeatureGuards.fromField(p -> p.getRight().getTier().name(), FeatureGuards.newWhiteListFromConfiguration(tierConfiguration).build()),
-                FeatureGuards.fromField(p -> JobFunctions.isServiceJob(p.getLeft()) ? "service" : "batch", FeatureGuards.newWhiteListFromConfiguration(jobTypeConfiguration).build()),
-                FeatureGuards.fromMap(p -> p.getLeft().getAttributes(), FeatureGuards.newWhiteListFromConfiguration(jobAttributeConfiguration).build())
-        );
-
-        Function<String, Matcher> enabledMachineTypes = RegExpExt.dynamicMatcher(configuration::getEnabledMachineTypes,
-                "titus.features.jobManager.kubeSchedulerFeature.enabledMachineTypes", Pattern.DOTALL, logger);
-
-        Function<String, Matcher> enabledStaticIpJobTiers = RegExpExt.dynamicMatcher(configuration::getEnabledStaticIpOverrideTiers,
-                "titus.features.jobManager.kubeSchedulerFeature.enabledStaticIpOverrideTiers", Pattern.DOTALL, logger);
-
-        Function<String, Matcher> enabledEbsJobTiers = RegExpExt.dynamicMatcher(configuration::getEnabledEbsVolumeOverrideTiers,
-                "titus.features.jobManager.kubeSchedulerFeature.enabledEbsVolumeOverrideTiers", Pattern.DOTALL, logger);
-
-        Function<String, Matcher> enabledOverrideTiers = RegExpExt.dynamicMatcher(configuration::getEnabledOverrideTiers,
-                "titus.features.jobManager.kubeSchedulerFeature.enabledOverrideTiers", Pattern.DOTALL, logger);
-
-        return p -> {
-            JobDescriptor<?> jobDescriptor = p.getLeft();
-            ApplicationSLA capacityGroup = p.getRight();
-            String tierName = capacityGroup.getTier().name();
-
-            ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
-
-            // Global tier based override for routing to Kube Scheduler
-            if (enabledOverrideTiers.apply(tierName).matches()) {
-                return true;
-            }
-
-            // GPU resources are no longer supported by Fenzo.
-            if (!configuration.isFenzoGpuEnabled() && resources.getGpu() > 0) {
-                return true;
-            }
-
-            // Check tier specific property to always route jobs with static IP addresses to Kube Scheduler
-            if (!CollectionsExt.isNullOrEmpty(resources.getSignedIpAddressAllocations()) && enabledStaticIpJobTiers.apply(tierName).matches()) {
-                return true;
-            }
-
-            // Check tier specific property to always route jobs with EBS Volumes to Kube Scheduler
-            if (!CollectionsExt.isNullOrEmpty(resources.getEbsVolumes()) && enabledEbsJobTiers.apply(tierName).matches()) {
-                return true;
-            }
-
-            // Job should not be scheduled by KubeScheduler
-            if (FeatureFlagUtil.isNoKubeSchedulerMigration(jobDescriptor)) {
-                return false;
-            }
-
-            if (capacityGroup != null && capacityGroup.getSchedulerName() != null) {
-                if (capacityGroup.getSchedulerName().toLowerCase().contains("kube")) {
-                    return true;
-                }
-            }
-
-            // Check if the machine type is enabled
-            String machineType = JobFunctions.findHardConstraint(jobDescriptor, JobConstraints.MACHINE_TYPE).orElse(null);
-            if (machineType != null && !enabledMachineTypes.apply(machineType).matches()) {
-                return false;
-            }
-
-            return routingPredicate.test(p);
-        };
     }
 }

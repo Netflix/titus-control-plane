@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -111,7 +110,7 @@ public class TaskRetryPolicyTest {
 
     private void batchRunAndFail(JobDescriptor<BatchJobExt> jobWithRetries, int[] delays, TimeUnit timeUnit) {
         int retryLimit = jobWithRetries.getExtensions().getRetryPolicy().getRetries();
-        JobScenarioBuilder<BatchJobExt> jobScenario = runJob(jobWithRetries);
+        JobScenarioBuilder jobScenario = runJob(jobWithRetries);
         failRetryableTask(delays, timeUnit, retryLimit);
         jobScenario.advance().template(ScenarioTemplates.failLastBatchRetryableTask(0, retryLimit));
     }
@@ -142,7 +141,7 @@ public class TaskRetryPolicyTest {
     }
 
     private void testRetryPolicyResetIfTaskInStartedStateLongEnough(JobDescriptor<?> jobWithRetries, int retryLimit) {
-        JobScenarioBuilder<?> jobScenario = runJob(jobWithRetries);
+        JobScenarioBuilder jobScenario = runJob(jobWithRetries);
         failRetryableTask(EXPONENTIAL_DELAYS_SEC, TimeUnit.SECONDS, retryLimit - 1);
 
         // Start the active task, and keep it running long enough to reset retryer
@@ -154,7 +153,7 @@ public class TaskRetryPolicyTest {
         jobScenario.template(ScenarioTemplates.failRetryableTask(0, retryLimit - 1, 0));
     }
 
-    private <E extends JobDescriptorExt> JobScenarioBuilder<E> runJob(JobDescriptor<E> job) {
+    private JobScenarioBuilder runJob(JobDescriptor<?> job) {
         jobsScenarioBuilder.scheduleJob(job, jobScenario -> jobScenario
                 .expectJobEvent()
                 .template(ScenarioTemplates.acceptTask(0, 0))
@@ -163,7 +162,7 @@ public class TaskRetryPolicyTest {
     }
 
     private void failRetryableTask(int[] delays, TimeUnit timeUnit, int retries) {
-        JobScenarioBuilder<BatchJobExt> jobScenario = jobsScenarioBuilder.getJobScenario(0);
+        JobScenarioBuilder jobScenario = jobsScenarioBuilder.getJobScenario(0);
         for (int i = 0; i < retries; i++) {
             int retryDelay = delays[i];
             jobScenario.template(ScenarioTemplates.failRetryableTask(0, i, timeUnit.toMillis(retryDelay)));
