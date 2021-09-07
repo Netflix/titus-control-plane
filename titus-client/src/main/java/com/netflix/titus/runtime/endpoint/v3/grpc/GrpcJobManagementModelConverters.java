@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -176,6 +177,7 @@ public final class GrpcJobManagementModelConverters {
                 .withNetworkConfiguration(toCoreNetworkConfiguration(grpcJobDescriptor.getNetworkConfiguration()))
                 .withAttributes(grpcJobDescriptor.getAttributesMap())
                 .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
+                .withExtraContainers(toCoreBasicContainers(grpcJobDescriptor.getExtraContainersList()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
                 .build();
 
@@ -353,6 +355,19 @@ public final class GrpcJobManagementModelConverters {
                 .withEntryPoint(grpcContainer.getEntryPointList())
                 .withCommand(grpcContainer.getCommandList())
                 .withAttributes(grpcContainer.getAttributesMap())
+                .build();
+    }
+
+    private static List<BasicContainer> toCoreBasicContainers(List<com.netflix.titus.grpc.protogen.BasicContainer> extraContainersList) {
+        return extraContainersList.stream().map(GrpcJobManagementModelConverters::toCoreBasicContainer).collect(Collectors.toList());
+    }
+
+    private static BasicContainer toCoreBasicContainer(com.netflix.titus.grpc.protogen.BasicContainer grpcBasicContainer) {
+        return BasicContainer.newBuilder()
+                .withName(grpcBasicContainer.getName())
+                .withImage(toCoreImage(grpcBasicContainer.getImage()))
+                .withEntryPoint(grpcBasicContainer.getEntryPointList())
+                .withCommand(grpcBasicContainer.getCommandList())
                 .build();
     }
 
@@ -943,6 +958,7 @@ public final class GrpcJobManagementModelConverters {
                 .setContainer(toGrpcContainer(jobDescriptor.getContainer()))
                 .setJobGroupInfo(toGrpcJobGroupInfo(jobDescriptor.getJobGroupInfo()))
                 .setDisruptionBudget(toGrpcDisruptionBudget(jobDescriptor.getDisruptionBudget()))
+                .addAllExtraContainers(toGrpcBasicContainers(jobDescriptor.getExtraContainers()))
                 .putAllAttributes(jobDescriptor.getAttributes());
 
         if (jobDescriptor.getExtensions() instanceof BatchJobExt) {
@@ -952,6 +968,20 @@ public final class GrpcJobManagementModelConverters {
         }
 
         return builder.build();
+    }
+
+    private static List<com.netflix.titus.grpc.protogen.BasicContainer> toGrpcBasicContainers(List<BasicContainer> extraContainers) {
+        return extraContainers.stream().map(GrpcJobManagementModelConverters::toGrpcBasicContainer).collect(Collectors.toList());
+    }
+
+    private static com.netflix.titus.grpc.protogen.BasicContainer toGrpcBasicContainer(BasicContainer basicContainer) {
+        return com.netflix.titus.grpc.protogen.BasicContainer.newBuilder()
+                .setName(basicContainer.getName())
+                .setImage(toGrpcImage(basicContainer.getImage()))
+                .addAllEntryPoint(basicContainer.getEntryPoint())
+                .addAllCommand(basicContainer.getCommand())
+                .putAllEnv(basicContainer.getEnv())
+                .build();
     }
 
     public static com.netflix.titus.grpc.protogen.JobStatus toGrpcJobStatus(JobStatus status) {

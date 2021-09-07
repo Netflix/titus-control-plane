@@ -22,12 +22,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -133,6 +136,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_STACK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
 @Singleton
 public class V1SpecPodFactory implements PodFactory {
@@ -216,6 +220,9 @@ public class V1SpecPodFactory implements PodFactory {
             container.setArgs(jobContainer.getCommand());
         }
 
+        List<V1Container> extraContainers = buildV1ExtraContainers(job.getJobDescriptor().getExtraContainers());
+        List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
+
         String schedulerName = FENZO_SCHEDULER;
         if (useKubeScheduler) {
             ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
@@ -228,7 +235,7 @@ public class V1SpecPodFactory implements PodFactory {
 
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
-                .containers(Collections.singletonList(container))
+                .containers(allContainers)
                 .terminationGracePeriodSeconds(configuration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
@@ -248,6 +255,21 @@ public class V1SpecPodFactory implements PodFactory {
         }
 
         return new V1Pod().metadata(metadata).spec(spec);
+    }
+
+    private List<V1Container> buildV1ExtraContainers(List<BasicContainer> extraContainers) {
+        if (extraContainers == null) { return Collections.emptyList();};
+        return extraContainers.stream().map(this::buildV1ExtraContainers).collect(Collectors.toList());
+    }
+
+    private V1Container buildV1ExtraContainers(BasicContainer extraContainer) {
+        return new V1Container()
+                .name(extraContainer.getName())
+                .command(extraContainer.getEntryPoint())
+                .args(extraContainer.getCommand())
+                .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), extraContainer.getImage()))
+                .env(toV1EnvVar(extraContainer.getEnv()))
+                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY);
     }
 
     @VisibleForTesting
