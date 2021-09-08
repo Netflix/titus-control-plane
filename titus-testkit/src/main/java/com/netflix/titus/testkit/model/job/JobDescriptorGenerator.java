@@ -202,6 +202,7 @@ public final class JobDescriptorGenerator {
                         .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(0).build())
                         .build()
                 )
+                .withExtraContainers(jobDescriptor.getExtraContainers())
                 .build();
     }
 

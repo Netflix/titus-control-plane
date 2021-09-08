@@ -62,9 +62,6 @@ public class NetworkConfiguration {
     public static final class Builder {
         private int networkMode;
 
-        private Builder() {
-        }
-
         public Builder withNetworkMode(int networkMode) {
             this.networkMode = networkMode;
             return this;

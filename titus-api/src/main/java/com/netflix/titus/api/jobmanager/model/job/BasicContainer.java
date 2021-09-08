@@ -115,9 +115,6 @@ public class BasicContainer {
         private List<String> command;
         private Map<String, String> env;
 
-        private Builder() {
-        }
-
         public Builder withName(String name) {
             this.name = name;
             return this;
@@ -156,5 +153,4 @@ public class BasicContainer {
             );
         }
     }
-
 }
