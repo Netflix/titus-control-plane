@@ -214,11 +214,11 @@ public class V0SpecPodFactory implements PodFactory {
     }
 
     private List<V1Container> buildV1ExtraContainers(List<BasicContainer> extraContainers) {
-        if (extraContainers == null) { return Collections.emptyList();};
-        return extraContainers.stream().map(this::buildV1ExtraContainers).collect(Collectors.toList());
+        if (extraContainers == null) { return Collections.emptyList();}
+        return extraContainers.stream().map(this::buildV1ExtraContainer).collect(Collectors.toList());
     }
 
-    private V1Container buildV1ExtraContainers(BasicContainer extraContainer) {
+    private V1Container buildV1ExtraContainer(BasicContainer extraContainer) {
         return new V1Container()
                 .name(extraContainer.getName())
                 .command(extraContainer.getEntryPoint())

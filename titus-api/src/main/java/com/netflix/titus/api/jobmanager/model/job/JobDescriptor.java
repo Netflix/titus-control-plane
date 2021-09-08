@@ -181,7 +181,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     public NetworkConfiguration getNetworkConfiguration() { return networkConfiguration; }
 
     /**
-     * Network configuration for a job
+     * Extra containers to be run alongside the main container for a job
      */
     public List<BasicContainer> getExtraContainers() { return extraContainers; }
 
@@ -393,6 +393,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                     .withContainer(container)
                     .withDisruptionBudget(disruptionBudget)
                     .withNetworkConfiguration(networkConfiguration)
+                    .withExtraContainers(extraContainers)
                     .withExtensions(extensions);
         }
 
