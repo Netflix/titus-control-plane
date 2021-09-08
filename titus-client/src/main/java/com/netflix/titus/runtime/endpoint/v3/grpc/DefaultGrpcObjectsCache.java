@@ -70,7 +70,7 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
         this.taskCache = new ProtobufCache<>(
                 "tasks",
                 coreTask -> {
-                    Task task = GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo);
+                    Task task = GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo, jobOperations.getEphemeralTaskStatus(coreTask.getId()));
                     // Need to serialize it once since GeneratedMessageV3 isn't entirely immutable.
                     // It needs to initialize memoizedSize field (non-volatile) before being used from multiple threads
                     serializeGrpcObject(task);
@@ -106,7 +106,7 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
         if (configuration.isGrpcObjectsCacheEnabled()) {
             return taskCache.get(coreTask.getId(), coreTask);
         } else {
-            return GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo);
+            return GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo, jobOperations.getEphemeralTaskStatus(coreTask.getId()));
         }
     }
 

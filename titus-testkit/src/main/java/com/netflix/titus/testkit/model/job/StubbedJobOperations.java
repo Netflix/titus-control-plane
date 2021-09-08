@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.model.job;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -38,7 +41,6 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Mono;
@@ -146,6 +148,11 @@ class StubbedJobOperations implements V3JobOperations {
                     }
                     return false;
                 });
+    }
+
+    @Override
+    public Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId) {
+        return Optional.of(Collections.emptyList());
     }
 
     @Override

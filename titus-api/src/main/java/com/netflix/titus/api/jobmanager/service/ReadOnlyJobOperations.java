@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -73,4 +74,6 @@ public interface ReadOnlyJobOperations {
     default Flux<JobManagerEvent<?>> observeJobReactor(String jobId) {
         return ReactorExt.toFlux(observeJob(jobId));
     }
+
+    Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId);
 }

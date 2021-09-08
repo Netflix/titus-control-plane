@@ -17,8 +17,10 @@
 package com.netflix.titus.master.kubernetes.client;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -42,6 +44,11 @@ public class NoOpDirectKubeApiServerIntegrator implements DirectKubeApiServerInt
     @Override
     public Mono<Void> terminateTask(Task task) {
         return Mono.error(new IllegalStateException("Kube scheduler disabled"));
+    }
+
+    @Override
+    public List<ContainerState> getPodStatus(String taskId) {
+        return Collections.emptyList();
     }
 
     @Override

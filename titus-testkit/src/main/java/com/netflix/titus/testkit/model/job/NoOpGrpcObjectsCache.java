@@ -6,6 +6,8 @@ import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCache;
 
+import java.util.Optional;
+
 public class NoOpGrpcObjectsCache implements GrpcObjectsCache {
     @Override
     public Job getJob(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob) {

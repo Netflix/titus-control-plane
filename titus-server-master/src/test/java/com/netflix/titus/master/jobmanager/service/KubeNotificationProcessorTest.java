@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -327,6 +329,11 @@ public class KubeNotificationProcessorTest {
         @Override
         public Mono<Void> terminateTask(Task task) {
             throw new UnsupportedOperationException("not needed");
+        }
+
+        @Override
+        public List<ContainerState> getPodStatus(String taskId) {
+            return Collections.emptyList();
         }
 
         @Override

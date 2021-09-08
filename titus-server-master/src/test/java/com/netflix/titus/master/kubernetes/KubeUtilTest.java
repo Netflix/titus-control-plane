@@ -88,13 +88,13 @@ public class KubeUtilTest {
     public void testFindFinishedTimestamp() {
         // Test running pod
         V1Pod pod = new V1Pod().status(new V1PodStatus().containerStatuses(new ArrayList<>()));
-        pod.getStatus().getContainerStatuses().add(new V1ContainerStatus()
+        pod.getStatus().getContainerStatuses().add(new V1ContainerStatus().name("test")
                 .state(new V1ContainerState().running(new V1ContainerStateRunning()))
         );
         assertThat(KubeUtil.findFinishedTimestamp(pod)).isEmpty();
 
         // Test finished pod
-        pod.getStatus().getContainerStatuses().add(new V1ContainerStatus()
+        pod.getStatus().getContainerStatuses().add(new V1ContainerStatus().name("test")
                 .state(new V1ContainerState().terminated(new V1ContainerStateTerminated()))
         );
         assertThat(KubeUtil.findFinishedTimestamp(pod)).isEmpty();

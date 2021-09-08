@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -101,6 +102,11 @@ public class KubeAndJobServiceSyncStatusWatcherMain {
         @Override
         public Observable<JobManagerEvent<?>> observeJob(String jobId) {
             return null;
+        }
+
+        @Override
+        public Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId) {
+            return Optional.of(Collections.emptyList());
         }
     };
 

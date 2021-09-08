@@ -16,7 +16,11 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
@@ -126,9 +130,23 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
             REASON_LOCAL_SYSTEM_ERROR,
             REASON_UNKNOWN_SYSTEM_ERROR
     );
+    
+    private final List<ContainerState> containerStates;
 
     public TaskStatus(TaskState taskState, String reasonCode, String reasonMessage, long timestamp) {
+        this(taskState, reasonCode, reasonMessage, timestamp, Collections.emptyList());
+    }
+
+    public TaskStatus(TaskState taskState, String reasonCode, String reasonMessage, long timestamp, List<ContainerState> containerStates) {
         super(taskState, reasonCode, reasonMessage, timestamp);
+        this.containerStates = containerStates;
+    }
+
+    public List<ContainerState> getContainerStates() {
+        if (containerStates == null) {
+            return Collections.emptyList();
+        }
+        return containerStates;
     }
 
     public static boolean hasSystemError(Task task) {
@@ -201,11 +219,18 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
     }
 
     public static class Builder extends AbstractBuilder<TaskState, Builder, TaskStatus> {
+        private List<ContainerState> containerState;
+
         private Builder() {
         }
 
         private Builder(TaskStatus status) {
             super(status);
+        }
+
+        public Builder withContainerState(List<ContainerState> containerState) {
+            this.containerState = containerState;
+            return this;
         }
 
         @Override
@@ -214,7 +239,8 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
                     state,
                     reasonCode == null ? TaskStatus.REASON_UNKNOWN : reasonCode,
                     toCompleteReasonMessage(),
-                    timestamp
+                    timestamp,
+                    containerState == CollectionsExt.nonNull(containerState) ? new ArrayList<>() : containerState
             );
         }
     }

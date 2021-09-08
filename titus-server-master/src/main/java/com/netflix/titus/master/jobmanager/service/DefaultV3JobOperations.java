@@ -38,17 +38,7 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobCompatibility;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.jobmanager.model.job.JobState;
-import com.netflix.titus.api.jobmanager.model.job.JobStatus;
-import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.*;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
@@ -613,6 +603,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         ).orElseGet(() ->
                                 Observable.error(JobManagerException.jobNotFound(jobId))
                         ));
+    }
+
+    @Override
+    public Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId) {
+       return Optional.of(kubeApiServerIntegrator.getPodStatus(taskId));
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {

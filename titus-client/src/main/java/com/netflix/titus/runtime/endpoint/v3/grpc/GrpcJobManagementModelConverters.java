@@ -34,7 +34,9 @@ import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
+import com.netflix.titus.api.jobmanager.model.job.ContainerHealth;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -93,6 +95,7 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
@@ -128,6 +131,7 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_KEY;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_REGION;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_UI_LOCATION;
+import static com.netflix.titus.common.util.CollectionsExt.applyNotEmpty;
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
@@ -477,9 +481,31 @@ public final class GrpcJobManagementModelConverters {
         }
     }
 
-    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget
-                                                                  grpcDisruptionBudget) {
-        if (JobDisruptionBudget.getDefaultInstance().equals(grpcDisruptionBudget)) {
+    private static ContainerHealth toCoreContainerHealth(com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.ContainerHealth containerHealth){
+        switch (containerHealth) {
+            case Unset:
+                return ContainerHealth.Unset;
+            case Healthy:
+                return ContainerHealth.Healthy;
+            case Unhealthy:
+                return ContainerHealth.Unhealthy;
+            default:
+                return ContainerHealth.Unset;
+        }
+    }
+
+    private static List<ContainerState> toCoreContainerState(List<com.netflix.titus.grpc.protogen.TaskStatus.ContainerState> containerStates) {
+        List<ContainerState> containerStateList = new ArrayList<>();
+        for(com.netflix.titus.grpc.protogen.TaskStatus.ContainerState containerState : containerStates) {
+            containerStateList.add(ContainerState.newBuilder()
+                            .withContainerName(containerState.getContainerName())
+                            .withContainerHealth(toCoreContainerHealth(containerState.getContainerHealth())).build());
+        }
+        return containerStateList;
+    }
+
+    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget grpcDisruptionBudget) {
+         if (JobDisruptionBudget.getDefaultInstance().equals(grpcDisruptionBudget)) {
             return DisruptionBudget.none();
         }
 
@@ -745,6 +771,7 @@ public final class GrpcJobManagementModelConverters {
                 .withReasonCode(grpcStatus.getReasonCode())
                 .withReasonMessage(grpcStatus.getReasonMessage())
                 .withTimestamp(grpcStatus.getTimestamp())
+                .withContainerState(toCoreContainerState(grpcStatus.getContainerStateList()))
                 .build();
     }
 
@@ -973,6 +1000,34 @@ public final class GrpcJobManagementModelConverters {
                 .setDesired(capacity.getDesired())
                 .setMax(capacity.getMax())
                 .build();
+    }
+
+    public static List<com.netflix.titus.grpc.protogen.TaskStatus.ContainerState> toGrpcContainerStateList(List<ContainerState> containerStateList) {
+        List<com.netflix.titus.grpc.protogen.TaskStatus.ContainerState> containerStateListGrpc = Collections.emptyList();
+        for(ContainerState containerState : containerStateList) {
+            containerStateListGrpc.add(com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.newBuilder()
+                    .setContainerName(containerState.getContainerName()).setContainerHealth(toGrpcContainherHealth(containerState.getContainerHealth())).build());
+        }
+        return containerStateListGrpc;
+    }
+
+    public static com.netflix.titus.grpc.protogen.TaskStatus.ContainerState toGrpcContainerState(ContainerState containerState) {
+            return com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.newBuilder()
+                    .setContainerName(containerState.getContainerName()).setContainerHealth(toGrpcContainherHealth(containerState.getContainerHealth())).build();
+
+    }
+
+    public static com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.ContainerHealth toGrpcContainherHealth(ContainerHealth containerHealth) {
+        switch (containerHealth) {
+            case Unset:
+                return com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.ContainerHealth.Unset;
+            case Healthy:
+                return com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.ContainerHealth.Healthy;
+            case Unhealthy:
+                return com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.ContainerHealth.Unhealthy;
+            default:
+                return com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.ContainerHealth.Unset;
+        }
     }
 
     public static com.netflix.titus.grpc.protogen.JobDisruptionBudget toGrpcDisruptionBudget(DisruptionBudget
@@ -1228,6 +1283,7 @@ public final class GrpcJobManagementModelConverters {
         applyNotNull(status.getReasonCode(), builder::setReasonCode);
         applyNotNull(status.getReasonMessage(), builder::setReasonMessage);
         builder.setTimestamp(status.getTimestamp());
+
         return builder.build();
     }
 
@@ -1241,12 +1297,16 @@ public final class GrpcJobManagementModelConverters {
                 .collect(Collectors.toList());
     }
 
-    public static com.netflix.titus.grpc.protogen.TaskStatus toGrpcTaskStatus(TaskStatus status) {
+    public static com.netflix.titus.grpc.protogen.TaskStatus toGrpcTaskStatus(TaskStatus status, Optional<List<ContainerState>> maybeContainerStates) {
         com.netflix.titus.grpc.protogen.TaskStatus.Builder builder = com.netflix.titus.grpc.protogen.TaskStatus.newBuilder();
         builder.setState(toGrpcTaskState(status.getState()));
         applyNotNull(status.getReasonCode(), builder::setReasonCode);
         applyNotNull(status.getReasonMessage(), builder::setReasonMessage);
         builder.setTimestamp(status.getTimestamp());
+        maybeContainerStates.ifPresent(containerStates -> {
+            for(ContainerState containerState : containerStates) {
+            builder.addContainerState(toGrpcContainerState(containerState));
+        }});
         return builder.build();
     }
 
@@ -1277,7 +1337,7 @@ public final class GrpcJobManagementModelConverters {
             return Collections.emptyList();
         }
         return statusHistory.stream()
-                .map(GrpcJobManagementModelConverters::toGrpcTaskStatus)
+                .map(taskStatus -> toGrpcTaskStatus(taskStatus, Optional.empty()))
                 .collect(Collectors.toList());
     }
 
@@ -1297,8 +1357,11 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task
-                                                                          coreTask, LogStorageInfo<Task> logStorageInfo) {
+    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task coreTask, LogStorageInfo<Task> logStorageInfo) {
+        return toGrpcTask(coreTask, logStorageInfo, Optional.empty());
+    }
+
+    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task coreTask, LogStorageInfo<Task> logStorageInfo, Optional<List<ContainerState>> containerStates) {
         Map<String, String> taskContext = new HashMap<>(coreTask.getTaskContext());
         taskContext.put(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, coreTask.getOriginalId());
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
@@ -1314,7 +1377,7 @@ public final class GrpcJobManagementModelConverters {
         com.netflix.titus.grpc.protogen.Task.Builder taskBuilder = com.netflix.titus.grpc.protogen.Task.newBuilder()
                 .setId(coreTask.getId())
                 .setJobId(coreTask.getJobId())
-                .setStatus(toGrpcTaskStatus(coreTask.getStatus()))
+                .setStatus(toGrpcTaskStatus(coreTask.getStatus(), containerStates))
                 .addAllStatusHistory(toGrpcTaskStatusHistory(coreTask.getStatusHistory()))
                 .putAllTaskContext(taskContext)
                 .putAllAttributes(coreTask.getAttributes())

@@ -17,7 +17,11 @@
 package com.netflix.titus.master.kubernetes.client;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +35,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.JsonSyntaxException;
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -52,6 +57,7 @@ import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
+import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
@@ -147,6 +153,28 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public boolean isReadyForScheduling() {
         return kubeApiFacade.isReadyForScheduling();
+    }
+
+    public List<ContainerState> getPodStatus(String taskId) {
+        if (pods.containsKey(taskId)) {
+            List<V1ContainerStatus> v1ContainerStatus = pods.get(taskId).getStatus().getContainerStatuses();
+            ArrayList containerstates = new ArrayList();
+            if (v1ContainerStatus.isEmpty() || v1ContainerStatus.size() == 0) {
+                // we have pod status but no container status just yet
+                return Collections.emptyList();
+            } else {
+                ListIterator<V1ContainerStatus> iterator = v1ContainerStatus.listIterator();
+                while (iterator.hasNext()) {
+                    V1ContainerStatus v1ContainerStatus1 = iterator.next();
+                    com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.Builder containerState =
+                            com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.newBuilder()
+                                    .setContainerName(v1ContainerStatus1.getName());
+                    containerstates.add(containerState);
+                }
+                return containerstates;
+            }
+        }
+        return Collections.emptyList();
     }
 
     @Override

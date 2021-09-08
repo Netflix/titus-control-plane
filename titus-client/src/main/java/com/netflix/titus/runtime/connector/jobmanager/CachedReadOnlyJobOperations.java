@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -151,5 +153,10 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
                     }
                     return false;
                 });
+    }
+
+    @Override
+    public Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId) {
+        return Optional.of(Collections.emptyList());
     }
 }

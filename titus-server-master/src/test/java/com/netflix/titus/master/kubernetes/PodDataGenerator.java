@@ -127,7 +127,8 @@ public class PodDataGenerator {
     public static Function<V1Pod, V1Pod> andWaiting() {
         return pod -> {
             pod.getStatus().containerStatuses(Collections.singletonList(
-                    new V1ContainerStatus().state(new V1ContainerState().waiting(new V1ContainerStateWaiting()))
+                    new V1ContainerStatus().name("test").state(new V1ContainerState().waiting(new V1ContainerStateWaiting())
+                    )
             ));
             return pod;
         };
@@ -140,7 +141,7 @@ public class PodDataGenerator {
     public static Function<V1Pod, V1Pod> andStartedAt(long timestamp) {
         return pod -> {
             pod.getStatus().containerStatuses(Collections.singletonList(
-                    new V1ContainerStatus().state(
+                    new V1ContainerStatus().name("test").state(
                             new V1ContainerState().running(
                                     new V1ContainerStateRunning().startedAt(DateTimeExt.fromMillis(timestamp))
                             )
@@ -179,7 +180,7 @@ public class PodDataGenerator {
     public static Function<V1Pod, V1Pod> andTerminated() {
         return pod -> {
             pod.getStatus().containerStatuses(Collections.singletonList(
-                    new V1ContainerStatus().state(new V1ContainerState().terminated(new V1ContainerStateTerminated()))
+                    new V1ContainerStatus().name("test").state(new V1ContainerState().terminated(new V1ContainerStateTerminated()))
             ));
             return pod;
         };

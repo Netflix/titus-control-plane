@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.embedded.kube;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,7 +84,7 @@ public class EmbeddedKubeCluster {
 
     public void addPod(V1Pod pod) {
         String podName = pod.getMetadata().getName();
-        pod.status(new V1PodStatus().phase("PENDING"));
+        pod.status(new V1PodStatus().phase("PENDING").containerStatuses(new ArrayList<>()));
         pod.getMetadata().creationTimestamp(OffsetDateTime.now());
 
         EmbeddedKubePod embeddedPod = new EmbeddedKubePod(pod);
@@ -187,6 +188,7 @@ public class EmbeddedKubeCluster {
                     .containerStatuses(Collections.singletonList(
                             new V1ContainerStatus()
                                     .ready(true)
+                                    .name("test task")
                                     .state(new V1ContainerState().waiting(
                                             new V1ContainerStateWaiting()
                                     ))
