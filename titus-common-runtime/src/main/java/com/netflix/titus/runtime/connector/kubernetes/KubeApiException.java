@@ -36,7 +36,7 @@ public class KubeApiException extends RuntimeException {
     }
 
     public KubeApiException(ApiException cause) {
-        this(cause.getMessage(), cause);
+        this(String.format("%s: httpStatus=%s, body=%s", cause.getMessage(), cause.getCode(), cause.getResponseBody()), cause);
     }
 
     public ErrorCode getErrorCode() {
