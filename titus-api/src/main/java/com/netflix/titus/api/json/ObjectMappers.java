@@ -62,10 +62,12 @@ import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
+import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
+import com.netflix.titus.api.jobmanager.model.job.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -133,6 +135,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.SelfManagedMigrationPolicyMi
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobProcessesMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobTaskMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.SharedContainerVolumeSourceMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SignedIpAddressAllocationMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SystemDefaultMigrationPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.TaskInstancesMixin;
@@ -143,6 +146,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.TwoLevelResourceMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.UnhealthyTasksLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.UnlimitedDisruptionBudgetRateMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.VersionMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.VolumeMixin;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.scheduler.model.Match;
@@ -160,7 +164,7 @@ import com.netflix.titus.api.store.v2.ResourceDimensionMixin;
 import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 
 /**
- * Jackon's {@link ObjectMapper} is thread safe, and uses cache for optimal performance. It makes sense
+ * Jackson's {@link ObjectMapper} is thread safe, and uses cache for optimal performance. It makes sense
  * to reuse the same instance within single JVM. This class provides shared, pre-configured instances of
  * {@link ObjectMapper} with different configuration options.
  */
@@ -278,6 +282,8 @@ public class ObjectMappers {
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
         objectMapper.addMixIn(NetworkConfiguration.class, NetworkConfigurationMixin.class);
         objectMapper.addMixIn(Version.class, VersionMixin.class);
+        objectMapper.addMixIn(Volume.class, VolumeMixin.class);
+        objectMapper.addMixIn(SharedContainerVolumeSource.class, SharedContainerVolumeSourceMixin.class);
 
         objectMapper.addMixIn(IpAddressLocation.class, IpAddressLocationMixin.class);
         objectMapper.addMixIn(IpAddressAllocation.class, IpAddressAllocationMixin.class);

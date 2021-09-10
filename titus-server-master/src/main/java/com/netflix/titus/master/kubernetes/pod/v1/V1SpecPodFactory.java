@@ -40,7 +40,9 @@ import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
+import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -63,6 +65,7 @@ import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
+import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -222,6 +225,7 @@ public class V1SpecPodFactory implements PodFactory {
 
         List<V1Container> extraContainers = buildV1ExtraContainers(job.getJobDescriptor().getExtraContainers());
         List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
+        List<V1Volume> volumes = buildV1Volumes(job.getJobDescriptor().getVolumes());
 
         String schedulerName = FENZO_SCHEDULER;
         if (useKubeScheduler) {
@@ -236,6 +240,7 @@ public class V1SpecPodFactory implements PodFactory {
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
                 .containers(allContainers)
+                .volumes(volumes)
                 .terminationGracePeriodSeconds(configuration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
@@ -270,6 +275,30 @@ public class V1SpecPodFactory implements PodFactory {
                 .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), extraContainer.getImage()))
                 .env(toV1EnvVar(extraContainer.getEnv()))
                 .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY);
+    }
+
+
+    private List<V1Volume> buildV1Volumes(List<Volume> volumes) {
+        if (volumes == null) { return null;}
+        return volumes.stream().map(this::buildV1Volume).collect(Collectors.toList());
+    }
+
+    private V1Volume buildV1Volume(Volume volume) {
+        V1FlexVolumeSource flexVolume = getV1FlexVolume(volume);
+        return new V1Volume()
+                .name(volume.getName())
+                .flexVolume(flexVolume);
+    }
+
+    private V1FlexVolumeSource getV1FlexVolume(Volume volume) {
+        SharedContainerVolumeSource sharedContainerVolumeSource = volume.getSharedContainerVolumeSource();
+        if (sharedContainerVolumeSource == null) { return null; }
+        Map<String, String> options = new HashMap<>();
+        options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
+        options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());
+        return new V1FlexVolumeSource()
+                .driver("SharedContainerVolumeSource")
+                .options(options);
     }
 
     @VisibleForTesting

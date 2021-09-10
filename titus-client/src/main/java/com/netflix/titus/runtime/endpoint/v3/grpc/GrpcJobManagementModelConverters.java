@@ -42,11 +42,13 @@ import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
+import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
+import com.netflix.titus.api.jobmanager.model.job.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
@@ -178,6 +180,7 @@ public final class GrpcJobManagementModelConverters {
                 .withAttributes(grpcJobDescriptor.getAttributesMap())
                 .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
                 .withExtraContainers(toCoreBasicContainers(grpcJobDescriptor.getExtraContainersList()))
+                .withVolumes(toCoreVolumes(grpcJobDescriptor.getVolumesList()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
                 .build();
 
@@ -368,6 +371,24 @@ public final class GrpcJobManagementModelConverters {
                 .withImage(toCoreImage(grpcBasicContainer.getImage()))
                 .withEntryPoint(grpcBasicContainer.getEntryPointList())
                 .withCommand(grpcBasicContainer.getCommandList())
+                .build();
+    }
+
+    private static List<Volume> toCoreVolumes(List<com.netflix.titus.grpc.protogen.Volume> volumes) {
+        return volumes.stream().map(GrpcJobManagementModelConverters::toCoreVolume).collect(Collectors.toList());
+    }
+
+    private static Volume toCoreVolume(com.netflix.titus.grpc.protogen.Volume grpcVolume) {
+        return Volume.newBuilder()
+                .withName(grpcVolume.getName())
+                .withSharedContainerVolumeSource(toCoreSharedVolumeSource(grpcVolume.getSharedContainerVolumeSource()))
+                .build();
+    }
+
+    private static com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource toCoreSharedVolumeSource(com.netflix.titus.grpc.protogen.SharedContainerVolumeSource sharedContainerVolumeSource) {
+        return SharedContainerVolumeSource.newBuilder()
+                .withSourceContainer(sharedContainerVolumeSource.getSourceContainer())
+                .withSourcePath(sharedContainerVolumeSource.getSourcePath())
                 .build();
     }
 
@@ -959,6 +980,7 @@ public final class GrpcJobManagementModelConverters {
                 .setJobGroupInfo(toGrpcJobGroupInfo(jobDescriptor.getJobGroupInfo()))
                 .setDisruptionBudget(toGrpcDisruptionBudget(jobDescriptor.getDisruptionBudget()))
                 .addAllExtraContainers(toGrpcBasicContainers(jobDescriptor.getExtraContainers()))
+                .addAllVolumes(toGrpcVolumes(jobDescriptor.getVolumes()))
                 .putAllAttributes(jobDescriptor.getAttributes());
 
         if (jobDescriptor.getExtensions() instanceof BatchJobExt) {
@@ -981,6 +1003,26 @@ public final class GrpcJobManagementModelConverters {
                 .addAllEntryPoint(basicContainer.getEntryPoint())
                 .addAllCommand(basicContainer.getCommand())
                 .putAllEnv(basicContainer.getEnv())
+                .build();
+    }
+
+    private static List<com.netflix.titus.grpc.protogen.Volume> toGrpcVolumes(List<Volume> volumes) {
+        if (volumes == null) { return null; }
+        return volumes.stream().map(GrpcJobManagementModelConverters::toGrpcVolume).collect(Collectors.toList());
+    }
+
+    private static com.netflix.titus.grpc.protogen.Volume toGrpcVolume(Volume volume) {
+        return com.netflix.titus.grpc.protogen.Volume.newBuilder()
+                .setName(volume.getName())
+                .mergeSharedContainerVolumeSource(toGrpcSharedVolumeSource(volume.getSharedContainerVolumeSource()))
+                .build();
+    }
+
+    private static com.netflix.titus.grpc.protogen.SharedContainerVolumeSource toGrpcSharedVolumeSource(SharedContainerVolumeSource sharedContainerVolumeSource) {
+        if (sharedContainerVolumeSource == null) { return null; }
+        return com.netflix.titus.grpc.protogen.SharedContainerVolumeSource.newBuilder()
+                .setSourceContainer(sharedContainerVolumeSource.getSourceContainer())
+                .setSourcePath(sharedContainerVolumeSource.getSourcePath())
                 .build();
     }
 
