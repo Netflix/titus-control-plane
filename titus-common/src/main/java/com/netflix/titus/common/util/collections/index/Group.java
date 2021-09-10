@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':titus-common-runtime')
+package com.netflix.titus.common.util.collections.index;
 
-    compile project(':titus-api')
-    compile project(':titus-grpc-api')
+import java.util.Map;
 
-    compile "org.pcollections:pcollections:${pcollectionsVersion}"
+/**
+ * Grouping of a collection values by an arbitrary grouping key.
+ */
+public interface Group<GROUP_KEY, PRIMARY_KEY, VALUE> {
 
-    testCompile project(':titus-testkit')
+    /**
+     * @return immutable collection
+     */
+    Map<GROUP_KEY, Map<PRIMARY_KEY, VALUE>> get();
 }

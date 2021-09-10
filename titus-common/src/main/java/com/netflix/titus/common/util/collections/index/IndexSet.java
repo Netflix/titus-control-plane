@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':titus-common-runtime')
+package com.netflix.titus.common.util.collections.index;
 
-    compile project(':titus-api')
-    compile project(':titus-grpc-api')
+import java.util.Collection;
 
-    compile "org.pcollections:pcollections:${pcollectionsVersion}"
+public interface IndexSet<PRIMARY_KEY, INPUT, OUTPUT> {
 
-    testCompile project(':titus-testkit')
+    <GROUP_KEY> Group<GROUP_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId);
+
+    Index<OUTPUT> getIndex(String indexId);
+
+    IndexSet<PRIMARY_KEY, INPUT, OUTPUT> add(Collection<INPUT> values);
+
+    IndexSet<PRIMARY_KEY, INPUT, OUTPUT> remove(Collection<PRIMARY_KEY> values);
 }
