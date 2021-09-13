@@ -263,7 +263,10 @@ public class V1SpecPodFactory implements PodFactory {
     }
 
     private List<V1Container> buildV1ExtraContainers(List<BasicContainer> extraContainers) {
-        if (extraContainers == null) { return Collections.emptyList();};
+        if (extraContainers == null) {
+            return Collections.emptyList();
+        }
+        ;
         return extraContainers.stream().map(this::buildV1ExtraContainers).collect(Collectors.toList());
     }
 
@@ -279,7 +282,9 @@ public class V1SpecPodFactory implements PodFactory {
 
 
     private List<V1Volume> buildV1Volumes(List<Volume> volumes) {
-        if (volumes == null) { return null;}
+        if (volumes == null) {
+            return Collections.emptyList();
+        }
         return volumes.stream().map(this::buildV1Volume).collect(Collectors.toList());
     }
 
@@ -292,7 +297,9 @@ public class V1SpecPodFactory implements PodFactory {
 
     private V1FlexVolumeSource getV1FlexVolume(Volume volume) {
         SharedContainerVolumeSource sharedContainerVolumeSource = volume.getSharedContainerVolumeSource();
-        if (sharedContainerVolumeSource == null) { return null; }
+        if (sharedContainerVolumeSource == null) {
+            return null;
+        }
         Map<String, String> options = new HashMap<>();
         options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
         options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());

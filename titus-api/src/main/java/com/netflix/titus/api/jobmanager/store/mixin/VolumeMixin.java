@@ -9,13 +9,9 @@ import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 public abstract class VolumeMixin {
     @JsonCreator
     public VolumeMixin(
-            @JsonProperty("name")
-                    String name,
-
+            @JsonProperty("name") String name,
             @JsonInclude(Include.NON_NULL)
-            @JsonProperty("sharedContainerVolumeSource")
-                    SharedContainerVolumeSource sharedContainerVolumeSource
-
+            @JsonProperty("sharedContainerVolumeSource") SharedContainerVolumeSource sharedContainerVolumeSource
     ) {
     }
 }

@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.v3.grpc;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -362,7 +363,11 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static List<BasicContainer> toCoreBasicContainers(List<com.netflix.titus.grpc.protogen.BasicContainer> extraContainersList) {
-        return extraContainersList.stream().map(GrpcJobManagementModelConverters::toCoreBasicContainer).collect(Collectors.toList());
+        List<BasicContainer> basicContainers = new ArrayList<>();
+        for (com.netflix.titus.grpc.protogen.BasicContainer b : extraContainersList) {
+            basicContainers.add(toCoreBasicContainer(b));
+        }
+        return basicContainers;
     }
 
     private static BasicContainer toCoreBasicContainer(com.netflix.titus.grpc.protogen.BasicContainer grpcBasicContainer) {
@@ -375,7 +380,11 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static List<Volume> toCoreVolumes(List<com.netflix.titus.grpc.protogen.Volume> volumes) {
-        return volumes.stream().map(GrpcJobManagementModelConverters::toCoreVolume).collect(Collectors.toList());
+        List<Volume> coreVolumes = new ArrayList<>();
+        for (com.netflix.titus.grpc.protogen.Volume v : volumes) {
+            coreVolumes.add(toCoreVolume(v));
+        }
+        return coreVolumes;
     }
 
     private static Volume toCoreVolume(com.netflix.titus.grpc.protogen.Volume grpcVolume) {
@@ -1007,7 +1016,9 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static List<com.netflix.titus.grpc.protogen.Volume> toGrpcVolumes(List<Volume> volumes) {
-        if (volumes == null) { return null; }
+        if (volumes == null) {
+            return null;
+        }
         return volumes.stream().map(GrpcJobManagementModelConverters::toGrpcVolume).collect(Collectors.toList());
     }
 
@@ -1019,7 +1030,9 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static com.netflix.titus.grpc.protogen.SharedContainerVolumeSource toGrpcSharedVolumeSource(SharedContainerVolumeSource sharedContainerVolumeSource) {
-        if (sharedContainerVolumeSource == null) { return null; }
+        if (sharedContainerVolumeSource == null) {
+            return null;
+        }
         return com.netflix.titus.grpc.protogen.SharedContainerVolumeSource.newBuilder()
                 .setSourceContainer(sharedContainerVolumeSource.getSourceContainer())
                 .setSourcePath(sharedContainerVolumeSource.getSourcePath())
