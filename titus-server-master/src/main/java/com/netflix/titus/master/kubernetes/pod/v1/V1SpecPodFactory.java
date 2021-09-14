@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.pod.v1;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,9 +41,10 @@ import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
-import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -266,7 +268,6 @@ public class V1SpecPodFactory implements PodFactory {
         if (extraContainers == null) {
             return Collections.emptyList();
         }
-        ;
         return extraContainers.stream().map(this::buildV1ExtraContainers).collect(Collectors.toList());
     }
 
@@ -285,21 +286,27 @@ public class V1SpecPodFactory implements PodFactory {
         if (volumes == null) {
             return Collections.emptyList();
         }
-        return volumes.stream().map(this::buildV1Volume).collect(Collectors.toList());
+        List<V1Volume> v1Volumes = new ArrayList<>();
+        for (Volume v : volumes) {
+            v1Volumes.add(buildV1Volume(v));
+        }
+        return v1Volumes;
     }
 
     private V1Volume buildV1Volume(Volume volume) {
-        V1FlexVolumeSource flexVolume = getV1FlexVolume(volume);
-        return new V1Volume()
-                .name(volume.getName())
-                .flexVolume(flexVolume);
-    }
-
-    private V1FlexVolumeSource getV1FlexVolume(Volume volume) {
-        SharedContainerVolumeSource sharedContainerVolumeSource = volume.getSharedContainerVolumeSource();
-        if (sharedContainerVolumeSource == null) {
+        if (volume.getVolumeSource() instanceof SharedContainerVolumeSource) {
+            V1FlexVolumeSource flexVolume = getV1FlexVolumeForSharedContainerVolumeSource(volume);
+            return new V1Volume()
+                    .name(volume.getName())
+                    .flexVolume(flexVolume);
+        } else {
+            // SharedVolumeSource is currently the only supported volume type
             return null;
         }
+    }
+
+    private V1FlexVolumeSource getV1FlexVolumeForSharedContainerVolumeSource(Volume volume) {
+        SharedContainerVolumeSource sharedContainerVolumeSource = (SharedContainerVolumeSource) volume.getVolumeSource();
         Map<String, String> options = new HashMap<>();
         options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
         options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());

@@ -1,9 +1,8 @@
-package com.netflix.titus.api.jobmanager.model.job;
+package com.netflix.titus.api.jobmanager.model.job.volume;
 
 import javax.validation.Valid;
 
-public class SharedContainerVolumeSource {
-
+public class SharedContainerVolumeSource extends VolumeSource {
 
     @Valid
     private final String sourceContainer;
@@ -11,7 +10,15 @@ public class SharedContainerVolumeSource {
     @Valid
     private final String sourcePath;
 
-    public  SharedContainerVolumeSource(
+    public String getSourceContainer() {
+        return sourceContainer;
+    }
+
+    public String getSourcePath() {
+        return sourcePath;
+    }
+
+    public SharedContainerVolumeSource(
             String sourceContainer,
             String sourcePath
     ) {
@@ -19,22 +26,14 @@ public class SharedContainerVolumeSource {
         this.sourcePath = sourcePath;
     }
 
-    public static SharedContainerVolumeSource.Builder newBuilder() {
+    public static Builder newBuilder() {
         return new SharedContainerVolumeSource.Builder();
     }
 
-    public static SharedContainerVolumeSource.Builder newBuilder(SharedContainerVolumeSource sharedContainerVolumeSource) {
+    public static Builder newBuilder(SharedContainerVolumeSource sharedContainerVolume) {
         return new SharedContainerVolumeSource.Builder()
-                .withSourceContainer(sharedContainerVolumeSource.sourceContainer)
-                .withSourcePath(sharedContainerVolumeSource.sourcePath);
-    }
-
-    public String getSourceContainer() {
-        return sourceContainer;
-    }
-
-    public String getSourcePath() {
-        return sourcePath;
+                .withSourceContainer(sharedContainerVolume.sourceContainer)
+                .withSourcePath(sharedContainerVolume.sourcePath);
     }
 
     public static final class Builder {

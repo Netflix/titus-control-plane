@@ -27,7 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
-import com.netflix.titus.api.jobmanager.model.job.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 
 public abstract class JobDescriptorMixin {
@@ -42,6 +42,6 @@ public abstract class JobDescriptorMixin {
                               @JsonProperty("networkConfiguration") NetworkConfiguration networkConfiguration,
                               @JsonProperty("extraContainers") List<BasicContainer> extraContainers,
                               @JsonProperty("volumes") List<Volume> volumes,
-                              @JsonProperty("extensions") JobDescriptor.JobDescriptorExt extensions){
+                              @JsonProperty("extensions") JobDescriptor.JobDescriptorExt extensions) {
     }
 }

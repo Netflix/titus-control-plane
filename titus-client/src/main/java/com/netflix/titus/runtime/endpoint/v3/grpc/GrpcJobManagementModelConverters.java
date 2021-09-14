@@ -43,13 +43,13 @@ import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
-import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
-import com.netflix.titus.api.jobmanager.model.job.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
@@ -80,6 +80,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -388,13 +389,17 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static Volume toCoreVolume(com.netflix.titus.grpc.protogen.Volume grpcVolume) {
-        return Volume.newBuilder()
-                .withName(grpcVolume.getName())
-                .withSharedContainerVolumeSource(toCoreSharedVolumeSource(grpcVolume.getSharedContainerVolumeSource()))
-                .build();
+        switch (grpcVolume.getVolumeSourceCase()) {
+            case SHAREDCONTAINERVOLUMESOURCE:
+                VolumeSource source = toCoreSharedVolumeSource(grpcVolume.getSharedContainerVolumeSource());
+                return Volume.newBuilder()
+                        .withName(grpcVolume.getName())
+                        .withVolumeSource(source).build();
+        }
+        return null;
     }
 
-    private static com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource toCoreSharedVolumeSource(com.netflix.titus.grpc.protogen.SharedContainerVolumeSource sharedContainerVolumeSource) {
+    private static SharedContainerVolumeSource toCoreSharedVolumeSource(com.netflix.titus.grpc.protogen.SharedContainerVolumeSource sharedContainerVolumeSource) {
         return SharedContainerVolumeSource.newBuilder()
                 .withSourceContainer(sharedContainerVolumeSource.getSourceContainer())
                 .withSourcePath(sharedContainerVolumeSource.getSourcePath())
@@ -463,7 +468,8 @@ public final class GrpcJobManagementModelConverters {
         }
     }
 
-    public static List<TimeWindow> toCoreTimeWindows(List<com.netflix.titus.grpc.protogen.TimeWindow> grpcTimeWindows) {
+    public static List<TimeWindow> toCoreTimeWindows
+            (List<com.netflix.titus.grpc.protogen.TimeWindow> grpcTimeWindows) {
         return grpcTimeWindows.stream().map(GrpcJobManagementModelConverters::toCoreTimeWindow).collect(Collectors.toList());
     }
 
@@ -500,29 +506,34 @@ public final class GrpcJobManagementModelConverters {
         }
     }
 
-    public static List<HourlyTimeWindow> toCoreHourlyTimeWindows(List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> grpcHourlyTimeWindows) {
+    public static List<HourlyTimeWindow> toCoreHourlyTimeWindows
+            (List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> grpcHourlyTimeWindows) {
         return grpcHourlyTimeWindows.stream().map(GrpcJobManagementModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
     }
 
-    public static HourlyTimeWindow toCoreHourlyTimeWindow(com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow grpcHourlyTimeWindow) {
+    public static HourlyTimeWindow toCoreHourlyTimeWindow
+            (com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow grpcHourlyTimeWindow) {
         return HourlyTimeWindow.newBuilder()
                 .withStartHour(grpcHourlyTimeWindow.getStartHour())
                 .withEndHour(grpcHourlyTimeWindow.getEndHour())
                 .build();
     }
 
-    public static List<ContainerHealthProvider> toCoreContainerHealthProviders(List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> grpcContainerHealthProviders) {
+    public static List<ContainerHealthProvider> toCoreContainerHealthProviders
+            (List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> grpcContainerHealthProviders) {
         return grpcContainerHealthProviders.stream().map(GrpcJobManagementModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
     }
 
-    public static ContainerHealthProvider toCoreHourlyTimeWindow(com.netflix.titus.grpc.protogen.ContainerHealthProvider grpcContainerHealthProvider) {
+    public static ContainerHealthProvider toCoreHourlyTimeWindow
+            (com.netflix.titus.grpc.protogen.ContainerHealthProvider grpcContainerHealthProvider) {
         return ContainerHealthProvider.newBuilder()
                 .withName(grpcContainerHealthProvider.getName())
                 .withAttributes(grpcContainerHealthProvider.getAttributesMap())
                 .build();
     }
 
-    public static JobDescriptor.JobDescriptorExt toCoreJobExtensions(com.netflix.titus.grpc.protogen.JobDescriptor grpcJobDescriptor) {
+    public static JobDescriptor.JobDescriptorExt toCoreJobExtensions(com.netflix.titus.grpc.protogen.JobDescriptor
+                                                                             grpcJobDescriptor) {
         if (grpcJobDescriptor.getJobSpecCase() == JobSpecCase.BATCH) {
             BatchJobSpec batchSpec = grpcJobDescriptor.getBatch();
             return JobModel.newBatchJobExt()
@@ -550,7 +561,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.api.jobmanager.model.job.CapacityAttributes toCoreCapacityAttributes(JobCapacityWithOptionalAttributes capacity) {
+    public static com.netflix.titus.api.jobmanager.model.job.CapacityAttributes toCoreCapacityAttributes
+            (JobCapacityWithOptionalAttributes capacity) {
         CapacityAttributes.Builder builder = JobModel.newCapacityAttributes();
         Evaluators.acceptIfTrue(capacity.hasDesired(), valueAccepted -> builder.withDesired(capacity.getDesired().getValue()));
         Evaluators.acceptIfTrue(capacity.hasMin(), valueAccepted -> builder.withMin(capacity.getMin().getValue()));
@@ -558,7 +570,8 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    public static com.netflix.titus.api.jobmanager.model.job.CapacityAttributes toCoreCapacityAttributes(Capacity capacity) {
+    public static com.netflix.titus.api.jobmanager.model.job.CapacityAttributes toCoreCapacityAttributes(Capacity
+                                                                                                                 capacity) {
         return JobModel.newCapacityAttributes()
                 .withDesired(capacity.getDesired())
                 .withMax(capacity.getMax())
@@ -636,7 +649,8 @@ public final class GrpcJobManagementModelConverters {
      * We do not expose the {@link TwoLevelResource} data outside Titus, so we try to reconstruct this information
      * from the GRPC model.
      */
-    private static List<TwoLevelResource> toCoreTwoLevelResources(Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
+    private static List<TwoLevelResource> toCoreTwoLevelResources
+    (Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
         Map<String, String> context = grpcTask.getTaskContextMap();
 
         String eniIndex = context.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX);
@@ -719,7 +733,8 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    private static com.netflix.titus.grpc.protogen.NetworkConfiguration toGrpcNetworkConfiguration(NetworkConfiguration networkConfiguration) {
+    private static com.netflix.titus.grpc.protogen.NetworkConfiguration toGrpcNetworkConfiguration
+            (NetworkConfiguration networkConfiguration) {
         com.netflix.titus.grpc.protogen.NetworkConfiguration.Builder builder = com.netflix.titus.grpc.protogen.NetworkConfiguration.newBuilder();
         builder.setNetworkModeValue(networkConfiguration.getNetworkMode());
         return builder.build();
@@ -750,7 +765,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static SignedAddressAllocation toGrpcSignedAddressAllocation(SignedIpAddressAllocation coreSignedIpAddressAllocation) {
+    public static SignedAddressAllocation toGrpcSignedAddressAllocation(SignedIpAddressAllocation
+                                                                                coreSignedIpAddressAllocation) {
         return SignedAddressAllocation.newBuilder()
                 .setAddressAllocation(toGrpcAddressAllocation(coreSignedIpAddressAllocation.getIpAddressAllocation()))
                 .setAuthoritativePublicKey(ByteString.copyFrom(coreSignedIpAddressAllocation.getAuthoritativePublicKey()))
@@ -761,7 +777,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.ContainerResources toGrpcResources(ContainerResources containerResources) {
+    public static com.netflix.titus.grpc.protogen.ContainerResources toGrpcResources(ContainerResources
+                                                                                             containerResources) {
         List<com.netflix.titus.grpc.protogen.ContainerResources.EfsMount> grpcEfsMounts = containerResources.getEfsMounts().isEmpty()
                 ? Collections.emptyList()
                 : containerResources.getEfsMounts().stream().map(GrpcJobManagementModelConverters::toGrpcEfsMount).collect(Collectors.toList());
@@ -782,7 +799,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static SecurityProfile toGrpcSecurityProfile(com.netflix.titus.api.jobmanager.model.job.SecurityProfile coreSecurityProfile) {
+    public static SecurityProfile toGrpcSecurityProfile(com.netflix.titus.api.jobmanager.model.job.SecurityProfile
+                                                                coreSecurityProfile) {
         return SecurityProfile.newBuilder()
                 .addAllSecurityGroups(coreSecurityProfile.getSecurityGroups())
                 .setIamRole(nonNull(coreSecurityProfile.getIamRole()))
@@ -834,7 +852,8 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    private static com.netflix.titus.grpc.protogen.MigrationPolicy toGrpcMigrationPolicy(MigrationPolicy migrationPolicy) {
+    private static com.netflix.titus.grpc.protogen.MigrationPolicy toGrpcMigrationPolicy(MigrationPolicy
+                                                                                                 migrationPolicy) {
         com.netflix.titus.grpc.protogen.MigrationPolicy.Builder builder = com.netflix.titus.grpc.protogen.MigrationPolicy.newBuilder();
         if (migrationPolicy instanceof SystemDefaultMigrationPolicy) {
             builder.setSystemDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.SystemDefault.newBuilder());
@@ -875,7 +894,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.JobDisruptionBudget toGrpcDisruptionBudget(DisruptionBudget coreDisruptionBudget) {
+    public static com.netflix.titus.grpc.protogen.JobDisruptionBudget toGrpcDisruptionBudget(DisruptionBudget
+                                                                                                     coreDisruptionBudget) {
         JobDisruptionBudget.Builder builder = JobDisruptionBudget.newBuilder();
         DisruptionBudgetPolicy disruptionBudgetPolicy = coreDisruptionBudget.getDisruptionBudgetPolicy();
         if (disruptionBudgetPolicy instanceof SelfManagedDisruptionBudgetPolicy) {
@@ -920,7 +940,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static List<com.netflix.titus.grpc.protogen.TimeWindow> toGrpcTimeWindows(List<TimeWindow> grpcTimeWindows) {
+    public static List<com.netflix.titus.grpc.protogen.TimeWindow> toGrpcTimeWindows
+            (List<TimeWindow> grpcTimeWindows) {
         return grpcTimeWindows.stream().map(GrpcJobManagementModelConverters::toGrpcTimeWindow).collect(Collectors.toList());
     }
 
@@ -957,29 +978,34 @@ public final class GrpcJobManagementModelConverters {
         }
     }
 
-    public static List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> toGrpcHourlyTimeWindows(List<HourlyTimeWindow> coreHourlyTimeWindows) {
+    public static List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> toGrpcHourlyTimeWindows
+            (List<HourlyTimeWindow> coreHourlyTimeWindows) {
         return coreHourlyTimeWindows.stream().map(GrpcJobManagementModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
     }
 
-    public static com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow toGrpcHourlyTimeWindow(HourlyTimeWindow coreHourlyTimeWindow) {
+    public static com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow toGrpcHourlyTimeWindow
+            (HourlyTimeWindow coreHourlyTimeWindow) {
         return com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow.newBuilder()
                 .setStartHour(coreHourlyTimeWindow.getStartHour())
                 .setEndHour(coreHourlyTimeWindow.getEndHour())
                 .build();
     }
 
-    public static List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> toGrpcContainerHealthProviders(List<ContainerHealthProvider> grpcContainerHealthProviders) {
+    public static List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> toGrpcContainerHealthProviders
+            (List<ContainerHealthProvider> grpcContainerHealthProviders) {
         return grpcContainerHealthProviders.stream().map(GrpcJobManagementModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
     }
 
-    public static com.netflix.titus.grpc.protogen.ContainerHealthProvider toGrpcHourlyTimeWindow(ContainerHealthProvider coreContainerHealthProvider) {
+    public static com.netflix.titus.grpc.protogen.ContainerHealthProvider toGrpcHourlyTimeWindow
+            (ContainerHealthProvider coreContainerHealthProvider) {
         return com.netflix.titus.grpc.protogen.ContainerHealthProvider.newBuilder()
                 .setName(coreContainerHealthProvider.getName())
                 .putAllAttributes(coreContainerHealthProvider.getAttributes())
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.JobDescriptor toGrpcJobDescriptor(JobDescriptor<?> jobDescriptor) {
+    public static com.netflix.titus.grpc.protogen.JobDescriptor toGrpcJobDescriptor
+            (JobDescriptor<?> jobDescriptor) {
         com.netflix.titus.grpc.protogen.JobDescriptor.Builder builder = com.netflix.titus.grpc.protogen.JobDescriptor.newBuilder()
                 .setOwner(toGrpcOwner(jobDescriptor.getOwner()))
                 .setApplicationName(jobDescriptor.getApplicationName())
@@ -1001,11 +1027,13 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    private static List<com.netflix.titus.grpc.protogen.BasicContainer> toGrpcBasicContainers(List<BasicContainer> extraContainers) {
+    private static List<com.netflix.titus.grpc.protogen.BasicContainer> toGrpcBasicContainers
+            (List<BasicContainer> extraContainers) {
         return extraContainers.stream().map(GrpcJobManagementModelConverters::toGrpcBasicContainer).collect(Collectors.toList());
     }
 
-    private static com.netflix.titus.grpc.protogen.BasicContainer toGrpcBasicContainer(BasicContainer basicContainer) {
+    private static com.netflix.titus.grpc.protogen.BasicContainer toGrpcBasicContainer(BasicContainer
+                                                                                               basicContainer) {
         return com.netflix.titus.grpc.protogen.BasicContainer.newBuilder()
                 .setName(basicContainer.getName())
                 .setImage(toGrpcImage(basicContainer.getImage()))
@@ -1023,19 +1051,23 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static com.netflix.titus.grpc.protogen.Volume toGrpcVolume(Volume volume) {
-        return com.netflix.titus.grpc.protogen.Volume.newBuilder()
-                .setName(volume.getName())
-                .mergeSharedContainerVolumeSource(toGrpcSharedVolumeSource(volume.getSharedContainerVolumeSource()))
-                .build();
-    }
-
-    private static com.netflix.titus.grpc.protogen.SharedContainerVolumeSource toGrpcSharedVolumeSource(SharedContainerVolumeSource sharedContainerVolumeSource) {
-        if (sharedContainerVolumeSource == null) {
+        VolumeSource source = volume.getVolumeSource();
+        if (source instanceof SharedContainerVolumeSource) {
+            return com.netflix.titus.grpc.protogen.Volume.newBuilder()
+                    .setName(volume.getName())
+                    .mergeSharedContainerVolumeSource(toGrpcSharedVolumeSource((SharedContainerVolumeSource) source))
+                    .build();
+        } else {
+            // SharedContainerVolume is currently the only supported volume type
             return null;
         }
+    }
+
+    private static com.netflix.titus.grpc.protogen.SharedContainerVolumeSource toGrpcSharedVolumeSource
+            (SharedContainerVolumeSource source) {
         return com.netflix.titus.grpc.protogen.SharedContainerVolumeSource.newBuilder()
-                .setSourceContainer(sharedContainerVolumeSource.getSourceContainer())
-                .setSourcePath(sharedContainerVolumeSource.getSourcePath())
+                .setSourceContainer(source.getSourceContainer())
+                .setSourcePath(source.getSourcePath())
                 .build();
     }
 
@@ -1060,7 +1092,8 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    public static List<com.netflix.titus.grpc.protogen.JobStatus> toGrpcJobStatusHistory(List<JobStatus> statusHistory) {
+    public static List<com.netflix.titus.grpc.protogen.JobStatus> toGrpcJobStatusHistory
+            (List<JobStatus> statusHistory) {
         if (isNullOrEmpty(statusHistory)) {
             return Collections.emptyList();
         }
@@ -1102,7 +1135,8 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    public static List<com.netflix.titus.grpc.protogen.TaskStatus> toGrpcTaskStatusHistory(List<TaskStatus> statusHistory) {
+    public static List<com.netflix.titus.grpc.protogen.TaskStatus> toGrpcTaskStatusHistory
+            (List<TaskStatus> statusHistory) {
         if (isNullOrEmpty(statusHistory)) {
             return Collections.emptyList();
         }
@@ -1127,7 +1161,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task coreTask, LogStorageInfo<Task> logStorageInfo) {
+    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task
+                                                                          coreTask, LogStorageInfo<Task> logStorageInfo) {
         Map<String, String> taskContext = new HashMap<>(coreTask.getTaskContext());
         taskContext.put(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, coreTask.getOriginalId());
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
@@ -1182,7 +1217,8 @@ public final class GrpcJobManagementModelConverters {
         return logLocationBuilder.build();
     }
 
-    public static com.netflix.titus.grpc.protogen.MigrationDetails toGrpcMigrationDetails(MigrationDetails migrationDetails) {
+    public static com.netflix.titus.grpc.protogen.MigrationDetails toGrpcMigrationDetails(MigrationDetails
+                                                                                                  migrationDetails) {
         return com.netflix.titus.grpc.protogen.MigrationDetails.newBuilder()
                 .setNeedsMigration(migrationDetails.isNeedsMigration())
                 .setStarted(migrationDetails.getStarted())
@@ -1190,7 +1226,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static MigrationDetails toCoreMigrationDetails(com.netflix.titus.grpc.protogen.MigrationDetails grpcMigrationDetails) {
+    public static MigrationDetails toCoreMigrationDetails(com.netflix.titus.grpc.protogen.MigrationDetails
+                                                                  grpcMigrationDetails) {
         return MigrationDetails.newBuilder()
                 .withNeedsMigration(grpcMigrationDetails.getNeedsMigration())
                 .withStarted(grpcMigrationDetails.getStarted())
@@ -1198,7 +1235,8 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, GrpcObjectsCache grpcObjectsCache, long now) {
+    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, GrpcObjectsCache
+            grpcObjectsCache, long now) {
         if (event instanceof JobUpdateEvent) {
             JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
             return JobChangeNotification.newBuilder()

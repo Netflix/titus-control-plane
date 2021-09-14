@@ -29,6 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
@@ -37,6 +38,7 @@ import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.util.CollectionsExt;
 
 /**
+ *
  */
 @ClassFieldsNotNull
 @ClassInvariant.List({
@@ -124,9 +126,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             this.networkConfiguration = networkConfiguration;
         }
 
-        if (extraContainers == null) { extraContainers = Collections.emptyList(); }
+        if (extraContainers == null) {
+            extraContainers = Collections.emptyList();
+        }
         this.extraContainers = extraContainers;
-        if (volumes == null) { volumes = Collections.emptyList(); }
+        if (volumes == null) {
+            volumes = Collections.emptyList();
+        }
         this.volumes = volumes;
     }
 
@@ -184,17 +190,23 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     /**
      * Network configuration for a job
      */
-    public NetworkConfiguration getNetworkConfiguration() { return networkConfiguration; }
+    public NetworkConfiguration getNetworkConfiguration() {
+        return networkConfiguration;
+    }
 
     /**
      * Extra containers to be run alongside the main container for a job
      */
-    public List<BasicContainer> getExtraContainers() { return extraContainers; }
+    public List<BasicContainer> getExtraContainers() {
+        return extraContainers;
+    }
 
     /**
      * Extra containers to be run alongside the main container for a job
      */
-    public List<Volume> getVolumes() { return volumes; }
+    public List<Volume> getVolumes() {
+        return volumes;
+    }
 
     /**
      * Returns job type specific data.

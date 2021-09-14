@@ -26,8 +26,8 @@ import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
-import com.netflix.titus.api.jobmanager.model.job.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
@@ -64,7 +64,7 @@ public class V1SpecPodFactoryTest {
 
     private final TaintTolerationFactory taintTolerationFactory = mock(TaintTolerationFactory.class);
 
-    private final  PodEnvFactory podEnvFactory = new DefaultPodEnvFactory();
+    private final PodEnvFactory podEnvFactory = new DefaultPodEnvFactory();
 
     private final TopologyFactory topologyFactory = mock(TopologyFactory.class);
 
@@ -110,7 +110,7 @@ public class V1SpecPodFactoryTest {
         BatchJobTask task = JobGenerator.oneBatchTask();
         List<Volume> volumes = Arrays.asList(
                 new Volume("volume1", new SharedContainerVolumeSource("main", "/main-root")),
-                new Volume("volume2", null)
+                new Volume("volume2", new SharedContainerVolumeSource("main", "/main-root"))
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withVolumes(volumes).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));

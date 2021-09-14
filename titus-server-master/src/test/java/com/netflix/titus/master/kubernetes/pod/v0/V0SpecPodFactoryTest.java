@@ -32,9 +32,9 @@ import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
-import com.netflix.titus.api.jobmanager.model.job.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -295,7 +295,7 @@ public class V0SpecPodFactoryTest {
         BatchJobTask task = JobGenerator.oneBatchTask();
         List<Volume> volumes = Arrays.asList(
                 new Volume("volume1", new SharedContainerVolumeSource("main", "/main-root")),
-                new Volume("volume2", null)
+                new Volume("foo", new SharedContainerVolumeSource("main", "/main-root"))
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withVolumes(volumes).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
