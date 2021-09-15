@@ -68,6 +68,7 @@ public class JobAndTaskMetrics {
 
     private static final Logger logger = LoggerFactory.getLogger(JobAndTaskMetrics.class);
 
+    private static final String JOBS_LIMIT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.jobs.limit";
     private static final String JOBS_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.jobs";
     private static final String TASKS_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.tasks";
     private static final String TASK_IN_STATE_ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskLiveness.";
@@ -102,6 +103,7 @@ public class JobAndTaskMetrics {
     private final Registry registry;
 
     private final Map<String, Map<String, List<Gauge>>> capacityGroupsMetrics = new HashMap<>();
+    private final Id jobCountLimitId;
     private final Id jobCountId;
     private final Id taskCountId;
 
@@ -118,6 +120,7 @@ public class JobAndTaskMetrics {
         this.configuration = configuration;
         this.registry = registry;
 
+        this.jobCountLimitId = registry.createId(JOBS_LIMIT_METRIC_NAME);
         this.jobCountId = registry.createId(JOBS_METRIC_NAME);
         this.taskCountId = registry.createId(TASKS_METRIC_NAME);
     }
@@ -147,6 +150,7 @@ public class JobAndTaskMetrics {
     @PreDestroy
     public void shutdown() {
         ObservableExt.safeUnsubscribe(taskStateUpdateSubscription, taskLivenessRefreshSubscription);
+        registry.gauge(jobCountLimitId).set(0);
     }
 
     private void updateTaskMetrics(TaskUpdateEvent event) {
@@ -170,6 +174,7 @@ public class JobAndTaskMetrics {
         List<Job> jobs = v3JobOperations.getJobs();
         List<Task> tasks = v3JobOperations.getTasks();
 
+        registry.gauge(jobCountLimitId).set(configuration.getMaxActiveJobs());
         updateJobCounts(jobsAndTasks);
         updateTaskCounts(tasks);
 
