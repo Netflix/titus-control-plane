@@ -10,7 +10,6 @@ public abstract class VolumeMixin {
     @JsonCreator
     public VolumeMixin(
             @JsonProperty("name") String name,
-            @JsonInclude(Include.NON_NULL)
             @JsonProperty("volumeSource") VolumeSource volumeSource
     ) {
     }

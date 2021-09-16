@@ -16,13 +16,15 @@
 
 package com.netflix.titus.api.jobmanager.model.job.volume;
 
+import java.util.Objects;
 import javax.validation.Valid;
 
 public class Volume {
     @Valid
-    private String name;
+    private final String name;
 
-    private VolumeSource volumeSource;
+    @Valid
+    private final VolumeSource volumeSource;
 
     public Volume(String name, VolumeSource volumeSource) {
         this.name = name;
