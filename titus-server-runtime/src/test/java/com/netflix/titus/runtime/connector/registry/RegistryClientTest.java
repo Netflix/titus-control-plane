@@ -51,7 +51,7 @@ public class RegistryClientTest {
 
         when(configuration.getRegistryUri()).thenReturn("http://localhost:" + mockServer.getPort());
         when(configuration.isSecure()).thenReturn(false);
-        when(configuration.getRegistryTimeoutMs()).thenReturn(500);
+        when(configuration.getRegistryTimeoutMs()).thenReturn(2_000);
         when(configuration.getRegistryRetryCount()).thenReturn(2);
         when(configuration.getRegistryRetryDelayMs()).thenReturn(5);
 
