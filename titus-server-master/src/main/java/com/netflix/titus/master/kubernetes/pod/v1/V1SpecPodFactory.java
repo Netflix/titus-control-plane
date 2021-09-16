@@ -288,7 +288,7 @@ public class V1SpecPodFactory implements PodFactory {
         }
         List<V1Volume> v1Volumes = new ArrayList<>();
         for (Volume v : volumes) {
-            buildV1Volume(v).ifPresent(realVolume -> v1Volumes.add(realVolume));
+            buildV1Volume(v).ifPresent(v1Volumes::add);
         }
         return v1Volumes;
     }

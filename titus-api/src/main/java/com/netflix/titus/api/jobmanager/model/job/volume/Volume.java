@@ -76,29 +76,22 @@ public class Volume {
         return new Volume.Builder();
     }
 
-    public static class Builder {
-
+    public static final class Builder {
         private String name;
-
         private VolumeSource volumeSource;
 
-        public Builder(String name) {
+        public Builder withName(String name) {
             this.name = name;
+            return this;
         }
 
-        public Builder() {
+        public Builder withVolumeSource(VolumeSource volumeSource) {
+            this.volumeSource = volumeSource;
+            return this;
         }
 
         public Volume build() {
             return new Volume(name, volumeSource);
-        }
-
-        public Builder withName(String name) {
-            return new Volume(name, volumeSource).toBuilder();
-        }
-
-        public Builder withVolumeSource(VolumeSource volumeSource) {
-            return new Volume(name, volumeSource).toBuilder();
         }
     }
 }

@@ -65,16 +65,16 @@ public class SharedContainerVolumeSource extends VolumeSource {
                 .withSourcePath(sharedContainerVolume.sourcePath);
     }
 
-    public static final class Builder {
-        String sourceContainer;
-        String sourcePath;
+    public static final class Builder<E extends VolumeSource> {
+        private String sourceContainer;
+        private String sourcePath;
 
-        public SharedContainerVolumeSource.Builder withSourceContainer(String sourceContainer) {
+        public Builder<E> withSourceContainer(String sourceContainer) {
             this.sourceContainer = sourceContainer;
             return this;
         }
 
-        public SharedContainerVolumeSource.Builder withSourcePath(String sourcePath) {
+        public Builder<E> withSourcePath(String sourcePath) {
             this.sourcePath = sourcePath;
             return this;
         }
