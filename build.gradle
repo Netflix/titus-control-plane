@@ -231,6 +231,7 @@ subprojects {
     }
 
     task integrationNotParallelizableTest(type: Test) {
+        maxParallelForks = 1
         shouldRunAfter test
 
         useJUnit {
