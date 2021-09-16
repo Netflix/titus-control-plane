@@ -10,6 +10,14 @@ public class SharedContainerVolumeSource extends VolumeSource {
     @Valid
     private final String sourcePath;
 
+    public SharedContainerVolumeSource(
+            String sourceContainer,
+            String sourcePath
+    ) {
+        this.sourceContainer = sourceContainer;
+        this.sourcePath = sourcePath;
+    }
+
     public String getSourceContainer() {
         return sourceContainer;
     }
@@ -18,12 +26,33 @@ public class SharedContainerVolumeSource extends VolumeSource {
         return sourcePath;
     }
 
-    public SharedContainerVolumeSource(
-            String sourceContainer,
-            String sourcePath
-    ) {
-        this.sourceContainer = sourceContainer;
-        this.sourcePath = sourcePath;
+    @Override
+    public String toString() {
+        return "VolumeSource{" +
+                "sourceContainer='" + sourceContainer + '\'' +
+                ", sourcePath='" + sourcePath + '\'' +
+                '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return sourceContainer.hashCode() + sourcePath.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        SharedContainerVolumeSource that = (SharedContainerVolumeSource) o;
+        if (!this.getSourceContainer().equals(that.getSourceContainer())) {
+            return false;
+        }
+        return this.getSourcePath().equals(that.getSourcePath());
     }
 
     public static Builder newBuilder() {
