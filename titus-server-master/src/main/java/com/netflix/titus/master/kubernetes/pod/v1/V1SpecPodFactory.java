@@ -288,20 +288,20 @@ public class V1SpecPodFactory implements PodFactory {
         }
         List<V1Volume> v1Volumes = new ArrayList<>();
         for (Volume v : volumes) {
-            v1Volumes.add(buildV1Volume(v));
+            buildV1Volume(v).ifPresent(realVolume -> v1Volumes.add(realVolume));
         }
         return v1Volumes;
     }
 
-    private V1Volume buildV1Volume(Volume volume) {
+    private Optional<V1Volume> buildV1Volume(Volume volume) {
         if (volume.getVolumeSource() instanceof SharedContainerVolumeSource) {
             V1FlexVolumeSource flexVolume = getV1FlexVolumeForSharedContainerVolumeSource(volume);
-            return new V1Volume()
+            return Optional.ofNullable(new V1Volume()
                     .name(volume.getName())
-                    .flexVolume(flexVolume);
+                    .flexVolume(flexVolume));
         } else {
             // SharedVolumeSource is currently the only supported volume type
-            return null;
+            return Optional.empty();
         }
     }
 
