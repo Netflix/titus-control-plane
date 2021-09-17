@@ -18,9 +18,11 @@ package com.netflix.titus.api.jobmanager.model.job.volume;
 
 import java.util.Objects;
 import javax.validation.Valid;
+import javax.validation.constraints.Pattern;
 
 public class Volume {
     @Valid
+    @Pattern(regexp = "[a-z0-9]([-a-z0-9]*[a-z0-9])?", message = "volume name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String name;
 
     @Valid
