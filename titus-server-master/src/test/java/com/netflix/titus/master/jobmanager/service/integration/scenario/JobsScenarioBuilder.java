@@ -118,6 +118,7 @@ public class JobsScenarioBuilder {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
 
+        when(configuration.getMaxActiveJobs()).thenReturn(20_000L);
         when(configuration.getActiveNotStartedTasksLimit()).thenReturn(ACTIVE_NOT_STARTED_TASKS_LIMIT);
         when(configuration.getConcurrentReconcilerStoreUpdateLimit()).thenAnswer(invocation -> concurrentStoreUpdateLimit);
         when(configuration.getTaskInLaunchedStateTimeoutMs()).thenReturn(LAUNCHED_TIMEOUT_MS);
