@@ -45,7 +45,6 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
-import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -142,6 +141,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_STACK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
 @Singleton
@@ -476,6 +476,7 @@ public class V1SpecPodFactory implements PodFactory {
 
         annotations.putAll(createEbsPodAnnotations(job, task));
         annotations.putAll(PerformanceToolUtil.toAnnotations(job));
+        annotations.putAll(createPlatformSidecarAnnotations(job));
 
         return annotations;
     }

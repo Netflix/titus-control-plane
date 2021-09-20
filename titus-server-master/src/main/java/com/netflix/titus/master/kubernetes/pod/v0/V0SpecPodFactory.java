@@ -74,6 +74,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_MEMORY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_NETWORK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
 @Singleton
@@ -117,6 +118,7 @@ public class V0SpecPodFactory implements PodFactory {
 
         Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);
         annotations.putAll(affinityWithMetadata.getRight());
+        annotations.putAll(createPlatformSidecarAnnotations(job));
 
         Map<String, String> labels = new HashMap<>();
         labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());

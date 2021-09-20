@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Struct;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
@@ -41,6 +42,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -185,6 +187,7 @@ public final class GrpcJobManagementModelConverters {
                 .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
                 .withExtraContainers(toCoreBasicContainers(grpcJobDescriptor.getExtraContainersList()))
                 .withVolumes(toCoreVolumes(grpcJobDescriptor.getVolumesList()))
+                .withPlatformSidecars(toCorePlatformSidecars(grpcJobDescriptor.getPlatformSidecarsList()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
                 .build();
 
@@ -431,7 +434,24 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget grpcDisruptionBudget) {
+    private static List<PlatformSidecar> toCorePlatformSidecars(List<com.netflix.titus.grpc.protogen.PlatformSidecar> platformSidecarList) {
+        List<PlatformSidecar> platformSidecars = new ArrayList<>();
+        for (com.netflix.titus.grpc.protogen.PlatformSidecar ps : platformSidecarList) {
+            platformSidecars.add(toCorePlatformSidecar(ps));
+        }
+        return platformSidecars;
+    }
+
+    private static PlatformSidecar toCorePlatformSidecar(com.netflix.titus.grpc.protogen.PlatformSidecar ps) {
+        return PlatformSidecar.newBuilder()
+                .withName(ps.getName())
+                .withChannel(ps.getChannel())
+                .withArguments(ps.getArguments())
+                .build();
+    }
+
+    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget
+                                                                  grpcDisruptionBudget) {
         if (JobDisruptionBudget.getDefaultInstance().equals(grpcDisruptionBudget)) {
             return DisruptionBudget.none();
         }
@@ -1042,6 +1062,7 @@ public final class GrpcJobManagementModelConverters {
                 .setDisruptionBudget(toGrpcDisruptionBudget(jobDescriptor.getDisruptionBudget()))
                 .addAllExtraContainers(toGrpcBasicContainers(jobDescriptor.getExtraContainers()))
                 .addAllVolumes(toGrpcVolumes(jobDescriptor.getVolumes()))
+                .addAllPlatformSidecars(toGrpcPlatformSidecars(jobDescriptor.getPlatformSidecars()))
                 .putAllAttributes(jobDescriptor.getAttributes());
 
         if (jobDescriptor.getExtensions() instanceof BatchJobExt) {
@@ -1115,6 +1136,22 @@ public final class GrpcJobManagementModelConverters {
         return com.netflix.titus.grpc.protogen.SharedContainerVolumeSource.newBuilder()
                 .setSourceContainer(source.getSourceContainer())
                 .setSourcePath(source.getSourcePath())
+                .build();
+    }
+
+    private static List<com.netflix.titus.grpc.protogen.PlatformSidecar> toGrpcPlatformSidecars(List<PlatformSidecar> platformSidecarList) {
+        List<com.netflix.titus.grpc.protogen.PlatformSidecar> platformSidecars = new ArrayList<>();
+        for (PlatformSidecar ps : platformSidecarList) {
+            platformSidecars.add(toGrpcPlatformSidecar(ps));
+        }
+        return platformSidecars;
+    }
+
+    private static com.netflix.titus.grpc.protogen.PlatformSidecar toGrpcPlatformSidecar(PlatformSidecar ps) {
+        return com.netflix.titus.grpc.protogen.PlatformSidecar.newBuilder()
+                .setName(ps.getName())
+                .setChannel(ps.getChannel())
+                .setArguments(ps.getArguments())
                 .build();
     }
 

@@ -140,7 +140,6 @@ public final class KubeConstants {
 
     /**
      * Nodes with this taint are in the process of being decommissioned. Effects have different meaning:
-     *
      * - <code>PreferNoSchedule</code>: nodes being drained, and capacity is preserved if needed
      * - <code>NoSchedule</code>: used to avoid placing tasks with the {@link com.netflix.titus.api.jobmanager.JobConstraints#ACTIVE_HOST} onto nodes being decommissioned
      * - <code>NoExecute</code>: nodes being actively evacuated by task relocation
@@ -221,4 +220,13 @@ public final class KubeConstants {
     public static final String NETWORK_DOMAIN = "network." + NETFLIX_DOMAIN;
     public static final String STATIC_IP_ALLOCATION_ID = NETWORK_DOMAIN + "static-ip-allocation-uuid";
     public static final String NETWORK_MODE = NETWORK_DOMAIN + "network-mode";
+
+    /**
+     * Platform Sidecar annotations, from
+     * https://github.com/Netflix/titus-kube-common/blob/master/pod/annotations.go
+     */
+    public static final String PLATFORM_SIDECAR_SUFFIX = ".platform-sidecars.netflix.com";
+    public static final String PLATFORM_SIDECAR_CHANNEL_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/channel";
+    public static final String PLATFORM_SIDECAR_ARGS_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/args.";
+    ;
 }
