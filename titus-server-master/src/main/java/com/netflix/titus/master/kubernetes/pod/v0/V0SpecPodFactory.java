@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.pod.v0;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,8 @@ import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -50,6 +53,7 @@ import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -139,6 +143,7 @@ public class V0SpecPodFactory implements PodFactory {
 
         List<V1Container> extraContainers = buildV1ExtraContainers(job.getJobDescriptor().getExtraContainers());
         List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
+        List<V1Volume> volumes = buildV1Volumes(job.getJobDescriptor().getVolumes());
 
         String schedulerName = FENZO_SCHEDULER;
         if (useKubeScheduler) {
@@ -157,6 +162,7 @@ public class V0SpecPodFactory implements PodFactory {
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
                 .containers(allContainers)
+                .volumes(volumes)
                 .terminationGracePeriodSeconds(configuration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
@@ -175,6 +181,39 @@ public class V0SpecPodFactory implements PodFactory {
         }
 
         return new V1Pod().metadata(metadata).spec(spec);
+    }
+
+    private List<V1Volume> buildV1Volumes(List<Volume> volumes) {
+        if (volumes == null) {
+            return Collections.emptyList();
+        }
+        List<V1Volume> v1Volumes = new ArrayList<>();
+        for (Volume v : volumes) {
+            buildV1Volume(v).ifPresent(v1Volumes::add);
+        }
+        return v1Volumes;
+    }
+
+    private Optional<V1Volume> buildV1Volume(Volume volume) {
+        if (volume.getVolumeSource() instanceof SharedContainerVolumeSource) {
+            V1FlexVolumeSource flexVolume = getV1FlexVolumeForSharedContainerVolumeSource(volume);
+            return Optional.ofNullable(new V1Volume()
+                    .name(volume.getName())
+                    .flexVolume(flexVolume));
+        } else {
+            // SharedVolumeSource is currently the only supported volume type
+            return Optional.empty();
+        }
+    }
+
+    private V1FlexVolumeSource getV1FlexVolumeForSharedContainerVolumeSource(Volume volume) {
+        SharedContainerVolumeSource sharedContainerVolumeSource = (SharedContainerVolumeSource) volume.getVolumeSource();
+        Map<String, String> options = new HashMap<>();
+        options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
+        options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());
+        return new V1FlexVolumeSource()
+                .driver("SharedContainerVolumeSource")
+                .options(options);
     }
 
     @VisibleForTesting
@@ -214,7 +253,9 @@ public class V0SpecPodFactory implements PodFactory {
     }
 
     private List<V1Container> buildV1ExtraContainers(List<BasicContainer> extraContainers) {
-        if (extraContainers == null) { return Collections.emptyList();}
+        if (extraContainers == null) {
+            return Collections.emptyList();
+        }
         return extraContainers.stream().map(this::buildV1ExtraContainer).collect(Collectors.toList());
     }
 

@@ -29,6 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
@@ -37,6 +38,7 @@ import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.util.CollectionsExt;
 
 /**
+ *
  */
 @ClassFieldsNotNull
 @ClassInvariant.List({
@@ -87,6 +89,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     private final List<BasicContainer> extraContainers;
 
     @Valid
+    private final List<Volume> volumes;
+
+    @Valid
     private final E extensions;
 
     public JobDescriptor(Owner owner,
@@ -98,6 +103,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                          DisruptionBudget disruptionBudget,
                          NetworkConfiguration networkConfiguration,
                          List<BasicContainer> extraContainers,
+                         List<Volume> volumes,
                          E extensions) {
         this.owner = owner;
         this.applicationName = applicationName;
@@ -120,8 +126,14 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             this.networkConfiguration = networkConfiguration;
         }
 
-        if (extraContainers == null) { extraContainers = Collections.emptyList(); }
+        if (extraContainers == null) {
+            extraContainers = Collections.emptyList();
+        }
         this.extraContainers = extraContainers;
+        if (volumes == null) {
+            volumes = Collections.emptyList();
+        }
+        this.volumes = volumes;
     }
 
     /**
@@ -178,12 +190,23 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     /**
      * Network configuration for a job
      */
-    public NetworkConfiguration getNetworkConfiguration() { return networkConfiguration; }
+    public NetworkConfiguration getNetworkConfiguration() {
+        return networkConfiguration;
+    }
 
     /**
      * Extra containers to be run alongside the main container for a job
      */
-    public List<BasicContainer> getExtraContainers() { return extraContainers; }
+    public List<BasicContainer> getExtraContainers() {
+        return extraContainers;
+    }
+
+    /**
+     * Extra containers to be run alongside the main container for a job
+     */
+    public List<Volume> getVolumes() {
+        return volumes;
+    }
 
     /**
      * Returns job type specific data.
@@ -210,12 +233,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 Objects.equals(disruptionBudget, that.disruptionBudget) &&
                 Objects.equals(networkConfiguration, that.networkConfiguration) &&
                 Objects.equals(extraContainers, that.extraContainers) &&
+                Objects.equals(volumes, that.volumes) &&
                 Objects.equals(extensions, that.extensions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, extensions);
+        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, volumes, extensions);
     }
 
     @Override
@@ -230,6 +254,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 ", disruptionBudget=" + disruptionBudget +
                 ", networkConfiguration=" + networkConfiguration +
                 ", extraContainers=" + extraContainers +
+                ", volumes=" + volumes +
                 ", extensions=" + extensions +
                 '}';
     }
@@ -315,6 +340,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 .withDisruptionBudget(jobDescriptor.getDisruptionBudget())
                 .withNetworkConfiguration(jobDescriptor.getNetworkConfiguration())
                 .withExtraContainers(jobDescriptor.getExtraContainers())
+                .withVolumes(jobDescriptor.getVolumes())
                 .withExtensions(jobDescriptor.getExtensions());
     }
 
@@ -328,6 +354,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         private DisruptionBudget disruptionBudget;
         private NetworkConfiguration networkConfiguration;
         private List<BasicContainer> extraContainers;
+        private List<Volume> volumes;
         private E extensions;
 
         private Builder() {
@@ -378,6 +405,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             return this;
         }
 
+        public Builder<E> withVolumes(List<Volume> volumes) {
+            this.volumes = volumes;
+            return this;
+        }
+
         public Builder<E> withExtensions(E extensions) {
             this.extensions = extensions;
             return this;
@@ -394,11 +426,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                     .withDisruptionBudget(disruptionBudget)
                     .withNetworkConfiguration(networkConfiguration)
                     .withExtraContainers(extraContainers)
+                    .withVolumes(volumes)
                     .withExtensions(extensions);
         }
 
         public JobDescriptor<E> build() {
-            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, extensions);
+            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, volumes, extensions);
             return jobDescriptor;
         }
     }

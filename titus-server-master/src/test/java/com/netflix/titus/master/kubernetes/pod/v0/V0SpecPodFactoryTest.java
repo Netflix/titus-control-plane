@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -32,6 +33,8 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -58,6 +61,7 @@ import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
+import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
@@ -283,6 +287,29 @@ public class V0SpecPodFactoryTest {
         List<V1Container> containers = pod.getSpec().getContainers();
         // 3 containers here, 1 from the main container, 2 from the extras
         assertThat(containers.size()).isEqualTo(1 + extraContainers.size());
+    }
+
+    @Test
+    public void podGetsSharedFlexVolumes() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        List<Volume> volumes = Arrays.asList(
+                new Volume("volume1", new SharedContainerVolumeSource("main", "/main-root")),
+                new Volume("foo", new SharedContainerVolumeSource("main", "/main-root"))
+        );
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withVolumes(volumes).build()).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        List<V1Volume> podVolumes = Objects.requireNonNull(pod.getSpec()).getVolumes();
+        assertThat(podVolumes.size()).isEqualTo(2);
+        V1Volume mainSharedVolume = podVolumes.get(0);
+        assertThat(mainSharedVolume.getName()).isEqualTo("volume1");
+        V1FlexVolumeSource flexVolume = mainSharedVolume.getFlexVolume();
+        assertThat(flexVolume.getDriver()).isEqualTo("SharedContainerVolumeSource");
+        Map<String, String> flexVolumeOptions = flexVolume.getOptions();
+        assertThat(flexVolumeOptions.get("sourceContainer")).isEqualTo("main");
+        assertThat(flexVolumeOptions.get("sourcePath")).isEqualTo("/main-root");
     }
 
 }
