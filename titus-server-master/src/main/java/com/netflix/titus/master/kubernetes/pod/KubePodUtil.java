@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.pod;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.common.util.Evaluators;
@@ -83,7 +85,7 @@ public class KubePodUtil {
                 id -> annotations.put(KubeConstants.STATIC_IP_ALLOCATION_ID, id)
         );
         Evaluators.acceptNotNull(
-              job.getJobDescriptor().getNetworkConfiguration().getNetworkModeName(),
+                job.getJobDescriptor().getNetworkConfiguration().getNetworkModeName(),
                 modeName -> annotations.put(KubeConstants.NETWORK_MODE, modeName)
         );
 
@@ -177,6 +179,27 @@ public class KubePodUtil {
                     return Pair.of(v1Volume, v1VolumeMount);
                 });
     }
+
+    /**
+     * Converts a list of VolumeMounts and converts them to the k8s VolumeMounts
+     */
+    public static List<V1VolumeMount> buildV1VolumeMounts(List<VolumeMount> volumeMounts) {
+        List<V1VolumeMount> v1VolumeMounts = new ArrayList<>();
+        for (VolumeMount vm : volumeMounts) {
+            v1VolumeMounts.add(buildV1VolumeMount(vm));
+        }
+        return v1VolumeMounts;
+    }
+
+    private static V1VolumeMount buildV1VolumeMount(VolumeMount vm) {
+        return new V1VolumeMount()
+                .name(vm.getVolumeName())
+                .mountPath(vm.getMountPath())
+                .mountPropagation(vm.getMountPropagation())
+                .readOnly(vm.getReadOnly())
+                .subPath(vm.getSubPath());
+    }
+
 
     /**
      * Builds the image string for Kubernetes pod spec

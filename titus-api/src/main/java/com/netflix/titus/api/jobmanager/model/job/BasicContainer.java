@@ -54,18 +54,22 @@ public class BasicContainer {
     )
     private final Map<String, String> env;
 
+    private final List<VolumeMount> volumeMounts;
+
     public BasicContainer(
             String name,
             Image image,
             List<String> entryPoint,
             List<String> command,
-            Map<String, String> env
+            Map<String, String> env,
+            List<VolumeMount> volumeMounts
     ) {
         this.name = name;
         this.image = image;
         this.entryPoint = CollectionsExt.nullableImmutableCopyOf(entryPoint);
         this.command = CollectionsExt.nullableImmutableCopyOf(command);
         this.env = CollectionsExt.nullableImmutableCopyOf(env);
+        this.volumeMounts = CollectionsExt.nullableImmutableCopyOf(volumeMounts);
     }
 
     public String getName() {
@@ -77,18 +81,28 @@ public class BasicContainer {
     }
 
     public List<String> getEntryPoint() {
-        if (entryPoint == null) { return Collections.emptyList();}
+        if (entryPoint == null) {
+            return Collections.emptyList();
+        }
         return entryPoint;
     }
 
     public List<String> getCommand() {
-        if (command == null) { return Collections.emptyList();}
+        if (command == null) {
+            return Collections.emptyList();
+        }
         return command;
     }
 
     public Map<String, String> getEnv() {
-        if (env == null) { return Collections.emptyMap();}
+        if (env == null) {
+            return Collections.emptyMap();
+        }
         return env;
+    }
+
+    public List<VolumeMount> getVolumeMounts() {
+        return volumeMounts;
     }
 
     public Builder toBuilder() {
@@ -105,7 +119,8 @@ public class BasicContainer {
                 .withImage(basicContainer.getImage())
                 .withEntryPoint(basicContainer.getEntryPoint())
                 .withCommand(basicContainer.getCommand())
-                .withEnv(basicContainer.getEnv());
+                .withEnv(basicContainer.getEnv())
+                .withVolumeMounts(basicContainer.getVolumeMounts());
     }
 
     public static final class Builder {
@@ -114,6 +129,7 @@ public class BasicContainer {
         private List<String> entryPoint;
         private List<String> command;
         private Map<String, String> env;
+        private List<VolumeMount> volumeMounts;
 
         public Builder withName(String name) {
             this.name = name;
@@ -126,19 +142,28 @@ public class BasicContainer {
         }
 
         public Builder withEntryPoint(List<String> entryPoint) {
-            if (entryPoint == null) { entryPoint = Collections.emptyList();}
+            if (entryPoint == null) {
+                entryPoint = Collections.emptyList();
+            }
             this.entryPoint = entryPoint;
             return this;
         }
 
         public Builder withCommand(List<String> command) {
-            if (command == null) { command = Collections.emptyList();}
+            if (command == null) {
+                command = Collections.emptyList();
+            }
             this.command = command;
             return this;
         }
 
         public Builder withEnv(Map<String, String> env) {
             this.env = env;
+            return this;
+        }
+
+        public Builder withVolumeMounts(List<VolumeMount> volumeMounts) {
+            this.volumeMounts = volumeMounts;
             return this;
         }
 
@@ -149,7 +174,8 @@ public class BasicContainer {
                     image,
                     entryPoint,
                     command,
-                    nonNull(env)
+                    nonNull(env),
+                    volumeMounts
             );
         }
     }

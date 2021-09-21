@@ -28,11 +28,13 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
@@ -277,8 +279,8 @@ public class V0SpecPodFactoryTest {
         BatchJobTask task = JobGenerator.oneBatchTask();
         Image testImage = Image.newBuilder().withName("testImage").withDigest("123").build();
         List<BasicContainer> extraContainers = Arrays.asList(
-                new BasicContainer("extraContainer1", testImage, null, null, new HashMap<>()),
-                new BasicContainer("extraContainer2", testImage, null, null, new HashMap<>())
+                new BasicContainer("extraContainer1", testImage, null, null, new HashMap<>(), null),
+                new BasicContainer("extraContainer2", testImage, null, null, new HashMap<>(), null)
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withExtraContainers(extraContainers).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
@@ -287,6 +289,29 @@ public class V0SpecPodFactoryTest {
         List<V1Container> containers = pod.getSpec().getContainers();
         // 3 containers here, 1 from the main container, 2 from the extras
         assertThat(containers.size()).isEqualTo(1 + extraContainers.size());
+    }
+
+    @Test
+    public void podMainContainerHasVolumeMounts() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        List<VolumeMount> volumeMounts = Arrays.asList(
+                new VolumeMount("volume1", "", "", false, ""),
+                new VolumeMount("volume2", "", "", false, "")
+        );
+        Container container = job.getJobDescriptor().getContainer().toBuilder().withVolumeMounts(volumeMounts).build();
+        job = job.toBuilder().withJobDescriptor(
+                job.getJobDescriptor().toBuilder().withContainer(container).build()
+        ).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        V1Container mainContainer = pod.getSpec().getContainers().get(0);
+        List<V1VolumeMount> mounts = mainContainer.getVolumeMounts();
+
+        assertThat(mounts.size()).isEqualTo(2);
+        assertThat(mounts.get(0).getName()).isEqualTo("volume1");
+        assertThat(mounts.get(1).getName()).isEqualTo("volume2");
     }
 
     @Test
