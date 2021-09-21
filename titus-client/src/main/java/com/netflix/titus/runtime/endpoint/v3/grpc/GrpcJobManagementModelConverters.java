@@ -121,6 +121,7 @@ import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 import static com.netflix.titus.common.util.StringExt.nonNull;
+import static com.netflix.titus.common.util.StringExt.parseEnumIgnoreCase;
 import static com.netflix.titus.grpc.protogen.Day.Friday;
 import static com.netflix.titus.grpc.protogen.Day.Monday;
 import static com.netflix.titus.grpc.protogen.Day.Saturday;
@@ -377,7 +378,7 @@ public final class GrpcJobManagementModelConverters {
         return VolumeMount.newBuilder()
                 .withVolumeName(v.getVolumeName())
                 .withMountPath(v.getMountPath())
-                .withMountPropagation(v.getMountPropagation())
+                .withMountPropagation(v.getMountPropagation().toString())
                 .withReadOnly(v.getReadOnly())
                 .withSubPath(v.getSubPath())
                 .build();
@@ -1076,7 +1077,7 @@ public final class GrpcJobManagementModelConverters {
         return com.netflix.titus.grpc.protogen.VolumeMount.newBuilder()
                 .setVolumeName(v.getVolumeName())
                 .setMountPath((v.getMountPath()))
-                .setMountPropagation(v.getMountPropagation())
+                .setMountPropagation(parseEnumIgnoreCase(v.getMountPropagation(), com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.class))
                 .setReadOnly(v.getReadOnly())
                 .setSubPath(v.getSubPath())
                 .build();
