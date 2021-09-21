@@ -227,6 +227,6 @@ public final class KubeConstants {
      */
     public static final String PLATFORM_SIDECAR_SUFFIX = ".platform-sidecars.netflix.com";
     public static final String PLATFORM_SIDECAR_CHANNEL_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/channel";
-    public static final String PLATFORM_SIDECAR_ARGS_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/args.";
+    public static final String PLATFORM_SIDECAR_ARGS_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/arguments";
     ;
 }

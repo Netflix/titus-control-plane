@@ -8,7 +8,6 @@ import javax.validation.Valid;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -123,7 +122,7 @@ class ProtoStructSerializer extends JsonSerializer<Struct> {
 
 class ProtoStructDeserializer extends JsonDeserializer<Struct> {
     @Override
-    public Struct deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public Struct deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         Struct.Builder argsBuilder = Struct.newBuilder();
         Map m = p.readValueAs(Map.class);
         JsonFormat.parser().merge(m.toString(), argsBuilder);
