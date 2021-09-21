@@ -17,6 +17,7 @@
 package com.netflix.titus.ext.cassandra.store;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +38,8 @@ import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
 import com.netflix.titus.api.json.ObjectMappers;
@@ -109,6 +112,11 @@ public class CassandraJobStoreTest {
     @Test
     public void testRetrieveServiceJob() {
         doRetrieveJob(createServiceJobObject());
+    }
+
+    @Test
+    public void testRetrieveJobWithVolumes() {
+        doRetrieveJob(createServiceJobWithVolumesObject());
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> void doRetrieveJob(Job<E> job) {
@@ -499,6 +507,20 @@ public class CassandraJobStoreTest {
                 jd.getExtensions().toBuilder().withRetryPolicy(exponential).build()
         );
         return JobGenerator.serviceJobs(jobDescriptor).getValue();
+    }
+
+    private Job<ServiceJobExt> createServiceJobWithVolumesObject() {
+        //List<Volume> volumes = Collections.singletonList(createTestVolume());
+        List<Volume> volumes = Collections.emptyList();
+        JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(jd ->
+                jd.toBuilder().withVolumes(volumes).build()
+        );
+        return JobGenerator.serviceJobs(jobDescriptor).getValue();
+    }
+
+    private Volume createTestVolume() {
+        SharedContainerVolumeSource volumeSource = new SharedContainerVolumeSource("sourceContainer", "sourcePath");
+        return new Volume("testVolume", volumeSource);
     }
 
     private Task createTaskObject(Job<BatchJobExt> job) {
