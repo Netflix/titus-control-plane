@@ -1,9 +1,20 @@
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 import javax.validation.Valid;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.protobuf.Struct;
 import com.google.protobuf.util.JsonFormat;
 
@@ -16,7 +27,14 @@ public class PlatformSidecar {
     private final String channel;
 
     @Valid
-    private final Struct arguments;
+    @JsonSerialize(using = ProtoStructSerializer.class)
+    @JsonDeserialize(using = ProtoStructDeserializer.class)
+//    @JsonSerialize(using = MyMessageSerializer.class)
+//    @JsonDeserialize(using = MyMessageDeserializer.class, as = Struct.class, keyAs = String.class, contentAs = Value.class)
+//    @JsonSerialize(as = Struct.class, keyAs = String.class, contentAs = Value.class)
+//    @JsonDeserialize(as = Struct.class, keyAs = String.class, contentAs = Value.class)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public final Struct arguments;
 
     public PlatformSidecar(String name, String channel, Struct arguments) {
         this.name = name;
@@ -34,14 +52,6 @@ public class PlatformSidecar {
 
     public Struct getArguments() {
         return arguments;
-    }
-
-    public String getArgumentsJson() {
-        try {
-            return JsonFormat.printer().omittingInsignificantWhitespace().print(arguments);
-        } catch (InvalidProtocolBufferException e) {
-            return "BAD: " + e.getMessage();
-        }
     }
 
     @Override
@@ -102,4 +112,21 @@ public class PlatformSidecar {
         }
     }
 
+}
+
+class ProtoStructSerializer extends JsonSerializer<Struct> {
+    @Override
+    public void serialize(Struct message, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        gen.writeRawValue(JsonFormat.printer().print(message));
+    }
+}
+
+class ProtoStructDeserializer extends JsonDeserializer<Struct> {
+    @Override
+    public Struct deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        Struct.Builder argsBuilder = Struct.newBuilder();
+        Map m = p.readValueAs(Map.class);
+        JsonFormat.parser().merge(m.toString(), argsBuilder);
+        return argsBuilder.build();
+    }
 }

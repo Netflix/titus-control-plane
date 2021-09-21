@@ -169,12 +169,18 @@ public class KubePodUtil {
 
     private static Map<String, String> createSinglePlatformSidecarAnnotations(PlatformSidecar ps) {
         Map<String, String> annotations = new HashMap<>();
-        String name = ps.getName() + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
-        annotations.put(name, "true");
-        String channel = ps.getName() + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
-        annotations.put(channel, ps.getChannel());
-        String arguments = ps.getName() + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
-        annotations.put(arguments, ps.getArgumentsJson());
+        String nameKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
+        annotations.put(nameKey, "true");
+        String channelKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
+        annotations.put(channelKey, ps.getChannel());
+        String argumentsKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
+        String argumentsJson;
+        try {
+            argumentsJson = JsonFormat.printer().omittingInsignificantWhitespace().print(ps.getArguments());
+        } catch (InvalidProtocolBufferException e) {
+            argumentsJson = "BAD: " + e.getMessage();
+        }
+        annotations.put(argumentsKey, argumentsJson);
         return annotations;
     }
 
