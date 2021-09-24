@@ -29,6 +29,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodStatus;
 import org.junit.Test;
 
+import static com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters.RESOURCE_POOL_ELASTIC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmbeddedKubeApiFacadeTest {
@@ -41,7 +42,7 @@ public class EmbeddedKubeApiFacadeTest {
 
     @Test
     public void testPodInformer() {
-        V1Pod pod1 = NodeAndPodCatalog.newPod();
+        V1Pod pod1 = NodeAndPodCatalog.newPod(RESOURCE_POOL_ELASTIC);
         integrator.createNamespacedPod("default", pod1);
 
         SharedIndexInformer<V1Pod> podInformer = integrator.getPodInformer();
@@ -55,7 +56,7 @@ public class EmbeddedKubeApiFacadeTest {
         assertThat(snapshot).hasSize(1);
 
         // Add
-        V1Pod addedPod = NodeAndPodCatalog.newPod();
+        V1Pod addedPod = NodeAndPodCatalog.newPod(RESOURCE_POOL_ELASTIC);
         integrator.createNamespacedPod("default", addedPod);
         EmbeddedKubeEvent<V1Pod> addedEvent = nextEvent(eventQueue, EmbeddedKubeEvent.Kind.ADDED);
         assertThat(addedEvent.getCurrent()).isEqualTo(addedPod);
@@ -67,10 +68,14 @@ public class EmbeddedKubeApiFacadeTest {
         assertThat(updatedEvent.getCurrent()).isEqualTo(updatedPod);
         assertThat(updatedEvent.getPrevious()).isEqualTo(addedPod);
 
-        // Delete
+        // Delete (do not allow pod termination)
         integrator.deleteNamespacedPod("default", updatedPod.getMetadata().getName());
-        EmbeddedKubeEvent<V1Pod> deletedEvent = nextEvent(eventQueue, EmbeddedKubeEvent.Kind.DELETED);
-        assertThat(deletedEvent.getCurrent()).isEqualTo(updatedPod);
+        nextEvent(eventQueue, EmbeddedKubeEvent.Kind.UPDATED);
+
+        // Delete (allow pod termination)
+        embeddedKubeCluster.allowPodTermination(true);
+        integrator.deleteNamespacedPod("default", updatedPod.getMetadata().getName());
+        nextEvent(eventQueue, EmbeddedKubeEvent.Kind.DELETED);
     }
 
     @Test

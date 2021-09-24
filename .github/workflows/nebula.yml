@@ -49,7 +49,7 @@ jobs:
       - name: docker test
         run: docker --help
       - name: Gradle build
-        run: ./gradlew assemble --max-workers 4 --parallel --no-daemon --stacktrace
+        run: ./gradlew test assemble --max-workers 4 --parallel --no-daemon --stacktrace
   integrationTestExcludeMaster:
     if: |
       github.event_name == 'pull_request' ||

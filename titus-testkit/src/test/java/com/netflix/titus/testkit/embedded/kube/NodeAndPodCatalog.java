@@ -22,8 +22,14 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1NodeAffinity;
+import io.kubernetes.client.openapi.models.V1NodeSelector;
+import io.kubernetes.client.openapi.models.V1NodeSelectorRequirement;
+import io.kubernetes.client.openapi.models.V1NodeSelectorTerm;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -37,7 +43,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 
 class NodeAndPodCatalog {
 
-    static V1Pod newPod() {
+    static V1Pod newPod(String resourcePool) {
         ContainerResources containerResources = ContainerResources.newBuilder()
                 .withCpu(4)
                 .withMemoryMB(8192)
@@ -53,6 +59,18 @@ class NodeAndPodCatalog {
                                 .name("container1")
                                 .resources(buildV1ResourceRequirements(containerResources))
                         ))
+                        .affinity(new V1Affinity()
+                                .nodeAffinity(new V1NodeAffinity().requiredDuringSchedulingIgnoredDuringExecution(
+                                        new V1NodeSelector().nodeSelectorTerms(Collections.singletonList(
+                                                new V1NodeSelectorTerm().matchExpressions(Collections.singletonList(
+                                                        new V1NodeSelectorRequirement()
+                                                                .key(KubeConstants.NODE_LABEL_RESOURCE_POOL)
+                                                                .values(Collections.singletonList(resourcePool))
+                                                ))
+                                        ))
+                                        )
+                                )
+                        )
                 );
     }
 
