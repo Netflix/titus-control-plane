@@ -30,8 +30,6 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -44,7 +42,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCell;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
@@ -53,14 +51,12 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
     private static final int JOBS_PER_ENGINE = 3;
     private static final int TASKS_PER_JOB = 2;
 
-    private static final TitusStackResource titusStackResource = new TitusStackResource(basicCell(5));
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCell(10));
 
     private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
-    private static final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
     @ClassRule
-    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
+    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
 
     private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
@@ -69,7 +65,6 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
         JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor()

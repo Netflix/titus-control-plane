@@ -68,10 +68,10 @@ public class EmbeddedTitusCellTest {
 
     @Test
     @Ignore
-    public void testShutdownCleanup() throws Throwable {
+    public void testShutdownCleanup() {
         Set<Thread> threadsBefore = Thread.getAllStackTraces().keySet();
 
-        EmbeddedTitusCell titusStack = EmbeddedTitusCells.basicCell(1);
+        EmbeddedTitusCell titusStack = EmbeddedTitusCells.basicKubeCell(1);
         titusStack.boot();
         titusStack.shutdown();
 

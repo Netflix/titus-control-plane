@@ -36,8 +36,6 @@ import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
@@ -53,7 +51,7 @@ import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.master.integration.v3.job.JobTestUtils.submitBadJob;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,20 +61,17 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = batchJobDescriptors(batchOfSizeAndIps(1)).getValue();
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = serviceJobDescriptors(serviceOfSizeAndIps(1)).getValue();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCell(3));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
     @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
 
     private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getMaster().getV3BlockingGrpcClient();
     }
 
@@ -84,12 +79,17 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a service job with a single task and IP assignment.
      */
     @Test(timeout = 30_000)
-    public void testServiceIpAllocationConstraint() throws Exception {
+    public void testServiceIpAllocationConstraint() {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder ->
                 jobScenarioBuilder
                         .template(ScenarioTemplates.startTasksInNewJob())
                         // Expect tasks to have been assigned
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, ONE_TASK_SERVICE_JOB)))
+                        .allTasks(taskScenarioBuilder -> {
+                            String ipAllocationIdFromJob = getIpAllocationIdFromJob(0, ONE_TASK_SERVICE_JOB);
+                            return taskScenarioBuilder
+                                    .expectStaticIpAllocationInPod(ipAllocationIdFromJob)
+                                    .expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationIdFromJob);
+                        })
                         // Expect tasks to be assigned to correct AZ
                         .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, ONE_TASK_SERVICE_JOB))));
     }
@@ -98,62 +98,34 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a batch job with a single task and IP assignment.
      */
     @Test(timeout = 30_000)
-    public void testBatchIpAllocationConstraint() throws Exception {
+    public void testBatchIpAllocationConstraint() {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder ->
                 jobScenarioBuilder
                         .template(ScenarioTemplates.startTasksInNewJob())
                         // Expect tasks to have been assigned
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, ONE_TASK_BATCH_JOB)))
+                        .allTasks(taskScenarioBuilder -> {
+                            String ipAllocationIdFromJob = getIpAllocationIdFromJob(0, ONE_TASK_BATCH_JOB);
+                            return taskScenarioBuilder
+                                    .expectStaticIpAllocationInPod(ipAllocationIdFromJob)
+                                    .expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationIdFromJob);
+                        })
                         // Expect tasks to be assigned to correct AZ
                         .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, ONE_TASK_BATCH_JOB))));
-    }
-
-    /**
-     * Tests that a job waits for an assigned IP allocation to be freed before being scheduled.
-     */
-    @Test(timeout = 30_000)
-    public void testAlreadyAssignedIpAllocationConstraint() throws Exception {
-        JobDescriptor<ServiceJobExt> firstIpJobDescriptor = ONE_TASK_SERVICE_JOB;
-        JobDescriptor<ServiceJobExt> secondIpJobDescriptor = firstIpJobDescriptor.but(j -> j.getJobGroupInfo().toBuilder().withSequence("v001"));
-
-        // Schedule the first task and ensure it's in the correct zone with the correct task context
-        jobsScenarioBuilder.schedule(firstIpJobDescriptor, jobScenarioBuilder ->
-                jobScenarioBuilder
-                        .template(ScenarioTemplates.startTasksInNewJob())
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, firstIpJobDescriptor)))
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, firstIpJobDescriptor))));
-
-        // Schedule the second task and ensure it's blocked on the first task
-        jobsScenarioBuilder.schedule(secondIpJobDescriptor, jobScenarioBuilder ->
-                jobScenarioBuilder
-                        .template(ScenarioTemplates.jobAccepted())
-                        .expectAllTasksCreated()
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskStatus.TaskState.Accepted)));
-
-        // Terminate the first job
-        jobsScenarioBuilder
-                .takeJob(0)
-                .template(ScenarioTemplates.killJob());
-
-        // Ensure the second job's task starts and is placed successfully
-        jobsScenarioBuilder
-                .takeJob(1)
-                .template(ScenarioTemplates.startTasks())
-                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, secondIpJobDescriptor)))
-                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, secondIpJobDescriptor)));
     }
 
     /**
      * Tests a service job with multiple IP assignments.
      */
     @Test(timeout = 30_000)
-    public void testMultiTaskIpAllocations() throws Exception {
+    public void testMultiTaskIpAllocations() {
         JobDescriptor<ServiceJobExt> serviceJobExtJobDescriptor = serviceJobDescriptors(serviceOfSizeAndIps(2)).getValue();
 
         jobsScenarioBuilder.schedule(serviceJobExtJobDescriptor, jobScenarioBuilder ->
                 jobScenarioBuilder
                         .template(ScenarioTemplates.startTasksInNewJob())
-                        .expectSome(1, taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, "").equals(getIpAllocationIdFromJob(0, serviceJobExtJobDescriptor)))
+                        .expectSome(1, taskScenarioBuilder -> {
+                            return taskScenarioBuilder.getTask().getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, "").equals(getIpAllocationIdFromJob(0, serviceJobExtJobDescriptor));
+                        })
                         .expectSome(1, taskScenarioBuilder -> taskScenarioBuilder.getTask().getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, "").equals(getIpAllocationIdFromJob(1, serviceJobExtJobDescriptor)))
         );
     }
@@ -162,7 +134,7 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a new replacement task retains the same IP allocation as the previous task.
      */
     @Test(timeout = 30_000)
-    public void testReplacementTaskIpAllocation() throws Exception {
+    public void testReplacementTaskIpAllocation() {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder ->
                 jobScenarioBuilder
                         // Start the initial task
@@ -248,7 +220,7 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a service job with max greater than IP allocations cannot be created.
      */
     @Test(timeout = 30_000)
-    public void testServiceJobInstanceValidation() throws Exception {
+    public void testServiceJobInstanceValidation() {
         JobDescriptor<ServiceJobExt> invalidJobDescriptor = ONE_TASK_SERVICE_JOB
                 .but(j -> j.getExtensions().toBuilder().withCapacity(
                         j.getExtensions().getCapacity().toBuilder().withMax(2).build()).build());
@@ -262,7 +234,7 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a batch job with size greater than IP allocations cannot be created.
      */
     @Test(timeout = 30_000)
-    public void testBatchJobInstanceValidation() throws Exception {
+    public void testBatchJobInstanceValidation() {
         JobDescriptor<BatchJobExt> invalidJobDescriptor = ONE_TASK_BATCH_JOB
                 .but(j -> j.getExtensions().toBuilder().withSize(2).build());
 
@@ -275,7 +247,7 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
      * Tests a service job update with max greater than IP allocations cannot be applied.
      */
     @Test(timeout = 30_000)
-    public void testServiceJobUpdateValidation() throws Exception {
+    public void testServiceJobUpdateValidation() {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder ->
                 // Schedule job with 1 IP allocation
                 jobScenarioBuilder

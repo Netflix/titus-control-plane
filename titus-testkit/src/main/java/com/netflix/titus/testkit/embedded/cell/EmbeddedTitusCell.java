@@ -25,6 +25,7 @@ import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
 
 /**
  * Represents complete Titus stack, which includes master, gateway and agents.
@@ -73,6 +74,10 @@ public class EmbeddedTitusCell {
 
     public static EmbeddedTitusCell.Builder aTitusCell() {
         return new Builder();
+    }
+
+    public EmbeddedKubeCluster getEmbeddedKubeCluster() {
+        return master.getEmbeddedKubeCluster();
     }
 
     public static class Builder {

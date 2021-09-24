@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -62,8 +62,8 @@ public class JobFederationTest extends BaseIntegrationTest {
     public final TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusFederation.aDefaultTitusFederation()
                     .withProperty("titus.federation.stack", federatedStackName)
-                    .withCell("a.*", basicCell("defaultCell", 2))
-                    .withCell("b.*", basicCell("v3OnlyCell", 2))
+                    .withCell("a.*", basicKubeCell("defaultCell", 2))
+                    .withCell("b.*", basicKubeCell("v3OnlyCell", 2))
                     .build()
     );
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub blockingJobClient;

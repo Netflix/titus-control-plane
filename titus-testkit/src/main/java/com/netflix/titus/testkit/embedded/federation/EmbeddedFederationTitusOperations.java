@@ -31,22 +31,31 @@ import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
 import rx.Observable;
 
 class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
 
     private final EmbeddedTitusFederation federation;
     private final SimulatedCloud cloudSimulator;
+    private final EmbeddedKubeCluster kubeCluster;
 
     EmbeddedFederationTitusOperations(EmbeddedTitusFederation federation) {
         this.federation = federation;
         // We assume, a single cloud simulator instance is shared between all cells.
-        this.cloudSimulator = this.federation.getCells().get(0).getTitusOperations().getSimulatedCloud();
+        EmbeddedTitusOperations titusOperations = this.federation.getCells().get(0).getTitusOperations();
+        this.cloudSimulator = titusOperations.getSimulatedCloud();
+        this.kubeCluster = titusOperations.getKubeCluster();
     }
 
     @Override
     public SimulatedCloud getSimulatedCloud() {
         return cloudSimulator;
+    }
+
+    @Override
+    public EmbeddedKubeCluster getKubeCluster() {
+        return kubeCluster;
     }
 
     @Override

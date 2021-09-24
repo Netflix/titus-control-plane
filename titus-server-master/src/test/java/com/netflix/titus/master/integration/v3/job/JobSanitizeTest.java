@@ -19,22 +19,20 @@ package com.netflix.titus.master.integration.v3.job;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizerConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.Status;
@@ -43,7 +41,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -71,21 +68,17 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     private final JobImageSanitizerConfiguration configuration = mock(JobImageSanitizerConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
 
-    private final TitusStackResource titusStackResource = getTitusStackResource(
+    @Rule
+    public final TitusStackResource titusStackResource = getTitusStackResource(
             new JobImageSanitizer(configuration, registryClient, new DefaultRegistry())
     );
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
-
-    @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(instanceGroupsScenarioBuilder);
 
     @Before
     public void setUp() throws Exception {
         when(configuration.isEnabled()).thenReturn(true);
         when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
         when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 
@@ -167,10 +160,10 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     }
 
     private TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor> sanitizer) {
-        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
+        EmbeddedKubeCluster kubeCluster = EmbeddedKubeClusters.basicCluster(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
-                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
+                .withMaster(EmbeddedTitusMasters.basicMasterWithKubeIntegration(kubeCluster).toBuilder()
                         .withCellName("cell-name")
                         .build())
                 .withDefaultGateway()

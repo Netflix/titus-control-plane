@@ -21,28 +21,25 @@ import java.util.List;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingValidator;
 import com.netflix.titus.runtime.endpoint.admission.FailJobValidator;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
-import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.StatusRuntimeException;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +62,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
     private static final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
     private static final List<AdmissionValidator<JobDescriptor>> validators = Collections.singletonList(new FailJobValidator());
 
-    private static TitusStackResource titusStackResource;
-    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
-    @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(instanceGroupsScenarioBuilder);
+    public static TitusStackResource titusStackResource;
 
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
@@ -82,9 +75,15 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
         titusStackResource = getTitusStackResource(validator);
     }
 
+    @AfterClass
+    public static void afterClass() {
+        if (titusStackResource != null) {
+            titusStackResource.after();
+        }
+    }
+
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 
@@ -104,14 +103,15 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
     }
 
     private static TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator) {
-        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
-
-        return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
-                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
+        EmbeddedKubeCluster kubeCluster = EmbeddedKubeClusters.basicCluster(0);
+        TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCell.aTitusCell()
+                .withMaster(EmbeddedTitusMasters.basicMasterWithKubeIntegration(kubeCluster).toBuilder()
                         .withCellName("cell-name")
                         .build())
                 .withDefaultGateway()
                 .withJobValidator(validator)
                 .build());
+        titusStackResource.before();
+        return titusStackResource;
     }
 }

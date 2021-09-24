@@ -45,8 +45,6 @@ import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
@@ -54,7 +52,7 @@ import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
@@ -80,7 +78,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     private final static TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusCell.aTitusCell()
-                    .withMaster(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloudWithLargeInstances(20)).toBuilder()
+                    .withMaster(EmbeddedTitusMasters.basicMasterWithKubeIntegration(EmbeddedKubeClusters.basicClusterWithLargeInstances(20)).toBuilder()
                             .withCellName("embeddedCell")
                             // Set to very high value as we do not want to expire it.
                             .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30000000")
@@ -94,10 +92,8 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     private final static JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
-    private final static InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
-
     @ClassRule
-    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
+    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
 
     private static final String BATCH_OWNER = "batchOwner@netflix.com";
     private static final String BATCH_APPLICATION = "batchApplication";
@@ -132,7 +128,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
         // Jobs with launched tasks
@@ -263,10 +258,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         String acceptedJobId = jobsScenarioBuilder.scheduleAndReturnJob(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob())).getId();
         String killInitiatedJobId = jobsScenarioBuilder.scheduleAndReturnJob(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.launchJob())
-                .allTasks(taskScenarioBuilder -> {
-                    taskScenarioBuilder.getTaskExecutionHolder().delayStateTransition(taskState -> Long.MAX_VALUE);
-                    return taskScenarioBuilder;
-                })
                 .killJob()
                 .expectJobUpdateEvent(job -> job.getStatus().getState() == JobState.KillInitiated, "Expected state: " + JobState.KillInitiated)
         ).getId();
@@ -315,10 +306,10 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
                         jobScenarioBuilder -> jobScenarioBuilder.template(template)
                 ).getId();
 
-        String jobLaunchedId = jobSubmitter.apply(ScenarioTemplates.startJob(TaskStatus.TaskState.Launched));
+        String jobLaunchedId = jobSubmitter.apply(ScenarioTemplates.launchJob());
         String startInitiatedJobId = jobSubmitter.apply(ScenarioTemplates.startJob(TaskStatus.TaskState.StartInitiated));
         String startedJobId = jobSubmitter.apply(ScenarioTemplates.startJob(TaskStatus.TaskState.Started));
-        String killInitiatedJobId = jobSubmitter.apply(ScenarioTemplates.startJobAndMoveTasksToKillInitiated(true));
+        String killInitiatedJobId = jobSubmitter.apply(ScenarioTemplates.startJobAndMoveTasksToKillInitiated());
 
         testSearchByTaskStateV3("Launched", jobLaunchedId, jobsScenarioBuilder.takeTaskId(jobLaunchedId, 0));
         testSearchByTaskStateV3("StartInitiated", startInitiatedJobId, jobsScenarioBuilder.takeTaskId(startInitiatedJobId, 0));
@@ -357,7 +348,12 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         String jobId = jobsScenarioBuilder.scheduleAndReturnJob(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.launchJob())
                 .inTask(0, TaskScenarioBuilder::failTaskExecution)
-                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.completeTask()))
+                .schedule()
+                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder
+                        .transitionTo(TaskStatus.TaskState.StartInitiated)
+                        .transitionTo(TaskStatus.TaskState.Started)
+                        .template(ScenarioTemplates.completeTask())
+                )
                 .expectJobUpdateEvent(job -> job.getStatus().getState() == JobState.Finished, "Expected job to complete")
         ).getId();
 
@@ -669,7 +665,9 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
                 .withApplicationName("testFieldsFiltering")
                 .withAttributes(ImmutableMap.of("keyA", "valueA", "keyB", "valueB"))
                 .build();
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasks()));
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+        );
 
         // Check jobs
         List<Job> foundJobs = client.findJobs(JobQuery.newBuilder()

@@ -22,31 +22,28 @@ import com.netflix.titus.grpc.protogen.HealthCheckRequest;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.grpc.protogen.HealthCheckResponse.ServingStatus.SERVING;
-import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMasterWithKubeIntegration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class HealthTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(
+    @Rule
+    public final TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusCell.aTitusCell()
-                    .withMaster(basicMaster(new SimulatedCloud()))
+                    .withMaster(basicMasterWithKubeIntegration(EmbeddedKubeClusters.basicCluster(2)))
                     .withDefaultGateway()
                     .build()
     );
-
-    @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource);
 
     @Test(timeout = TEST_TIMEOUT_MS)
     public void healthStatus() throws Exception {

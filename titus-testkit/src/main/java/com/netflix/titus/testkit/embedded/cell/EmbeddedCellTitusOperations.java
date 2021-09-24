@@ -32,6 +32,7 @@ import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
 import rx.Observable;
 
 public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
@@ -39,6 +40,7 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     private final EmbeddedTitusMaster master;
     private final Optional<EmbeddedTitusGateway> gateway;
     private final SimulatedCloud simulatedCloud;
+    private final EmbeddedKubeCluster kubeCluster;
 
     public EmbeddedCellTitusOperations(EmbeddedTitusMaster master) {
         this(master, null);
@@ -48,11 +50,17 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
         this.master = master;
         this.gateway = Optional.ofNullable(gateway);
         this.simulatedCloud = master.getSimulatedCloud();
+        this.kubeCluster = master.getEmbeddedKubeCluster();
     }
 
     @Override
     public SimulatedCloud getSimulatedCloud() {
         return simulatedCloud;
+    }
+
+    @Override
+    public EmbeddedKubeCluster getKubeCluster() {
+        return kubeCluster;
     }
 
     @Override
