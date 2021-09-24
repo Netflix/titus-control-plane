@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import javax.validation.Valid;
@@ -188,10 +189,13 @@ public class Container {
         if (softConstraints != null ? !softConstraints.equals(container.softConstraints) : container.softConstraints != null) {
             return false;
         }
-        if (hardConstraints != null ? hardConstraints.equals(container.hardConstraints) : container.hardConstraints == null) {
+        if (hardConstraints != null ? !hardConstraints.equals(container.hardConstraints) : container.hardConstraints != null) {
             return false;
         }
-        return volumeMounts != null ? volumeMounts.equals(container.volumeMounts) : container.volumeMounts == null;
+        if (volumeMounts != null ? !volumeMounts.equals(container.volumeMounts) : container.volumeMounts != null) {
+            return false;
+        }
+        return true;
     }
 
     @Override
