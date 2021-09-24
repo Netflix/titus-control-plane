@@ -366,9 +366,12 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    private static List<VolumeMount> toCoreVolumeMounts(List<com.netflix.titus.grpc.protogen.VolumeMount> volumeMountsList) {
+    private static List<VolumeMount> toCoreVolumeMounts(List<com.netflix.titus.grpc.protogen.VolumeMount> grpcVolumeMounts) {
         List<VolumeMount> volumeMounts = new ArrayList<>();
-        for (com.netflix.titus.grpc.protogen.VolumeMount v : volumeMountsList) {
+        if (grpcVolumeMounts == null) {
+            return volumeMounts;
+        }
+        for (com.netflix.titus.grpc.protogen.VolumeMount v : grpcVolumeMounts) {
             volumeMounts.add(toCoreVolumeMount(v));
         }
         return volumeMounts;
@@ -1066,11 +1069,14 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static List<com.netflix.titus.grpc.protogen.VolumeMount> toGrpcVolumeMounts(List<VolumeMount> volumeMounts) {
-        List<com.netflix.titus.grpc.protogen.VolumeMount> basicContainers = new ArrayList<>();
-        for (VolumeMount v : volumeMounts) {
-            basicContainers.add(toGrpcVolumeMount(v));
+        List<com.netflix.titus.grpc.protogen.VolumeMount> grpcVolumeMounts = new ArrayList<>();
+        if (volumeMounts == null) {
+            return grpcVolumeMounts;
         }
-        return basicContainers;
+        for (VolumeMount v : volumeMounts) {
+            grpcVolumeMounts.add(toGrpcVolumeMount(v));
+        }
+        return grpcVolumeMounts;
     }
 
     private static com.netflix.titus.grpc.protogen.VolumeMount toGrpcVolumeMount(VolumeMount v) {
