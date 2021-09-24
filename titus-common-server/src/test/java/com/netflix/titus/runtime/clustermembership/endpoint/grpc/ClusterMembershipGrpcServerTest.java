@@ -31,7 +31,6 @@ import com.netflix.titus.grpc.protogen.MemberId;
 import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -70,11 +69,7 @@ public class ClusterMembershipGrpcServerTest {
         assertThat(result.getRevisionsCount()).isEqualTo(3);
     }
 
-    /**
-     * FIXME Failing in Github Actions env
-     */
     @Test(timeout = 30_000)
-    @Ignore
     public void testUpdateAndRemoveLabel() throws InterruptedException {
         checkSnapshotEvent();
 

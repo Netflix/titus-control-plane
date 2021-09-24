@@ -18,7 +18,9 @@ package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
@@ -90,6 +92,20 @@ public class ClusterMembershipServerResource extends ExternalResource {
                 ReactorClusterMembershipClient.class,
                 ClusterMembershipServiceGrpc.getServiceDescriptor()
         );
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        while (true) {
+            try {
+                client.getMembers().block();
+                break;
+            } catch (Exception e) {
+                System.out.println("ClusterMembership service not ready yet: " + e.getMessage());
+                e.printStackTrace();
+                if (stopwatch.elapsed(TimeUnit.SECONDS) > 30) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        }
     }
 
     @Override
