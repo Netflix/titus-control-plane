@@ -19,27 +19,20 @@ package com.netflix.titus.testkit.embedded.cell;
 import java.util.Optional;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
-import rx.Observable;
 
 public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
 
     private final EmbeddedTitusMaster master;
     private final Optional<EmbeddedTitusGateway> gateway;
-    private final SimulatedCloud simulatedCloud;
     private final EmbeddedKubeCluster kubeCluster;
 
     public EmbeddedCellTitusOperations(EmbeddedTitusMaster master) {
@@ -49,13 +42,7 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     public EmbeddedCellTitusOperations(EmbeddedTitusMaster master, EmbeddedTitusGateway gateway) {
         this.master = master;
         this.gateway = Optional.ofNullable(gateway);
-        this.simulatedCloud = master.getSimulatedCloud();
         this.kubeCluster = master.getEmbeddedKubeCluster();
-    }
-
-    @Override
-    public SimulatedCloud getSimulatedCloud() {
-        return simulatedCloud;
     }
 
     @Override
@@ -94,11 +81,6 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     }
 
     @Override
-    public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
-        return gateway.map(EmbeddedTitusGateway::getAutoScaleGrpcClient).orElse(master.getAutoScaleGrpcClient());
-    }
-
-    @Override
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         return gateway.map(EmbeddedTitusGateway::getLoadBalancerGrpcClient).orElse(master.getLoadBalancerGrpcClient());
     }
@@ -106,25 +88,5 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     @Override
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return gateway.map(EmbeddedTitusGateway::getBlockingGrpcEvictionClient).orElse(master.getBlockingGrpcEvictionClient());
-    }
-
-    @Override
-    public JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
-        return master.getJobActivityHistoryGrpcClient();
-    }
-
-        @Override
-    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
-        return gateway.map(EmbeddedTitusGateway::getBlockingGrpcMachineClient).orElse(master.getBlockingGrpcMachineClient());
-    }
-
-    @Override
-    public Observable<TaskExecutorHolder> observeLaunchedTasks() {
-        return master.observeLaunchedTasks();
-    }
-
-    @Override
-    public Observable<TaskExecutorHolder> awaitTaskExecutorHolderOf(String taskId) {
-        return master.awaitTaskExecutorHolderOf(taskId);
     }
 }

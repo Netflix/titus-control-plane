@@ -17,22 +17,15 @@
 package com.netflix.titus.testkit.embedded;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
-import rx.Observable;
 
 import static com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceBlockingStub;
 
 public interface EmbeddedTitusOperations {
-    SimulatedCloud getSimulatedCloud();
 
     EmbeddedKubeCluster getKubeCluster();
 
@@ -48,17 +41,7 @@ public interface EmbeddedTitusOperations {
 
     AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient();
 
-    AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient();
-
     LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient();
 
-    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient();
-
     EvictionServiceBlockingStub getBlockingGrpcEvictionClient();
-
-    Observable<TaskExecutorHolder> observeLaunchedTasks();
-
-    Observable<TaskExecutorHolder> awaitTaskExecutorHolderOf(String taskId);
-
-    MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient();
 }
