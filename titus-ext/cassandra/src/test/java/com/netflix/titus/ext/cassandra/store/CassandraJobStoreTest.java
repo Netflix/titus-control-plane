@@ -538,7 +538,7 @@ public class CassandraJobStoreTest {
         PlatformSidecar ps1 = PlatformSidecar.newBuilder()
                 .withName("testSidecar")
                 .withChannel("testChannel")
-                .withArguments(args.build())
+                .withArguments("{\"foo\":true,\"bar\":3.0}")
                 .build();
         List<PlatformSidecar> platformSidecars = Collections.singletonList(ps1);
         JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(jd ->

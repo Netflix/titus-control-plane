@@ -174,13 +174,7 @@ public class KubePodUtil {
         String channelKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
         annotations.put(channelKey, ps.getChannel());
         String argumentsKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
-        String argumentsJson;
-        try {
-            argumentsJson = JsonFormat.printer().omittingInsignificantWhitespace().print(ps.getArguments());
-        } catch (InvalidProtocolBufferException e) {
-            argumentsJson = "BAD: " + e.getMessage();
-        }
-        annotations.put(argumentsKey, argumentsJson);
+        annotations.put(argumentsKey, ps.getArguments());
         return annotations;
     }
 

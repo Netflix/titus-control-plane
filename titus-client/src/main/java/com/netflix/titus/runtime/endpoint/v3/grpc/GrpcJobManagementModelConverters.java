@@ -26,7 +26,9 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Struct;
+import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
@@ -446,8 +448,16 @@ public final class GrpcJobManagementModelConverters {
         return PlatformSidecar.newBuilder()
                 .withName(ps.getName())
                 .withChannel(ps.getChannel())
-                .withArguments(ps.getArguments())
+                .withArguments(structToJSONString(ps.getArguments(), ps.getName()))
                 .build();
+    }
+
+    private static String structToJSONString(Struct arguments, String sidecarName) {
+        try {
+            return JsonFormat.printer().omittingInsignificantWhitespace().print(arguments);
+        } catch (InvalidProtocolBufferException e) {
+            throw new IllegalArgumentException("Unable to serialize arguments for the " + sidecarName + " sidecar: " + e.getMessage());
+        }
     }
 
     public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget
@@ -1151,8 +1161,18 @@ public final class GrpcJobManagementModelConverters {
         return com.netflix.titus.grpc.protogen.PlatformSidecar.newBuilder()
                 .setName(ps.getName())
                 .setChannel(ps.getChannel())
-                .setArguments(ps.getArguments())
+                .setArguments(jsonStringToStruct(ps.getArguments(), ps.getName()))
                 .build();
+    }
+
+    private static Struct jsonStringToStruct(String arguments, String sidecarName) {
+        Struct.Builder argsBuilder = Struct.newBuilder();
+        try {
+            JsonFormat.parser().merge(arguments, argsBuilder);
+        } catch (InvalidProtocolBufferException e) {
+            throw new IllegalArgumentException("Could not serialize platform sidecar arguments for " + sidecarName + ": " + e.getMessage());
+        }
+        return argsBuilder.build();
     }
 
     public static com.netflix.titus.grpc.protogen.JobStatus toGrpcJobStatus(JobStatus status) {

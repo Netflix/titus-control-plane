@@ -165,16 +165,9 @@ public class V1SpecPodFactoryTest {
     public void podHasSidecarAnnotations() {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
         BatchJobTask task = JobGenerator.oneBatchTask();
-        Struct.Builder args = Struct.newBuilder();
         String json_args = "{\"foo\":true,\"bar\":3.0}";
-        try {
-            JsonFormat.parser().merge(json_args, args);
-        } catch (InvalidProtocolBufferException e) {
-            e.printStackTrace();
-        }
-
         List<PlatformSidecar> platformSidecars = Arrays.asList(
-                new PlatformSidecar("mysidecar", "stable", args.build())
+                new PlatformSidecar("mysidecar", "stable", json_args)
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withPlatformSidecars(platformSidecars).build()).build();
 
@@ -182,8 +175,8 @@ public class V1SpecPodFactoryTest {
         V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
 
         Map<String, String> annotations = pod.getMetadata().getAnnotations();
-        String expectedSidecarAnnodation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
-        assertThat(annotations.get(expectedSidecarAnnodation)).isEqualTo("true");
+        String expectedSidecarAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
+        assertThat(annotations.get(expectedSidecarAnnotation)).isEqualTo("true");
 
         String expectedChannelAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
         assertThat(annotations.get(expectedChannelAnnotation)).isEqualTo("stable");

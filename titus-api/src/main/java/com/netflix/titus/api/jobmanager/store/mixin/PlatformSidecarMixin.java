@@ -9,7 +9,7 @@ public class PlatformSidecarMixin {
     public PlatformSidecarMixin(
             @JsonProperty("name") String name,
             @JsonProperty("channel") String channel,
-            @JsonProperty("arguments") Struct arguments
+            @JsonProperty("arguments") String arguments
     ) {
     }
 }
