@@ -359,7 +359,7 @@ public class Container {
                     nonNull(env),
                     nonNull(softConstraints),
                     nonNull(hardConstraints),
-                    volumeMounts
+                    nonNull(volumeMounts)
             );
             return container;
         }

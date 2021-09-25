@@ -175,7 +175,7 @@ public class BasicContainer {
                     entryPoint,
                     command,
                     nonNull(env),
-                    volumeMounts
+                    nonNull(volumeMounts)
             );
         }
     }
