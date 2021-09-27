@@ -401,6 +401,7 @@ public final class GrpcJobManagementModelConverters {
                 .withImage(toCoreImage(grpcBasicContainer.getImage()))
                 .withEntryPoint(grpcBasicContainer.getEntryPointList())
                 .withCommand(grpcBasicContainer.getCommandList())
+                .withVolumeMounts(toCoreVolumeMounts(grpcBasicContainer.getVolumeMountsList()))
                 .build();
     }
 
