@@ -52,6 +52,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KubePodUtil {
+
+    private static final String MOUNT_PROPAGATION_BIDIRECTIONAL = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationBidirectional.toString();
+    private static final String MOUNT_PROPAGATION_HOST_TO_CONTAINER = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationHostToContainer.toString();
+    private static final String MOUNT_PROPAGATION_NONE = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationNone.toString();
+
     private static final Logger logger = LoggerFactory.getLogger(KubePodUtil.class);
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
@@ -198,9 +203,21 @@ public class KubePodUtil {
         return new V1VolumeMount()
                 .name(vm.getVolumeName())
                 .mountPath(vm.getMountPath())
-                .mountPropagation(vm.getMountPropagation())
+                .mountPropagation(buildV1VolumeMountPropagation(vm.getMountPropagation()))
                 .readOnly(vm.getReadOnly())
                 .subPath(vm.getSubPath());
+    }
+
+    private static String buildV1VolumeMountPropagation(String mountPropagation) {
+        if (mountPropagation.equals(MOUNT_PROPAGATION_BIDIRECTIONAL)) {
+            return "Bidirectional";
+        } else if (mountPropagation.equals(MOUNT_PROPAGATION_HOST_TO_CONTAINER)) {
+            return "HostToContainer";
+        } else if (mountPropagation.equals(MOUNT_PROPAGATION_NONE)) {
+            return "None";
+        } else {
+            return "None";
+        }
     }
 
 
