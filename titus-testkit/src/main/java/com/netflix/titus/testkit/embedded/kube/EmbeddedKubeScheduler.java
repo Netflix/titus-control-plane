@@ -84,7 +84,7 @@ class EmbeddedKubeScheduler {
 
     public String getResourcePoolOfPod(V1Pod pod) {
         List<String> nodeSelectorTerm = findNodeSelectorTerm(pod, KubeConstants.NODE_LABEL_RESOURCE_POOL);
-        return CollectionsExt.isNullOrEmpty(nodeSelectorTerm) ? null : nodeSelectorTerm.get(0);
+        return CollectionsExt.isNullOrEmpty(nodeSelectorTerm) ? "" : nodeSelectorTerm.get(0);
     }
 
     public Set<String> getZonesOfPod(V1Pod pod) {
