@@ -92,6 +92,7 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.grpc.protogen.AddressAllocation;
 import com.netflix.titus.grpc.protogen.AddressLocation;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
@@ -106,6 +107,8 @@ import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.SignedAddressAllocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
@@ -135,6 +138,8 @@ import static com.netflix.titus.grpc.protogen.Day.Tuesday;
 import static com.netflix.titus.grpc.protogen.Day.Wednesday;
 
 public final class GrpcJobManagementModelConverters {
+
+    private static final Logger logger = LoggerFactory.getLogger(GrpcJobManagementModelConverters.class);
 
     private GrpcJobManagementModelConverters() {
     }
@@ -1158,21 +1163,31 @@ public final class GrpcJobManagementModelConverters {
     }
 
     private static com.netflix.titus.grpc.protogen.PlatformSidecar toGrpcPlatformSidecar(PlatformSidecar ps) {
+        Either<Struct, String> args = jsonStringToStruct(ps.getArguments());
+        if (args.hasError()) {
+            logger.error("Couldn't create platform sidecar arguments for " + ps.getName() + ". Err: " + args.getError());
+            // If we couldn't create the args struct, we can do our best and return an object without any arguments
+            return com.netflix.titus.grpc.protogen.PlatformSidecar.newBuilder()
+                    .setName(ps.getName())
+                    .setChannel(ps.getChannel())
+                    .build();
+        }
         return com.netflix.titus.grpc.protogen.PlatformSidecar.newBuilder()
                 .setName(ps.getName())
                 .setChannel(ps.getChannel())
-                .setArguments(jsonStringToStruct(ps.getArguments(), ps.getName()))
+                .setArguments(args.getValue())
                 .build();
     }
 
-    private static Struct jsonStringToStruct(String arguments, String sidecarName) {
+    private static Either<Struct, String> jsonStringToStruct(String arguments) {
         Struct.Builder argsBuilder = Struct.newBuilder();
         try {
             JsonFormat.parser().merge(arguments, argsBuilder);
         } catch (InvalidProtocolBufferException e) {
-            throw new IllegalArgumentException("Could not serialize platform sidecar arguments for " + sidecarName + ": " + e.getMessage());
+            return Either.ofError(e.getMessage());
         }
-        return argsBuilder.build();
+        Struct args = argsBuilder.build();
+        return Either.ofValue(args);
     }
 
     public static com.netflix.titus.grpc.protogen.JobStatus toGrpcJobStatus(JobStatus status) {
