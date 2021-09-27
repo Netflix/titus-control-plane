@@ -17,6 +17,7 @@
 package com.netflix.titus.master.kubernetes.pod.v1;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,8 @@ import static org.mockito.Mockito.when;
 
 public class V1SpecPodFactoryTest {
 
+    String NONE_MOUNT_PROPAGATION = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationNone.toString();
+
     private final KubePodConfiguration configuration = mock(KubePodConfiguration.class);
 
     private final ApplicationSlaManagementService capacityGroupManagement = mock(ApplicationSlaManagementService.class);
@@ -95,8 +98,8 @@ public class V1SpecPodFactoryTest {
         BatchJobTask task = JobGenerator.oneBatchTask();
         Image testImage = Image.newBuilder().withName("testImage").withDigest("123").build();
         List<BasicContainer> extraContainers = Arrays.asList(
-                new BasicContainer("extraContainer1", testImage, null, null, new HashMap<>(), null),
-                new BasicContainer("extraContainer2", testImage, null, null, new HashMap<>(), null)
+                new BasicContainer("extraContainer1", testImage, Collections.emptyList(), Collections.emptyList(), new HashMap<>(), Collections.emptyList()),
+                new BasicContainer("extraContainer2", testImage, Collections.emptyList(), Collections.emptyList(), new HashMap<>(), Collections.emptyList())
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withExtraContainers(extraContainers).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
@@ -112,8 +115,8 @@ public class V1SpecPodFactoryTest {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
         BatchJobTask task = JobGenerator.oneBatchTask();
         List<VolumeMount> volumeMounts = Arrays.asList(
-                new VolumeMount("volume1", "", "", false, ""),
-                new VolumeMount("volume2", "", "", false, "")
+                new VolumeMount("volume1", "", NONE_MOUNT_PROPAGATION, false, ""),
+                new VolumeMount("volume2", "", NONE_MOUNT_PROPAGATION, false, "")
         );
         Container container = job.getJobDescriptor().getContainer().toBuilder().withVolumeMounts(volumeMounts).build();
         job = job.toBuilder().withJobDescriptor(

@@ -185,6 +185,9 @@ public class KubePodUtil {
      */
     public static List<V1VolumeMount> buildV1VolumeMounts(List<VolumeMount> volumeMounts) {
         List<V1VolumeMount> v1VolumeMounts = new ArrayList<>();
+        if (volumeMounts == null) {
+            return v1VolumeMounts;
+        }
         for (VolumeMount vm : volumeMounts) {
             v1VolumeMounts.add(buildV1VolumeMount(vm));
         }

@@ -21,6 +21,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 
@@ -31,6 +33,7 @@ public abstract class BasicContainerMixin {
                                @JsonProperty("entryPoint") List<String> entryPoint,
                                @JsonProperty("command") List<String> command,
                                @JsonProperty("env") Map<String, String> env,
+                               @JsonSetter(nulls = Nulls.AS_EMPTY)
                                @JsonProperty("volumeMounts") List<VolumeMount> volumeMounts
     ) {
     }

@@ -54,6 +54,7 @@ public class BasicContainer {
     )
     private final Map<String, String> env;
 
+    @CollectionInvariants
     private final List<VolumeMount> volumeMounts;
 
     public BasicContainer(
@@ -81,23 +82,14 @@ public class BasicContainer {
     }
 
     public List<String> getEntryPoint() {
-        if (entryPoint == null) {
-            return Collections.emptyList();
-        }
         return entryPoint;
     }
 
     public List<String> getCommand() {
-        if (command == null) {
-            return Collections.emptyList();
-        }
         return command;
     }
 
     public Map<String, String> getEnv() {
-        if (env == null) {
-            return Collections.emptyMap();
-        }
         return env;
     }
 
