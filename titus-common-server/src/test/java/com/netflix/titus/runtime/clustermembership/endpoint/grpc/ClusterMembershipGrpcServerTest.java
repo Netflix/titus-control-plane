@@ -31,11 +31,13 @@ import com.netflix.titus.grpc.protogen.MemberId;
 import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Ignore
 public class ClusterMembershipGrpcServerTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);

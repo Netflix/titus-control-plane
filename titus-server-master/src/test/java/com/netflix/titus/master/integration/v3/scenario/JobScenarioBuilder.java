@@ -58,13 +58,9 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.master.scheduler.SchedulingResultEvent.FailedSchedulingResultEvent;
-import com.netflix.titus.master.scheduler.SchedulingResultEvent.SuccessfulSchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -172,10 +168,6 @@ public class JobScenarioBuilder {
 
     void stop() {
         eventStreamSubscription.unsubscribe();
-    }
-
-    public boolean isKube() {
-        return titusOperations.getKubeCluster() != null;
     }
 
     public EmbeddedKubeCluster getKube() {
@@ -505,36 +497,6 @@ public class JobScenarioBuilder {
         return this;
     }
 
-    public JobScenarioBuilder expectTasksOnAgents(int count) {
-        logger.info("[{}] Expecting {} tasks to be running on agents...", discoverActiveTest(), count);
-
-        try {
-            await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
-                        List<TaskHolder> tasksOnAgent = getLastTaskHolders().stream()
-                                .filter(h -> h.getTaskScenarioBuilder().hasTaskExecutorHolder())
-                                .collect(Collectors.toList());
-                        if (tasksOnAgent.size() == count) {
-                            logger.info("Found expected number of tasks ({}) on agents: {}", count, tasksOnAgent);
-                            return true;
-                        }
-                        return false;
-                    }
-            );
-        } catch (Exception e) {
-            logger.error("Expected {} tasks on agent but found: {}", count, getLastTaskHolders());
-            diagnosticReporter.reportAllAgentsWithAssignments();
-            getLastTaskHolders().forEach(holder -> {
-                Task task = holder.getTaskScenarioBuilder().getTask();
-                if (task.getStatus().getState() == TaskState.Accepted) {
-                    diagnosticReporter.reportWhenTaskNotScheduled(task.getId());
-                }
-            });
-            throw e;
-        }
-
-        return this;
-    }
-
     public JobScenarioBuilder expectJobToScaleDown() {
         JobDescriptor.JobDescriptorExt ext = getJob().getJobDescriptor().getExtensions();
         Preconditions.checkState(ext instanceof ServiceJobExt, "Not a service job %s", jobId);
@@ -617,17 +579,6 @@ public class JobScenarioBuilder {
         return this;
     }
 
-    public JobScenarioBuilder assertEachContainer(Predicate<TaskExecutorHolder> taskExecutorHolderPredicate, String message) {
-        List<TaskHolder> lastTaskHolders = getLastTaskHolders();
-        boolean allMatch = lastTaskHolders.stream().allMatch(task ->
-                taskExecutorHolderPredicate.test(task.getTaskScenarioBuilder().getTaskExecutionHolder())
-        );
-        if (!allMatch) {
-            throw new IllegalStateException("TaskExecutorHolder predicate is false for one or more tasks. " + message);
-        }
-        return this;
-    }
-
     public JobScenarioBuilder assertEachPod(Predicate<V1Pod> podPredicate, String message) {
         List<TaskHolder> lastTaskHolders = getLastTaskHolders();
         boolean allMatch = lastTaskHolders.stream().allMatch(taskHolder -> {
@@ -700,29 +651,9 @@ public class JobScenarioBuilder {
         @Override
         public String toString() {
             Task task = taskScenarioBuilder.getTask();
-            SimulatedTitusAgent agent = taskScenarioBuilder.hasTaskExecutorHolder()
-                    ? taskScenarioBuilder.getTaskExecutionHolder().getAgent()
-                    : null;
-            String schedulingResult = "n/a";
-            if (agent == null) {
-                schedulingResult = schedulingService.findLastSchedulingResult(task.getId())
-                        .map(event -> {
-                            if (event instanceof SuccessfulSchedulingResultEvent) {
-                                return "scheduled";
-                            }
-                            if (event instanceof FailedSchedulingResultEvent) {
-                                FailedSchedulingResultEvent failed = (FailedSchedulingResultEvent) event;
-                                return failed.getAssignmentResults().toString();
-                            }
-                            return "unknownSchedulingResult";
-                        })
-                        .orElse("notFound");
-            }
             return "TaskHolder{" +
                     "taskId=" + task.getId() +
                     ", state=" + task.getStatus().getState() +
-                    ", agentId=" + (agent == null ? "none" : agent.getId()) +
-                    ", schedulingResult=" + schedulingResult +
                     "}";
         }
     }

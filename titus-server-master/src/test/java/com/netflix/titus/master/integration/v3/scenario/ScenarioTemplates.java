@@ -71,33 +71,17 @@ public class ScenarioTemplates {
     }
 
     public static Function<JobScenarioBuilder, JobScenarioBuilder> startTasks() {
-        return jobScenarioBuilder -> {
-            if (jobScenarioBuilder.isKube()) {
-                return jobScenarioBuilder
-                        .schedule()
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.Launched))
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.transitionTo(TaskState.StartInitiated, TaskState.Started))
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.StartInitiated, TaskState.Started));
-            }
-            return jobScenarioBuilder
-                    .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Launched))
-                    .allTasks(taskScenarioBuilder -> taskScenarioBuilder.transitionTo(TaskState.StartInitiated, TaskState.Started))
-                    .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.StartInitiated, TaskState.Started));
-        };
+        return jobScenarioBuilder -> jobScenarioBuilder
+                .schedule()
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.Launched))
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.transitionTo(TaskState.StartInitiated, TaskState.Started))
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.StartInitiated, TaskState.Started));
     }
 
     public static Function<TaskScenarioBuilder, TaskScenarioBuilder> startTask() {
-        return taskScenarioBuilder -> {
-            if (taskScenarioBuilder.isKube()) {
-                return taskScenarioBuilder
-                        .transitionTo(TaskState.StartInitiated, TaskState.Started)
-                        .expectStateUpdateSkipOther(TaskState.Started);
-            }
-            return taskScenarioBuilder
-                    .expectStateUpdateSkipOther(TaskState.Launched)
-                    .transitionTo(TaskState.StartInitiated, TaskState.Started)
-                    .expectStateUpdates(TaskState.StartInitiated, TaskState.Started);
-        };
+        return taskScenarioBuilder -> taskScenarioBuilder
+                .transitionTo(TaskState.StartInitiated, TaskState.Started)
+                .expectStateUpdateSkipOther(TaskState.Started);
     }
 
     public static Function<TaskScenarioBuilder, TaskScenarioBuilder> startLaunchedTask() {
@@ -117,22 +101,13 @@ public class ScenarioTemplates {
     }
 
     public static Function<JobScenarioBuilder, JobScenarioBuilder> startTasksInNewJob() {
-        return jobScenarioBuilder -> {
-            if (jobScenarioBuilder.isKube()) {
-                return jobScenarioBuilder
-                        .template(jobAccepted())
-                        .expectAllTasksCreated()
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder
-                                .expectStateAndReasonUpdateSkipOther(TaskState.Accepted, "podCreated")
-                        )
-                        .template(startTasks());
-            }
-            return jobScenarioBuilder
-                    .template(jobAccepted())
-                    .expectAllTasksCreated()
-                    .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
-                    .template(startTasks());
-        };
+        return jobScenarioBuilder -> jobScenarioBuilder
+                .template(jobAccepted())
+                .expectAllTasksCreated()
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectStateAndReasonUpdateSkipOther(TaskState.Accepted, "podCreated")
+                )
+                .template(startTasks());
     }
 
     public static Function<TaskScenarioBuilder, TaskScenarioBuilder> moveToState(TaskState taskState) {

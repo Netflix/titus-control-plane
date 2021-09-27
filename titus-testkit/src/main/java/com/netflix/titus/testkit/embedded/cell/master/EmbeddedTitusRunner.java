@@ -16,21 +16,15 @@
 
 package com.netflix.titus.testkit.embedded.cell.master;
 
-import com.netflix.governator.InjectorBuilder;
-import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
-import com.netflix.titus.testkit.embedded.cloud.EmbeddedCloudModule;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters;
 
 public class EmbeddedTitusRunner {
 
     public static void main(String[] args) throws InterruptedException {
-        LifecycleInjector injector = InjectorBuilder.fromModule(new EmbeddedCloudModule()).createInjector();
-        SimulatedCloud cloud = injector.getInstance(SimulatedCloud.class);
-
         System.setProperty(DefaultTitusRuntime.FIT_ACTIVATION_PROPERTY, "true");
         EmbeddedTitusMaster.Builder builder = EmbeddedTitusMaster.aTitusMaster()
-                .withSimulatedCloud(cloud)
+                .withEmbeddedKubeCluster(EmbeddedKubeClusters.basicCluster(2))
                 .withCassadraV3JobStore()
                 .withApiPort(8080)
                 .withGrpcPort(8090);

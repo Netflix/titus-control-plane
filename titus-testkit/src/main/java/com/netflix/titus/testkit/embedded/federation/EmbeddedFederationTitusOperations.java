@@ -16,41 +16,25 @@
 
 package com.netflix.titus.testkit.embedded.federation;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
-import rx.Observable;
 
 class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
 
     private final EmbeddedTitusFederation federation;
-    private final SimulatedCloud cloudSimulator;
     private final EmbeddedKubeCluster kubeCluster;
 
     EmbeddedFederationTitusOperations(EmbeddedTitusFederation federation) {
         this.federation = federation;
         // We assume, a single cloud simulator instance is shared between all cells.
         EmbeddedTitusOperations titusOperations = this.federation.getCells().get(0).getTitusOperations();
-        this.cloudSimulator = titusOperations.getSimulatedCloud();
         this.kubeCluster = titusOperations.getKubeCluster();
-    }
-
-    @Override
-    public SimulatedCloud getSimulatedCloud() {
-        return cloudSimulator;
     }
 
     @Override
@@ -95,45 +79,12 @@ class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
     }
 
     @Override
-    public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
-        return federation.getAutoScaleGrpcClient();
-    }
-
-    @Override
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         return federation.getLoadBalancerGrpcClient();
     }
 
     @Override
-    public JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
-        return federation.getJobActivityHistoryGrpcClient();
-    }
-
-    @Override
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return federation.getBlockingGrpcEvictionClient();
-    }
-
-    @Override
-    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
-        return federation.getBlockingGrpcMachineClient();
-    }
-
-    @Override
-    public Observable<TaskExecutorHolder> observeLaunchedTasks() {
-        List<Observable<TaskExecutorHolder>> observableList = federation.getCells()
-                .stream()
-                .map(c -> c.getTitusOperations().observeLaunchedTasks())
-                .collect(Collectors.toList());
-        return Observable.merge(observableList);
-    }
-
-    @Override
-    public Observable<TaskExecutorHolder> awaitTaskExecutorHolderOf(String taskId) {
-        List<Observable<TaskExecutorHolder>> observableList = federation.getCells()
-                .stream()
-                .map(c -> c.getTitusOperations().awaitTaskExecutorHolderOf(taskId))
-                .collect(Collectors.toList());
-        return Observable.merge(observableList).take(1);
     }
 }

@@ -22,6 +22,7 @@ import com.netflix.titus.testkit.embedded.kube.event.EmbeddedKubeEvent;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.junit.Test;
 
+import static com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters.RESOURCE_POOL_ELASTIC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmbeddedKubeClusterTest {
@@ -32,7 +33,7 @@ public class EmbeddedKubeClusterTest {
 
     @Test
     public void testRunPod() {
-        V1Pod pod1 = NodeAndPodCatalog.newPod();
+        V1Pod pod1 = NodeAndPodCatalog.newPod(RESOURCE_POOL_ELASTIC);
         String pod1Name = pod1.getMetadata().getName();
 
         Iterator<EmbeddedKubeEvent<V1Pod>> podEventIt = embeddedKubeCluster.observePods().toIterable().iterator();
@@ -79,7 +80,7 @@ public class EmbeddedKubeClusterTest {
 
     @Test
     public void testRunAndTerminatePod() {
-        V1Pod pod1 = NodeAndPodCatalog.newPod();
+        V1Pod pod1 = NodeAndPodCatalog.newPod(RESOURCE_POOL_ELASTIC);
         String pod1Name = pod1.getMetadata().getName();
 
         embeddedKubeCluster.addPod(pod1);

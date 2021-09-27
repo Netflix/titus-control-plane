@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.google.inject.Key;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -35,9 +34,6 @@ import com.netflix.titus.master.scheduler.SchedulingResultEvent.FailedScheduling
 import com.netflix.titus.master.scheduler.SchedulingResultEvent.SuccessfulSchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,23 +47,11 @@ public class DiagnosticReporter {
     private final AgentManagementService agentManagement;
     private final V3JobOperations jobOperations;
     private final SchedulingService<? extends TaskRequest> schedulingService;
-    private final SimulatedCloud simulatedCloud;
 
     public DiagnosticReporter(EmbeddedTitusMaster titusMaster) {
-        this.simulatedCloud = titusMaster.getSimulatedCloud();
         this.agentManagement = titusMaster.getInstance(AgentManagementService.class);
         this.jobOperations = titusMaster.getInstance(V3JobOperations.class);
         this.schedulingService = titusMaster.getSchedulingService();
-    }
-
-    public void reportAgentsInTheCloud() {
-        logger.info("Reporting all agent instances running in the cloud:");
-        for (SimulatedTitusAgentCluster instanceGroup : simulatedCloud.getAgentInstanceGroups()) {
-            logger.info("Simulated agent instance group: id={}", instanceGroup.getName());
-            for (SimulatedTitusAgent agent : instanceGroup.getAgents()) {
-                logger.info("    {}: hostname={}", agent.getId(), agent.getHostName());
-            }
-        }
     }
 
     public void reportAllAgentsWithAssignments() {
