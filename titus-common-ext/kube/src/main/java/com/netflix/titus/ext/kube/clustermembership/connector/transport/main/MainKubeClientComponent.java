@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.io.IOException;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeClusterMembershipConfiguration;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.Config;
 import org.slf4j.Logger;
@@ -31,9 +32,9 @@ import org.springframework.stereotype.Component;
  * @deprecated {@link ApiClient} should be provided independently of the cluster membership component.
  */
 @Component
-public class KubeClientComponent {
+public class MainKubeClientComponent {
 
-    private static final Logger logger = LoggerFactory.getLogger(KubeClientComponent.class);
+    private static final Logger logger = LoggerFactory.getLogger(MainKubeClientComponent.class);
 
     @Bean
     public ApiClient getApiClient(KubeClusterMembershipConfiguration configuration) {

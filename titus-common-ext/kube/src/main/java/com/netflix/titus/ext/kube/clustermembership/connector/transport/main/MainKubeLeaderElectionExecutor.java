@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -44,6 +44,8 @@ import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.spectator.ActionMetrics;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeLeaderElectionExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeMetrics;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionConfig;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionRecord;
 import io.kubernetes.client.extended.leaderelection.LeaderElector;
@@ -63,9 +65,9 @@ import reactor.core.scheduler.Schedulers;
  * Kubernetes {@link LeaderElector} object, which only tells when the local node becomes a leader. To get
  * information about who is the leader, we check periodically the associated {@link Lock}.
  */
-class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
+class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultKubeLeaderElectionExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(MainKubeLeaderElectionExecutor.class);
 
     private static final AtomicInteger LEADER_ELECTION_THREAD_IDX = new AtomicInteger();
     private static final AtomicInteger WATCHER_THREAD_IDX = new AtomicInteger();
@@ -97,12 +99,12 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
     private final ActionMetrics lastElectionAttemptAction;
     private final ActionMetrics electedLeaderRefreshAction;
 
-    DefaultKubeLeaderElectionExecutor(ApiClient kubeApiClient,
-                                      String namespace,
-                                      String clusterName,
-                                      Duration leaseDuration,
-                                      String localMemberId,
-                                      TitusRuntime titusRuntime) {
+    MainKubeLeaderElectionExecutor(ApiClient kubeApiClient,
+                                   String namespace,
+                                   String clusterName,
+                                   Duration leaseDuration,
+                                   String localMemberId,
+                                   TitusRuntime titusRuntime) {
         this.namespace = namespace;
         this.clusterName = clusterName;
         this.leaseDuration = leaseDuration;

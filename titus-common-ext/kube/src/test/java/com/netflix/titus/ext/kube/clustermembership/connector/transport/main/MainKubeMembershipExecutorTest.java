@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +25,7 @@ import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChan
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeExternalResource;
 import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
@@ -39,12 +40,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 @Category(RemoteIntegrationTest.class)
-public class DefaultKubeMembershipExecutorTest {
+public class MainKubeMembershipExecutorTest {
 
     @ClassRule
     public static final KubeExternalResource KUBE_RESOURCE = new KubeExternalResource();
 
-    private final DefaultKubeMembershipExecutor executor = new DefaultKubeMembershipExecutor(KUBE_RESOURCE.getClient(), "default");
+    private final MainKubeMembershipExecutor executor = new MainKubeMembershipExecutor(KUBE_RESOURCE.getClient(), "default");
 
     private final TitusRxSubscriber<ClusterMembershipEvent> eventSubscriber = new TitusRxSubscriber<>();
 

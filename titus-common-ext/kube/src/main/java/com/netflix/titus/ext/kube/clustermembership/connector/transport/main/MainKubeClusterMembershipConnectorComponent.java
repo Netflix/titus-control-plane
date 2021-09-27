@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.time.Duration;
 
@@ -23,6 +23,10 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeClusterMembershipConfiguration;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeClusterMembershipConnector;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeLeaderElectionExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
 import io.kubernetes.client.openapi.ApiClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,7 +35,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConditionalOnProperty(name = "titus.ext.kube.enabled", havingValue = "true", matchIfMissing = true)
-public class KubeClusterMembershipConnectorComponent {
+public class MainKubeClusterMembershipConnectorComponent {
 
     public static final String LOCAL_MEMBER_INITIAL = "localMemberInitial";
 
@@ -42,7 +46,7 @@ public class KubeClusterMembershipConnectorComponent {
 
     @Bean
     public KubeMembershipExecutor getKubeMembershipExecutor(KubeClusterMembershipConfiguration configuration, ApiClient kubeApiClient) {
-        return new DefaultKubeMembershipExecutor(kubeApiClient, configuration.getNamespace());
+        return new MainKubeMembershipExecutor(kubeApiClient, configuration.getNamespace());
     }
 
     @Bean
@@ -50,7 +54,7 @@ public class KubeClusterMembershipConnectorComponent {
                                                                            @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
                                                                            ApiClient kubeApiClient,
                                                                            TitusRuntime titusRuntime) {
-        return new DefaultKubeLeaderElectionExecutor(
+        return new MainKubeLeaderElectionExecutor(
                 kubeApiClient,
                 configuration.getNamespace(),
                 configuration.getClusterName(),

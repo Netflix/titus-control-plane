@@ -23,7 +23,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeClusterState;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeContext;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
-import com.netflix.titus.ext.kube.clustermembership.connector.KubeUtils;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.KubeUtils;
 import reactor.core.publisher.Mono;
 
 public class KubeRegistrationActions {

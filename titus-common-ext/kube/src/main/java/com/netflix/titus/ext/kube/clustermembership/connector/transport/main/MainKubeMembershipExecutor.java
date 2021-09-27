@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipModelConverters;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevision;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevisionResource;
@@ -30,15 +31,15 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
+class MainKubeMembershipExecutor implements KubeMembershipExecutor {
 
     private final String namespace;
 
     private final ApiClient kubeApiClient;
     private final CustomObjectsApi kubeCustomObjectClient;
 
-    public DefaultKubeMembershipExecutor(ApiClient kubeApiClient,
-                                         String namespace) {
+    public MainKubeMembershipExecutor(ApiClient kubeApiClient,
+                                      String namespace) {
         this.namespace = namespace;
         this.kubeApiClient = kubeApiClient;
         this.kubeCustomObjectClient = new CustomObjectsApi(kubeApiClient);

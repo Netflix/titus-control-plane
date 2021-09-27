@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeExternalResource;
 import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import io.kubernetes.client.openapi.ApiClient;
@@ -38,9 +39,9 @@ import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(RemoteIntegrationTest.class)
-public class DefaultKubeLeaderElectionExecutorTest {
+public class MainKubeLeaderElectionExecutorTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultKubeLeaderElectionExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(MainKubeLeaderElectionExecutorTest.class);
 
     @ClassRule
     public static final KubeExternalResource KUBE_RESOURCE = new KubeExternalResource();
@@ -104,12 +105,12 @@ public class DefaultKubeLeaderElectionExecutorTest {
     private class MemberHolder {
 
         private final String memberId;
-        private final DefaultKubeLeaderElectionExecutor executor;
+        private final MainKubeLeaderElectionExecutor executor;
         private final TitusRxSubscriber<LeaderElectionChangeEvent> eventSubscriber = new TitusRxSubscriber<>();
 
         MemberHolder(ApiClient client) {
             this.memberId = newMemberId();
-            this.executor = new DefaultKubeLeaderElectionExecutor(
+            this.executor = new MainKubeLeaderElectionExecutor(
                     client,
                     "default",
                     clusterName,
@@ -137,7 +138,7 @@ public class DefaultKubeLeaderElectionExecutorTest {
             return memberId;
         }
 
-        DefaultKubeLeaderElectionExecutor getExecutor() {
+        MainKubeLeaderElectionExecutor getExecutor() {
             return executor;
         }
 
