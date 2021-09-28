@@ -2,11 +2,12 @@
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
 aopalliance:aopalliance:1.0
-com.fasterxml.jackson.core:jackson-annotations:2.10.5
-com.fasterxml.jackson.core:jackson-core:2.10.5
-com.fasterxml.jackson.core:jackson-databind:2.10.5.1
-com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.8.4
+com.fasterxml.jackson.core:jackson-annotations:2.11.2
+com.fasterxml.jackson.core:jackson-core:2.11.2
+com.fasterxml.jackson.core:jackson-databind:2.11.2
+com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.11.2
 com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.10.5
+com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.11.2
 com.fasterxml:classmate:1.3.1
 com.github.akarnokd:rxjava2-interop:0.13.7
 com.github.andrewoma.dexx:dexx-collections:0.2
@@ -17,6 +18,7 @@ com.github.fge:json-schema-core:1.2.5
 com.github.fge:json-schema-validator:2.2.6
 com.github.fge:msg-simple:1.1
 com.github.fge:uri-template:0.9
+com.github.mifmif:generex:1.0.2
 com.github.spullara.cli-parser:cli-parser:1.1.1
 com.github.vlsi.compactmap:compactmap:2.0
 com.google.api.grpc:proto-google-common-protos:2.0.1
@@ -88,6 +90,29 @@ commons-configuration:commons-configuration:1.10
 commons-io:commons-io:2.8.0
 commons-lang:commons-lang:2.6
 commons-logging:commons-logging:1.2
+dk.brics.automaton:automaton:1.11-8
+io.fabric8:kubernetes-client:5.8.0
+io.fabric8:kubernetes-model-admissionregistration:5.8.0
+io.fabric8:kubernetes-model-apiextensions:5.8.0
+io.fabric8:kubernetes-model-apps:5.8.0
+io.fabric8:kubernetes-model-autoscaling:5.8.0
+io.fabric8:kubernetes-model-batch:5.8.0
+io.fabric8:kubernetes-model-certificates:5.8.0
+io.fabric8:kubernetes-model-common:5.8.0
+io.fabric8:kubernetes-model-coordination:5.8.0
+io.fabric8:kubernetes-model-core:5.8.0
+io.fabric8:kubernetes-model-discovery:5.8.0
+io.fabric8:kubernetes-model-events:5.8.0
+io.fabric8:kubernetes-model-extensions:5.8.0
+io.fabric8:kubernetes-model-flowcontrol:5.8.0
+io.fabric8:kubernetes-model-metrics:5.8.0
+io.fabric8:kubernetes-model-networking:5.8.0
+io.fabric8:kubernetes-model-node:5.8.0
+io.fabric8:kubernetes-model-policy:5.8.0
+io.fabric8:kubernetes-model-rbac:5.8.0
+io.fabric8:kubernetes-model-scheduling:5.8.0
+io.fabric8:kubernetes-model-storageclass:5.8.0
+io.fabric8:zjsonpatch:0.3.0
 io.github.x-stream:mxparser:1.2.1
 io.grpc:grpc-api:1.39.0
 io.grpc:grpc-context:1.39.0
@@ -183,7 +208,7 @@ org.reflections:reflections:0.9.10
 org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4
 org.scala-lang:scala-library:2.11.7
 org.skyscreamer:jsonassert:1.2.3
-org.slf4j:slf4j-api:1.7.30
+org.slf4j:slf4j-api:1.7.32
 org.slf4j:slf4j-log4j12:1.7.0
 org.springframework.boot:spring-boot-autoconfigure:2.3.6.RELEASE
 org.springframework.boot:spring-boot:2.3.6.RELEASE
