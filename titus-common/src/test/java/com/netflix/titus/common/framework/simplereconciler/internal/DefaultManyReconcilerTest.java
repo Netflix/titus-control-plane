@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
@@ -148,31 +149,53 @@ public class DefaultManyReconcilerTest {
         await().until(() -> reconciler.findById("r1").orElse("").equals("b"));
     }
 
+    /**
+     * Internal reconciler runs periodically and emits events constantly. The event dispatcher does not do any
+     * deduplication, so if run without any control, the subscriber would be getting different number of items
+     * on each emit. To avoid that we instruct the reconciler here when to emit the items we want.
+     */
     @Test
     public void testReconcilerActionMonoError() throws InterruptedException {
-        AtomicBoolean failedRef = new AtomicBoolean();
+        AtomicInteger roundRef = new AtomicInteger(-1);
         newReconcilerWithRegistrations(
-                data -> Collections.singletonList(failedRef.getAndSet(true)
-                        ? Mono.just(v -> "A")
-                        : Mono.error(new RuntimeException("simulated error"))
-                ),
+                dataBefore -> {
+                    if (roundRef.get() == -1) {
+                        return Collections.emptyList();
+                    }
+                    if (roundRef.getAndIncrement() == 0) {
+                        return Collections.singletonList(Mono.error(new RuntimeException("simulated error")));
+                    }
+                    roundRef.set(-1);
+                    return Collections.singletonList(Mono.just(v -> "A"));
+                },
                 "r1", "a"
         );
+        roundRef.set(0);
         expectUpdateEvent("r1", "A");
     }
 
+    /**
+     * Check {@link #testReconcilerActionMonoError()} to understand the logic of this test.
+     */
     @Test
     public void testReconcilerActionFunctionError() throws InterruptedException {
-        AtomicBoolean failedRef = new AtomicBoolean();
+        AtomicInteger roundRef = new AtomicInteger(-1);
         newReconcilerWithRegistrations(
-                dataBefore -> Collections.singletonList(Mono.just(dataAfter -> {
-                    if (failedRef.getAndSet(true)) {
-                        return "A";
+                dataBefore -> {
+                    if (roundRef.get() == -1) {
+                        return Collections.emptyList();
                     }
-                    throw new RuntimeException("simulated error");
-                })),
+                    return Collections.singletonList(Mono.just(dataAfter -> {
+                        if (roundRef.getAndIncrement() == 0) {
+                            throw new RuntimeException("simulated error");
+                        }
+                        roundRef.set(-1);
+                        return "A";
+                    }));
+                },
                 "r1", "a"
         );
+        roundRef.set(0);
         expectUpdateEvent("r1", "A");
     }
 
