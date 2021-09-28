@@ -29,7 +29,6 @@ import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -37,8 +36,8 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.common.JobResolverContext;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -49,7 +48,7 @@ import rx.Observable;
  */
 public class CreateOrReplaceServiceTaskActions {
 
-    public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration,
+    public static TitusChangeAction createOrReplaceTaskAction(JobResolverContext context,
                                                               JobStore jobStore,
                                                               VersionSupplier versionSupplier,
                                                               EntityHolder jobHolder,
@@ -58,7 +57,7 @@ public class CreateOrReplaceServiceTaskActions {
                                                               Map<String, String> taskContext) {
         Job<ServiceJobExt> job = jobHolder.getEntity();
         return previousTaskHolder
-                .map(previous -> createResubmittedTaskChangeAction(jobHolder, previous, configuration, jobStore, versionSupplier, clock, taskContext))
+                .map(previous -> createResubmittedTaskChangeAction(jobHolder, previous, context, jobStore, versionSupplier, clock, taskContext))
                 .orElseGet(() -> createOriginalTaskChangeAction(job, jobStore, versionSupplier, clock, taskContext));
     }
 
@@ -77,16 +76,16 @@ public class CreateOrReplaceServiceTaskActions {
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder,
                                                                        EntityHolder taskHolder,
-                                                                       JobManagerConfiguration configuration,
+                                                                       JobResolverContext context,
                                                                        JobStore jobStore,
                                                                        VersionSupplier versionSupplier,
                                                                        Clock clock,
                                                                        Map<String, String> taskContext) {
         ServiceJobTask oldTask = taskHolder.getEntity();
         long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started, clock).orElse(0L);
-        Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
+        Retryer nextTaskRetryer = timeInStartedState >= context.getConfiguration().getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
-                : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
+                : TaskRetryers.getNextTaskRetryer(context::getSystemRetryer, jobHolder.getEntity(), taskHolder);
         ServiceJobTask newTask = createServiceTaskReplacement(jobHolder.getEntity(), oldTask, clock.wallTime(), taskContext, versionSupplier);
 
         String summary = String.format(

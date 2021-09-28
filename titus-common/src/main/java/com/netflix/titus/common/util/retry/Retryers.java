@@ -23,9 +23,11 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.retry.internal.ExponentialBackoffRetryer;
 import com.netflix.titus.common.util.retry.internal.ImmediateRetryer;
 import com.netflix.titus.common.util.retry.internal.IntervalRetryer;
+import com.netflix.titus.common.util.retry.internal.MaxManyRetryers;
 import com.netflix.titus.common.util.retry.internal.NeverRetryer;
 
 /**
+ *
  */
 public final class Retryers {
 
@@ -69,5 +71,16 @@ public final class Retryers {
                 timeUnit.toMillis(maxDelay),
                 limit
         );
+    }
+
+    /**
+     * For each execution evaluates all retryers and returns the maximum delay.
+     */
+    public static Retryer max(Retryer... retryers) {
+        Preconditions.checkArgument(retryers.length > 0, "At least one retryer expected");
+        if (retryers.length == 1) {
+            return retryers[0];
+        }
+        return new MaxManyRetryers(retryers);
     }
 }

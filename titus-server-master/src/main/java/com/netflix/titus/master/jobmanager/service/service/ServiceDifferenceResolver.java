@@ -57,6 +57,7 @@ import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
+import com.netflix.titus.master.jobmanager.service.common.JobResolverContext;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
@@ -65,8 +66,6 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
-import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
-import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
@@ -94,8 +93,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
-    private final DirectKubeConfiguration kubeConfiguration;
-    private final KubePodConfiguration kubePodConfiguration;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
@@ -110,14 +107,13 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final TokenBucket stuckInStateRateLimiter;
     private final TitusRuntime titusRuntime;
     private final Clock clock;
+    private final JobResolverContext context;
 
     @Inject
     public ServiceDifferenceResolver(
             DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
-            DirectKubeConfiguration kubeConfiguration,
-            KubePodConfiguration kubePodConfiguration,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -128,7 +124,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SystemHardConstraint systemHardConstraint,
             @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime) {
-        this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeConfiguration, kubePodConfiguration,
+        this(kubeApiServerIntegrator, configuration, featureConfiguration,
                 capacityGroupService, schedulingService, vmService, jobStore, versionSupplier,
                 constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint, stuckInStateRateLimiter,
                 titusRuntime, Schedulers.computation()
@@ -139,8 +135,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
-            DirectKubeConfiguration kubeConfiguration,
-            KubePodConfiguration kubePodConfiguration,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -155,8 +149,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.configuration = configuration;
         this.featureConfiguration = featureConfiguration;
-        this.kubeConfiguration = kubeConfiguration;
-        this.kubePodConfiguration = kubePodConfiguration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
@@ -168,6 +160,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.stuckInStateRateLimiter = stuckInStateRateLimiter;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
+        this.context = new JobResolverContext(
+                configuration,
+                titusRuntime
+        );
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -294,7 +290,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
-                createOrReplaceTaskAction(configuration, jobStore, versionSupplier, refJobView.getJobHolder(), previousTask, clock, taskContext)
+                createOrReplaceTaskAction(context, jobStore, versionSupplier, refJobView.getJobHolder(), previousTask, clock, taskContext)
         );
         return Optional.of(storeAction);
     }

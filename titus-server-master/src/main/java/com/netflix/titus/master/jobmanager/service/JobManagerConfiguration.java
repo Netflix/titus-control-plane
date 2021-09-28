@@ -99,4 +99,10 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("false")
     boolean isFailOnDataValidation();
+
+    @DefaultValue("1000")
+    long getSystemRetryerMinDelayMs();
+
+    @DefaultValue("30000")
+    long getSystemRetryerMaxDelayMs();
 }

@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service.common.action;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -24,6 +25,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.util.retry.Retryer;
+import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 
 /**
@@ -43,10 +45,10 @@ public class TaskRetryers {
         return Optional.ofNullable((Retryer) taskHolder.getAttributes().get(ATTR_TASK_RETRY));
     }
 
-    public static Retryer getNextTaskRetryer(Job<?> job, EntityHolder taskHolder) {
+    public static Retryer getNextTaskRetryer(Supplier<Retryer> systemRetryer, Job<?> job, EntityHolder taskHolder) {
         return getCurrentTaskRetryer(taskHolder)
                 .map(Retryer::retry)
-                .orElseGet(() -> JobFunctions.retryer(job));
+                .orElseGet(() -> Retryers.max(systemRetryer.get(), JobFunctions.retryer(job)));
     }
 
     public static long getCurrentRetryerDelayMs(EntityHolder taskHolder, long minRetryIntervalMs, long taskRetryerResetTimeMs, Clock clock) {

@@ -35,8 +35,8 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.common.JobResolverContext;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -47,7 +47,7 @@ import rx.Observable;
  */
 public class CreateOrReplaceBatchTaskActions {
 
-    public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration,
+    public static TitusChangeAction createOrReplaceTaskAction(JobResolverContext context,
                                                               JobStore jobStore,
                                                               EntityHolder jobHolder,
                                                               int index,
@@ -60,7 +60,7 @@ public class CreateOrReplaceBatchTaskActions {
                     return task.getIndex() == index;
                 })
                 .findFirst()
-                .map(taskHolder -> createResubmittedTaskChangeAction(jobHolder, taskHolder, configuration, jobStore, versionSupplier, clock, taskContext))
+                .map(taskHolder -> createResubmittedTaskChangeAction(jobHolder, taskHolder, context, jobStore, versionSupplier, clock, taskContext))
                 .orElseGet(() -> createOriginalTaskChangeAction(jobHolder.getEntity(), index, jobStore, versionSupplier, clock, taskContext));
     }
 
@@ -80,16 +80,16 @@ public class CreateOrReplaceBatchTaskActions {
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder,
                                                                        EntityHolder taskHolder,
-                                                                       JobManagerConfiguration configuration,
+                                                                       JobResolverContext context,
                                                                        JobStore jobStore,
                                                                        VersionSupplier versionSupplier,
                                                                        Clock clock,
                                                                        Map<String, String> taskContext) {
         BatchJobTask oldTask = taskHolder.getEntity();
         long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started, clock).orElse(0L);
-        Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
+        Retryer nextTaskRetryer = timeInStartedState >= context.getConfiguration().getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
-                : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
+                : TaskRetryers.getNextTaskRetryer(context::getSystemRetryer, jobHolder.getEntity(), taskHolder);
         BatchJobTask newTask = createBatchTaskReplacement(jobHolder.getEntity(), oldTask, versionSupplier, clock, taskContext);
 
         String summary = String.format(
