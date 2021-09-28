@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io.crd;
 
-import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
-import reactor.core.publisher.Flux;
-
-public interface KubeLeaderElectionExecutor {
-
-    boolean isInLeaderElectionProcess();
-
-    boolean isLeader();
-
-    boolean joinLeaderElectionProcess();
-
-    void leaveLeaderElectionProcess();
-
-    Flux<ClusterMembershipEvent> watchLeaderElectionProcessUpdates();
+/**
+ * Empty now, as both spec and status are in the spec part.
+ *
+ * TODO Clean the membership model ot separate dynamic part from spec.
+ */
+public class FClusterMembershipStatus {
 }

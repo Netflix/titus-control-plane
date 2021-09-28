@@ -31,7 +31,7 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class MainKubeMembershipExecutor implements KubeMembershipExecutor {
+public class MainKubeMembershipExecutor implements KubeMembershipExecutor {
 
     private final String namespace;
 

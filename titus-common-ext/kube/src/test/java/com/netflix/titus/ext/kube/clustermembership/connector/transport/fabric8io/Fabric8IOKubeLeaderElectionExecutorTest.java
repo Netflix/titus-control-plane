@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io;
 
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeLeaderElectionExecutor;
 import com.netflix.titus.ext.kube.clustermembership.connector.transport.AbstractKubeLeaderElectionExecutorTest;
-import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import org.junit.ClassRule;
-import org.junit.experimental.categories.Category;
 
-@Category(RemoteIntegrationTest.class)
-public class MainKubeLeaderElectionExecutorTest extends AbstractKubeLeaderElectionExecutorTest {
+public class Fabric8IOKubeLeaderElectionExecutorTest extends AbstractKubeLeaderElectionExecutorTest {
 
     @ClassRule
-    public static final MainKubeExternalResource KUBE_RESOURCE = new MainKubeExternalResource();
+    public static final Fabric8IOKubeExternalResource KUBE_RESOURCE = new Fabric8IOKubeExternalResource();
 
     @Override
     protected KubeLeaderElectionExecutor getKubeLeaderElectionExecutor(String memberId) {
-        return new MainKubeLeaderElectionExecutor(
+        return new Fabric8IOKubeLeaderElectionExecutor(
                 KUBE_RESOURCE.getClient(),
                 "default",
                 clusterName,

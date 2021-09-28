@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.time.Duration;
 
@@ -23,7 +23,7 @@ import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.Config;
 import org.junit.rules.ExternalResource;
 
-public class KubeExternalResource extends ExternalResource {
+public class MainKubeExternalResource extends ExternalResource {
 
     public static final Duration KUBE_TIMEOUT = Duration.ofSeconds(500);
 

@@ -68,6 +68,11 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
     }
 
     @Override
+    public boolean isLeader() {
+        return localLeader;
+    }
+
+    @Override
     public boolean joinLeaderElectionProcess() {
         if (inLeaderElectionProcess) {
             return false;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.PreDestroy;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
@@ -46,47 +45,43 @@ import com.netflix.titus.common.util.spectator.ActionMetrics;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeLeaderElectionExecutor;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeMetrics;
-import io.kubernetes.client.extended.leaderelection.LeaderElectionConfig;
-import io.kubernetes.client.extended.leaderelection.LeaderElectionRecord;
-import io.kubernetes.client.extended.leaderelection.LeaderElector;
-import io.kubernetes.client.extended.leaderelection.Lock;
-import io.kubernetes.client.extended.leaderelection.resourcelock.EndpointsLock;
-import io.kubernetes.client.openapi.ApiClient;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
+import io.fabric8.kubernetes.client.extended.leaderelection.LeaderCallbacks;
+import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElectionConfigBuilder;
+import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElector;
+import io.fabric8.kubernetes.client.extended.leaderelection.resourcelock.LeaderElectionRecord;
+import io.fabric8.kubernetes.client.extended.leaderelection.resourcelock.LeaseLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 /**
  * The leader election process and the current leader discovery are handled separately. The former is handled by
  * Kubernetes {@link LeaderElector} object, which only tells when the local node becomes a leader. To get
- * information about who is the leader, we check periodically the associated {@link Lock}.
+ * information about who is the leader, we check periodically the associated {@link LeaseLock}.
  */
-public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
+public class Fabric8IOKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(MainKubeLeaderElectionExecutor.class);
-
-    private static final AtomicInteger LEADER_ELECTION_THREAD_IDX = new AtomicInteger();
-    private static final AtomicInteger WATCHER_THREAD_IDX = new AtomicInteger();
+    private static final Logger logger = LoggerFactory.getLogger(Fabric8IOKubeLeaderElectionExecutor.class);
 
     private static final Duration LEADER_POLL_INTERVAL = Duration.ofSeconds(1);
     private static final int LEADER_POLL_RETRIES = 3;
 
+    private static final AtomicInteger LEADER_ELECTION_THREAD_IDX = new AtomicInteger();
+    private static final AtomicInteger WATCHER_THREAD_IDX = new AtomicInteger();
+
+    private final NamespacedKubernetesClient kubeApiClient;
     private final String namespace;
     private final String clusterName;
-    private final String localMemberId;
-
     private final Duration leaseDuration;
+    private final String localMemberId;
     private final Duration renewDeadline;
     private final Duration retryPeriod;
-
-    private final ApiClient kubeApiClient;
     private final TitusRuntime titusRuntime;
-
-    private final EndpointsLock readOnlyEndpointsLock;
 
     private final AtomicReference<LeaderElectionHandler> leaderElectionHandlerRef = new AtomicReference<>();
     private final ReplayProcessor<LeaderElectionHandler> handlerProcessor = ReplayProcessor.create();
@@ -99,17 +94,20 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
     private final ActionMetrics lastElectionAttemptAction;
     private final ActionMetrics electedLeaderRefreshAction;
 
-    public MainKubeLeaderElectionExecutor(ApiClient kubeApiClient,
-                                          String namespace,
-                                          String clusterName,
-                                          Duration leaseDuration,
-                                          String localMemberId,
-                                          TitusRuntime titusRuntime) {
+    private final LeaseLock readOnlyEndpointsLock;
+
+    public Fabric8IOKubeLeaderElectionExecutor(NamespacedKubernetesClient kubeApiClient,
+                                               String namespace,
+                                               String clusterName,
+                                               Duration leaseDuration,
+                                               String localMemberId,
+                                               TitusRuntime titusRuntime) {
+        this.kubeApiClient = kubeApiClient;
         this.namespace = namespace;
         this.clusterName = clusterName;
         this.leaseDuration = leaseDuration;
         this.renewDeadline = leaseDuration.dividedBy(2);
-        this.retryPeriod = leaseDuration.dividedBy(3);
+        this.retryPeriod = leaseDuration.dividedBy(5);
         this.localMemberId = localMemberId;
 
         this.registry = titusRuntime.getRegistry();
@@ -129,9 +127,8 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
         this.lastElectionAttemptAction = SpectatorExt.actionMetrics(lastElectionAttemptMetricId, registry);
         this.electedLeaderRefreshAction = SpectatorExt.actionMetrics(electedLeaderRefreshId, registry);
 
-        this.kubeApiClient = kubeApiClient;
         this.titusRuntime = titusRuntime;
-        this.readOnlyEndpointsLock = new EndpointsLock(namespace, clusterName, localMemberId, kubeApiClient);
+        this.readOnlyEndpointsLock = new LeaseLock(namespace, clusterName, localMemberId);
     }
 
     @PreDestroy
@@ -211,7 +208,7 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
 
     private ClusterMembershipRevision<ClusterMemberLeadership> refreshCurrentLeaderRevision() {
         try {
-            return createClusterMemberLeadershipObject(readOnlyEndpointsLock.get(), readOnlyEndpointsLock.get().getHolderIdentity());
+            return createClusterMemberLeadershipObject(readOnlyEndpointsLock.get(kubeApiClient), readOnlyEndpointsLock.get(kubeApiClient).getHolderIdentity());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -223,7 +220,7 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
     private ClusterMembershipRevision<ClusterMemberLeadership> createLocalNodeLeaderRevisionAfterElection() {
         LeaderElectionRecord record = null;
         try {
-            record = readOnlyEndpointsLock.get();
+            record = readOnlyEndpointsLock.get(kubeApiClient);
         } catch (Exception e) {
             logger.warn("Could not read back leader data after being elected", e);
         }
@@ -237,13 +234,13 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
 
         long acquireTime;
         if (record != null) {
-            acquireTime = record.getAcquireTime().getTime();
+            acquireTime = record.getAcquireTime().toEpochSecond() * 1_000;
 
             Map<String, String> labels = new HashMap<>();
-            labels.put("kube.elector.leaseDurationSeconds", "" + record.getLeaseDurationSeconds());
+            labels.put("kube.elector.leaseDurationSeconds", "" + record.getLeaseDuration().getSeconds());
             labels.put("kube.elector.leaderTransitions", "" + record.getLeaderTransitions());
-            labels.put("kube.elector.acquireTime", DateTimeExt.toUtcDateTimeString(record.getAcquireTime().getTime()));
-            labels.put("kube.elector.renewTime", DateTimeExt.toUtcDateTimeString(record.getRenewTime().getTime()));
+            labels.put("kube.elector.acquireTime", DateTimeExt.toUtcDateTimeString(record.getAcquireTime().toEpochSecond() * 1_000));
+            labels.put("kube.elector.renewTime", DateTimeExt.toUtcDateTimeString(record.getRenewTime().toEpochSecond() * 1_000));
             leadershipBuilder.withLabels(labels);
         } else {
             acquireTime = titusRuntime.getClock().wallTime();
@@ -263,24 +260,20 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
 
         private final Thread leaderThread;
 
-        private final FluxProcessor<ClusterMembershipEvent, ClusterMembershipEvent>
-                leadershipStateProcessor = ReplayProcessor.<ClusterMembershipEvent>create(1).serialize();
+        private final Sinks.Many<ClusterMembershipEvent> leadershipStateProcessor = Sinks.many().replay().limit(1);
 
         private final AtomicBoolean leaderFlag = new AtomicBoolean();
         private final AtomicBoolean closed = new AtomicBoolean();
 
         private LeaderElectionHandler() {
-            EndpointsLock lock = new EndpointsLock(namespace, clusterName, localMemberId, kubeApiClient);
-            LeaderElectionConfig leaderElectionConfig = new LeaderElectionConfig(lock, leaseDuration, renewDeadline, retryPeriod);
-            LeaderElector leaderElector = new LeaderElector(leaderElectionConfig);
-
-            this.leaderThread = new Thread("LeaderElectionHandler-" + LEADER_ELECTION_THREAD_IDX.getAndIncrement()) {
-                @Override
-                public void run() {
-                    while (!closed.get()) {
-                        long started = lastElectionAttemptAction.start();
-                        try {
-                            leaderElector.run(
+            LeaderElector<?> leaderElector = kubeApiClient.leaderElector()
+                    .withConfig(new LeaderElectionConfigBuilder()
+                            .withName(clusterName)
+                            .withLeaseDuration(leaseDuration)
+                            .withLock(new LeaseLock(namespace, clusterName, localMemberId))
+                            .withRenewDeadline(renewDeadline)
+                            .withRetryPeriod(retryPeriod)
+                            .withLeaderCallbacks(new LeaderCallbacks(
                                     () -> {
                                         logger.info("Local member elected a leader");
                                         processLeaderElectedCallback();
@@ -288,8 +281,19 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
                                     () -> {
                                         logger.info("Local member lost leadership");
                                         processLostLeadershipCallback();
-                                    }
-                            );
+                                    },
+                                    newLeader -> logger.info("New leader elected: {}", newLeader)
+                            )).build()
+                    )
+                    .build();
+
+            this.leaderThread = new Thread("LeaderElectionHandler-" + LEADER_ELECTION_THREAD_IDX.getAndIncrement()) {
+                @Override
+                public void run() {
+                    while (!closed.get()) {
+                        long started = lastElectionAttemptAction.start();
+                        try {
+                            leaderElector.run();
                             if (leaderFlag.getAndSet(false)) {
                                 processLostLeadershipCallback();
                             }
@@ -301,7 +305,7 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
                             logger.debug("Stack trace:", e);
                         }
                     }
-                    leadershipStateProcessor.onComplete();
+                    leadershipStateProcessor.tryEmitComplete();
                     logger.info("Leaving {} thread", Thread.currentThread().getName());
                 }
             };
@@ -309,7 +313,7 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
         }
 
         private Flux<ClusterMembershipEvent> events() {
-            return leadershipStateProcessor;
+            return leadershipStateProcessor.asFlux();
         }
 
         private boolean isLeader() {
@@ -317,7 +321,7 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
         }
 
         private boolean isDone() {
-            return leadershipStateProcessor.isTerminated() && !leaderThread.isAlive();
+            return !leaderThread.isAlive();
         }
 
         private void leave() {
@@ -329,7 +333,7 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
             leaderFlag.set(true);
 
             ClusterMembershipRevision<ClusterMemberLeadership> revision = createLocalNodeLeaderRevisionAfterElection();
-            leadershipStateProcessor.onNext(ClusterMembershipEvent.leaderElected(revision));
+            leadershipStateProcessor.tryEmitNext(ClusterMembershipEvent.leaderElected(revision));
         }
 
         private void processLostLeadershipCallback() {
@@ -343,8 +347,8 @@ public class MainKubeLeaderElectionExecutor implements KubeLeaderElectionExecuto
                     .withCurrent(leadershipBuilder.build())
                     .build();
 
-            leadershipStateProcessor.onNext(ClusterMembershipEvent.leaderLost(revision));
-            leadershipStateProcessor.onComplete();
+            leadershipStateProcessor.tryEmitNext(ClusterMembershipEvent.leaderLost(revision));
+            leadershipStateProcessor.tryEmitComplete();
         }
     }
 }
