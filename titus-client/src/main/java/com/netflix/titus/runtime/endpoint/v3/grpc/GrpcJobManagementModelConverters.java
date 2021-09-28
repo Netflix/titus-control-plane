@@ -90,6 +90,7 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
@@ -461,7 +462,7 @@ public final class GrpcJobManagementModelConverters {
         try {
             return JsonFormat.printer().omittingInsignificantWhitespace().print(arguments);
         } catch (InvalidProtocolBufferException e) {
-            throw new IllegalArgumentException("Unable to serialize arguments for the " + sidecarName + " sidecar: " + e.getMessage());
+            throw TitusServiceException.newBuilder(TitusServiceException.ErrorCode.INVALID_JOB, "Unable to serialize arguments for the " + sidecarName + " sidecar: " + e.getMessage()).build();
         }
     }
 
