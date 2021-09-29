@@ -143,8 +143,19 @@ public interface KubePodConfiguration {
     String getDisabledJobSpreadingPattern();
 
     /**
-     * @return the pod spec version to use..
+     * @return the pod spec target region to use
+     */
+    String getTargetRegion();
+
+    /**
+     * @return the pod spec routing rules to use.
      */
     @DefaultValue("v0")
-    String getPodSpecVersion();
+    String getDefaultPodSpecVersion();
+
+    /**
+     * @return the pod spec routing rules to use.
+     */
+    @DefaultValue("")
+    String getPodSpecVersionRoutingRules();
 }

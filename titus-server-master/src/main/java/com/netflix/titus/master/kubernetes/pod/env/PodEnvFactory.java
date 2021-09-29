@@ -25,9 +25,8 @@ import io.kubernetes.client.openapi.models.V1EnvVar;
 
 public interface PodEnvFactory {
     /**
-     * Builds pod env and returns a pair where the first value is an {@link Integer} index where the first user provided
-     * env var begins and the second value is a list of {@link V1EnvVar} where the first part is system env vars while
-     * the second part is user env vars.
+     * Builds pod env and returns a pair where the first value is an {@link String} comma delimited list of System env names
+     * and the second value is a list of {@link V1EnvVar} containing both system and user environment variables.
      */
-    Pair<Integer, List<V1EnvVar>> buildEnv(Job<?> job, Task task);
+    Pair<String, List<V1EnvVar>> buildEnv(Job<?> job, Task task);
 }

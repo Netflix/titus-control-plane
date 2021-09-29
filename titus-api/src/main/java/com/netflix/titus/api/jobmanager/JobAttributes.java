@@ -290,6 +290,11 @@ public final class JobAttributes {
     /**
      *
      */
+    public static final String JOB_PARAMETER_ATTRIBUTES_FUSE_ENABLED = TITUS_PARAMETER_AGENT_PREFIX + "fuseEnabled";
+
+    /**
+     *
+     */
     public static final String JOB_PARAMETER_ATTRIBUTES_ASSIGN_IPV6_ADDRESS = TITUS_PARAMETER_AGENT_PREFIX + "assignIPv6Address";
 
     /**
