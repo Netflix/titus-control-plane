@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector.model;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main.crd;
 
 import com.google.gson.annotations.SerializedName;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;

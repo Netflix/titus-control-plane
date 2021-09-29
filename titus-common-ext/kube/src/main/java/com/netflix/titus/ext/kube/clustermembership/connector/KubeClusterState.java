@@ -38,6 +38,7 @@ public class KubeClusterState {
 
     private final ClusterMembershipRevision<ClusterMember> localMemberRevision;
     private final ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision;
+    private final boolean mustRegister;
 
     private final boolean inLeaderElectionProcess;
     private final boolean localLeader;
@@ -63,6 +64,7 @@ public class KubeClusterState {
                 .withMessage("Initial")
                 .withTimestamp(clock.wallTime())
                 .build();
+        this.mustRegister = false;
         this.localMemberLeadershipRevision = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                 .withCurrent(ClusterMemberLeadership.newBuilder()
                         .withMemberId(initial.getMemberId())
@@ -83,6 +85,7 @@ public class KubeClusterState {
 
     private KubeClusterState(ClusterMembershipRevision<ClusterMember> localMemberRevision,
                              ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision,
+                             boolean mustRegister,
                              boolean inLeaderElectionProcess,
                              boolean localLeader,
                              Map<String, ClusterMembershipRevision<ClusterMember>> clusterMemberSiblings,
@@ -93,6 +96,7 @@ public class KubeClusterState {
         this.localMemberId = localMemberLeadershipRevision.getCurrent().getMemberId();
         this.localMemberRevision = localMemberRevision;
         this.localMemberLeadershipRevision = localMemberLeadershipRevision;
+        this.mustRegister = mustRegister;
         this.inLeaderElectionProcess = inLeaderElectionProcess;
         this.localLeader = localLeader;
         this.clusterMemberSiblings = clusterMemberSiblings;
@@ -100,6 +104,10 @@ public class KubeClusterState {
         this.events = events;
         this.configuration = configuration;
         this.clock = clock;
+    }
+
+    public boolean isMustRegister() {
+        return mustRegister;
     }
 
     public boolean isRegistered() {
@@ -149,10 +157,20 @@ public class KubeClusterState {
         return events;
     }
 
-    public KubeClusterState setLocalClusterMemberRevision(ClusterMembershipRevision<ClusterMember> localMemberRevision) {
+    public KubeClusterState setMustRegister(boolean mustRegister) {
+        return toBuilder().withMustRegister(mustRegister).build();
+    }
+
+    public KubeClusterState setLocalClusterMemberRevision(ClusterMembershipRevision<ClusterMember> localMemberRevision, boolean registered) {
         return toBuilder()
-                .withLocalMemberRevision(localMemberRevision)
+                .withLocalMemberRevision(setRegistered(localMemberRevision, registered))
                 .withEvent(ClusterMembershipEvent.memberUpdatedEvent(localMemberRevision))
+                .build();
+    }
+
+    private ClusterMembershipRevision<ClusterMember> setRegistered(ClusterMembershipRevision<ClusterMember> revision, boolean registered) {
+        return revision.toBuilder()
+                .withCurrent(revision.getCurrent().toBuilder().withRegistered(registered).build())
                 .build();
     }
 
@@ -266,10 +284,11 @@ public class KubeClusterState {
         return clock.isPast(memberRevision.getTimestamp() + configuration.getRegistrationStaleThresholdMs());
     }
 
-    private Builder toBuilder() {
+    public Builder toBuilder() {
         return new Builder()
                 .withLocalMemberRevision(localMemberRevision)
                 .withLocalMemberLeadershipRevision(localMemberLeadershipRevision)
+                .withMustRegister(mustRegister)
                 .withInLeaderElectionProcess(inLeaderElectionProcess)
                 .withLocalLeader(localLeader)
                 .withClusterMemberSiblings(clusterMemberSiblings)
@@ -290,6 +309,7 @@ public class KubeClusterState {
 
         private KubeClusterMembershipConfiguration configuration;
         private Clock clock;
+        private boolean mustRegister;
 
         private Builder() {
         }
@@ -301,6 +321,11 @@ public class KubeClusterState {
 
         Builder withLocalMemberLeadershipRevision(ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision) {
             this.localMemberLeadershipRevision = localMemberLeadershipRevision;
+            return this;
+        }
+
+        Builder withMustRegister(boolean mustRegister) {
+            this.mustRegister = mustRegister;
             return this;
         }
 
@@ -343,6 +368,7 @@ public class KubeClusterState {
             return new KubeClusterState(
                     localMemberRevision,
                     localMemberLeadershipRevision,
+                    mustRegister,
                     inLeaderElectionProcess,
                     localLeader,
                     clusterMemberSiblings,

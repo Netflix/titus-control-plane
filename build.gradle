@@ -114,6 +114,7 @@ subprojects {
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.+'
         kubernetesClientVersion = '12.0.+' // Major release in support of Kubernetes 1.20.x
+        fabric8ioKubeClient = '5.8.+' // Check compatibility at: https://github.com/fabric8io/kubernetes-client#kubernetes-compatibility-matrix
         commonsMath3Version = '3.6.1'
         friggaVersion = '0.+'
 

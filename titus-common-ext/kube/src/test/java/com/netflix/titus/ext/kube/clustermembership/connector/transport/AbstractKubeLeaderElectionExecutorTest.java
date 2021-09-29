@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,32 +24,27 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeLeaderElectionExecutor;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
-import io.kubernetes.client.openapi.ApiClient;
 import org.junit.After;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Category(RemoteIntegrationTest.class)
-public class DefaultKubeLeaderElectionExecutorTest {
+public abstract class AbstractKubeLeaderElectionExecutorTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultKubeLeaderElectionExecutor.class);
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @ClassRule
-    public static final KubeExternalResource KUBE_RESOURCE = new KubeExternalResource();
+    public static final Duration KUBE_TIMEOUT = Duration.ofSeconds(500);
 
-    private static final Duration LEASE_DURATION = Duration.ofSeconds(1);
+    protected static final Duration LEASE_DURATION = Duration.ofSeconds(1);
 
-    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+    protected final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private final String clusterName = newClusterId();
+    protected final String clusterName = newClusterId();
 
     private final List<MemberHolder> memberHolders = new ArrayList<>();
 
@@ -58,10 +53,12 @@ public class DefaultKubeLeaderElectionExecutorTest {
         memberHolders.forEach(MemberHolder::close);
     }
 
+    protected abstract KubeLeaderElectionExecutor getKubeLeaderElectionExecutor(String memberId);
+
     @Test
     public void testLeaderElection() {
         // Join first member
-        MemberHolder member1 = new MemberHolder(KUBE_RESOURCE.getClient());
+        MemberHolder member1 = new MemberHolder();
         joinLeaderElectionProcess(member1);
         awaitBeingLeader(member1);
 
@@ -70,7 +67,7 @@ public class DefaultKubeLeaderElectionExecutorTest {
         assertThat(leaderSelectedEvent.getChangeType()).isEqualTo(LeaderElectionChangeEvent.ChangeType.LeaderElected);
 
         // Join second member
-        MemberHolder member2 = new MemberHolder(KUBE_RESOURCE.getClient());
+        MemberHolder member2 = new MemberHolder();
         joinLeaderElectionProcess(member2);
 
         // Leave leader election process.
@@ -93,7 +90,7 @@ public class DefaultKubeLeaderElectionExecutorTest {
         await().until(() -> member.getExecutor().isLeader());
     }
 
-    private String newClusterId() {
+    protected String newClusterId() {
         return "junit-cluster-" + System.getenv("USER") + "-" + System.currentTimeMillis();
     }
 
@@ -104,19 +101,12 @@ public class DefaultKubeLeaderElectionExecutorTest {
     private class MemberHolder {
 
         private final String memberId;
-        private final DefaultKubeLeaderElectionExecutor executor;
+        private final KubeLeaderElectionExecutor executor;
         private final TitusRxSubscriber<LeaderElectionChangeEvent> eventSubscriber = new TitusRxSubscriber<>();
 
-        MemberHolder(ApiClient client) {
+        MemberHolder() {
             this.memberId = newMemberId();
-            this.executor = new DefaultKubeLeaderElectionExecutor(
-                    client,
-                    "default",
-                    clusterName,
-                    LEASE_DURATION,
-                    memberId,
-                    titusRuntime
-            );
+            this.executor = getKubeLeaderElectionExecutor(memberId);
             memberHolders.add(this);
 
             executor.watchLeaderElectionProcessUpdates()
@@ -137,13 +127,13 @@ public class DefaultKubeLeaderElectionExecutorTest {
             return memberId;
         }
 
-        DefaultKubeLeaderElectionExecutor getExecutor() {
+        KubeLeaderElectionExecutor getExecutor() {
             return executor;
         }
 
         LeaderElectionChangeEvent takeNextEvent() {
             try {
-                return Preconditions.checkNotNull(eventSubscriber.takeNext(KubeExternalResource.KUBE_TIMEOUT));
+                return Preconditions.checkNotNull(eventSubscriber.takeNext(KUBE_TIMEOUT));
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }

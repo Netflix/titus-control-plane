@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector.model;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main.crd;
 
 import java.util.List;
 import java.util.Map;

@@ -21,6 +21,7 @@ dependencies {
     compile "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
 
     compile "io.kubernetes:client-java-extended:${kubernetesClientVersion}"
+    compile "io.fabric8:kubernetes-client:${fabric8ioKubeClient}"
 
     testCompile project(':titus-common-testkit')
 }

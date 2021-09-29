@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport.main;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;
@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.reflect.TypeToken;
 import com.netflix.titus.common.util.IOExt;
-import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevisionResource;
-import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeStatus;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.crd.KubeClusterMembershipRevisionResource;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.crd.KubeStatus;
 import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;

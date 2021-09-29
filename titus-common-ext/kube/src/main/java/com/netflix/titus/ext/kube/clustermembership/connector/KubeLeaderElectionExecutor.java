@@ -23,6 +23,8 @@ public interface KubeLeaderElectionExecutor {
 
     boolean isInLeaderElectionProcess();
 
+    boolean isLeader();
+
     boolean joinLeaderElectionProcess();
 
     void leaveLeaderElectionProcess();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,52 +14,51 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.kube.clustermembership.connector;
+package com.netflix.titus.ext.kube.clustermembership.connector.transport;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnectorException;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChangeEvent;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
+import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.MainKubeExternalResource;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.activeClusterMember;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.clusterMemberRegistrationRevision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-@Category(RemoteIntegrationTest.class)
-public class DefaultKubeMembershipExecutorTest {
-
-    @ClassRule
-    public static final KubeExternalResource KUBE_RESOURCE = new KubeExternalResource();
-
-    private final DefaultKubeMembershipExecutor executor = new DefaultKubeMembershipExecutor(KUBE_RESOURCE.getClient(), "default");
+public abstract class AbstractKubeMembershipExecutorTest {
 
     private final TitusRxSubscriber<ClusterMembershipEvent> eventSubscriber = new TitusRxSubscriber<>();
 
     private final List<String> createdMemberIds = new ArrayList<>();
 
+    private KubeMembershipExecutor executor;
+
     @Before
     public void setUp() {
+        this.executor = getExecutor();
         executor.watchMembershipEvents().subscribe(eventSubscriber);
     }
 
     @After
     public void tearDown() {
         ReactorExt.safeDispose(eventSubscriber);
-        createdMemberIds.forEach(memberId -> ExceptionExt.silent(() -> executor.removeMember(memberId).block(KubeExternalResource.KUBE_TIMEOUT)));
+        createdMemberIds.forEach(memberId -> ExceptionExt.silent(() -> executor.removeMember(memberId).block(MainKubeExternalResource.KUBE_TIMEOUT)));
     }
+
+    protected abstract KubeMembershipExecutor getExecutor();
 
     @Test(timeout = 30_000)
     public void testCreateAndGetNewMember() throws InterruptedException {
@@ -100,8 +99,10 @@ public class DefaultKubeMembershipExecutorTest {
         ClusterMembershipRevision<ClusterMember> result = executor.createLocal(revision).block();
         executor.removeMember(memberId).block();
         try {
-            executor.getMemberById(memberId).block();
-            fail("Found removed member");
+            ClusterMembershipRevision<ClusterMember> retrieved = executor.getMemberById(memberId).block();
+            fail("Found removed member: {}", retrieved);
+        } catch (ClusterMembershipConnectorException e) {
+            assertThat(e.getMessage()).contains("not found");
         } catch (Exception e) {
             assertThat(KubeUtils.is4xx(e)).isTrue();
         }
@@ -119,7 +120,7 @@ public class DefaultKubeMembershipExecutorTest {
 
     private ClusterMembershipChangeEvent findNextMemberEvent(String memberId) throws InterruptedException {
         while (true) {
-            ClusterMembershipEvent event = eventSubscriber.takeNext(KubeExternalResource.KUBE_TIMEOUT);
+            ClusterMembershipEvent event = eventSubscriber.takeNext(MainKubeExternalResource.KUBE_TIMEOUT);
             assertThat(event).isNotNull();
             if (event instanceof ClusterMembershipChangeEvent) {
                 ClusterMembershipChangeEvent memberEvent = (ClusterMembershipChangeEvent) event;

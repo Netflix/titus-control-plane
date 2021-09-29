@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,11 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io.Fabric8IOKubeLeaderElectionExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io.Fabric8IOKubeMembershipExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.MainKubeLeaderElectionExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.MainKubeMembershipExecutor;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.kubernetes.client.openapi.ApiClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,16 +46,32 @@ public class KubeClusterMembershipConnectorComponent {
     }
 
     @Bean
-    public KubeMembershipExecutor getKubeMembershipExecutor(KubeClusterMembershipConfiguration configuration, ApiClient kubeApiClient) {
-        return new DefaultKubeMembershipExecutor(kubeApiClient, configuration.getNamespace());
+    public KubeMembershipExecutor getKubeMembershipExecutor(KubeClusterMembershipConfiguration configuration,
+                                                            ApiClient kubeApiClient,
+                                                            NamespacedKubernetesClient fabric8IOClient) {
+        if (configuration.isUseFabric8IOClient()) {
+            return new Fabric8IOKubeMembershipExecutor(fabric8IOClient, configuration.getNamespace());
+        }
+        return new MainKubeMembershipExecutor(kubeApiClient, configuration.getNamespace());
     }
 
     @Bean
     public KubeLeaderElectionExecutor getDefaultKubeLeaderElectionExecutor(KubeClusterMembershipConfiguration configuration,
                                                                            @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
                                                                            ApiClient kubeApiClient,
+                                                                           NamespacedKubernetesClient fabric8IOClient,
                                                                            TitusRuntime titusRuntime) {
-        return new DefaultKubeLeaderElectionExecutor(
+        if (configuration.isUseFabric8IOClient()) {
+            return new Fabric8IOKubeLeaderElectionExecutor(
+                    fabric8IOClient,
+                    configuration.getNamespace(),
+                    configuration.getClusterName(),
+                    Duration.ofMillis(configuration.getLeaseDurationMs()),
+                    initial.getMemberId(),
+                    titusRuntime
+            );
+        }
+        return new MainKubeLeaderElectionExecutor(
                 kubeApiClient,
                 configuration.getNamespace(),
                 configuration.getClusterName(),

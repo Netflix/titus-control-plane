@@ -23,7 +23,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeClusterState;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeContext;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
-import com.netflix.titus.ext.kube.clustermembership.connector.KubeUtils;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.KubeUtils;
 import reactor.core.publisher.Mono;
 
 public class KubeRegistrationActions {
@@ -70,7 +70,7 @@ public class KubeRegistrationActions {
 
         return monoAction
                 .onErrorMap(KubeUtils::toConnectorException)
-                .map(update -> currentState -> currentState.setLocalClusterMemberRevision(update));
+                .map(update -> currentState -> currentState.setMustRegister(true).setLocalClusterMemberRevision(update, true));
     }
 
     public static Mono<Function<KubeClusterState, KubeClusterState>> unregisterLocal(KubeContext context,
@@ -86,7 +86,7 @@ public class KubeRegistrationActions {
         Mono monoAction = context.getKubeMembershipExecutor().removeMember(kubeClusterState.getLocalMemberRevision().getCurrent().getMemberId());
         return ((Mono<Function<KubeClusterState, KubeClusterState>>) monoAction)
                 .onErrorMap(KubeUtils::toConnectorException)
-                .thenReturn(currentState -> currentState.setLocalClusterMemberRevision(newRevision));
+                .thenReturn(currentState -> currentState.setMustRegister(false).setLocalClusterMemberRevision(newRevision, false));
     }
 
     public static Mono<Function<KubeClusterState, KubeClusterState>> removeStaleRegistration(KubeContext context, String memberId) {

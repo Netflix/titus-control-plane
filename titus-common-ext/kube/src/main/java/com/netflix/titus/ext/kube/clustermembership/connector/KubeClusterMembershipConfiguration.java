@@ -69,4 +69,7 @@ public interface KubeClusterMembershipConfiguration {
 
     @DefaultValue("10000")
     long getLeaseDurationMs();
+
+    @DefaultValue("false")
+    boolean isUseFabric8IOClient();
 }
