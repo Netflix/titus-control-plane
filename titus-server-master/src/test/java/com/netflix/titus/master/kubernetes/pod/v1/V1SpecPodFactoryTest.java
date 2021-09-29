@@ -17,6 +17,7 @@
 package com.netflix.titus.master.kubernetes.pod.v1;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,10 @@ import java.util.Objects;
 
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -44,6 +47,7 @@ import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Volume;
+import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +59,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class V1SpecPodFactoryTest {
+
+    String NONE_MOUNT_PROPAGATION = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationNone.toString();
 
     private final KubePodConfiguration configuration = mock(KubePodConfiguration.class);
 
@@ -92,8 +98,8 @@ public class V1SpecPodFactoryTest {
         BatchJobTask task = JobGenerator.oneBatchTask();
         Image testImage = Image.newBuilder().withName("testImage").withDigest("123").build();
         List<BasicContainer> extraContainers = Arrays.asList(
-                new BasicContainer("extraContainer1", testImage, null, null, new HashMap<>()),
-                new BasicContainer("extraContainer2", testImage, null, null, new HashMap<>())
+                new BasicContainer("extraContainer1", testImage, Collections.emptyList(), Collections.emptyList(), new HashMap<>(), Collections.emptyList()),
+                new BasicContainer("extraContainer2", testImage, Collections.emptyList(), Collections.emptyList(), new HashMap<>(), Collections.emptyList())
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withExtraContainers(extraContainers).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
@@ -102,6 +108,29 @@ public class V1SpecPodFactoryTest {
         List<V1Container> containers = Objects.requireNonNull(pod.getSpec()).getContainers();
         // 3 containers here, 1 from the main container, 2 from the extras
         assertThat(containers.size()).isEqualTo(1 + extraContainers.size());
+    }
+
+    @Test
+    public void podMainContainerHasVolumeMounts() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        List<VolumeMount> volumeMounts = Arrays.asList(
+                new VolumeMount("volume1", "", NONE_MOUNT_PROPAGATION, false, ""),
+                new VolumeMount("volume2", "", NONE_MOUNT_PROPAGATION, false, "")
+        );
+        Container container = job.getJobDescriptor().getContainer().toBuilder().withVolumeMounts(volumeMounts).build();
+        job = job.toBuilder().withJobDescriptor(
+                job.getJobDescriptor().toBuilder().withContainer(container).build()
+        ).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        V1Container mainContainer = pod.getSpec().getContainers().get(0);
+        List<V1VolumeMount> mounts = mainContainer.getVolumeMounts();
+
+        assertThat(mounts.size()).isEqualTo(2);
+        assertThat(mounts.get(0).getName()).isEqualTo("volume1");
+        assertThat(mounts.get(1).getName()).isEqualTo("volume2");
     }
 
     @Test

@@ -48,6 +48,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
+import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
@@ -120,6 +121,7 @@ import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 import static com.netflix.titus.common.util.StringExt.nonNull;
+import static com.netflix.titus.common.util.StringExt.parseEnumIgnoreCase;
 import static com.netflix.titus.grpc.protogen.Day.Friday;
 import static com.netflix.titus.grpc.protogen.Day.Monday;
 import static com.netflix.titus.grpc.protogen.Day.Saturday;
@@ -360,6 +362,28 @@ public final class GrpcJobManagementModelConverters {
                 .withEntryPoint(grpcContainer.getEntryPointList())
                 .withCommand(grpcContainer.getCommandList())
                 .withAttributes(grpcContainer.getAttributesMap())
+                .withVolumeMounts(toCoreVolumeMounts(grpcContainer.getVolumeMountsList()))
+                .build();
+    }
+
+    private static List<VolumeMount> toCoreVolumeMounts(List<com.netflix.titus.grpc.protogen.VolumeMount> grpcVolumeMounts) {
+        List<VolumeMount> volumeMounts = new ArrayList<>();
+        if (grpcVolumeMounts == null) {
+            return volumeMounts;
+        }
+        for (com.netflix.titus.grpc.protogen.VolumeMount v : grpcVolumeMounts) {
+            volumeMounts.add(toCoreVolumeMount(v));
+        }
+        return volumeMounts;
+    }
+
+    private static VolumeMount toCoreVolumeMount(com.netflix.titus.grpc.protogen.VolumeMount v) {
+        return VolumeMount.newBuilder()
+                .withVolumeName(v.getVolumeName())
+                .withMountPath(v.getMountPath())
+                .withMountPropagation(v.getMountPropagation().toString())
+                .withReadOnly(v.getReadOnly())
+                .withSubPath(v.getSubPath())
                 .build();
     }
 
@@ -377,6 +401,7 @@ public final class GrpcJobManagementModelConverters {
                 .withImage(toCoreImage(grpcBasicContainer.getImage()))
                 .withEntryPoint(grpcBasicContainer.getEntryPointList())
                 .withCommand(grpcBasicContainer.getCommandList())
+                .withVolumeMounts(toCoreVolumeMounts(grpcBasicContainer.getVolumeMountsList()))
                 .build();
     }
 
@@ -826,6 +851,7 @@ public final class GrpcJobManagementModelConverters {
                 .addAllEntryPoint(container.getEntryPoint())
                 .addAllCommand(container.getCommand())
                 .putAllEnv(container.getEnv())
+                .addAllVolumeMounts(toGrpcVolumeMounts(container.getVolumeMounts()))
                 .build();
     }
 
@@ -1032,14 +1058,35 @@ public final class GrpcJobManagementModelConverters {
         return extraContainers.stream().map(GrpcJobManagementModelConverters::toGrpcBasicContainer).collect(Collectors.toList());
     }
 
-    private static com.netflix.titus.grpc.protogen.BasicContainer toGrpcBasicContainer(BasicContainer
-                                                                                               basicContainer) {
+    private static com.netflix.titus.grpc.protogen.BasicContainer toGrpcBasicContainer(BasicContainer basicContainer) {
         return com.netflix.titus.grpc.protogen.BasicContainer.newBuilder()
                 .setName(basicContainer.getName())
                 .setImage(toGrpcImage(basicContainer.getImage()))
                 .addAllEntryPoint(basicContainer.getEntryPoint())
                 .addAllCommand(basicContainer.getCommand())
                 .putAllEnv(basicContainer.getEnv())
+                .addAllVolumeMounts(toGrpcVolumeMounts(basicContainer.getVolumeMounts()))
+                .build();
+    }
+
+    private static List<com.netflix.titus.grpc.protogen.VolumeMount> toGrpcVolumeMounts(List<VolumeMount> volumeMounts) {
+        List<com.netflix.titus.grpc.protogen.VolumeMount> grpcVolumeMounts = new ArrayList<>();
+        if (volumeMounts == null) {
+            return grpcVolumeMounts;
+        }
+        for (VolumeMount v : volumeMounts) {
+            grpcVolumeMounts.add(toGrpcVolumeMount(v));
+        }
+        return grpcVolumeMounts;
+    }
+
+    private static com.netflix.titus.grpc.protogen.VolumeMount toGrpcVolumeMount(VolumeMount v) {
+        return com.netflix.titus.grpc.protogen.VolumeMount.newBuilder()
+                .setVolumeName(v.getVolumeName())
+                .setMountPath((v.getMountPath()))
+                .setMountPropagation(parseEnumIgnoreCase(v.getMountPropagation(), com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.class))
+                .setReadOnly(v.getReadOnly())
+                .setSubPath(v.getSubPath())
                 .build();
     }
 

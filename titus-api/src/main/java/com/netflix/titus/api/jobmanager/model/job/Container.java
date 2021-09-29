@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import javax.validation.Valid;
@@ -87,6 +88,9 @@ public class Container {
     @SchedulingConstraintValidator.SchedulingConstraint
     private final Map<String, String> hardConstraints;
 
+    @CollectionInvariants
+    private final List<VolumeMount> volumeMounts;
+
     public Container(ContainerResources containerResources,
                      SecurityProfile securityProfile,
                      Image image,
@@ -95,7 +99,9 @@ public class Container {
                      List<String> command,
                      Map<String, String> env,
                      Map<String, String> softConstraints,
-                     Map<String, String> hardConstraints) {
+                     Map<String, String> hardConstraints,
+                     List<VolumeMount> volumeMounts
+    ) {
         this.containerResources = containerResources;
         this.securityProfile = securityProfile;
         this.image = image;
@@ -105,6 +111,7 @@ public class Container {
         this.env = CollectionsExt.nullableImmutableCopyOf(env);
         this.softConstraints = CollectionsExt.nullableImmutableCopyOf(softConstraints);
         this.hardConstraints = CollectionsExt.nullableImmutableCopyOf(hardConstraints);
+        this.volumeMounts = CollectionsExt.nullableImmutableCopyOf(volumeMounts);
     }
 
     public ContainerResources getContainerResources() {
@@ -143,6 +150,10 @@ public class Container {
         return hardConstraints;
     }
 
+    public List<VolumeMount> getVolumeMounts() {
+        return volumeMounts;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -178,7 +189,13 @@ public class Container {
         if (softConstraints != null ? !softConstraints.equals(container.softConstraints) : container.softConstraints != null) {
             return false;
         }
-        return hardConstraints != null ? hardConstraints.equals(container.hardConstraints) : container.hardConstraints == null;
+        if (hardConstraints != null ? !hardConstraints.equals(container.hardConstraints) : container.hardConstraints != null) {
+            return false;
+        }
+        if (volumeMounts != null ? !volumeMounts.equals(container.volumeMounts) : container.volumeMounts != null) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -192,6 +209,7 @@ public class Container {
         result = 31 * result + (env != null ? env.hashCode() : 0);
         result = 31 * result + (softConstraints != null ? softConstraints.hashCode() : 0);
         result = 31 * result + (hardConstraints != null ? hardConstraints.hashCode() : 0);
+        result = 31 * result + (volumeMounts != null ? volumeMounts.hashCode() : 0);
         return result;
     }
 
@@ -207,6 +225,7 @@ public class Container {
                 ", env=" + env +
                 ", softConstraints=" + softConstraints +
                 ", hardConstraints=" + hardConstraints +
+                ", volumeMounts=" + volumeMounts +
                 '}';
     }
 
@@ -257,7 +276,8 @@ public class Container {
                 .withCommand(container.getCommand())
                 .withEnv(container.getEnv())
                 .withSoftConstraints(container.getSoftConstraints())
-                .withHardConstraints(container.getHardConstraints());
+                .withHardConstraints(container.getHardConstraints())
+                .withVolumeMounts(container.getVolumeMounts());
     }
 
     public static final class Builder {
@@ -270,6 +290,7 @@ public class Container {
         private Map<String, String> env;
         private Map<String, String> softConstraints;
         private Map<String, String> hardConstraints;
+        private List<VolumeMount> volumeMounts;
 
         private Builder() {
         }
@@ -319,6 +340,11 @@ public class Container {
             return this;
         }
 
+        public Builder withVolumeMounts(List<VolumeMount> volumeMounts) {
+            this.volumeMounts = volumeMounts;
+            return this;
+        }
+
         public Container build() {
             Preconditions.checkNotNull(containerResources, "ContainerResources not defined");
             Preconditions.checkNotNull(image, "Image not defined");
@@ -332,7 +358,8 @@ public class Container {
                     command,
                     nonNull(env),
                     nonNull(softConstraints),
-                    nonNull(hardConstraints)
+                    nonNull(hardConstraints),
+                    nonNull(volumeMounts)
             );
             return container;
         }

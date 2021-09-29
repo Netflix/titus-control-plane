@@ -42,6 +42,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
@@ -212,7 +213,8 @@ public class V1SpecPodFactory implements PodFactory {
                 .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), jobDescriptor.getContainer().getImage()))
                 .env(envVarsList)
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()))
-                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY);
+                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY)
+                .volumeMounts(KubePodUtil.buildV1VolumeMounts(job.getJobDescriptor().getContainer().getVolumeMounts()));
 
         Container jobContainer = jobDescriptor.getContainer();
         if (CollectionsExt.isNullOrEmpty(jobContainer.getCommand()) && !shouldSkipEntryPointJoin(jobDescriptor.getAttributes())) {
@@ -278,7 +280,8 @@ public class V1SpecPodFactory implements PodFactory {
                 .args(extraContainer.getCommand())
                 .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), extraContainer.getImage()))
                 .env(toV1EnvVar(extraContainer.getEnv()))
-                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY);
+                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY)
+                .volumeMounts(KubePodUtil.buildV1VolumeMounts(extraContainer.getVolumeMounts()));
     }
 
 

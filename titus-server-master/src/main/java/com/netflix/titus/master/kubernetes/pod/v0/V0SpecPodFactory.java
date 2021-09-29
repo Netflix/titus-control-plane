@@ -139,7 +139,8 @@ public class V0SpecPodFactory implements PodFactory {
                 .name(taskId)
                 .image("imageIsInContainerInfo")
                 .env(toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
-                .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
+                .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()))
+                .volumeMounts(KubePodUtil.buildV1VolumeMounts(job.getJobDescriptor().getContainer().getVolumeMounts()));
 
         List<V1Container> extraContainers = buildV1ExtraContainers(job.getJobDescriptor().getExtraContainers());
         List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
@@ -266,6 +267,7 @@ public class V0SpecPodFactory implements PodFactory {
                 .args(extraContainer.getCommand())
                 .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), extraContainer.getImage()))
                 .env(toV1EnvVar(extraContainer.getEnv()))
-                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY);
+                .imagePullPolicy(DEFAULT_IMAGE_PULL_POLICY)
+                .volumeMounts(KubePodUtil.buildV1VolumeMounts(extraContainer.getVolumeMounts()));
     }
 }

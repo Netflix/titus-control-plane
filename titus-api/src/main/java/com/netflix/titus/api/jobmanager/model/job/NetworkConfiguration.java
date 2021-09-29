@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
+ *
  */
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,7 +32,9 @@ public class NetworkConfiguration {
         this.networkMode = networkMode;
     }
 
-    public int getNetworkMode() { return networkMode; }
+    public int getNetworkMode() {
+        return networkMode;
+    }
 
     @JsonIgnore
     public String getNetworkModeName() {
@@ -48,6 +51,13 @@ public class NetworkConfiguration {
         }
         NetworkConfiguration netConfig = (NetworkConfiguration) o;
         return networkMode == netConfig.networkMode;
+    }
+
+    @Override
+    public String toString() {
+        return "NetworkConfiguration{" +
+                "networkMode=" + networkMode +
+                '}';
     }
 
     public static Builder newBuilder() {
@@ -75,12 +85,18 @@ public class NetworkConfiguration {
     public static String networkModeToName(int mode) {
         // TODO: Use the generated protobuf version of this function if available?
         switch (mode) {
-            case 0: return "UnknownNetworkMode";
-            case 1: return "Ipv4Only";
-            case 2: return "Ipv6AndIpv4";
-            case 3: return "Ipv6AndIpv4Fallback";
-            case 4: return "Ipv6Only";
-            default: return "";
+            case 0:
+                return "UnknownNetworkMode";
+            case 1:
+                return "Ipv4Only";
+            case 2:
+                return "Ipv6AndIpv4";
+            case 3:
+                return "Ipv6AndIpv4Fallback";
+            case 4:
+                return "Ipv6Only";
+            default:
+                return "";
         }
     }
 }
