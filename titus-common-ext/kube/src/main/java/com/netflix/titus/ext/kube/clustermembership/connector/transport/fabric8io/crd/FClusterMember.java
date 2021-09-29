@@ -19,11 +19,6 @@ package com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8
 import java.util.List;
 import java.util.Map;
 
-import io.fabric8.kubernetes.model.annotation.Plural;
-import io.fabric8.kubernetes.model.annotation.Singular;
-
-@Singular("clusterMember")
-@Plural("clusterMember")
 public class FClusterMember {
 
     private String memberId;
@@ -32,7 +27,7 @@ public class FClusterMember {
 
     private boolean active;
 
-    private List<FClusterMemberAddress> clusterMemberAddress;
+    private List<FClusterMemberAddress> clusterMemberAddresses;
 
     private Map<String, String> labels;
 
@@ -62,12 +57,12 @@ public class FClusterMember {
         this.active = active;
     }
 
-    public List<FClusterMemberAddress> getClusterMemberAddress() {
-        return clusterMemberAddress;
+    public List<FClusterMemberAddress> getClusterMemberAddresses() {
+        return clusterMemberAddresses;
     }
 
-    public void setClusterMemberAddress(List<FClusterMemberAddress> clusterMemberAddress) {
-        this.clusterMemberAddress = clusterMemberAddress;
+    public void setClusterMemberAddresses(List<FClusterMemberAddress> clusterMemberAddresses) {
+        this.clusterMemberAddresses = clusterMemberAddresses;
     }
 
     public Map<String, String> getLabels() {

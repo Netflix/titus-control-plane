@@ -18,8 +18,11 @@ package com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8
 
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeLeaderElectionExecutor;
 import com.netflix.titus.ext.kube.clustermembership.connector.transport.AbstractKubeLeaderElectionExecutorTest;
+import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import org.junit.ClassRule;
+import org.junit.experimental.categories.Category;
 
+@Category(RemoteIntegrationTest.class)
 public class Fabric8IOKubeLeaderElectionExecutorTest extends AbstractKubeLeaderElectionExecutorTest {
 
     @ClassRule

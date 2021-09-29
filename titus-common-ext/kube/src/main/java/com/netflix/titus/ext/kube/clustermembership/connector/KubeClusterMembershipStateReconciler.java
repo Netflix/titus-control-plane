@@ -78,15 +78,17 @@ class KubeClusterMembershipStateReconciler implements Function<KubeClusterState,
         }
 
         // Refresh registration data so it does not look stale to other cluster members
-        if (kubeClusterState.isRegistered() && clock.isPast(kubeClusterState.getLocalMemberRevision().getTimestamp() + configuration.getReRegistrationIntervalMs())) {
-            Mono<Function<KubeClusterState, KubeClusterState>> action = KubeRegistrationActions.registerLocal(context, kubeClusterState, clusterMember ->
-                    ClusterMembershipRevision.<ClusterMember>newBuilder()
-                            .withCurrent(clusterMember)
-                            .withTimestamp(titusRuntime.getClock().wallTime())
-                            .withCode("reregistered")
-                            .withMessage("Registration update")
-                            .build());
-            return Collections.singletonList(withMetrics("register", action));
+        if (kubeClusterState.isMustRegister()) {
+            if (!kubeClusterState.isRegistered() || clock.isPast(kubeClusterState.getLocalMemberRevision().getTimestamp() + configuration.getReRegistrationIntervalMs())) {
+                Mono<Function<KubeClusterState, KubeClusterState>> action = KubeRegistrationActions.registerLocal(context, kubeClusterState, clusterMember ->
+                        ClusterMembershipRevision.<ClusterMember>newBuilder()
+                                .withCurrent(clusterMember)
+                                .withTimestamp(titusRuntime.getClock().wallTime())
+                                .withCode("reregistered")
+                                .withMessage("Registration update")
+                                .build());
+                return Collections.singletonList(withMetrics("register", action));
+            }
         }
 
         // Check for stale data

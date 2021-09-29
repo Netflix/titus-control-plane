@@ -16,11 +16,6 @@
 
 package com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io.crd;
 
-import io.fabric8.kubernetes.model.annotation.Plural;
-import io.fabric8.kubernetes.model.annotation.Singular;
-
-@Singular("clusterMemberAddress")
-@Plural("clusterMemberAddresses")
 public class FClusterMemberAddress {
 
     private String ipAddress;

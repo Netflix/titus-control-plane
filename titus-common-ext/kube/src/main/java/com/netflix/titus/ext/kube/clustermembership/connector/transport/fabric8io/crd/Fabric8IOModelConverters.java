@@ -40,7 +40,7 @@ public class Fabric8IOModelConverters {
                 .withMemberId(kubeClusterMember.getMemberId())
                 .withEnabled(kubeClusterMember.isEnabled())
                 .withActive(kubeClusterMember.isActive())
-                .withClusterMemberAddresses(toClusterMemberAddresses(kubeClusterMember.getClusterMemberAddress()))
+                .withClusterMemberAddresses(toClusterMemberAddresses(kubeClusterMember.getClusterMemberAddresses()))
                 .withLabels(kubeClusterMember.getLabels())
                 .build();
     }
@@ -83,7 +83,7 @@ public class Fabric8IOModelConverters {
         fClusterMember.setEnabled(clusterMember.isEnabled());
         fClusterMember.setActive(clusterMember.isActive());
         fClusterMember.setLabels(clusterMember.getLabels());
-        fClusterMember.setClusterMemberAddress(toCrdClusterMemberAddresses(clusterMember.getClusterMemberAddresses()));
+        fClusterMember.setClusterMemberAddresses(toCrdClusterMemberAddresses(clusterMember.getClusterMemberAddresses()));
         return fClusterMember;
     }
 

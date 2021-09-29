@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.reflect.TypeToken;
 import com.netflix.titus.common.util.IOExt;
-import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevisionResource;
-import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeStatus;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.crd.KubeClusterMembershipRevisionResource;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.crd.KubeStatus;
 import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
