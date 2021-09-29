@@ -66,25 +66,22 @@ import static org.assertj.core.api.Assertions.fail;
 @Category(IntegrationNotParallelizableTest.class)
 public class CassandraJobStoreTest {
 
+    public static final int MAX_CONCURRENCY = 10;
     private static final long STARTUP_TIMEOUT_MS = 30_000L;
     private static final int INITIAL_BUCKET_COUNT = 1;
     private static final int MAX_BUCKET_SIZE = 10;
-
     /**
      * As Cassandra uses memory mapped files there are sometimes issues with virtual disks storing the project files.
      * To solve this issue, we relocate the default embedded Cassandra folder to /var/tmp/embeddedCassandra.
      */
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
-    public static final int MAX_CONCURRENCY = 10;
-
+    private static final CassandraStoreConfiguration CONFIGURATION = new TestCassandraStoreConfiguration();
     @Rule
     public CassandraCQLUnit cassandraCqlUnit = new CassandraCQLUnit(
             new ClassPathCQLDataSet("tables.cql", "titus_integration_tests"),
             CONFIGURATION_FILE_NAME,
             STARTUP_TIMEOUT_MS
     );
-
-    private static final CassandraStoreConfiguration CONFIGURATION = new TestCassandraStoreConfiguration();
 
     @Test
     public void testRetrieveJobs() {
