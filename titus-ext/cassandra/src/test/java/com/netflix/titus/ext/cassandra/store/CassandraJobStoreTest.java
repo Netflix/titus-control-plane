@@ -23,6 +23,9 @@ import java.util.UUID;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.google.protobuf.NullValue;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -30,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -62,25 +66,22 @@ import static org.assertj.core.api.Assertions.fail;
 @Category(IntegrationNotParallelizableTest.class)
 public class CassandraJobStoreTest {
 
+    public static final int MAX_CONCURRENCY = 10;
     private static final long STARTUP_TIMEOUT_MS = 30_000L;
     private static final int INITIAL_BUCKET_COUNT = 1;
     private static final int MAX_BUCKET_SIZE = 10;
-
     /**
      * As Cassandra uses memory mapped files there are sometimes issues with virtual disks storing the project files.
      * To solve this issue, we relocate the default embedded Cassandra folder to /var/tmp/embeddedCassandra.
      */
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
-    public static final int MAX_CONCURRENCY = 10;
-
+    private static final CassandraStoreConfiguration CONFIGURATION = new TestCassandraStoreConfiguration();
     @Rule
     public CassandraCQLUnit cassandraCqlUnit = new CassandraCQLUnit(
             new ClassPathCQLDataSet("tables.cql", "titus_integration_tests"),
             CONFIGURATION_FILE_NAME,
             STARTUP_TIMEOUT_MS
     );
-
-    private static final CassandraStoreConfiguration CONFIGURATION = new TestCassandraStoreConfiguration();
 
     @Test
     public void testRetrieveJobs() {
@@ -117,6 +118,11 @@ public class CassandraJobStoreTest {
     @Test
     public void testRetrieveJobWithVolumes() {
         doRetrieveJob(createServiceJobWithVolumesObject());
+    }
+
+    @Test
+    public void testPlatformSidecarJob() {
+        doRetrieveJob(createServiceJobWithPlatformSidecarsObject());
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> void doRetrieveJob(Job<E> job) {
@@ -512,7 +518,28 @@ public class CassandraJobStoreTest {
     private Job<ServiceJobExt> createServiceJobWithVolumesObject() {
         List<Volume> volumes = Collections.singletonList(createTestVolume());
         JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(jd ->
-                jd.toBuilder().withVolumes(volumes).build()
+                jd.toBuilder().withVolumes(volumes).build());
+        return JobGenerator.serviceJobs(jobDescriptor).getValue();
+    }
+
+    /**
+     * createServiceJobWithPlatformSidecarsObject is an extra strenuous test for the CassandraJobStore
+     * suite, as it exercises all the things needed to ensure that the complex arguments field
+     * is properly serialized correctly.
+     */
+    private Job<ServiceJobExt> createServiceJobWithPlatformSidecarsObject() {
+        Struct.Builder args = Struct.newBuilder();
+        args.putFields("foo", Value.newBuilder().setStringValue("bar").build());
+        args.putFields("baz", Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build());
+        args.putFields("num", Value.newBuilder().setNumberValue(42.0).build());
+        PlatformSidecar ps1 = PlatformSidecar.newBuilder()
+                .withName("testSidecar")
+                .withChannel("testChannel")
+                .withArguments("{\"foo\":true,\"bar\":3.0}")
+                .build();
+        List<PlatformSidecar> platformSidecars = Collections.singletonList(ps1);
+        JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(jd ->
+                jd.toBuilder().withPlatformSidecars(platformSidecars).build()
         );
         return JobGenerator.serviceJobs(jobDescriptor).getValue();
     }

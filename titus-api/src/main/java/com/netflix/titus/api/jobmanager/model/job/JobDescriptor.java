@@ -92,6 +92,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     private final List<Volume> volumes;
 
     @Valid
+    private final List<PlatformSidecar> platformSidecars;
+
+    @Valid
     private final E extensions;
 
     public JobDescriptor(Owner owner,
@@ -104,6 +107,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                          NetworkConfiguration networkConfiguration,
                          List<BasicContainer> extraContainers,
                          List<Volume> volumes,
+                         List<PlatformSidecar> platformSidecars,
                          E extensions) {
         this.owner = owner;
         this.applicationName = applicationName;
@@ -130,10 +134,16 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             extraContainers = Collections.emptyList();
         }
         this.extraContainers = extraContainers;
+
         if (volumes == null) {
             volumes = Collections.emptyList();
         }
         this.volumes = volumes;
+
+        if (platformSidecars == null) {
+            platformSidecars = Collections.emptyList();
+        }
+        this.platformSidecars = platformSidecars;
     }
 
     /**
@@ -202,10 +212,17 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     /**
-     * Extra containers to be run alongside the main container for a job
+     * Volumes represent a list of volumes that are available for containers in a job to volumeMount
      */
     public List<Volume> getVolumes() {
         return volumes;
+    }
+
+    /**
+     * Volumes represent a list of volumes that are available for containers in a job to volumeMount
+     */
+    public List<PlatformSidecar> getPlatformSidecars() {
+        return platformSidecars;
     }
 
     /**
@@ -234,12 +251,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 Objects.equals(networkConfiguration, that.networkConfiguration) &&
                 Objects.equals(extraContainers, that.extraContainers) &&
                 Objects.equals(volumes, that.volumes) &&
+                Objects.equals(platformSidecars, that.platformSidecars) &&
                 Objects.equals(extensions, that.extensions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, volumes, extensions);
+        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, volumes, platformSidecars, extensions);
     }
 
     @Override
@@ -255,6 +273,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 ", networkConfiguration=" + networkConfiguration +
                 ", extraContainers=" + extraContainers +
                 ", volumes=" + volumes +
+                ", platformSidecars=" + platformSidecars +
                 ", extensions=" + extensions +
                 '}';
     }
@@ -341,6 +360,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 .withNetworkConfiguration(jobDescriptor.getNetworkConfiguration())
                 .withExtraContainers(jobDescriptor.getExtraContainers())
                 .withVolumes(jobDescriptor.getVolumes())
+                .withPlatformSidecars(jobDescriptor.getPlatformSidecars())
                 .withExtensions(jobDescriptor.getExtensions());
     }
 
@@ -355,6 +375,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         private NetworkConfiguration networkConfiguration;
         private List<BasicContainer> extraContainers;
         private List<Volume> volumes;
+        private List<PlatformSidecar> platformSidecars;
         private E extensions;
 
         private Builder() {
@@ -410,6 +431,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             return this;
         }
 
+        public Builder<E> withPlatformSidecars(List<PlatformSidecar> platformSidecars) {
+            this.platformSidecars = platformSidecars;
+            return this;
+        }
+
         public Builder<E> withExtensions(E extensions) {
             this.extensions = extensions;
             return this;
@@ -427,11 +453,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                     .withNetworkConfiguration(networkConfiguration)
                     .withExtraContainers(extraContainers)
                     .withVolumes(volumes)
+                    .withPlatformSidecars(platformSidecars)
                     .withExtensions(extensions);
         }
 
         public JobDescriptor<E> build() {
-            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, volumes, extensions);
+            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, networkConfiguration, extraContainers, volumes, platformSidecars, extensions);
             return jobDescriptor;
         }
     }

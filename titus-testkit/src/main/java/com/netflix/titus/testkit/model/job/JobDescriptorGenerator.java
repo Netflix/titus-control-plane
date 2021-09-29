@@ -203,6 +203,7 @@ public final class JobDescriptorGenerator {
                         .build()
                 )
                 .withExtraContainers(jobDescriptor.getExtraContainers())
+                .withPlatformSidecars(jobDescriptor.getPlatformSidecars())
                 .build();
     }
 

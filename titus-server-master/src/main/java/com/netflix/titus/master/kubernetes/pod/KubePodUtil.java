@@ -32,6 +32,7 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
@@ -155,6 +156,29 @@ public class KubePodUtil {
     }
 
     /**
+     * Looks at a job's PlatformSidecars and converts them to the correct annotations
+     * for the platform sidecar mutator to use.
+     */
+    public static Map<String, String> createPlatformSidecarAnnotations(Job<?> job) {
+        Map<String, String> annotations = new HashMap<>();
+        for (PlatformSidecar ps : job.getJobDescriptor().getPlatformSidecars()) {
+            annotations.putAll(createSinglePlatformSidecarAnnotations(ps));
+        }
+        return annotations;
+    }
+
+    private static Map<String, String> createSinglePlatformSidecarAnnotations(PlatformSidecar ps) {
+        Map<String, String> annotations = new HashMap<>();
+        String nameKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
+        annotations.put(nameKey, "true");
+        String channelKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
+        annotations.put(channelKey, ps.getChannel());
+        String argumentsKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
+        annotations.put(argumentsKey, ps.getArguments());
+        return annotations;
+    }
+
+    /**
      * Returns a job descriptor with fields unnecessary for inclusion on the pod removed.
      */
     public static com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> filterPodJobDescriptor(com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
@@ -236,4 +260,5 @@ public class KubePodUtil {
                 .map(entry -> new V1EnvVar().name(entry.getKey()).value(entry.getValue()))
                 .collect(Collectors.toList());
     }
+
 }

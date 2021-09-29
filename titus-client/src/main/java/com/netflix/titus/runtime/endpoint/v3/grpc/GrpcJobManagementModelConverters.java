@@ -26,6 +26,9 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Struct;
+import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
@@ -41,6 +44,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -86,8 +90,10 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.grpc.protogen.AddressAllocation;
 import com.netflix.titus.grpc.protogen.AddressLocation;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
@@ -102,6 +108,8 @@ import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.SignedAddressAllocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
@@ -131,6 +139,8 @@ import static com.netflix.titus.grpc.protogen.Day.Tuesday;
 import static com.netflix.titus.grpc.protogen.Day.Wednesday;
 
 public final class GrpcJobManagementModelConverters {
+
+    private static final Logger logger = LoggerFactory.getLogger(GrpcJobManagementModelConverters.class);
 
     private GrpcJobManagementModelConverters() {
     }
@@ -185,6 +195,7 @@ public final class GrpcJobManagementModelConverters {
                 .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
                 .withExtraContainers(toCoreBasicContainers(grpcJobDescriptor.getExtraContainersList()))
                 .withVolumes(toCoreVolumes(grpcJobDescriptor.getVolumesList()))
+                .withPlatformSidecars(toCorePlatformSidecars(grpcJobDescriptor.getPlatformSidecarsList()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
                 .build();
 
@@ -431,7 +442,32 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget grpcDisruptionBudget) {
+    private static List<PlatformSidecar> toCorePlatformSidecars(List<com.netflix.titus.grpc.protogen.PlatformSidecar> platformSidecarList) {
+        List<PlatformSidecar> platformSidecars = new ArrayList<>();
+        for (com.netflix.titus.grpc.protogen.PlatformSidecar ps : platformSidecarList) {
+            platformSidecars.add(toCorePlatformSidecar(ps));
+        }
+        return platformSidecars;
+    }
+
+    private static PlatformSidecar toCorePlatformSidecar(com.netflix.titus.grpc.protogen.PlatformSidecar ps) {
+        return PlatformSidecar.newBuilder()
+                .withName(ps.getName())
+                .withChannel(ps.getChannel())
+                .withArguments(structToJSONString(ps.getArguments(), ps.getName()))
+                .build();
+    }
+
+    private static String structToJSONString(Struct arguments, String sidecarName) {
+        try {
+            return JsonFormat.printer().omittingInsignificantWhitespace().print(arguments);
+        } catch (InvalidProtocolBufferException e) {
+            throw TitusServiceException.newBuilder(TitusServiceException.ErrorCode.INVALID_JOB, "Unable to serialize arguments for the " + sidecarName + " sidecar: " + e.getMessage()).build();
+        }
+    }
+
+    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget
+                                                                  grpcDisruptionBudget) {
         if (JobDisruptionBudget.getDefaultInstance().equals(grpcDisruptionBudget)) {
             return DisruptionBudget.none();
         }
@@ -1042,6 +1078,7 @@ public final class GrpcJobManagementModelConverters {
                 .setDisruptionBudget(toGrpcDisruptionBudget(jobDescriptor.getDisruptionBudget()))
                 .addAllExtraContainers(toGrpcBasicContainers(jobDescriptor.getExtraContainers()))
                 .addAllVolumes(toGrpcVolumes(jobDescriptor.getVolumes()))
+                .addAllPlatformSidecars(toGrpcPlatformSidecars(jobDescriptor.getPlatformSidecars()))
                 .putAllAttributes(jobDescriptor.getAttributes());
 
         if (jobDescriptor.getExtensions() instanceof BatchJobExt) {
@@ -1116,6 +1153,42 @@ public final class GrpcJobManagementModelConverters {
                 .setSourceContainer(source.getSourceContainer())
                 .setSourcePath(source.getSourcePath())
                 .build();
+    }
+
+    private static List<com.netflix.titus.grpc.protogen.PlatformSidecar> toGrpcPlatformSidecars(List<PlatformSidecar> platformSidecarList) {
+        List<com.netflix.titus.grpc.protogen.PlatformSidecar> platformSidecars = new ArrayList<>();
+        for (PlatformSidecar ps : platformSidecarList) {
+            platformSidecars.add(toGrpcPlatformSidecar(ps));
+        }
+        return platformSidecars;
+    }
+
+    private static com.netflix.titus.grpc.protogen.PlatformSidecar toGrpcPlatformSidecar(PlatformSidecar ps) {
+        Either<Struct, String> args = jsonStringToStruct(ps.getArguments());
+        if (args.hasError()) {
+            logger.error("Couldn't create platform sidecar arguments for " + ps.getName() + ". Err: " + args.getError());
+            // If we couldn't create the args struct, we can do our best and return an object without any arguments
+            return com.netflix.titus.grpc.protogen.PlatformSidecar.newBuilder()
+                    .setName(ps.getName())
+                    .setChannel(ps.getChannel())
+                    .build();
+        }
+        return com.netflix.titus.grpc.protogen.PlatformSidecar.newBuilder()
+                .setName(ps.getName())
+                .setChannel(ps.getChannel())
+                .setArguments(args.getValue())
+                .build();
+    }
+
+    private static Either<Struct, String> jsonStringToStruct(String arguments) {
+        Struct.Builder argsBuilder = Struct.newBuilder();
+        try {
+            JsonFormat.parser().merge(arguments, argsBuilder);
+        } catch (InvalidProtocolBufferException e) {
+            return Either.ofError(e.getMessage());
+        }
+        Struct args = argsBuilder.build();
+        return Either.ofValue(args);
     }
 
     public static com.netflix.titus.grpc.protogen.JobStatus toGrpcJobStatus(JobStatus status) {

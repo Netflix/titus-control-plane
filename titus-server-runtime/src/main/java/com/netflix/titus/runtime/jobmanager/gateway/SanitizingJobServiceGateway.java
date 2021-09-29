@@ -63,11 +63,16 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
+        com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptorUnfiltered;
+        try {
+            coreJobDescriptorUnfiltered = GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor);
+        } catch (Exception e) {
+            return Observable.error(TitusServiceException.invalidArgument("Error creating core job descriptor: " + e.getMessage()));
+        }
+
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
-            coreJobDescriptor = JobFunctions.filterOutGeneratedAttributes(
-                    GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor)
-            );
+            coreJobDescriptor = JobFunctions.filterOutGeneratedAttributes(coreJobDescriptorUnfiltered);
         } catch (Exception e) {
             return Observable.error(TitusServiceException.invalidArgument("Error when filtering out generated attributes: " + e.getMessage()));
         }

@@ -23,12 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Struct;
+import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -41,6 +45,7 @@ import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
@@ -154,6 +159,30 @@ public class V1SpecPodFactoryTest {
         Map<String, String> flexVolumeOptions = flexVolume.getOptions();
         assertThat(flexVolumeOptions.get("sourceContainer")).isEqualTo("main");
         assertThat(flexVolumeOptions.get("sourcePath")).isEqualTo("/main-root");
+    }
+
+    @Test
+    public void podHasSidecarAnnotations() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        String json_args = "{\"foo\":true,\"bar\":3.0}";
+        List<PlatformSidecar> platformSidecars = Arrays.asList(
+                new PlatformSidecar("mysidecar", "stable", json_args)
+        );
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withPlatformSidecars(platformSidecars).build()).build();
+
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        Map<String, String> annotations = pod.getMetadata().getAnnotations();
+        String expectedSidecarAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
+        assertThat(annotations.get(expectedSidecarAnnotation)).isEqualTo("true");
+
+        String expectedChannelAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
+        assertThat(annotations.get(expectedChannelAnnotation)).isEqualTo("stable");
+
+        String expectedArgsAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
+        assertThat(annotations.get(expectedArgsAnnotation)).isEqualTo(json_args);
     }
 
 }

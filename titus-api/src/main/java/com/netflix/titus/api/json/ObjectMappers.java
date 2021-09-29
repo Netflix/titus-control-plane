@@ -59,6 +59,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -127,6 +128,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.MigrationPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.NetworkConfigurationMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.OwnerMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.PercentagePerHourDisruptionBudgetRateMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.PlatformSidecarMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.RatePerIntervalDisruptionBudgetRateMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RatePercentagePerIntervalDisruptionBudgetRateMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RelocationLimitDisruptionBudgetPolicyMixIn;
@@ -290,6 +292,7 @@ public class ObjectMappers {
         objectMapper.addMixIn(VolumeMount.class, VolumeMountMixin.class);
         objectMapper.addMixIn(VolumeSource.class, VolumeSourceMixin.class);
         objectMapper.addMixIn(SharedContainerVolumeSource.class, SharedContainerVolumeSourceMixin.class);
+        objectMapper.addMixIn(PlatformSidecar.class, PlatformSidecarMixin.class);
 
         objectMapper.addMixIn(IpAddressLocation.class, IpAddressLocationMixin.class);
         objectMapper.addMixIn(IpAddressAllocation.class, IpAddressAllocationMixin.class);
