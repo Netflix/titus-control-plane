@@ -510,8 +510,7 @@ public class CassandraJobStoreTest {
     }
 
     private Job<ServiceJobExt> createServiceJobWithVolumesObject() {
-        //List<Volume> volumes = Collections.singletonList(createTestVolume());
-        List<Volume> volumes = Collections.emptyList();
+        List<Volume> volumes = Collections.singletonList(createTestVolume());
         JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(jd ->
                 jd.toBuilder().withVolumes(volumes).build()
         );

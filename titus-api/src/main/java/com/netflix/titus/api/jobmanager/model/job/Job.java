@@ -98,7 +98,11 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
             return false;
         }
         Job<?> job = (Job<?>) o;
-        return Objects.equals(id, job.id) && Objects.equals(jobDescriptor, job.jobDescriptor) && Objects.equals(status, job.status) && Objects.equals(statusHistory, job.statusHistory) && Objects.equals(version, job.version);
+        return Objects.equals(id, job.id) &&
+                Objects.equals(jobDescriptor, job.jobDescriptor) &&
+                Objects.equals(status, job.status) &&
+                Objects.equals(statusHistory, job.statusHistory) &&
+                Objects.equals(version, job.version);
     }
 
     @Override

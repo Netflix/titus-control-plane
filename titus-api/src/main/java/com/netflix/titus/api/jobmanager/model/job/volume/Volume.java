@@ -67,7 +67,7 @@ public class Volume {
         if (!this.getName().equals(that.getName())) {
             return false;
         }
-        return this.getVolumeSource() == that.getVolumeSource();
+        return this.getVolumeSource().equals(that.getVolumeSource());
     }
 
     public Builder toBuilder() {
