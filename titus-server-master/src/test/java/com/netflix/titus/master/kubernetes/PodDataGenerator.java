@@ -43,7 +43,7 @@ public class PodDataGenerator {
                 )
                 .spec(new V1PodSpec())
                 .status(new V1PodStatus()
-                        .addContainerStatusesItem(new V1ContainerStatus())
+                        .addContainerStatusesItem(new V1ContainerStatus().name("test"))
                 );
         return transform(pod, transformers);
     }

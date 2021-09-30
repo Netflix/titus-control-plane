@@ -160,7 +160,7 @@ public class EmbeddedKubeCluster {
             updatedPod.getStatus()
                     .nominatedNodeName(node.getName())
                     .containerStatuses(Collections.singletonList(
-                            new V1ContainerStatus().ready(true)
+                            new V1ContainerStatus().name(node.getName()).ready(true)
                     ))
                     .phase("Pending")
                     .reason("SCHEDULED");
@@ -216,6 +216,7 @@ public class EmbeddedKubeCluster {
                     .containerStatuses(Collections.singletonList(
                             new V1ContainerStatus()
                                     .started(true)
+                                    .name("test")
                                     .state(new V1ContainerState().running(
                                             new V1ContainerStateRunning().startedAt(OffsetDateTime.now())
                                     ))
@@ -261,6 +262,7 @@ public class EmbeddedKubeCluster {
                     .containerStatuses(Collections.singletonList(
                             new V1ContainerStatus()
                                     .started(true)
+                                    .name("test")
                                     .state(new V1ContainerState().terminated(
                                             new V1ContainerStateTerminated().finishedAt(OffsetDateTime.now())
                                     ))
