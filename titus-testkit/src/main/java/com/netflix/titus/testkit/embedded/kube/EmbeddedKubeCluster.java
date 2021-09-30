@@ -84,7 +84,11 @@ public class EmbeddedKubeCluster {
 
     public void addPod(V1Pod pod) {
         String podName = pod.getMetadata().getName();
-        pod.status(new V1PodStatus().phase("PENDING").containerStatuses(new ArrayList<>()));
+        pod.status(new V1PodStatus().phase("PENDING")
+                .containerStatuses(Collections
+                                    .singletonList(new V1ContainerStatus()
+                                                       .name("test")
+                                                        .state(new V1ContainerState().waiting(new V1ContainerStateWaiting())))));
         pod.getMetadata().creationTimestamp(OffsetDateTime.now());
 
         EmbeddedKubePod embeddedPod = new EmbeddedKubePod(pod);

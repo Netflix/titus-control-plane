@@ -3,8 +3,11 @@ package com.netflix.titus.runtime.endpoint.v3.grpc;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerHealth;
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.grpc.protogen.LogLocation;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
@@ -72,5 +75,13 @@ public class GrpcJobManagementModelConvertersTest {
 
         assertThat(coreTask.getAttributes().containsKey(TASK_ATTRIBUTE_LOG_LIVE_STREAM)).isTrue();
         assertThat(coreTask.getAttributes().get(TASK_ATTRIBUTE_LOG_LIVE_STREAM)).isEqualTo(liveStream);
+    }
+
+
+    @Test
+    public void testToGrpc() {
+        TaskStatus.ContainerState containerState = GrpcJobManagementModelConverters.toGrpcContainerState(ContainerState.newBuilder()
+                .withContainerName("test").withContainerHealth(ContainerHealth.Unset).build());
+        assertThat(containerState.isInitialized()).isTrue();
     }
 }

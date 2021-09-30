@@ -35,6 +35,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.JsonSyntaxException;
+import com.netflix.titus.api.jobmanager.model.job.ContainerHealth;
 import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -158,7 +159,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     public List<ContainerState> getPodStatus(String taskId) {
         if (pods.containsKey(taskId)) {
             List<V1ContainerStatus> v1ContainerStatus = pods.get(taskId).getStatus().getContainerStatuses();
-            ArrayList containerstates = new ArrayList();
+            ArrayList<ContainerState> containerstates = new ArrayList();
             if (v1ContainerStatus.isEmpty() || v1ContainerStatus.size() == 0) {
                 // we have pod status but no container status just yet
                 return Collections.emptyList();
@@ -166,9 +167,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 ListIterator<V1ContainerStatus> iterator = v1ContainerStatus.listIterator();
                 while (iterator.hasNext()) {
                     V1ContainerStatus v1ContainerStatus1 = iterator.next();
-                    com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.Builder containerState =
-                            com.netflix.titus.grpc.protogen.TaskStatus.ContainerState.newBuilder()
-                                    .setContainerName(v1ContainerStatus1.getName());
+                    ContainerState containerState =
+                            ContainerState.newBuilder()
+                                    .withContainerName(v1ContainerStatus1.getName()).withContainerHealth(ContainerHealth.Unset).build();
                     containerstates.add(containerState);
                 }
                 return containerstates;
