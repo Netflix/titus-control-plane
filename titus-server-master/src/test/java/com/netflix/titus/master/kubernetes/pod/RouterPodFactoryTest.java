@@ -77,6 +77,12 @@ public class RouterPodFactoryTest {
         assertThat(v1.pattern()).isEqualTo("(a|b|c)");
     }
 
+    @Test
+    void testEmptyExtractPatterns() {
+        assertThat(RouterPodFactory.extractPatterns("")).hasSize(0);
+        assertThat(RouterPodFactory.extractPatterns(null)).hasSize(0);
+    }
+
     private V1Pod createPodWithVersion(String version) {
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .annotations(Collections.singletonMap(POD_SCHEMA_VERSION, version));

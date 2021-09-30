@@ -23,28 +23,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Struct;
-import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
-import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
+import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.legacy.PodContainerInfoFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
@@ -53,13 +51,10 @@ import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
-import io.titanframework.messages.TitanProtos.ContainerInfo;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +74,7 @@ public class V1SpecPodFactoryTest {
 
     private final TopologyFactory topologyFactory = mock(TopologyFactory.class);
 
-    private final PodContainerInfoFactory podContainerInfoFactory = mock(PodContainerInfoFactory.class);
+    private final LogStorageInfo<Task> logStorageInfo = mock(LogStorageInfo.class);
 
     private V1SpecPodFactory podFactory;
 
@@ -92,9 +87,8 @@ public class V1SpecPodFactoryTest {
                 taintTolerationFactory,
                 topologyFactory,
                 podEnvFactory,
-                podContainerInfoFactory
+                logStorageInfo
         );
-        when(podContainerInfoFactory.buildContainerInfo(any(), any(), anyBoolean())).thenReturn(ContainerInfo.newBuilder().build());
     }
 
     @Test
@@ -133,7 +127,8 @@ public class V1SpecPodFactoryTest {
         V1Container mainContainer = pod.getSpec().getContainers().get(0);
         List<V1VolumeMount> mounts = mainContainer.getVolumeMounts();
 
-        assertThat(mounts.size()).isEqualTo(2);
+        // dev-shm is third volume
+        assertThat(mounts.size()).isEqualTo(3);
         assertThat(mounts.get(0).getName()).isEqualTo("volume1");
         assertThat(mounts.get(1).getName()).isEqualTo("volume2");
     }
@@ -151,7 +146,8 @@ public class V1SpecPodFactoryTest {
         V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
 
         List<V1Volume> podVolumes = Objects.requireNonNull(pod.getSpec()).getVolumes();
-        assertThat(podVolumes.size()).isEqualTo(2);
+        // dev-shm is third volume
+        assertThat(podVolumes.size()).isEqualTo(3);
         V1Volume mainSharedVolume = podVolumes.get(0);
         assertThat(mainSharedVolume.getName()).isEqualTo("volume1");
         V1FlexVolumeSource flexVolume = mainSharedVolume.getFlexVolume();

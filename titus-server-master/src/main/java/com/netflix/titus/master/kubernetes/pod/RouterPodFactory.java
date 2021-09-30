@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.pod;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -54,6 +55,9 @@ public class RouterPodFactory implements PodFactory {
         patternsByVersion = Evaluators.memoizeLast((spec, lastCompiledPatterns) -> {
             logger.info("Detected new routing rules, compiling them: {}", spec);
             try {
+                if (StringExt.isEmpty(spec)) {
+                    return Collections.emptyMap();
+                }
                 return extractPatterns(podSpecVersionRoutingRules.get());
             } catch (RuntimeException e) {
                 logger.error("Bad cell routing spec, ignoring: {}", spec);
@@ -96,6 +100,9 @@ public class RouterPodFactory implements PodFactory {
 
     @VisibleForTesting
     static Map<String, Pattern> extractPatterns(String patterns) {
+        if (StringExt.isEmpty(patterns)) {
+            return Collections.emptyMap();
+        }
         Map<String, Pattern> extractedPatterns = new HashMap<>();
         String[] versionStatements = patterns.split(";");
         for (String versionStatement : versionStatements) {
