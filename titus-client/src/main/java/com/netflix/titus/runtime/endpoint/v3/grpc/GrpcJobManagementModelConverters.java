@@ -245,6 +245,14 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
+    public static Image toCoreImage(com.netflix.titus.grpc.protogen.BasicImage grpcImage) {
+        return JobModel.newImage()
+                .withName(grpcImage.getName())
+                .withTag(grpcImage.getTag())
+                .withDigest(grpcImage.getDigest())
+                .build();
+    }
+
     public static EfsMount toCoreEfsMount(com.netflix.titus.grpc.protogen.ContainerResources.EfsMount grpcEfsMount) {
         return EfsMount.newBuilder()
                 .withEfsId(grpcEfsMount.getEfsId())
@@ -794,6 +802,14 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
+    private static com.netflix.titus.grpc.protogen.BasicImage toGrpcBasicImage(Image image) {
+        com.netflix.titus.grpc.protogen.BasicImage.Builder builder = com.netflix.titus.grpc.protogen.BasicImage.newBuilder();
+        builder.setName(image.getName());
+        acceptNotNull(image.getTag(), builder::setTag);
+        acceptNotNull(image.getDigest(), builder::setDigest);
+        return builder.build();
+    }
+
     private static com.netflix.titus.grpc.protogen.NetworkConfiguration toGrpcNetworkConfiguration
             (NetworkConfiguration networkConfiguration) {
         com.netflix.titus.grpc.protogen.NetworkConfiguration.Builder builder = com.netflix.titus.grpc.protogen.NetworkConfiguration.newBuilder();
@@ -1098,7 +1114,7 @@ public final class GrpcJobManagementModelConverters {
     private static com.netflix.titus.grpc.protogen.BasicContainer toGrpcBasicContainer(BasicContainer basicContainer) {
         return com.netflix.titus.grpc.protogen.BasicContainer.newBuilder()
                 .setName(basicContainer.getName())
-                .setImage(toGrpcImage(basicContainer.getImage()))
+                .setImage(toGrpcBasicImage(basicContainer.getImage()))
                 .addAllEntryPoint(basicContainer.getEntryPoint())
                 .addAllCommand(basicContainer.getCommand())
                 .putAllEnv(basicContainer.getEnv())
