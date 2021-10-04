@@ -34,12 +34,32 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 @Singleton
 public class DefaultPodEnvFactory implements PodEnvFactory {
 
+    private static final String defaultSystemEnvNames = String.join(",",
+            KubeConstants.POD_ENV_TITUS_JOB_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_ID,
+            KubeConstants.POD_ENV_NETFLIX_EXECUTOR,
+            KubeConstants.POD_ENV_NETFLIX_INSTANCE_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_INSTANCE_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_ORIGINAL_ID
+    );
+
+    private static final String batchTaskSystemEvNames = String.join(",",
+            KubeConstants.POD_ENV_TITUS_JOB_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_ID,
+            KubeConstants.POD_ENV_NETFLIX_EXECUTOR,
+            KubeConstants.POD_ENV_NETFLIX_INSTANCE_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_INSTANCE_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_ORIGINAL_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_INDEX
+    );
+
     @Inject
     public DefaultPodEnvFactory() {
     }
 
     @Override
-    public Pair<Integer, List<V1EnvVar>> buildEnv(Job<?> job, Task task) {
+    public Pair<String, List<V1EnvVar>> buildEnv(Job<?> job, Task task) {
+        String systemEnvNames = defaultSystemEnvNames;
         Map<String, String> envVars = new LinkedHashMap<>();
         envVars.put(KubeConstants.POD_ENV_TITUS_JOB_ID, task.getJobId());
         envVars.put(KubeConstants.POD_ENV_TITUS_TASK_ID, task.getId());
@@ -48,10 +68,10 @@ public class DefaultPodEnvFactory implements PodEnvFactory {
         envVars.put(KubeConstants.POD_ENV_TITUS_TASK_INSTANCE_ID, task.getId());
         envVars.put(KubeConstants.POD_ENV_TITUS_TASK_ORIGINAL_ID, task.getOriginalId());
         if (task instanceof BatchJobTask) {
+            systemEnvNames = batchTaskSystemEvNames;
             BatchJobTask batchJobTask = (BatchJobTask) task;
             envVars.put(KubeConstants.POD_ENV_TITUS_TASK_INDEX, "" + batchJobTask.getIndex());
         }
-        int systemEnvSize = envVars.size();
 
         Map<String, String> userEnv = job.getJobDescriptor().getContainer().getEnv();
         userEnv.forEach((k, v) -> {
@@ -61,6 +81,6 @@ public class DefaultPodEnvFactory implements PodEnvFactory {
             }
         });
 
-        return Pair.of(systemEnvSize, toV1EnvVar(envVars));
+        return Pair.of(systemEnvNames, toV1EnvVar(envVars));
     }
 }

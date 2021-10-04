@@ -17,7 +17,6 @@
 package com.netflix.titus.master.kubernetes.pod.v1;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,15 +39,18 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -57,7 +59,6 @@ import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.legacy.PodContainerInfoFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
@@ -66,25 +67,25 @@ import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1EmptyDirVolumeSource;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
+import io.kubernetes.client.openapi.models.V1NFSVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
-import io.titanframework.messages.TitanProtos;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_WRITER_ROLE;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_JUMBO;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ASSIGN_IPV6_ADDRESS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_FUSE_ENABLED;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_HOSTNAME_STYLE;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_KEEP_LOCAL_FILE_AFTER_UPLOAD;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_STDIO_CHECK_INTERVAL;
@@ -93,18 +94,17 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRI
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_THRESHOLD_TIME;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH;
 import static com.netflix.titus.api.jobmanager.JobAttributes.TITUS_PARAMETER_AGENT_PREFIX;
+import static com.netflix.titus.api.jobmanager.model.job.Container.ATTRIBUTE_NETFLIX_APP_METADATA;
+import static com.netflix.titus.api.jobmanager.model.job.Container.ATTRIBUTE_NETFLIX_APP_METADATA_SIG;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.getJobType;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.CONTAINER_INFO;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_DNS_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_IMAGE_PULL_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.EGRESS_BANDWIDTH;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.ENTRYPOINT_SHELL_SPLITTING_ENABLED;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.FENZO_SCHEDULER;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IAM_ROLE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.INGRESS_BANDWIDTH;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_ACCEPTED_TIMESTAMP_MS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_DESCRIPTOR;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_ID;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_TYPE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_KEEP_LOCAL_FILE;
@@ -123,10 +123,11 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_S
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NEVER_RESTART_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_CPU_BURSTING_ENABLED;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_FUSE_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_HOSTNAME_STYLE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHED_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHEMA_VERSION;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_USER_ENV_VARS_START_INDEX;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SYSTEM_ENV_VAR_NAMES;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_CPU;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_EPHERMERAL_STORAGE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_GPU;
@@ -147,13 +148,15 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 @Singleton
 public class V1SpecPodFactory implements PodFactory {
 
+    public static final String DEV_SHM = "dev-shm";
+    public static final String DEV_SHM_MOUNT_PATH = "/dev/shm";
     private final KubePodConfiguration configuration;
     private final ApplicationSlaManagementService capacityGroupManagement;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
     private final TopologyFactory topologyFactory;
     private final PodEnvFactory podEnvFactory;
-    private final PodContainerInfoFactory podContainerInfoFactory;
+    private final LogStorageInfo<Task> logStorageInfo;
 
     @Inject
     public V1SpecPodFactory(KubePodConfiguration configuration,
@@ -162,43 +165,35 @@ public class V1SpecPodFactory implements PodFactory {
                             TaintTolerationFactory taintTolerationFactory,
                             TopologyFactory topologyFactory,
                             PodEnvFactory podEnvFactory,
-                            PodContainerInfoFactory podContainerInfoFactory) {
+                            LogStorageInfo<Task> logStorageInfo) {
         this.configuration = configuration;
         this.capacityGroupManagement = capacityGroupManagement;
         this.podAffinityFactory = podAffinityFactory;
         this.taintTolerationFactory = taintTolerationFactory;
         this.topologyFactory = topologyFactory;
         this.podEnvFactory = podEnvFactory;
-        this.podContainerInfoFactory = podContainerInfoFactory;
+        this.logStorageInfo = logStorageInfo;
     }
 
     @Override
     public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler, boolean useKubePv) {
 
         String taskId = task.getId();
-        TitanProtos.ContainerInfo containerInfo = podContainerInfoFactory.buildContainerInfo(job, task, false);
-        Map<String, String> annotations = createPodAnnotations(job, task, containerInfo.toByteArray());
+        Map<String, String> annotations = createPodAnnotations(job, task);
 
         Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);
         annotations.putAll(affinityWithMetadata.getRight());
 
-        Pair<Integer, List<V1EnvVar>> envVarsWithIndex = podEnvFactory.buildEnv(job, task);
-        int userEnvBeginIndex = envVarsWithIndex.getLeft();
+        Pair<String, List<V1EnvVar>> envVarsWithIndex = podEnvFactory.buildEnv(job, task);
+        String systemEnvNames = envVarsWithIndex.getLeft();
         List<V1EnvVar> envVarsList = envVarsWithIndex.getRight();
-        annotations.put(POD_USER_ENV_VARS_START_INDEX, String.valueOf(userEnvBeginIndex));
+        annotations.put(POD_SYSTEM_ENV_VAR_NAMES, systemEnvNames);
 
         Map<String, String> labels = new HashMap<>();
-        labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
-        labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
-        JobManagerUtil.getRelocationBinpackMode(job).ifPresent(mode -> labels.put(KubeConstants.POD_LABEL_RELOCATION_BINPACK, mode));
+        labels.put("v3.job.titus.netflix.com/job-id", job.getId());
+        labels.put("v3.job.titus.netflix.com/task-id", taskId);
 
         JobDescriptor<?> jobDescriptor = job.getJobDescriptor();
-        JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
-        labels.put(WORKLOAD_NAME, jobDescriptor.getApplicationName());
-        labels.put(WORKLOAD_STACK, jobGroupInfo.getStack());
-        labels.put(WORKLOAD_DETAIL, jobGroupInfo.getDetail());
-        labels.put(WORKLOAD_SEQUENCE, jobGroupInfo.getSequence());
-
         String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
         labels.put(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup);
 
@@ -231,14 +226,10 @@ public class V1SpecPodFactory implements PodFactory {
         List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
         List<V1Volume> volumes = buildV1Volumes(job.getJobDescriptor().getVolumes());
 
-        String schedulerName = FENZO_SCHEDULER;
-        if (useKubeScheduler) {
-            ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
-            if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
-                schedulerName = configuration.getReservedCapacityKubeSchedulerName();
-            } else {
-                schedulerName = configuration.getKubeSchedulerName();
-            }
+        String schedulerName = configuration.getKubeSchedulerName();
+        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
+        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
+            schedulerName = configuration.getReservedCapacityKubeSchedulerName();
         }
 
         V1PodSpec spec = new V1PodSpec()
@@ -252,16 +243,15 @@ public class V1SpecPodFactory implements PodFactory {
                 .tolerations(taintTolerationFactory.buildV1Toleration(job, task, useKubeScheduler))
                 .topologySpreadConstraints(topologyFactory.buildTopologySpreadConstraints(job));
 
-        //  If kube scheduler is not enabled then the node name needs to be explicitly set
-        if (!useKubeScheduler) {
-            spec.setNodeName(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
-        }
         // volumes need to be correctly added to pod spec
         Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
         if (useKubePv && optionalEbsVolumeInfo.isPresent()) {
             spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
             container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
         }
+
+        appendEfsMounts(spec, container, job);
+        appendShmMount(spec, container, job);
 
         return new V1Pod().metadata(metadata).spec(spec);
     }
@@ -349,12 +339,8 @@ public class V1SpecPodFactory implements PodFactory {
 
     Map<String, String> createPodAnnotations(
             Job<?> job,
-            Task task,
-            byte[] containerInfoData
+            Task task
     ) {
-        String encodedContainerInfo = Base64.getEncoder().encodeToString(containerInfoData);
-        String encodedJobDescriptor = KubePodUtil.createEncodedJobDescriptor(job);
-
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor = job.getJobDescriptor();
         Container container = jobDescriptor.getContainer();
 
@@ -363,8 +349,6 @@ public class V1SpecPodFactory implements PodFactory {
 
         annotations.put(JOB_ID, job.getId());
         annotations.put(JOB_TYPE, getJobType(job).name());
-        annotations.put(CONTAINER_INFO, encodedContainerInfo);
-        annotations.put(JOB_DESCRIPTOR, encodedJobDescriptor);
 
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         annotations.put(WORKLOAD_NAME, jobDescriptor.getApplicationName());
@@ -388,13 +372,16 @@ public class V1SpecPodFactory implements PodFactory {
         SecurityProfile securityProfile = container.getSecurityProfile();
         String securityGroups = StringExt.concatenate(securityProfile.getSecurityGroups(), ",");
         annotations.put(NETWORK_SECURITY_GROUPS, securityGroups);
-        //TODO check if this is always fully qualified or we need to continue checking here
         annotations.put(IAM_ROLE, securityProfile.getIamRole());
 
-        String appMetadata = securityProfile.getAttributes().getOrDefault("NETFLIX_APP_METADATA", "");
-        String appMetadataSignature = securityProfile.getAttributes().getOrDefault("NETFLIX_APP_METADATA_SIG", "");
-        annotations.put(SECURITY_APP_METADATA, appMetadata);
-        annotations.put(SECURITY_APP_METADATA_SIG, appMetadataSignature);
+        Evaluators.acceptNotNull(
+                securityProfile.getAttributes().get(ATTRIBUTE_NETFLIX_APP_METADATA),
+                appMetadata -> annotations.put(SECURITY_APP_METADATA, appMetadata)
+        );
+        Evaluators.acceptNotNull(
+                securityProfile.getAttributes().get(ATTRIBUTE_NETFLIX_APP_METADATA_SIG),
+                appMetadataSignature -> annotations.put(SECURITY_APP_METADATA_SIG, appMetadataSignature)
+        );
 
         Evaluators.acceptNotNull(
                 job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC),
@@ -441,6 +428,9 @@ public class V1SpecPodFactory implements PodFactory {
                 case JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_JUMBO:
                     annotations.put(NETWORK_JUMBO_FRAMES_ENABLED, v);
                     break;
+                case JOB_PARAMETER_ATTRIBUTES_FUSE_ENABLED:
+                    annotations.put(POD_FUSE_ENABLED, v);
+                    break;
                 case JOB_PARAMETER_ATTRIBUTES_ASSIGN_IPV6_ADDRESS:
                     annotations.put(NETWORK_ASSIGN_IVP6_ADDRESS, v);
                     break;
@@ -459,14 +449,8 @@ public class V1SpecPodFactory implements PodFactory {
                 case JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_REGEXP:
                     annotations.put(LOG_UPLOAD_REGEXP, v);
                     break;
-                case JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME:
-                    annotations.put(LOG_S3_BUCKET_NAME, v);
-                    break;
                 case JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX:
                     annotations.put(LOG_S3_PATH_PREFIX, v);
-                    break;
-                case JOB_CONTAINER_ATTRIBUTE_S3_WRITER_ROLE:
-                    annotations.put(LOG_S3_WRITER_IAM_ROLE, v);
                     break;
                 default:
                     annotations.put(k, v);
@@ -474,6 +458,7 @@ public class V1SpecPodFactory implements PodFactory {
             }
         });
 
+        appendS3WriterRole(annotations, job, task);
         annotations.putAll(createEbsPodAnnotations(job, task));
         annotations.putAll(PerformanceToolUtil.toAnnotations(job));
         annotations.putAll(createPlatformSidecarAnnotations(job));
@@ -485,5 +470,106 @@ public class V1SpecPodFactory implements PodFactory {
         return Boolean.parseBoolean(jobAttributes.getOrDefault(JobAttributes.JOB_PARAMETER_ATTRIBUTES_ENTRY_POINT_SKIP_SHELL_PARSING,
                 "false").trim());
 
+    }
+
+    @VisibleForTesting
+    void appendS3WriterRole(Map<String, String> annotations, Job<?> job, Task task) {
+        if (LogStorageInfos.findCustomS3Bucket(job).isPresent()) {
+            annotations.put(
+                    LOG_S3_WRITER_IAM_ROLE,
+                    job.getJobDescriptor().getContainer().getSecurityProfile().getIamRole()
+            );
+        } else {
+            Evaluators.applyNotNull(
+                    configuration.getDefaultS3WriterRole(),
+                    role -> annotations.put(LOG_S3_WRITER_IAM_ROLE, role)
+            );
+        }
+
+        logStorageInfo.getS3LogLocation(task, false).ifPresent(s3LogLocation ->
+                Evaluators.applyNotNull(
+                        s3LogLocation.getBucket(),
+                        bucket -> annotations.put(LOG_S3_BUCKET_NAME, bucket)
+                )
+        );
+    }
+
+    void appendEfsMounts(V1PodSpec spec, V1Container container, Job<?> job) {
+        List<EfsMount> efsMounts = job.getJobDescriptor().getContainer().getContainerResources().getEfsMounts();
+        if (efsMounts.isEmpty()) {
+            return;
+        }
+        for (EfsMount efsMount : efsMounts) {
+            boolean readOnly = efsMount.getMountPerm() == EfsMount.MountPerm.RO;
+            String efsId = efsMount.getEfsId();
+            String efsMountPoint = efsMount.getMountPoint();
+
+            // handle cases where efsId is an ip address
+            if (NetworkExt.isIpV4(efsId)) {
+                String name = efsId.replace(".", "-") + efsMountPoint.replace("/", "-").replace(".", "-");
+
+                V1VolumeMount volumeMount = new V1VolumeMount()
+                        .name(name)
+                        .mountPath(efsMountPoint);
+
+                container.addVolumeMountsItem(volumeMount);
+
+                V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
+                        .server(efsId)
+                        .readOnly(readOnly);
+
+                String path = StringExt.isEmpty(efsMount.getEfsRelativeMountPoint()) ? "/" : efsMountPoint;
+                nfsVolumeSource.setPath(path);
+
+                V1Volume volume = new V1Volume()
+                        .name(name)
+                        .nfs(nfsVolumeSource);
+
+                spec.addVolumesItem(volume);
+
+            } else {
+                String name = efsId + efsMountPoint.replace("/", "-").replace(".", "-");
+
+                V1VolumeMount volumeMount = new V1VolumeMount()
+                        .name(name)
+                        .mountPath(efsMountPoint);
+
+                container.addVolumeMountsItem(volumeMount);
+
+                String server = efsId + ".efs." + configuration.getTargetRegion() + ".amazonaws.com";
+                V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
+                        .server(server)
+                        .readOnly(readOnly);
+
+                String path = StringExt.isEmpty(efsMount.getEfsRelativeMountPoint()) ? "/" : efsMountPoint;
+                nfsVolumeSource.setPath(path);
+
+                V1Volume volume = new V1Volume()
+                        .name(name)
+                        .nfs(nfsVolumeSource);
+
+                spec.addVolumesItem(volume);
+            }
+        }
+    }
+
+    void appendShmMount(V1PodSpec spec, V1Container container, Job<?> job) {
+        int shmMB = job.getJobDescriptor().getContainer().getContainerResources().getShmMB();
+
+        V1VolumeMount v1VolumeMount = new V1VolumeMount()
+                .name(DEV_SHM)
+                .mountPath(DEV_SHM_MOUNT_PATH);
+
+        container.addVolumeMountsItem(v1VolumeMount);
+
+        V1EmptyDirVolumeSource emptyDirVolumeSource = new V1EmptyDirVolumeSource()
+                .medium("Memory")
+                .sizeLimit(Quantity.fromString(shmMB + "Mi"));
+
+        V1Volume volume = new V1Volume()
+                .name(V1SpecPodFactory.DEV_SHM)
+                .emptyDir(emptyDirVolumeSource);
+
+        spec.addVolumesItem(volume);
     }
 }

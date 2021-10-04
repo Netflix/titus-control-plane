@@ -29,6 +29,9 @@ public final class KubePodConstants {
 
     public static final String DEFAULT_DNS_POLICY = "Default";
 
+    public static final String JOB_ID = "v3.job.titus.netflix.com/job-id";
+    public static final String TASK_ID = "v3.job.titus.netflix.com/task-id";
+
     // Resources
     public static final String RESOURCE_CPU = "cpu";
     public static final String RESOURCE_MEMORY = "memory";
@@ -70,7 +73,7 @@ public final class KubePodConstants {
     public static final String PREFIX_APP_ARMOR = "container.apparmor.security.beta.kubernetes.io";
 
     public static final String POD_SCHEMA_VERSION = "pod.netflix.com/pod-schema-version";
-    public static final String POD_USER_ENV_VARS_START_INDEX = "pod.titus.netflix.com/user-env-vars-start-index";
+    public static final String POD_SYSTEM_ENV_VAR_NAMES = "pod.titus.netflix.com/system-env-var-names";
 
 
     // App-specific fields
@@ -82,10 +85,8 @@ public final class KubePodConstants {
 
     // Titus-specific fields
     public static final String JOB_ACCEPTED_TIMESTAMP_MS = "v3.job.titus.netflix.com/accepted-timestamp-ms";
-    public static final String JOB_ID = "v3.job.titus.netflix.com/id";
     public static final String JOB_TYPE = "v3.job.titus.netflix.com/type";
     public static final String JOB_DESCRIPTOR = "v3.job.titus.netflix.com/descriptor";
-    public static final String CONTAINER_INFO = "pod.titus.netflix.com/container-info";
     public static final String ENTRYPOINT_SHELL_SPLITTING_ENABLED = "pod.titus.netflix.com/entrypoint-shell-splitting-enabled";
 
     // Networking
@@ -109,8 +110,8 @@ public final class KubePodConstants {
     public static final String STORAGE_EBS_FS_TYPE = "ebs.volume.netflix.com/fs-type";
 
     // Security
-    public static final String SECURITY_APP_METADATA = "security.netflix.com/app-metadata";
-    public static final String SECURITY_APP_METADATA_SIG = "security.netflix.com/app-metadata-sig";
+    public static final String SECURITY_APP_METADATA = "security.netflix.com/workload-metadata";
+    public static final String SECURITY_APP_METADATA_SIG = "security.netflix.com/workload-metadata-sig";
 
     // Opportunistic Resources
     public static final String OPPORTUNISTIC_CPU = "opportunistic.scheduler.titus.netflix.com/cpu";

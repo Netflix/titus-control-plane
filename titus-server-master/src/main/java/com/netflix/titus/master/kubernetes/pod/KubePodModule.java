@@ -17,6 +17,8 @@
 package com.netflix.titus.master.kubernetes.pod;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -24,6 +26,8 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.api.Config;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.pod.affinity.DefaultPodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
@@ -46,8 +50,8 @@ import com.netflix.titus.master.kubernetes.pod.taint.DefaultTaintTolerationFacto
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.DefaultTopologyFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
-import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
-import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.pod.v0.V0SpecPodFactory;
+import com.netflix.titus.master.kubernetes.pod.v1.V1SpecPodFactory;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 public class KubePodModule extends AbstractModule {
@@ -101,5 +105,16 @@ public class KubePodModule extends AbstractModule {
         return new DefaultAggregatingContainerEnvFactory(titusRuntime,
                 UserProvidedContainerEnvFactory.getInstance(),
                 TitusProvidedContainerEnvFactory.getInstance());
+    }
+
+    @Provides
+    @Singleton
+    public RouterPodFactory getRouterPodFactory(KubePodConfiguration configuration,
+                                                V0SpecPodFactory v0SpecPodFactory,
+                                                V1SpecPodFactory v1SpecPodFactory) {
+        Map<String, PodFactory> versionedPodFactories = new LinkedHashMap<>();
+        versionedPodFactories.put("v0", v0SpecPodFactory);
+        versionedPodFactories.put("v1", v1SpecPodFactory);
+        return new RouterPodFactory(configuration, versionedPodFactories);
     }
 }
