@@ -21,6 +21,7 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.master.jobmanager.service.ComputeProvider;
 import com.netflix.titus.master.kubernetes.client.DefaultDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
@@ -44,5 +45,11 @@ public class EmbeddedKubeModule extends AbstractModule {
     @Singleton
     public DirectKubeConfiguration getDirectKubeConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(DirectKubeConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public ComputeProvider getComputeProvider(DirectKubeApiServerIntegrator integrator) {
+        return integrator;
     }
 }

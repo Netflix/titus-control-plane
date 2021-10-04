@@ -48,14 +48,13 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
+import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
-import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
-import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
@@ -89,17 +88,12 @@ public class JobsScenarioBuilder {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
-    private final DirectKubeConfiguration kubeConfiguration = Archaius2Ext.newConfiguration(DirectKubeConfiguration.class);
-    private final KubePodConfiguration kubePodConfiguration = Archaius2Ext.newConfiguration(KubePodConfiguration.class);
     private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
-    private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
+    private final JobConfiguration jobSanitizerConfiguration = Archaius2Ext.newConfiguration(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
-    private final StubbedSchedulingService schedulingService;
-    private final boolean kubeSchedulerEnabled;
-    private final StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator = new StubbedDirectKubeApiServerIntegrator();
-    private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
     private final StubbedJobStore jobStore = new StubbedJobStore();
     private final VersionSupplier versionSupplier;
+    private final JobServiceRuntime runtime;
 
     private volatile int concurrentStoreUpdateLimit = CONCURRENT_STORE_UPDATE_LIMIT;
 
@@ -111,9 +105,7 @@ public class JobsScenarioBuilder {
 
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = mock(ConstraintEvaluatorTransformer.class);
 
-    public JobsScenarioBuilder(boolean kubeSchedulerEnabled) {
-        this.kubeSchedulerEnabled = kubeSchedulerEnabled;
-        this.schedulingService = new StubbedSchedulingService(kubeSchedulerEnabled);
+    public JobsScenarioBuilder() {
         this.versionSupplier = VersionSuppliers.newInstance(titusRuntime.getClock());
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
@@ -127,17 +119,18 @@ public class JobsScenarioBuilder {
         when(configuration.getMinRetryIntervalMs()).thenReturn(MIN_RETRY_INTERVAL_MS);
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
-        when(featureActivationConfiguration.isKubeSchedulerEnabled()).thenReturn(kubeSchedulerEnabled);
         when(featureActivationConfiguration.isMoveTaskValidationEnabled()).thenReturn(true);
         when(featureActivationConfiguration.isOpportunisticResourcesSchedulingEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 
-        this.jobOperations = createAndActivateV3JobOperations();
-    }
+        this.runtime = new JobServiceRuntime(
+                configuration,
+                new StubbedComputeProvider(),
+                titusRuntime
+        );
 
-    public JobsScenarioBuilder() {
-        this(false);
+        this.jobOperations = createAndActivateV3JobOperations();
     }
 
     private DefaultV3JobOperations createAndActivateV3JobOperations() {
@@ -166,12 +159,10 @@ public class JobsScenarioBuilder {
 
         TokenBucket stuckInStateRateLimiter = Limiters.unlimited("stuckInState");
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
-                kubeApiServerIntegrator,
                 configuration,
+                runtime,
                 featureActivationConfiguration,
                 capacityGroupService,
-                schedulingService,
-                vmService,
                 jobStore,
                 versionSupplier,
                 constraintEvaluatorTransformer,
@@ -182,12 +173,10 @@ public class JobsScenarioBuilder {
                 testScheduler
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
-                kubeApiServerIntegrator,
                 configuration,
+                runtime,
                 featureActivationConfiguration,
                 capacityGroupService,
-                schedulingService,
-                vmService,
                 jobStore,
                 versionSupplier,
                 constraintEvaluatorTransformer,
@@ -218,15 +207,13 @@ public class JobsScenarioBuilder {
                 configuration,
                 featureActivationConfiguration,
                 jobStore,
-                vmService,
-                kubeApiServerIntegrator,
+                runtime,
                 new JobReconciliationFrameworkFactory(
                         configuration,
                         featureActivationConfiguration,
                         batchDifferenceResolver,
                         serviceDifferenceResolver,
                         jobStore,
-                        schedulingService,
                         capacityGroupService,
                         systemSoftConstraint,
                         systemHardConstraint,
@@ -275,14 +262,11 @@ public class JobsScenarioBuilder {
 
             JobScenarioBuilder jobScenarioBuilder = new JobScenarioBuilder(
                     job.getId(),
-                    kubeSchedulerEnabled,
                     jobEventsSubscriber,
                     storeEventsSubscriber,
                     jobOperations,
-                    schedulingService,
                     jobStore,
-                    vmService,
-                    kubeApiServerIntegrator,
+                    (StubbedComputeProvider) runtime.getComputeProvider(),
                     versionSupplier,
                     titusRuntime,
                     testScheduler
@@ -351,14 +335,11 @@ public class JobsScenarioBuilder {
 
         JobScenarioBuilder jobScenarioBuilder = new JobScenarioBuilder(
                 jobId,
-                kubeSchedulerEnabled,
                 jobEventsSubscriber,
                 storeEventsSubscriber,
                 jobOperations,
-                schedulingService,
                 jobStore,
-                vmService,
-                kubeApiServerIntegrator,
+                (StubbedComputeProvider) runtime.getComputeProvider(),
                 versionSupplier,
                 titusRuntime,
                 testScheduler

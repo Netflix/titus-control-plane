@@ -65,7 +65,7 @@ public class BatchJobSchedulingTest {
                 .advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
-                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerMesosFinishedEvent(taskIdx, resubmit, 0))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerComputeProviderFinishedEvent(taskIdx, resubmit, 0))
                 .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
         );
     }
@@ -120,11 +120,11 @@ public class BatchJobSchedulingTest {
                 .advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
-                .template(ScenarioTemplates.triggerMesosFinishedEvent(0, 0, 0))
-                .template(ScenarioTemplates.triggerMesosFinishedEvent(1, 0, -1))
+                .template(ScenarioTemplates.triggerComputeProviderFinishedEvent(0, 0, 0))
+                .template(ScenarioTemplates.triggerComputeProviderFinishedEvent(1, 0, -1))
                 .template(ScenarioTemplates.acceptTask(1, 1))
                 .template(ScenarioTemplates.startTask(1, 1, TaskState.Started))
-                .template(ScenarioTemplates.triggerMesosFinishedEvent(1, 1, 0))
+                .template(ScenarioTemplates.triggerComputeProviderFinishedEvent(1, 1, 0))
                 .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
         );
     }
@@ -173,7 +173,7 @@ public class BatchJobSchedulingTest {
                 .expectTaskInActiveState(0, 0, TaskState.Accepted)
                 .killTask(0, 0, V3JobOperations.Trigger.Scheduler)
                 .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR)
-                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
                 .expectTaskStateChangeEvent(0, 0, TaskState.Finished, TaskStatus.REASON_TASK_LOST)
                 .advance()
                 .template(ScenarioTemplates.acceptTask(0, 1))
@@ -230,12 +230,10 @@ public class BatchJobSchedulingTest {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.killJob())
-                .expectMesosTaskKill(0, 0)
                 .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
                 .advance(2 * JobsScenarioBuilder.KILL_INITIATED_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .expectMesosTaskKill(0, 0)
                 .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
-                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
                 .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
                 .advance().advance()
                 .expectJobEvent(job -> assertThat(job.getStatus().getState() == JobState.Finished))
@@ -252,7 +250,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 // Fail the task just before job kill operation is triggered
-                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
                 .template(ScenarioTemplates.killJob())
                 .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_TASK_LOST))
         );
@@ -264,7 +262,6 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.killJob())
-                .expectMesosTaskKill(0, 0)
                 .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
                 .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
                 .expectFailure(jobScenario::killJob, error -> {
@@ -273,7 +270,6 @@ public class BatchJobSchedulingTest {
                 })
                 .expectNoStoreUpdate()
                 .expectNoTaskStateChangeEvent()
-                .expectNoMesosEvent()
         );
     }
 
@@ -307,7 +303,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 // Fail the task just before job kill operation is triggered
-                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_LOCAL_SYSTEM_ERROR)
+                .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_LOCAL_SYSTEM_ERROR)
                 .advance(60, TimeUnit.SECONDS)
                 .expectTaskStateChangeEvent(0, 1, TaskState.Accepted)
         );
@@ -361,7 +357,7 @@ public class BatchJobSchedulingTest {
 
     /**
      * If timeout passes in KillInitiated state, instead of moving directly to Finished state, check that configured
-     * number of Mesos kill reattempts is made. The total timeout in this state is (attempts_count * timeout).
+     * number of kill reattempts is made. The total timeout in this state is (attempts_count * timeout).
      */
     @Test
     public void testKillReattemptsInKillInitiatedTimeout() {
@@ -418,8 +414,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .advance(120_000, TimeUnit.MILLISECONDS)
                 .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED)
-                .expectMesosTaskKill(0, 0)
-                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_KILLED)
+                .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_KILLED)
                 .andThen(() -> {
                             if (retryOnRuntimeLimit) {
                                 jobScenario.expectTaskAddedToStore(0, 1, task -> assertThat(task.getResubmitNumber()).isEqualTo(1));

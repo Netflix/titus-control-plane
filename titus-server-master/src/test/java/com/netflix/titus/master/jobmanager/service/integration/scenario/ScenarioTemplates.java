@@ -62,25 +62,13 @@ public class ScenarioTemplates {
                     assertThat(task.getTaskContext())
                             .containsEntry(TaskAttributes.TASK_ATTRIBUTES_STACK, JobDescriptorGenerator.TEST_STACK_NAME);
                 })
-                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted)
-                .expectScheduleRequest(taskIdx, resubmit);
+                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted, "normal")
+                .expectComputeProviderCreateRequest(taskIdx, resubmit);
     }
 
-    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerMesosLaunchEvent(int taskIdx, int resubmit) {
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerComputePlatformStartInitiatedEvent(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
-                .triggerMesosLaunchEvent(taskIdx, resubmit)
-                .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
-                    assertThat(task.getStatus().getState()).isEqualTo(TaskState.Launched);
-                    if (!jobScenario.isKubeScheduler()) {
-                        assertThat(task.getTwoLevelResources()).describedAs("ENI not assigned").isNotEmpty();
-                    }
-                })
-                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Launched);
-    }
-
-    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerMesosStartInitiatedEvent(int taskIdx, int resubmit) {
-        return jobScenario -> jobScenario
-                .triggerMesosStartInitiatedEvent(taskIdx, resubmit)
+                .triggerComputePlatformStartInitiatedEvent(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.StartInitiated);
                     assertThat(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)).isNotEmpty();
@@ -88,17 +76,17 @@ public class ScenarioTemplates {
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.StartInitiated);
     }
 
-    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerMesosStartedEvent(int taskIdx, int resubmit) {
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerComputeProviderStartedEvent(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
-                .triggerMesosStartedEvent(taskIdx, resubmit)
+                .triggerComputePlatformStartedEvent(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Started))
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Started);
     }
 
-    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerMesosFinishedEvent(int taskIdx, int resubmit, int errorCode) {
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> triggerComputeProviderFinishedEvent(int taskIdx, int resubmit, int errorCode) {
         String reasonCode = errorCode == 0 ? TaskStatus.REASON_NORMAL : TaskStatus.REASON_FAILED;
         return jobScenario -> jobScenario
-                .triggerMesosFinishedEvent(taskIdx, resubmit, errorCode, reasonCode)
+                .triggerComputePlatformFinishedEvent(taskIdx, resubmit, errorCode, reasonCode)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished);
                     assertThat(task.getStatus().getReasonCode()).isEqualTo(reasonCode);
@@ -114,26 +102,22 @@ public class ScenarioTemplates {
                 return accepted;
             }
 
-            JobScenarioBuilder launched;
-            if (!accepted.isKubeScheduler()) {
-                accepted.triggerSchedulerLaunchEvent(taskIdx, resubmit);
-                launched = accepted.template(triggerMesosLaunchEvent(taskIdx, resubmit));
-                if (targetTaskState == TaskState.Launched) {
-                    return launched;
-                }
-            } else {
-                launched = jobScenario.triggerMesosLaunchEvent(taskIdx, resubmit);
-                jobScenario.advance();
-                jobScenario.expectTaskUpdatedInStore(taskIdx, resubmit, updatedTask -> assertThat(updatedTask.getStatus().getState() == TaskState.Launched));
-                jobScenario.ignoreAvailableEvents();
+            jobScenario.inTask(taskIdx, resubmit, task -> jobScenario.getComputeProvider().scheduleTask(task.getId()));
+
+            JobScenarioBuilder launched = jobScenario.triggerComputePlatformLaunchEvent(taskIdx, resubmit);
+            jobScenario.advance();
+            jobScenario.expectTaskUpdatedInStore(taskIdx, resubmit, updatedTask -> assertThat(updatedTask.getStatus().getState() == TaskState.Launched));
+            jobScenario.expectTaskEvent(taskIdx, resubmit, event -> assertThat(event.getCurrentTask().getStatus().getState() == TaskState.Launched));
+            if (targetTaskState == TaskState.Launched) {
+                return launched;
             }
 
-            JobScenarioBuilder startInitiated = launched.template(triggerMesosStartInitiatedEvent(taskIdx, resubmit));
+            JobScenarioBuilder startInitiated = launched.template(triggerComputePlatformStartInitiatedEvent(taskIdx, resubmit));
             if (targetTaskState == TaskState.StartInitiated) {
                 return startInitiated;
             }
 
-            return startInitiated.template(triggerMesosStartedEvent(taskIdx, resubmit));
+            return startInitiated.template(triggerComputeProviderStartedEvent(taskIdx, resubmit));
         };
     }
 
@@ -154,7 +138,7 @@ public class ScenarioTemplates {
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> finishSingleTaskJob(
             int taskIdx, int resubmit, String reasonCode, int errorCode) {
         return jobScenario -> jobScenario
-                .triggerMesosFinishedEvent(taskIdx, resubmit, errorCode, reasonCode)
+                .triggerComputePlatformFinishedEvent(taskIdx, resubmit, errorCode, reasonCode)
                 .template(handleTaskFinishedTransitionInSingleTaskJob(taskIdx, resubmit, reasonCode));
     }
 
@@ -190,7 +174,7 @@ public class ScenarioTemplates {
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> failRetryableTask(int taskIdx, int resubmit, long expectedRetryDelayMs) {
         return jobScenario -> jobScenario
-                .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_FAILED)
+                .triggerComputePlatformFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_FAILED)
                 .template(cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, TaskStatus.REASON_FAILED, expectedRetryDelayMs));
     }
 
@@ -205,26 +189,18 @@ public class ScenarioTemplates {
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> reconcilerTaskKill(int taskIdx, int resubmit) {
-        return jobScenario -> {
-            if (jobScenario.isKubeScheduler()) {
-                return jobScenario
-                        .expectPodTerminated(taskIdx, resubmit)
-                        .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
-                        .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED);
-            } else {
-                return jobScenario
-                        .expectMesosTaskKill(taskIdx, resubmit)
-                        .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
-                        .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated)
-                        .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED);
-            }
-        };
+        return jobScenario -> jobScenario
+                .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
+                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated)
+                .inTask(taskIdx, resubmit, task -> jobScenario.getComputeProvider().finishTask(task.getId()))
+                .expectPodTerminated(taskIdx, resubmit)
+                .triggerComputePlatformFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED);
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> killTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
                 .killTask(taskIdx, resubmit)
-                .expectMesosTaskKill(taskIdx, resubmit)
+                .expectComputeProviderTaskFinished(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated);
                     assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_TASK_KILLED);
@@ -235,6 +211,7 @@ public class ScenarioTemplates {
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> killKubeTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
                 .killTask(taskIdx, resubmit)
+                .inTask(taskIdx, resubmit, task -> jobScenario.getComputeProvider().finishTask(task.getId()))
                 .expectPodTerminated(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated);
@@ -249,7 +226,7 @@ public class ScenarioTemplates {
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> killBatchTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
                 .template(killTask(taskIdx, resubmit))
-                .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED)
+                .triggerComputePlatformFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED)
                 .template(expectTaskStateUpdate(taskIdx, resubmit, TaskState.Finished, TaskStatus.REASON_TASK_KILLED));
     }
 
@@ -270,12 +247,12 @@ public class ScenarioTemplates {
                 })
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated, TaskStatus.REASON_STUCK_IN_KILLING_STATE)
                 .expectTaskInActiveState(taskIdx, resubmit, TaskState.KillInitiated)
-                .expectMesosTaskKill(taskIdx, resubmit);
+                .expectComputeProviderTaskFinished(taskIdx, resubmit);
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> failLastBatchRetryableTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
-                .template(triggerMesosFinishedEvent(taskIdx, resubmit, -1))
+                .template(triggerComputeProviderFinishedEvent(taskIdx, resubmit, -1))
                 .advance()
                 .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
                 .expectJobUpdatedInStore(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
@@ -309,7 +286,7 @@ public class ScenarioTemplates {
                     .expectTaskAddedToStore(taskIdx, nextResubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted))
                     .expectedTaskArchivedInStore(taskIdx, resubmit)
                     .expectTaskStateChangeEvent(taskIdx, nextResubmit, TaskState.Accepted)
-                    .expectScheduleRequest(taskIdx, nextResubmit);
+                    .expectComputeProviderCreateRequest(taskIdx, nextResubmit);
         };
     }
 }

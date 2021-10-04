@@ -47,8 +47,6 @@ public class MesosModule extends AbstractModule {
 
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_INTEGRATION)).to(VirtualMachineMasterServiceMesosImpl.class);
 
-        bind(WorkerStateMonitor.class).asEagerSingleton();
-
         install(new LegacyKubeModule());
     }
 

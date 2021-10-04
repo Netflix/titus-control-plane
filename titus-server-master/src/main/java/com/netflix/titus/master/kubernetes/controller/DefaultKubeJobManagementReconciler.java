@@ -34,7 +34,6 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -51,12 +50,10 @@ import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucke
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.mesos.ContainerEvent;
-import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodNotFoundEvent;
+import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -97,9 +94,6 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
 
     private final Clock clock;
     private final TitusRuntime titusRuntime;
-
-    private final DirectProcessor<ContainerEvent> v3ContainerEventProcessor = DirectProcessor.create();
-    private final FluxSink<ContainerEvent> v3ContainerEventSink = v3ContainerEventProcessor.sink(FluxSink.OverflowStrategy.IGNORE);
 
     private final DirectProcessor<PodEvent> podEventProcessor = DirectProcessor.create();
     private final FluxSink<PodEvent> podEventSink = podEventProcessor.sink(FluxSink.OverflowStrategy.IGNORE);
@@ -152,11 +146,6 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     @PreDestroy
     public void shutdown() {
         Evaluators.acceptNotNull(schedulerRef, ScheduleReference::cancel);
-    }
-
-    @Override
-    public Flux<ContainerEvent> getV3ContainerEventSource() {
-        return v3ContainerEventProcessor.transformDeferred(ReactorExt.badSubscriberHandler(logger));
     }
 
     @Override
@@ -268,49 +257,22 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
 
     private boolean shouldTaskBeInApiServer(Task task) {
         boolean isRunning = TaskState.isRunning(task.getStatus().getState());
-
-        if (JobFunctions.isOwnedByKubeScheduler(task)) {
-            if (isRunning) {
-                return true;
-            }
-            if (task.getStatus().getState() == TaskState.Accepted && TaskStatus.hasPod(task)) {
-                return clock.isPast(task.getStatus().getTimestamp() + mesosConfiguration.getOrphanedPodTimeoutMs());
-            }
-        } else {
-            if (isRunning) {
-                return JobFunctions.findTaskStatus(task, TaskState.Launched)
-                        .map(s -> clock.isPast(s.getTimestamp() + mesosConfiguration.getOrphanedPodTimeoutMs()))
-                        .orElse(false);
-            }
+        if (isRunning) {
+            return true;
+        }
+        if (task.getStatus().getState() == TaskState.Accepted && TaskStatus.hasPod(task)) {
+            return clock.isPast(task.getStatus().getTimestamp() + mesosConfiguration.getOrphanedPodTimeoutMs());
         }
         return false;
     }
 
     private void publishEvent(Task task, TaskStatus finalTaskStatus) {
-        if (JobFunctions.isOwnedByKubeScheduler(task)) {
-            publishPodEvent(task, finalTaskStatus);
-        } else {
-            publishV3ContainerEvent(task, finalTaskStatus);
-        }
+        publishPodEvent(task, finalTaskStatus);
     }
 
     private void publishPodEvent(Task task, TaskStatus finalTaskStatus) {
         PodNotFoundEvent podEvent = PodEvent.onPodNotFound(task, finalTaskStatus);
         logger.debug("Publishing pod event: {}", podEvent);
         podEventSink.next(podEvent);
-    }
-
-    private void publishV3ContainerEvent(Task task, TaskStatus finalTaskStatus) {
-        V3ContainerEvent event = new V3ContainerEvent(
-                task.getId(),
-                finalTaskStatus.getState(),
-                finalTaskStatus.getReasonCode(),
-                finalTaskStatus.getReasonMessage(),
-                finalTaskStatus.getTimestamp(),
-                Optional.empty()
-        );
-
-        logger.debug("Publishing task status: {}", event);
-        v3ContainerEventSink.next(event);
     }
 }

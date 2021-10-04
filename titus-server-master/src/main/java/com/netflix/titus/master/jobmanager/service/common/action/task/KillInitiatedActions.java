@@ -44,14 +44,13 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import rx.Completable;
 import rx.Observable;
 
@@ -87,13 +86,12 @@ public class KillInitiatedActions {
     }
 
     /**
-     * Change a task to {@link TaskState#KillInitiated} state, store it, and send the kill command to Mesos.
+     * Change a task to {@link TaskState#KillInitiated} state, store it, and send the kill command to the compute provider.
      * All models are updated when both operations complete.
      * This method is used for user initiated kill operations, so the store operation happens before response is sent back to the user.
      */
     public static ChangeAction userInitiateTaskKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine,
-                                                          VirtualMachineMasterService vmService,
-                                                          DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                                          JobServiceRuntime executionContext,
                                                           JobStore jobStore,
                                                           VersionSupplier versionSupplier,
                                                           String taskId,
@@ -141,19 +139,18 @@ public class KillInitiatedActions {
                             }).orElse(Collections.emptyList());
 
                             return jobStore.updateTask(taskWithKillInitiated)
-                                    .andThen(createKillAction(vmService, kubeApiServerIntegrator, task))
+                                    .andThen(createKillAction(executionContext, task))
                                     .andThen(Observable.fromCallable(modelUpdateActions));
                         }));
     }
 
     /**
-     * For an active task send kill command to Mesos, and change its state to {@link TaskState#KillInitiated}.
+     * For an active task send kill command to the compute provider, and change its state to {@link TaskState#KillInitiated}.
      * This method is used for internal state reconciliation.
      */
     public static ChangeAction reconcilerInitiatedTaskKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                                     Task task,
-                                                                    VirtualMachineMasterService vmService,
-                                                                    DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                                                    JobServiceRuntime runtime,
                                                                     JobStore jobStore,
                                                                     VersionSupplier versionSupplier,
                                                                     String reasonCode,
@@ -176,26 +173,25 @@ public class KillInitiatedActions {
                                     versionSupplier);
                             TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
 
-                            // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
+                            // If already in KillInitiated state, do not store eagerly, just call the compute provider terminate again.
                             if (taskState == TaskState.KillInitiated) {
-                                return createKillAction(vmService, kubeApiServerIntegrator, currentTask).andThen(
+                                return createKillAction(runtime, currentTask).andThen(
                                         Observable.just(ModelActionHolder.referenceAndRunning(taskUpdateAction))
                                 );
                             }
 
                             return jobStore.updateTask(taskWithKillInitiated)
-                                    .andThen(createKillAction(vmService, kubeApiServerIntegrator, currentTask))
+                                    .andThen(createKillAction(runtime, currentTask))
                                     .andThen(Observable.fromCallable(() -> ModelActionHolder.allModels(taskUpdateAction)));
                         }));
     }
 
     /**
-     * For all active tasks, send kill command to Mesos, and change their state to {@link TaskState#KillInitiated}.
+     * For all active tasks, send terminate command to the compute provider, and change their state to {@link TaskState#KillInitiated}.
      * This method is used for internal state reconciliation.
      */
     public static List<ChangeAction> reconcilerInitiatedAllTasksKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
-                                                                              VirtualMachineMasterService vmService,
-                                                                              DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                                                              JobServiceRuntime runtime,
                                                                               JobStore jobStore,
                                                                               String reasonCode,
                                                                               String reason,
@@ -241,17 +237,15 @@ public class KillInitiatedActions {
             Task task = taskHolder.getEntity();
             TaskState state = task.getStatus().getState();
             if (state != TaskState.KillInitiated && state != TaskState.Finished) {
-                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator, jobStore, versionSupplier, reasonCode, reason, titusRuntime));
+                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, runtime, jobStore, versionSupplier, reasonCode, reason, titusRuntime));
             }
         }
 
         return result;
     }
 
-    private static Completable createKillAction(VirtualMachineMasterService vmService, DirectKubeApiServerIntegrator kubeApiServerIntegrator, Task task) {
-        return JobFunctions.isOwnedByKubeScheduler(task)
-                ? ReactorExt.toCompletable(kubeApiServerIntegrator.terminateTask(task))
-                : Completable.fromAction(() -> vmService.killTask(task.getId()));
+    private static Completable createKillAction(JobServiceRuntime executionContext, Task task) {
+        return ReactorExt.toCompletable(executionContext.getComputeProvider().terminateTask(task));
     }
 
     private static TitusModelAction createShrinkAction(TitusChangeAction.Builder changeActionBuilder, VersionSupplier versionSupplier) {

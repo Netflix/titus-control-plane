@@ -39,14 +39,14 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration;
-import com.netflix.titus.master.mesos.ContainerEvent;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
-import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodPhase;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
+import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
+import com.netflix.titus.master.mesos.ContainerEvent;
+import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -340,11 +340,6 @@ public class KubeNotificationProcessorTest {
     }
 
     private class FakeReconciler implements KubeJobManagementReconciler {
-        @Override
-        public Flux<ContainerEvent> getV3ContainerEventSource() {
-            return reconcilerContainerEvents;
-        }
-
         @Override
         public Flux<PodEvent> getPodEventSource() {
             return reconcilerPodEvents;

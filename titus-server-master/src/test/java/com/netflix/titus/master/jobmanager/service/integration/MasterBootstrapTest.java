@@ -48,7 +48,7 @@ public class MasterBootstrapTest {
                 .expectJobEvent()
                 .expectTaskAddedToStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted))
                 .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)
-                .expectScheduleRequest(0, 0)
+                .expectComputeProviderCreateRequest(0, 0)
                 .triggerSchedulerLaunchEvent(0, 0)
                 .expectTaskStateChangeEvent(0, 0, TaskState.Launched)
                 .advance(JobsScenarioBuilder.LAUNCHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)
@@ -82,6 +82,28 @@ public class MasterBootstrapTest {
                         .assertServiceJob(job -> {
                             assertThat(job.getJobDescriptor().getExtensions().getCapacity().getDesired()).isEqualTo(-1);
                         })
+                );
+    }
+
+    @Test
+    public void testRestartWithBasicTaskAcceptedWithoutComputeProviderTask() {
+        testRestartWithTaskAcceptedWithoutComputeProviderTask(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
+    }
+
+    @Test
+    public void testRestartWithServiceTaskAcceptedWithoutComputeProviderTask() {
+        testRestartWithTaskAcceptedWithoutComputeProviderTask(JobDescriptorGenerator.oneTaskServiceJobDescriptor());
+    }
+
+    private void testRestartWithTaskAcceptedWithoutComputeProviderTask(JobDescriptor<?> jobDescriptor) {
+        jobsScenarioBuilder.scheduleJob(jobDescriptor, jobScenario -> jobScenario
+                .expectJobEvent()
+                .expectTaskAddedToStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted))
+        ).reboot()
+                .inJob(0, jobScenario -> jobScenario
+                        .expectTaskInActiveState(0, 0, TaskState.Accepted)
+                        .advance()
+                        .expectComputeProviderCreateRequest(0, 0)
                 );
     }
 }

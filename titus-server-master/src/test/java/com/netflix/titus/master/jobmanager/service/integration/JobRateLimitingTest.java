@@ -128,7 +128,7 @@ public class JobRateLimitingTest {
                 .advance().allTasks(tasks -> acceptAndStartNewPartition(jobScenario, tasks))
                 .advance().allTasks(tasks -> acceptAndStartNewPartition(jobScenario, tasks))
                 // Fail all tasks
-                .advance().allTasks(tasks -> tasks.forEach(task -> jobScenario.triggerMesosFinishedEvent(task, -1, TaskStatus.REASON_FAILED)))
+                .advance().allTasks(tasks -> tasks.forEach(task -> jobScenario.triggerComputePlatformFinishedEvent(task, -1, TaskStatus.REASON_FAILED)))
                 .advance(1, TimeUnit.SECONDS)
                 // Expect all be restarted in partitions
                 .advance().allTasks(tasks -> acceptAndStartNewPartition(jobScenario, tasks))

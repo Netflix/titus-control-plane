@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -36,12 +35,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -59,8 +56,8 @@ import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.Caller;
 import com.netflix.titus.api.model.callmetadata.CallerType;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
@@ -86,64 +83,50 @@ public class JobScenarioBuilder {
             .build();
 
     private final String jobId;
-    private final boolean kubeScheduler;
-    private final StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final VersionSupplier versionSupplier;
     private final TitusRuntime titusRuntime;
     private final EventHolder<JobManagerEvent<?>> jobEventsSubscriber;
     private final EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber;
-    private final EventHolder<Pair<StubbedVirtualMachineMasterService.MesosEvent, String>> mesosEventsSubscriber;
 
     private final V3JobOperations jobOperations;
-    private final StubbedSchedulingService schedulingService;
     private final StubbedJobStore jobStore;
-    private final StubbedVirtualMachineMasterService vmService;
+    private final StubbedComputeProvider computeProvider;
     private final TestScheduler testScheduler;
     private final boolean batchJob;
     private final CallMetadata callMetadata = CallMetadata.newBuilder().withCallReason("Testing call metadata").withCallerId("test").build();
 
     public JobScenarioBuilder(String jobId,
-                              boolean kubeScheduler,
                               EventHolder<JobManagerEvent<?>> jobEventsSubscriber,
                               EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber,
                               V3JobOperations jobOperations,
-                              StubbedSchedulingService schedulingService,
                               StubbedJobStore jobStore,
-                              StubbedVirtualMachineMasterService vmService,
-                              StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                              StubbedComputeProvider computeProvider,
                               VersionSupplier versionSupplier,
                               TitusRuntime titusRuntime,
                               TestScheduler testScheduler) {
         this.jobId = jobId;
-        this.kubeScheduler = kubeScheduler;
-        this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.versionSupplier = versionSupplier;
         this.titusRuntime = titusRuntime;
         this.batchJob = JobFunctions.isBatchJob(jobStore.retrieveJob(jobId).toBlocking().first());
         this.jobEventsSubscriber = jobEventsSubscriber;
         this.storeEventsSubscriber = storeEventsSubscriber;
         this.jobOperations = jobOperations;
-        this.schedulingService = schedulingService;
         this.jobStore = jobStore;
-        this.vmService = vmService;
+        this.computeProvider = computeProvider;
         this.testScheduler = testScheduler;
-
-        this.mesosEventsSubscriber = new EventHolder<>(this.jobStore);
-
-        vmService.events().filter(pair -> jobOperations.findTaskById(pair.getRight()).isPresent()).subscribe(mesosEventsSubscriber);
     }
 
     public String getJobId() {
         return jobId;
     }
 
-    public boolean isKubeScheduler() {
-        return kubeScheduler;
+    public JobScenarioBuilder enableKubeIntegration(boolean enabled) {
+        computeProvider.enableScheduling(enabled);
+        return this;
     }
 
-    public JobScenarioBuilder enableKubeIntegration(boolean enabled) {
-        kubeApiServerIntegrator.enableKubeIntegration(enabled);
-        return this;
+    public StubbedComputeProvider getComputeProvider() {
+        return computeProvider;
     }
 
     public JobScenarioBuilder advance() {
@@ -354,7 +337,7 @@ public class JobScenarioBuilder {
     }
 
     public JobScenarioBuilder failNextPodCreate(RuntimeException simulatedError) {
-        kubeApiServerIntegrator.failNextTaskLaunch(simulatedError);
+        computeProvider.failNextTaskLaunch(simulatedError);
         return this;
     }
 
@@ -462,21 +445,16 @@ public class JobScenarioBuilder {
         return this;
     }
 
-    public JobScenarioBuilder expectScheduleRequest(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectComputeProviderCreateRequest(int taskIdx, int resubmit) {
         Task task = jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
 
-        if (kubeScheduler) {
-            advance();
-            assertThat(kubeApiServerIntegrator.getPods())
-                    .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
-                    .containsKey(task.getId());
-            expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted, TaskStatus.REASON_POD_CREATED);
-            expectTaskUpdatedInStore(taskIdx, resubmit, t -> assertThat(t.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_POD_CREATED));
-        } else {
-            assertThat(schedulingService.getQueuableTasks().get(task.getId()))
-                    .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
-                    .isNotNull();
-        }
+        advance();
+        assertThat(computeProvider.hasComputeProviderTask(task.getId()))
+                .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
+                .isTrue();
+        expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted, TaskStatus.REASON_POD_CREATED);
+        expectTaskUpdatedInStore(taskIdx, resubmit, t -> assertThat(t.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_POD_CREATED));
+
         return this;
     }
 
@@ -533,100 +511,45 @@ public class JobScenarioBuilder {
 
     public JobScenarioBuilder expectPodTerminated(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
-        assertThat(kubeApiServerIntegrator.getPods().get(task.getId())).describedAs("Expected not to find task in Kube").isNull();
+        assertThat(computeProvider.hasComputeProviderTask(task.getId())).describedAs("Expected not to find task in Kube").isFalse();
         return this;
     }
 
-    public JobScenarioBuilder expectMesosTaskKill(int taskIdx, int resubmit) {
+    public JobScenarioBuilder expectComputeProviderTaskFinished(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
-        Pair<StubbedVirtualMachineMasterService.MesosEvent, String> mesosEvent = mesosEventsSubscriber.takeNextMesosEvent(taskIdx, resubmit);
-        assertThat(mesosEvent).describedAs("Expected task kill sent to Mesos").isNotNull();
-        assertThat(mesosEvent.getLeft()).isEqualTo(StubbedVirtualMachineMasterService.MesosEvent.TaskKillRequest);
-        assertThat(mesosEvent.getRight()).isEqualTo(task.getId());
-        return this;
-    }
-
-    public JobScenarioBuilder expectNoMesosEvent() {
-        Pair<StubbedVirtualMachineMasterService.MesosEvent, String> event = autoAdvance(mesosEventsSubscriber::takeNext);
-        assertThat(event).isNull();
+        assertThat(computeProvider.isTaskFinished(task.getId())).isTrue();
         return this;
     }
 
     public JobScenarioBuilder triggerSchedulerLaunchEvent(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
-
-        Function<Task, Task> changeFunction = JobManagerUtil.newTaskLaunchConfigurationUpdater(
-                "zone",
-                vmService.buildLease(task.getId()),
-                vmService.buildConsumeResult(task.getId()),
-                Optional.empty(),
-                vmService.buildAttributesMap(task.getId()),
-                buildOpportunisticResourcesContext(task),
-                "Flex",
-                titusRuntime
-        );
-
-        AtomicBoolean done = new AtomicBoolean();
-        AtomicReference<Throwable> failed = new AtomicReference<>();
-        jobOperations.recordTaskPlacement(task.getId(), changeFunction, callMetadata).subscribe(() -> done.set(true), failed::set);
-        autoAdvanceUntil(() -> failed.get() != null || done.get());
-        if (failed.get() != null) {
-            ExceptionExt.rethrow(failed.get());
-        }
-        assertThat(done.get()).isTrue();
-
+        computeProvider.scheduleTask(task.getId());
+        triggerComputePlatformEvent(taskIdx, resubmit, TaskState.Launched, "scheduled", -1);
         return this;
     }
 
-    public JobScenarioBuilder triggerFailingSchedulerLaunchEvent(int taskIdx, int resubmit, Consumer<Throwable> assertFun) {
-        Task task = findTaskInActiveState(taskIdx, resubmit);
-
-        Function<Task, Task> changeFunction = JobManagerUtil.newTaskLaunchConfigurationUpdater(
-                "zone",
-                vmService.buildLease(task.getId()),
-                vmService.buildConsumeResult(task.getId()),
-                Optional.empty(),
-                vmService.buildAttributesMap(task.getId()),
-                buildOpportunisticResourcesContext(task),
-                "Flex",
-                titusRuntime
-        );
-
-        AtomicReference<Throwable> failed = new AtomicReference<>();
-        jobOperations.recordTaskPlacement(task.getId(), changeFunction, callMetadata).subscribe(
-                () -> {
-                },
-                failed::set
-        );
-        autoAdvanceUntil(() -> failed.get() != null);
-        assertThat(failed.get()).isNotNull();
-        assertFun.accept(failed.get());
-
-        return this;
+    public JobScenarioBuilder triggerComputePlatformLaunchEvent(int taskIdx, int resubmit) {
+        return triggerComputePlatformEvent(taskIdx, resubmit, TaskState.Launched, "Task launched", 0);
     }
 
-    public JobScenarioBuilder triggerMesosLaunchEvent(int taskIdx, int resubmit) {
-        return triggerMesosEvent(taskIdx, resubmit, TaskState.Launched, "Task launched", 0);
+    public JobScenarioBuilder triggerComputePlatformStartInitiatedEvent(int taskIdx, int resubmit) {
+        return triggerComputePlatformEvent(taskIdx, resubmit, TaskState.StartInitiated, "Starting container", 0);
     }
 
-    public JobScenarioBuilder triggerMesosStartInitiatedEvent(int taskIdx, int resubmit) {
-        return triggerMesosEvent(taskIdx, resubmit, TaskState.StartInitiated, "Starting container", 0);
+    public JobScenarioBuilder triggerComputePlatformStartedEvent(int taskIdx, int resubmit) {
+        return triggerComputePlatformEvent(taskIdx, resubmit, TaskState.Started, "Task started", 0);
     }
 
-    public JobScenarioBuilder triggerMesosStartedEvent(int taskIdx, int resubmit) {
-        return triggerMesosEvent(taskIdx, resubmit, TaskState.Started, "Task started", 0);
+    public JobScenarioBuilder triggerComputePlatformFinishedEvent(int taskIdx, int resubmit) {
+        return triggerComputePlatformEvent(taskIdx, resubmit, TaskState.Finished, TaskStatus.REASON_NORMAL, 0);
     }
 
-    public JobScenarioBuilder triggerMesosFinishedEvent(int taskIdx, int resubmit) {
-        return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, TaskStatus.REASON_NORMAL, 0);
+    public JobScenarioBuilder triggerComputePlatformFinishedEvent(Task task, int errorCode, String reasonCode) {
+        return triggerComputePlatformEvent(task, TaskState.Finished, reasonCode, errorCode);
     }
 
-    public JobScenarioBuilder triggerMesosFinishedEvent(Task task, int errorCode, String reasonCode) {
-        return triggerMesosEvent(task, TaskState.Finished, reasonCode, errorCode);
-    }
-
-    public JobScenarioBuilder triggerMesosFinishedEvent(int taskIdx, int resubmit, int errorCode, String reasonCode) {
-        return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, reasonCode, errorCode);
+    public JobScenarioBuilder triggerComputePlatformFinishedEvent(int taskIdx, int resubmit, int errorCode, String reasonCode) {
+        return triggerComputePlatformEvent(taskIdx, resubmit, TaskState.Finished, reasonCode, errorCode);
     }
 
     public JobScenarioBuilder breakStore() {
@@ -661,12 +584,12 @@ public class JobScenarioBuilder {
         return task;
     }
 
-    private JobScenarioBuilder triggerMesosEvent(int taskIdx, int resubmit, TaskState taskState, String reason, int errorCode) {
+    private JobScenarioBuilder triggerComputePlatformEvent(int taskIdx, int resubmit, TaskState taskState, String reason, int errorCode) {
         Task task = jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
-        return triggerMesosEvent(task, taskState, reason, errorCode);
+        return triggerComputePlatformEvent(task, taskState, reason, errorCode);
     }
 
-    private JobScenarioBuilder triggerMesosEvent(Task task, TaskState taskState, String reason, int errorCode) {
+    private JobScenarioBuilder triggerComputePlatformEvent(Task task, TaskState taskState, String reason, int errorCode) {
         String reasonMessage;
         if (taskState == TaskState.Finished) {
             reasonMessage = errorCode == 0 ? "Completed successfully" : "Container terminated with an error " + errorCode;
@@ -676,8 +599,13 @@ public class JobScenarioBuilder {
 
         AtomicBoolean done = new AtomicBoolean();
         Optional<TitusExecutorDetails> data = taskState == TaskState.StartInitiated
-                ? Optional.of(vmService.buildExecutorDetails(task.getId()))
+                ? Optional.of(computeProvider.buildExecutorDetails(task.getId()))
                 : Optional.empty();
+
+        final Map<String, String> newTaskContext = new HashMap<>();
+        if (taskState == TaskState.Launched) {
+            newTaskContext.putAll(computeProvider.getScheduledTaskContext(task.getId()));
+        }
 
         TaskStatus taskStatus = JobModel.newTaskStatus()
                 .withState(taskState)
@@ -686,12 +614,18 @@ public class JobScenarioBuilder {
                 .withTimestamp(testScheduler.now())
                 .build();
 
-        Function<Task, Optional<Task>> changeFunction = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, data, titusRuntime);
+        Function<Task, Optional<Task>> changeFunction = currentTask ->
+                JobManagerUtil.newMesosTaskStateUpdater(taskStatus, data, titusRuntime)
+                        .apply(currentTask)
+                        .map(updated -> updated.toBuilder()
+                                .withTaskContext(CollectionsExt.merge(updated.getTaskContext(), newTaskContext))
+                                .build()
+                        );
 
         jobOperations.updateTask(task.getId(),
                 changeFunction,
-                Trigger.Mesos,
-                String.format("Mesos callback taskStatus=%s, reason=%s (%s)", taskState, reason, reasonMessage),
+                Trigger.ComputeProvider,
+                String.format("ComputeProvider callback taskStatus=%s, reason=%s (%s)", taskState, reason, reasonMessage),
                 callMetadata
         ).subscribe(() -> done.set(true));
         autoAdvanceUntil(done::get);
@@ -756,19 +690,6 @@ public class JobScenarioBuilder {
             int task2Index = jobStore.getIndexAndResubmit(task2.getId()).get().getLeft();
             return Integer.compare(task1Index, task2Index);
         }).collect(Collectors.toList());
-    }
-
-    private Map<String, String> buildOpportunisticResourcesContext(Task task) {
-        HashMap<String, String> context = new HashMap<>();
-        String allocationId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION);
-        if (StringExt.isNotEmpty(allocationId)) {
-            context.put(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId);
-        }
-        String count = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT);
-        if (StringExt.isNotEmpty(count)) {
-            context.put(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, count);
-        }
-        return context;
     }
 
     static class EventHolder<EVENT> extends Subscriber<EVENT> {
@@ -861,19 +782,6 @@ public class JobScenarioBuilder {
                         it.remove();
                         return (TaskUpdateEvent) event;
                     }
-                }
-            }
-            return null;
-        }
-
-        public Pair<StubbedVirtualMachineMasterService.MesosEvent, String> takeNextMesosEvent(int taskIdx, int resubmit) {
-            Iterator<EVENT> it = events.iterator();
-            while (it.hasNext()) {
-                Pair<StubbedVirtualMachineMasterService.MesosEvent, String> event = (Pair<StubbedVirtualMachineMasterService.MesosEvent, String>) it.next();
-                Task task = jobStore.expectTaskInStoreOrStoreArchive(event.getRight());
-                if (jobStore.hasIndexAndResubmit(task, taskIdx, resubmit)) {
-                    it.remove();
-                    return event;
                 }
             }
             return null;

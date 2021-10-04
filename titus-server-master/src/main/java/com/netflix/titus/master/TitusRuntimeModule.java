@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.store.JobStoreFitAction;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
+import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.framework.fit.FitAction;
 import com.netflix.titus.common.framework.fit.FitComponent;
 import com.netflix.titus.common.framework.fit.FitFramework;
@@ -38,7 +39,6 @@ import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.framework.fit.FitRegistry;
 import com.netflix.titus.common.framework.fit.FitUtil;
 import com.netflix.titus.common.jhiccup.JHiccupModule;
-import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -55,10 +55,9 @@ import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorSer
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
-import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.KubeFitAction;
+import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.Fit;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -117,7 +116,6 @@ public class TitusRuntimeModule extends AbstractModule {
             root.createChild(LeaderActivator.COMPONENT);
             root.createChild(V3JobOperations.COMPONENT);
             root.createChild(SchedulingService.COMPONENT);
-            root.createChild(VirtualMachineMasterService.COMPONENT);
             root.createChild(DirectKubeApiServerIntegrator.COMPONENT);
 
             // Add custom FIT actions
@@ -152,9 +150,7 @@ public class TitusRuntimeModule extends AbstractModule {
     private static class FitActionInitializer {
 
         @Inject
-        public FitActionInitializer(Config config,
-                                    TitusRuntime titusRuntime,
-                                    VirtualMachineMasterService mustRunAfterDependency) {
+        public FitActionInitializer(Config config, TitusRuntime titusRuntime) {
             FitFramework fitFramework = titusRuntime.getFitFramework();
 
             // Load FIT actions from configuration.

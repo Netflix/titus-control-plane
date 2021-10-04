@@ -30,14 +30,9 @@ import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTask
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Run tests with Kube integration.
- * <p>
- * TODO We should run all integration tests twice. Once with Mesos and once with Kube integration.
- */
-public class KubeSchedulerTest {
+public class ComputeProviderSchedulerTest {
 
-    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(true);
+    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder();
 
     @Test
     public void testRunAndCompleteOkBatchJob() {
@@ -56,7 +51,7 @@ public class KubeSchedulerTest {
                 .advance()
                 .inActiveTasks(ScenarioTemplates::acceptTask)
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
-                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerMesosFinishedEvent(taskIdx, resubmit, 0))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerComputeProviderFinishedEvent(taskIdx, resubmit, 0))
                 .advance().advance()
                 .inActiveTasks(ScenarioTemplates::acceptTask)
                 .ignoreAvailableEvents()

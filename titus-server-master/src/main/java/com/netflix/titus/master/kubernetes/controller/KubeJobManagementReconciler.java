@@ -17,7 +17,6 @@
 package com.netflix.titus.master.kubernetes.controller;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import reactor.core.publisher.Flux;
 
@@ -26,11 +25,6 @@ import reactor.core.publisher.Flux;
  * exist, and a task is in a running state, the task is moved to a finished state, an event is emitted.
  */
 public interface KubeJobManagementReconciler {
-
-    /**
-     * Event stream for {@link com.netflix.titus.master.mesos.WorkerStateMonitor}.
-     */
-    Flux<ContainerEvent> getV3ContainerEventSource();
 
     /**
      * Event stream for {@link com.netflix.titus.master.jobmanager.service.KubeNotificationProcessor}.

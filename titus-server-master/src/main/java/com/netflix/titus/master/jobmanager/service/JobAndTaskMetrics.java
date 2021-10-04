@@ -163,7 +163,7 @@ public class JobAndTaskMetrics {
                 "capacityGroup", assignment.getRight(),
                 "applicationName", job.getJobDescriptor().getApplicationName(),
                 "state", task.getStatus().getState().name(),
-                "kubeScheduler", "" + JobFunctions.isOwnedByKubeScheduler(task)
+                "kubeScheduler", "true"
         ).increment();
     }
 
@@ -253,9 +253,7 @@ public class JobAndTaskMetrics {
     private void updateJobCounts(List<Pair<Job, List<Task>>> jobsAndTasks) {
         int emptyJobs = 0;
         int serviceJobsOwnedByKubeScheduler = 0;
-        int serviceJobsOwnedByFenzo = 0;
         int batchJobsOwnedByKubeScheduler = 0;
-        int batchJobsOwnedByFenzo = 0;
 
         for (Pair<Job, List<Task>> jobAndTasks : jobsAndTasks) {
             Job job = jobAndTasks.getLeft();
@@ -264,21 +262,11 @@ public class JobAndTaskMetrics {
             if (JobFunctions.getJobDesiredSize(job) == 0) {
                 emptyJobs++;
             } else {
-                boolean ownedByKubeScheduler = tasks.stream().anyMatch(JobFunctions::isOwnedByKubeScheduler);
                 boolean serviceJob = JobFunctions.isServiceJob(job);
-
-                if (ownedByKubeScheduler) {
-                    if (serviceJob) {
-                        serviceJobsOwnedByKubeScheduler++;
-                    } else {
-                        batchJobsOwnedByKubeScheduler++;
-                    }
+                if (serviceJob) {
+                    serviceJobsOwnedByKubeScheduler++;
                 } else {
-                    if (serviceJob) {
-                        serviceJobsOwnedByFenzo++;
-                    } else {
-                        batchJobsOwnedByFenzo++;
-                    }
+                    batchJobsOwnedByKubeScheduler++;
                 }
             }
         }
@@ -289,19 +277,11 @@ public class JobAndTaskMetrics {
                 "jobType", "service",
                 "kubeScheduler", "true"
         )).set(serviceJobsOwnedByKubeScheduler);
-        registry.gauge(jobCountId.withTags(
-                "jobType", "service",
-                "kubeScheduler", "false"
-        )).set(serviceJobsOwnedByFenzo);
 
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
                 "kubeScheduler", "true"
         )).set(batchJobsOwnedByKubeScheduler);
-        registry.gauge(jobCountId.withTags(
-                "jobType", "batch",
-                "kubeScheduler", "false"
-        )).set(batchJobsOwnedByFenzo);
     }
 
     /**
@@ -311,11 +291,9 @@ public class JobAndTaskMetrics {
         int tasksOwnedByKubeScheduler = 0;
         int tasksWithPodCreated = 0;
         for (Task task : tasks) {
-            if (JobFunctions.isOwnedByKubeScheduler(task)) {
-                tasksOwnedByKubeScheduler++;
-                if (TaskStatus.hasPod(task)) {
-                    tasksWithPodCreated++;
-                }
+            tasksOwnedByKubeScheduler++;
+            if (TaskStatus.hasPod(task)) {
+                tasksWithPodCreated++;
             }
         }
         registry.gauge(taskCountId.withTags(
