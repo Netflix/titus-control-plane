@@ -29,7 +29,6 @@ import com.netflix.titus.master.agent.AgentModule;
 import com.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import com.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;
 import com.netflix.titus.master.audit.service.AuditModule;
-import com.netflix.titus.master.clusteroperations.ClusterOperationsModule;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.config.ConfigurableCellInfoResolver;
 import com.netflix.titus.master.config.MasterConfiguration;
@@ -121,7 +120,6 @@ public class TitusMasterModule extends AbstractModule {
         // Service
         install(new AuditModule());
         install(new AgentModule());
-        install(new ClusterOperationsModule());
         install(new SchedulerModule());
         install(new V3JobManagerModule());
 
