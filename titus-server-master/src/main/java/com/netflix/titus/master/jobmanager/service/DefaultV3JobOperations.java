@@ -90,8 +90,6 @@ import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
@@ -121,9 +119,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
 
     private final JobStore store;
-    private final VirtualMachineMasterService vmService;
-    private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration jobManagerConfiguration;
+    private final JobServiceRuntime runtime;
     private final FeatureActivationConfiguration featureActivationConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
     private final JobSubmitLimiter jobSubmitLimiter;
@@ -143,8 +140,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
                                   FeatureActivationConfiguration featureActivationConfiguration,
                                   JobStore store,
-                                  VirtualMachineMasterService vmService,
-                                  DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                  JobServiceRuntime runtime,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
                                   JobSubmitLimiter jobSubmitLimiter,
                                   ManagementSubsystemInitializer managementSubsystemInitializer,
@@ -153,9 +149,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   VersionSupplier versionSupplier) {
         this.featureActivationConfiguration = featureActivationConfiguration;
         this.store = store;
-        this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
-        this.kubeApiServerIntegrator = kubeApiServerIntegrator;
+        this.runtime = runtime;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
         this.jobSubmitLimiter = jobSubmitLimiter;
         this.managementSubsystemInitializer = managementSubsystemInitializer;
@@ -525,7 +520,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"),
                             Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, kubeApiServerIntegrator, store, versionSupplier, task.getId(), shrink, preventMinSizeUpdate, reasonCode, reason, titusRuntime, callMetadata
+                            engineChildPair.getLeft(), runtime, store, versionSupplier, task.getId(), shrink, preventMinSizeUpdate, reasonCode, reason, titusRuntime, callMetadata
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

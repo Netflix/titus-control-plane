@@ -37,7 +37,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
-import com.netflix.titus.master.jobmanager.service.common.JobResolverContext;
+import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -48,7 +48,7 @@ import rx.Observable;
  */
 public class CreateOrReplaceServiceTaskActions {
 
-    public static TitusChangeAction createOrReplaceTaskAction(JobResolverContext context,
+    public static TitusChangeAction createOrReplaceTaskAction(JobServiceRuntime context,
                                                               JobStore jobStore,
                                                               VersionSupplier versionSupplier,
                                                               EntityHolder jobHolder,
@@ -76,7 +76,7 @@ public class CreateOrReplaceServiceTaskActions {
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder,
                                                                        EntityHolder taskHolder,
-                                                                       JobResolverContext context,
+                                                                       JobServiceRuntime context,
                                                                        JobStore jobStore,
                                                                        VersionSupplier versionSupplier,
                                                                        Clock clock,

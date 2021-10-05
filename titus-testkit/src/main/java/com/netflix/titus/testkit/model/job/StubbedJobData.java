@@ -370,7 +370,7 @@ class StubbedJobData {
                     reasonCode = TaskStatus.REASON_TASK_EVICTED;
                     break;
                 case API:
-                case Mesos:
+                case ComputeProvider:
                 case Reconciler:
                 default:
                     reasonCode = "test";
@@ -407,7 +407,7 @@ class StubbedJobData {
                 case StartInitiated:
                 case Started:
                     moveTaskToState(killedTask, trigger, TaskState.KillInitiated);
-                    moveTaskToState(killedTask, V3JobOperations.Trigger.Mesos, TaskState.Finished);
+                    moveTaskToState(killedTask, V3JobOperations.Trigger.ComputeProvider, TaskState.Finished);
                     break;
                 case Finished:
                     break;

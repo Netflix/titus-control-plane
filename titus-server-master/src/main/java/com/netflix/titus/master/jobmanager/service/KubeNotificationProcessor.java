@@ -52,17 +52,17 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
-import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import com.netflix.titus.master.mesos.kubeapiserver.PodToTaskMapper;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodDeletedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodNotFoundEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
+import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
+import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.PodToTaskMapper;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -184,11 +184,6 @@ public class KubeNotificationProcessor {
         }
 
         Task task = jobAndTask.getRight();
-        if (!JobFunctions.isOwnedByKubeScheduler(task)) {
-            logger.debug("Ignoring notification for task managed via Mesos adapter: taskId={}", task.getId());
-            return Mono.empty();
-        }
-
         if (event instanceof PodNotFoundEvent) {
             return handlePodNotFoundEvent((PodNotFoundEvent) event);
         }

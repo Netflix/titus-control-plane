@@ -23,6 +23,7 @@ import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.master.jobmanager.service.ComputeProvider;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
@@ -64,5 +65,11 @@ public class KubeClientModule extends AbstractModule {
             return injector.getInstance(JobControllerKubeApiFacade.class);
         }
         return new NoOpKubeApiFacade();
+    }
+
+    @Provides
+    @Singleton
+    public ComputeProvider getComputeProvider(DirectKubeApiServerIntegrator integrator) {
+        return integrator;
     }
 }

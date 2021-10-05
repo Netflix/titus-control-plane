@@ -18,34 +18,16 @@ package com.netflix.titus.master.kubernetes.client;
 
 import java.util.Map;
 
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.master.jobmanager.service.ComputeProvider;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import io.kubernetes.client.openapi.models.V1Pod;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-public interface DirectKubeApiServerIntegrator {
+public interface DirectKubeApiServerIntegrator extends ComputeProvider {
 
     String COMPONENT = "kubernetesIntegrator";
 
     Map<String, V1Pod> getPods();
 
-    Mono<V1Pod> launchTask(Job job, Task task);
-
-    Mono<Void> terminateTask(Task task);
-
     Flux<PodEvent> events();
-
-    /**
-     * Given a KubeAPI pod create error, resolve it to a reason code defined in {@link com.netflix.titus.api.jobmanager.model.job.TaskStatus}.
-     */
-    String resolveReasonCode(Throwable cause);
-
-    /**
-     * Returns true, if the Kubernetes integration subsystem is ready for scheduling.
-     */
-    default boolean isReadyForScheduling() {
-        return true;
-    }
 }

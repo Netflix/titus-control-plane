@@ -39,13 +39,13 @@ import com.netflix.titus.master.kubernetes.pod.legacy.UserProvidedContainerEnvFa
 import com.netflix.titus.master.kubernetes.pod.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.FarzonePodResourcePoolResolver;
-import com.netflix.titus.master.kubernetes.pod.resourcepool.FenzoPodResourcePoolResolver;
+import com.netflix.titus.master.kubernetes.pod.resourcepool.FixedResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.GpuPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.KubeSchedulerPodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverChain;
 import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolverFeatureGuard;
-import com.netflix.titus.master.kubernetes.pod.resourcepool.TierPodResourcePoolResolver;
+import com.netflix.titus.master.kubernetes.pod.resourcepool.PodResourcePoolResolvers;
 import com.netflix.titus.master.kubernetes.pod.taint.DefaultTaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.DefaultTopologyFactory;
@@ -87,14 +87,13 @@ public class KubePodModule extends AbstractModule {
                         new FarzonePodResourcePoolResolver(configuration),
                         new GpuPodResourcePoolResolver(configuration, capacityGroupService),
                         new KubeSchedulerPodResourcePoolResolver(capacityGroupService),
-                        new FenzoPodResourcePoolResolver(capacityGroupService),
                         new CapacityGroupPodResourcePoolResolver(
                                 configuration,
                                 config.getPrefixedView(RESOURCE_POOL_PROPERTIES_PREFIX),
                                 capacityGroupService,
                                 titusRuntime
                         ),
-                        new TierPodResourcePoolResolver(capacityGroupService)
+                        new FixedResourcePoolResolver(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC)
                 ), titusRuntime)
         );
     }

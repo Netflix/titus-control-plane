@@ -43,7 +43,7 @@ import rx.schedulers.Schedulers;
  * <br/>
  * 'jobId=..., transactionId=..., status=ok,    type=beforeChange,           action=..., trigger=User , target=job , entityId=..., waited=..., elapsed=..., summary=...'
  * <br/>
- * 'jobId=..., transactionId=..., status=error, type=modelUpdate/reference,  action=..., trigger=Mesos, target=task, entityId=..., waited=..., elapsed=..., summary=...'
+ * 'jobId=..., transactionId=..., status=error, type=modelUpdate/reference,  action=..., trigger=ComputeProvider, target=task, entityId=..., waited=..., elapsed=..., summary=...'
  */
 class JobTransactionLogger {
 

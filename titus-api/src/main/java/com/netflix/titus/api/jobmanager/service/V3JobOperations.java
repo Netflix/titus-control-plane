@@ -38,7 +38,7 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
 
     enum Trigger {
         API,
-        Mesos,
+        ComputeProvider,
         Reconciler,
         Scheduler,
         TaskMigration,

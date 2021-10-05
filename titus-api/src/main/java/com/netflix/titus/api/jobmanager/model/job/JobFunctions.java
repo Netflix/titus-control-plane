@@ -666,10 +666,6 @@ public final class JobFunctions {
                 .map(Duration::ofMillis);
     }
 
-    public static boolean isOwnedByKubeScheduler(Task task) {
-        return Boolean.parseBoolean(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER));
-    }
-
     public static String getEffectiveCapacityGroup(Job job) {
         String capacityGroup = job.getJobDescriptor().getCapacityGroup();
         if (StringExt.isEmpty(capacityGroup)) {

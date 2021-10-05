@@ -19,8 +19,6 @@ package com.netflix.titus.master.jobmanager.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,7 +28,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
@@ -43,17 +40,14 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.DifferenceResolvers;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
-import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationEngine;
@@ -67,13 +61,10 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations.IndexKind;
-import com.netflix.titus.master.jobmanager.service.common.SecurityGroupUtils;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import com.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
@@ -115,7 +106,6 @@ public class JobReconciliationFrameworkFactory {
     private final DifferenceResolver<JobManagerReconcilerEvent> dispatchingResolver;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobStore store;
-    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
@@ -139,7 +129,6 @@ public class JobReconciliationFrameworkFactory {
                                              @Named(BATCH_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
                                              @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
-                                             SchedulingService<? extends TaskRequest> schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
@@ -149,7 +138,7 @@ public class JobReconciliationFrameworkFactory {
                                              VersionSupplier versionSupplier,
                                              TitusRuntime titusRuntime) {
         this(jobManagerConfiguration, featureConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store,
-                schedulingService, capacityGroupService, systemSoftConstraint, systemHardConstraint,
+                capacityGroupService, systemSoftConstraint, systemHardConstraint,
                 constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer, versionSupplier,
                 titusRuntime, Optional.empty());
     }
@@ -159,7 +148,6 @@ public class JobReconciliationFrameworkFactory {
                                              DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
                                              DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
-                                             SchedulingService<? extends TaskRequest> schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
@@ -172,7 +160,6 @@ public class JobReconciliationFrameworkFactory {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.featureConfiguration = featureConfiguration;
         this.store = store;
-        this.schedulingService = schedulingService;
         this.capacityGroupService = capacityGroupService;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
@@ -204,7 +191,7 @@ public class JobReconciliationFrameworkFactory {
     }
 
     ReconciliationFramework<JobManagerReconcilerEvent> newInstance() {
-        List<Pair<Job, List<Task>>> jobsAndTasks = checkGlobalConsistency(loadJobsAndTasksFromStore(errorCollector));
+        List<Pair<Job, List<Task>>> jobsAndTasks = loadJobsAndTasksFromStore(errorCollector);
 
         // initialize fenzo with running tasks
         List<InternalReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
@@ -215,16 +202,7 @@ public class JobReconciliationFrameworkFactory {
             engines.add(engine);
             for (Task task : tasks) {
                 Optional<Task> validatedTask = validateTask(task);
-                if (validatedTask.isPresent()) {
-                    if (!JobFunctions.isOwnedByKubeScheduler(task)) {
-                        TaskFenzoCheck check = addTaskToFenzo(engine, job, task);
-                        if (check == TaskFenzoCheck.FenzoAddError) {
-                            errorCollector.taskAddToFenzoError(task.getId());
-                        } else if (check == TaskFenzoCheck.Inconsistent) {
-                            errorCollector.inconsistentTask(task.getId());
-                        }
-                    }
-                } else {
+                if (!validatedTask.isPresent()) {
                     errorCollector.invalidTaskRecord(task.getId());
                 }
             }
@@ -275,69 +253,6 @@ public class JobReconciliationFrameworkFactory {
 
     private List<Tag> extraModelActionTags(JobManagerReconcilerEvent event) {
         return Collections.singletonList(new BasicTag("event", event.getClass().getSimpleName()));
-    }
-
-    /**
-     * We need to report three situations here:
-     * <ul>
-     * <li>task ok in final state, and should not be added to Fenzo</li>
-     * <li>task ok, and should not be added to Fenzo</li>
-     * <li>task has inconsistent state, and because of that should not be added</li>
-     * </ul>
-     */
-    private TaskFenzoCheck addTaskToFenzo(ReconciliationEngine<JobManagerReconcilerEvent> engine, Job job, Task task) {
-        TaskState taskState = task.getStatus().getState();
-        if (taskState == TaskState.Accepted) {
-            try {
-                Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-                V3QueueableTask queueableTask = new V3QueueableTask(
-                        tierAssignment.getLeft(),
-                        tierAssignment.getRight(),
-                        job,
-                        task,
-                        JobFunctions.getJobRuntimePrediction(job),
-                        featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
-                        () -> JobManagerUtil.filterActiveTaskIds(engine),
-                        constraintEvaluatorTransformer,
-                        systemSoftConstraint,
-                        systemHardConstraint
-                );
-                schedulingService.addTask(queueableTask);
-            } catch (Exception e) {
-                logger.error("Failed to add Accepted task to Fenzo queue: {} with error:", task.getId(), e);
-                return TaskFenzoCheck.FenzoAddError;
-            }
-            return TaskFenzoCheck.AddedToFenzo;
-        }
-
-        if (isTaskEffectivelyFinished(task)) {
-            return TaskFenzoCheck.EffectivelyFinished;
-        }
-
-        if (!hasPlacedTaskConsistentState(task)) {
-            return TaskFenzoCheck.Inconsistent;
-        }
-
-        try {
-            Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-            schedulingService.addRunningTask(new V3QueueableTask(
-                    tierAssignment.getLeft(),
-                    tierAssignment.getRight(),
-                    job,
-                    task,
-                    JobFunctions.getJobRuntimePrediction(job),
-                    featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
-                    JobFunctions.getOpportunisticCpuCount(task).orElse(0),
-                    () -> JobManagerUtil.filterActiveTaskIds(engine),
-                    constraintEvaluatorTransformer,
-                    systemSoftConstraint,
-                    systemHardConstraint
-            ));
-        } catch (Exception e) {
-            logger.error("Failed to initialize running task in Fenzo: {} with error:", task.getId(), e);
-            return TaskFenzoCheck.FenzoAddError;
-        }
-        return TaskFenzoCheck.AddedToFenzo;
     }
 
     /**
@@ -403,7 +318,7 @@ public class JobReconciliationFrameworkFactory {
                 Job job = jobTaskPair.getLeft();
                 List<Task> tasks = jobTaskPair.getRight().getLeft();
                 List<String> taskStrings = tasks.stream()
-                        .map(t -> String.format("<%s,%s:%s>", t.getId(), JobFunctions.isOwnedByKubeScheduler(t) ? "ks" : "fenzo", t.getStatus().getState()))
+                        .map(t -> String.format("<%s,ks:%s>", t.getId(), t.getStatus().getState()))
                         .collect(Collectors.toList());
                 logger.info("Loaded job: {} with tasks: {}", job.getId(), taskStrings);
             }
@@ -473,67 +388,6 @@ public class JobReconciliationFrameworkFactory {
         }
 
         return Optional.of(taskWithVersion);
-    }
-
-    private List<Pair<Job, List<Task>>> checkGlobalConsistency(List<Pair<Job, List<Task>>> jobsAndTasks) {
-        Map<String, Map<String, Set<String>>> eniAssignmentMap = new HashMap<>();
-
-        List<Pair<Job, List<Task>>> filtered = jobsAndTasks.stream()
-                .map(jobAndTasks -> {
-                            List<Task> filteredTasks = jobAndTasks.getRight().stream()
-                                    .map(task -> checkTaskEniAssignment(task, eniAssignmentMap))
-                                    .filter(Optional::isPresent)
-                                    .map(Optional::get)
-                                    .collect(Collectors.toList());
-                            return Pair.of(jobAndTasks.getLeft(), filteredTasks);
-                        }
-                ).collect(Collectors.toList());
-
-        // Report overlaps
-        eniAssignmentMap.forEach((eniSignature, assignments) -> {
-            if (assignments.size() > 1) {
-                errorCollector.eniOverlaps(eniSignature, assignments);
-            }
-        });
-
-        return filtered;
-    }
-
-    private Optional<Task> checkTaskEniAssignment(Task task, Map<String, Map<String, Set<String>>> eniAssignmentMap) {
-        // ENI assignment for tasks managed by Kube scheduler is done by agents.
-        if (JobFunctions.isOwnedByKubeScheduler(task)) {
-            return Optional.of(task);
-        }
-
-        // Filter out tasks that will not be put back into Fenzo queue.
-        TaskState taskState = task.getStatus().getState();
-        if (taskState == TaskState.Accepted || isTaskEffectivelyFinished(task)) {
-            return Optional.of(task);
-        }
-
-        // Find agent
-        String agent = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-        if (agent == null) {
-            errorCollector.launchedTaskWithUnidentifiedAgent(task.getId());
-            return Optional.empty();
-        }
-
-        // Find ENI assignment
-        Optional<TwoLevelResource> eniAssignmentOpt = task.getTwoLevelResources().stream()
-                .filter(r -> r.getName().equals("ENIs"))
-                .findFirst();
-        if (!eniAssignmentOpt.isPresent()) {
-            return Optional.of(task);
-        }
-        TwoLevelResource eniAssignment = eniAssignmentOpt.get();
-
-        // Record
-        String eniSignature = "ENI@" + agent + '#' + eniAssignment.getIndex();
-        Map<String, Set<String>> eniSGs = eniAssignmentMap.computeIfAbsent(eniSignature, e -> new HashMap<>());
-        String normalizedSgs = SecurityGroupUtils.normalizeSecurityGroups(eniAssignment.getValue());
-        eniSGs.computeIfAbsent(normalizedSgs, sg -> new HashSet<>()).add(task.getId());
-
-        return eniSGs.size() == 1 ? Optional.of(task) : Optional.empty();
     }
 
     private static int compareByStatusCreationTime(EntityHolder holder1, EntityHolder holder2) {

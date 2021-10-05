@@ -29,7 +29,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -55,9 +54,9 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
-import com.netflix.titus.master.jobmanager.service.common.JobResolverContext;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
@@ -65,9 +64,6 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskA
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
@@ -90,12 +86,9 @@ import static com.netflix.titus.master.jobmanager.service.service.action.CreateO
 @Singleton
 public class ServiceDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {
 
-    private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
     private final ApplicationSlaManagementService capacityGroupService;
-    private final SchedulingService<? extends TaskRequest> schedulingService;
-    private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
     private final VersionSupplier versionSupplier;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
@@ -107,16 +100,14 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final TokenBucket stuckInStateRateLimiter;
     private final TitusRuntime titusRuntime;
     private final Clock clock;
-    private final JobResolverContext context;
+    private final JobServiceRuntime runtime;
 
     @Inject
     public ServiceDifferenceResolver(
-            DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
+            JobServiceRuntime runtime,
             FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
-            SchedulingService<? extends TaskRequest> schedulingService,
-            VirtualMachineMasterService vmService,
             JobStore jobStore,
             VersionSupplier versionSupplier,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
@@ -124,20 +115,18 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SystemHardConstraint systemHardConstraint,
             @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime) {
-        this(kubeApiServerIntegrator, configuration, featureConfiguration,
-                capacityGroupService, schedulingService, vmService, jobStore, versionSupplier,
+        this(configuration, runtime, featureConfiguration,
+                capacityGroupService, jobStore, versionSupplier,
                 constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint, stuckInStateRateLimiter,
                 titusRuntime, Schedulers.computation()
         );
     }
 
     public ServiceDifferenceResolver(
-            DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
+            JobServiceRuntime runtime,
             FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
-            SchedulingService<? extends TaskRequest> schedulingService,
-            VirtualMachineMasterService vmService,
             JobStore jobStore,
             VersionSupplier versionSupplier,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
@@ -146,12 +135,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime,
             Scheduler scheduler) {
-        this.kubeApiServerIntegrator = kubeApiServerIntegrator;
+        this.runtime = runtime;
         this.configuration = configuration;
         this.featureConfiguration = featureConfiguration;
         this.capacityGroupService = capacityGroupService;
-        this.schedulingService = schedulingService;
-        this.vmService = vmService;
         this.jobStore = jobStore;
         this.versionSupplier = versionSupplier;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
@@ -160,10 +147,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.stuckInStateRateLimiter = stuckInStateRateLimiter;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
-        this.context = new JobResolverContext(
-                configuration,
-                titusRuntime
-        );
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -202,13 +185,13 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
-                    engine, vmService, kubeApiServerIntegrator, jobStore, TaskStatus.REASON_TASK_KILLED,
+                    engine, runtime, jobStore, TaskStatus.REASON_TASK_KILLED,
                     "Killing task as its job is in KillInitiated state", allowedTaskKills.get(),
                     versionSupplier,
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
-                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, versionSupplier, stuckInStateRateLimiter, titusRuntime);
+                return findTaskStateTimeouts(engine, runningJobView, configuration, runtime, jobStore, versionSupplier, stuckInStateRateLimiter, titusRuntime);
             }
             allowedTaskKills.set(allowedTaskKills.get() - killInitiatedActions.size());
             return killInitiatedActions;
@@ -222,7 +205,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, versionSupplier, stuckInStateRateLimiter, titusRuntime));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, runtime, jobStore, versionSupplier, stuckInStateRateLimiter, titusRuntime));
 
         return actions;
     }
@@ -255,7 +238,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 List<ServiceJobTask> tasksToRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, tasks.size() - toRemoveCount, titusRuntime);
                 List<ChangeAction> killActions = tasksToRemove.stream()
                         .filter(t -> !isTerminating(t))
-                        .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, vmService, kubeApiServerIntegrator,
+                        .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, runtime,
                                 jobStore, versionSupplier, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task", titusRuntime)
                         )
                         .collect(Collectors.toList());
@@ -282,15 +265,13 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
         String resourcePool = capacityGroupDescriptor.getResourcePool();
-        if (featureConfiguration.isKubeSchedulerEnabled()) {
-            taskContext = CollectionsExt.copyAndAdd(taskContext, ImmutableMap.of(
-                    TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true",
-                    TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool,
-                    TaskAttributes.TASK_ATTRIBUTES_TIER, capacityGroupDescriptor.getTier().name()));
-        }
+        taskContext = CollectionsExt.copyAndAdd(taskContext, ImmutableMap.of(
+                TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true",
+                TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool,
+                TaskAttributes.TASK_ATTRIBUTES_TIER, capacityGroupDescriptor.getTier().name()));
 
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
-                createOrReplaceTaskAction(context, jobStore, versionSupplier, refJobView.getJobHolder(), previousTask, clock, taskContext)
+                createOrReplaceTaskAction(runtime, jobStore, versionSupplier, refJobView.getJobHolder(), previousTask, clock, taskContext)
         );
         return Optional.of(storeAction);
     }
@@ -303,36 +284,18 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         List<ServiceJobTask> tasks = refJobView.getTasks();
         for (ServiceJobTask refTask : tasks) {
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
-            if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
-                if (kubeApiServerIntegrator.isReadyForScheduling()) {
-                    // TODO This complexity exists due to the way Fenzo is initialized on bootstrap. This code can be simplified one we move off Fenzo.
-                    if (runningTask == null || (refTask.getStatus().getState() == TaskState.Accepted && !TaskStatus.hasPod(refTask))) {
-                        missingTasks.add(BasicTaskActions.launchTaskInKube(
-                                kubeApiServerIntegrator,
-                                configuration,
-                                engine,
-                                refJobView.getJob(),
-                                refTask,
-                                RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build(),
-                                versionSupplier,
-                                titusRuntime
-                        ));
-                    }
-                }
-            } else {
-                if (runningTask == null) {
-                    CallMetadata callMetadata = RECONCILER_CALLMETADATA.toBuilder().withCallReason("Add task to Fenzo").build();
-                    missingTasks.add(BasicTaskActions.scheduleTask(
-                            capacityGroupService,
-                            schedulingService,
+            if (runtime.getComputeProvider().isReadyForScheduling()) {
+                // TODO This complexity exists due to the way Fenzo is initialized on bootstrap. This code can be simplified one we move off Fenzo.
+                if (runningTask == null || (refTask.getStatus().getState() == TaskState.Accepted && !TaskStatus.hasPod(refTask))) {
+                    missingTasks.add(BasicTaskActions.launchTaskInKube(
+                            configuration,
+                            runtime,
+                            engine,
                             refJobView.getJob(),
                             refTask,
-                            featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
-                            () -> JobManagerUtil.filterActiveTaskIds(engine),
-                            constraintEvaluatorTransformer,
-                            systemSoftConstraint,
-                            systemHardConstraint,
-                            callMetadata
+                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build(),
+                            versionSupplier,
+                            titusRuntime
                     ));
                 }
             }
@@ -381,7 +344,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             } else {
                 Task task = referenceTaskHolder.getEntity();
                 CallMetadata callMetadata = RECONCILER_CALLMETADATA.toBuilder().withCallReason("Writing runtime state changes to store").build();
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, engine, task.getId(), callMetadata, titusRuntime)));
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, engine, task.getId(), callMetadata, titusRuntime)));
             }
 
             // Both current and delayed retries are counted

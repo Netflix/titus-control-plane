@@ -50,12 +50,6 @@ public interface FeatureActivationConfiguration {
     boolean isOpportunisticResourcesSchedulingEnabled();
 
     /**
-     * Set to true to enable Kube scheduler integration.
-     */
-    @DefaultValue("false")
-    boolean isKubeSchedulerEnabled();
-
-    /**
      * Enable binpacking of tasks based on how hard they are to relocate
      */
     @DefaultValue("true")

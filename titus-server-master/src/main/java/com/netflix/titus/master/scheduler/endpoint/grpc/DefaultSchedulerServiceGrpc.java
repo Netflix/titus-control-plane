@@ -33,7 +33,6 @@ import com.netflix.fenzo.ConstraintFailure;
 import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
@@ -178,21 +177,12 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
         }
         Task task = jobAndTask.getRight();
 
-        if (JobFunctions.isOwnedByKubeScheduler(task)) {
-            DirectKubeApiServerIntegrator directIntegrator = injector.getInstance(DirectKubeApiServerIntegrator.class);
-            V1Pod pod = directIntegrator.getPods().get(taskId);
-            if (pod != null) {
-                responseObserver.onNext(toGrpcSchedulingResultEvent(pod));
-                responseObserver.onCompleted();
-                return;
-            }
-        } else {
-            Optional<SchedulingResultEvent> result = schedulingService.findLastSchedulingResult(taskId);
-            if (result.isPresent()) {
-                responseObserver.onNext(toGrpcSchedulingResultEvent(result.get()));
-                responseObserver.onCompleted();
-                return;
-            }
+        DirectKubeApiServerIntegrator directIntegrator = injector.getInstance(DirectKubeApiServerIntegrator.class);
+        V1Pod pod = directIntegrator.getPods().get(taskId);
+        if (pod != null) {
+            responseObserver.onNext(toGrpcSchedulingResultEvent(pod));
+            responseObserver.onCompleted();
+            return;
         }
 
         responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND.withDescription("No scheduling result available for task: " + taskId)));

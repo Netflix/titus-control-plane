@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.jobmanager.service.common;
+package com.netflix.titus.master.jobmanager.service;
 
 import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 
-public class JobResolverContext {
+@Singleton
+public class JobServiceRuntime {
 
     private final JobManagerConfiguration configuration;
+
+    private final ComputeProvider computeProvider;
 
     private final TitusRuntime titusRuntime;
 
@@ -34,8 +38,12 @@ public class JobResolverContext {
 
     private final Retryer systemRetryer;
 
-    public JobResolverContext(JobManagerConfiguration configuration, TitusRuntime titusRuntime) {
+    @Inject
+    public JobServiceRuntime(JobManagerConfiguration configuration,
+                             ComputeProvider computeProvider,
+                             TitusRuntime titusRuntime) {
         this.configuration = configuration;
+        this.computeProvider = computeProvider;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
         this.systemRetryer = Retryers.exponentialBackoff(
@@ -47,6 +55,10 @@ public class JobResolverContext {
 
     public JobManagerConfiguration getConfiguration() {
         return configuration;
+    }
+
+    public ComputeProvider getComputeProvider() {
+        return computeProvider;
     }
 
     public TitusRuntime getTitusRuntime() {

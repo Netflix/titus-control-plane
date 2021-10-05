@@ -22,7 +22,6 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
@@ -81,20 +80,6 @@ public class JobSchedulingCommonTest {
                 .template(ScenarioTemplates.killJob())
                 .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)
                 .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_TASK_KILLED))
-        );
-    }
-
-    @Test
-    public void testTryToLaunchTaskWhichIsInFinishedState() {
-        jobsScenarioBuilder.scheduleJob(JobDescriptorGenerator.oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
-                .expectJobEvent()
-                .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)
-                .expectScheduleRequest(0, 0)
-                .killTask(0, 0)
-                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
-                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
-                .triggerFailingSchedulerLaunchEvent(0, 0, error -> assertThat(error).isInstanceOf(JobManagerException.class))
-                .advance() // Advance to observe 'status=error type=afterChange' in the log file
         );
     }
 }

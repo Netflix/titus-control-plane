@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.StringExt;
@@ -37,10 +36,6 @@ public class KubeSchedulerPodResourcePoolResolver implements PodResourcePoolReso
 
     @Override
     public List<ResourcePoolAssignment> resolve(Job<?> job, Task task) {
-        if (!JobFunctions.isOwnedByKubeScheduler(task)) {
-            return Collections.emptyList();
-        }
-
         ApplicationSLA capacityGroup = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupService);
         if (capacityGroup != null && StringExt.isNotEmpty(capacityGroup.getResourcePool())) {
             String resourcePoolName = capacityGroup.getResourcePool();

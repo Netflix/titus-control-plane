@@ -49,6 +49,7 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
@@ -57,7 +58,6 @@ import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -101,7 +101,6 @@ public class BasicTaskActions {
      * This command calls {@link JobStore#updateTask(Task)}, which assumes that the task record was created already.
      */
     public static TitusChangeAction writeReferenceTaskToStore(JobStore titusStore,
-                                                              SchedulingService<? extends TaskRequest> schedulingService,
                                                               ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                               String taskId,
                                                               CallMetadata callMetadata,
@@ -122,9 +121,6 @@ public class BasicTaskActions {
 
                     return titusStore.updateTask(referenceTask)
                             .andThen(Observable.fromCallable(() -> {
-                                if (referenceTask.getStatus().getState() == TaskState.Finished) {
-                                    schedulingService.removeTask(referenceTask.getId());
-                                }
                                 TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
                                         .taskUpdate(storeRoot -> {
                                                     EntityHolder storedHolder = EntityHolder.newRoot(referenceTask.getId(), referenceTask);
@@ -231,8 +227,8 @@ public class BasicTaskActions {
     /**
      * Create pod for a task.
      */
-    public static TitusChangeAction launchTaskInKube(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
-                                                     JobManagerConfiguration configuration,
+    public static TitusChangeAction launchTaskInKube(JobManagerConfiguration configuration,
+                                                     JobServiceRuntime runtime,
                                                      ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                      Job<?> job,
                                                      Task task,
@@ -251,7 +247,7 @@ public class BasicTaskActions {
                         return Observable.just(Collections.emptyList());
                     }
 
-                    return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then())
+                    return ReactorExt.toCompletable(runtime.getComputeProvider().launchTask(job, task).then())
                             .andThen(Observable.fromCallable(() -> {
                                 TaskStatus taskStatus = JobModel.newTaskStatus()
                                         .withState(TaskState.Accepted)
@@ -271,7 +267,7 @@ public class BasicTaskActions {
                             }))
                             .onErrorReturn(error -> {
                                 // Move task to the finished state after we failed to create a pod object for it.
-                                String reasonCode = kubeApiServerIntegrator.resolveReasonCode(error);
+                                String reasonCode = runtime.getComputeProvider().resolveReasonCode(error);
                                 Task finishedTask = JobFunctions.changeTaskStatus(task, JobModel.newTaskStatus()
                                         .withState(TaskState.Finished)
                                         .withReasonCode(reasonCode)

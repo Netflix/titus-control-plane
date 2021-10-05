@@ -18,18 +18,12 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
+import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import reactor.core.publisher.Flux;
 
 @Singleton
 public class NoOpJobManagementReconciler implements KubeJobManagementReconciler {
-
-    @Override
-    public Flux<ContainerEvent> getV3ContainerEventSource() {
-        return Flux.empty();
-    }
 
     @Override
     public Flux<PodEvent> getPodEventSource() {

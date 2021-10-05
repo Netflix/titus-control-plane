@@ -150,26 +150,28 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     }
 
     @Override
-    public Mono<V1Pod> launchTask(Job job, Task task) {
+    public Mono<Void> launchTask(Job job, Task task) {
         boolean isEbsVolumePvEnabled = configuration.isEbsVolumePvEnabled();
         return Mono.fromCallable(() -> {
-                    try {
-                        V1Pod v1Pod = podFactory.buildV1Pod(job, task, true, isEbsVolumePvEnabled);
-                        logger.info("creating pod: {}", formatPodEssentials(v1Pod));
-                        logger.debug("complete pod data: {}", v1Pod);
-                        return v1Pod;
-                    } catch (Exception e) {
-                        logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
-                        throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
-                    }
-                })
+            try {
+                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true, isEbsVolumePvEnabled);
+                logger.info("creating pod: {}", formatPodEssentials(v1Pod));
+                logger.debug("complete pod data: {}", v1Pod);
+                return v1Pod;
+            } catch (Exception e) {
+                logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
+                throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
+            }
+        })
                 .flatMap(v1Pod -> isEbsVolumePvEnabled
                         ? launchEbsVolume(job, task, v1Pod).then(Mono.just(v1Pod))
                         : Mono.just(v1Pod))
                 .flatMap(v1Pod -> launchPod(task, v1Pod))
                 .subscribeOn(apiClientScheduler)
                 .timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()))
-                .doOnError(TimeoutException.class, e -> metrics.launchTimeout(configuration.getKubeApiClientTimeoutMs()));
+                .doOnError(TimeoutException.class, e -> metrics.launchTimeout(configuration.getKubeApiClientTimeoutMs()))
+                .ignoreElement()
+                .cast(Void.class);
     }
 
     @Override
