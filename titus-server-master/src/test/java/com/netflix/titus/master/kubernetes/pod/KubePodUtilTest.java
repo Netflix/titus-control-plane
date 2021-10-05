@@ -49,4 +49,10 @@ public class KubePodUtilTest {
         assertThat(KubePodUtil.filterPodJobDescriptor(jobDescriptor).getContainer().getSecurityProfile().getAttributes().containsKey(JobAttributes.JOB_SECURITY_ATTRIBUTE_METATRON_AUTH_CONTEXT))
                 .isFalse();
     }
+
+    @Test
+    public void testSanitizeVolumeName() {
+        String name = "Ab9bac3e:6ea1:4bc3:a803:e0070ca434c3";
+        assertThat(KubePodUtil.sanitizeVolumeName(name)).matches("ab9bac3e-6ea1-4bc3-a803-e0070ca434c3");
+    }
 }

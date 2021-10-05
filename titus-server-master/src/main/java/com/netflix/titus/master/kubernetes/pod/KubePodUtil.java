@@ -261,4 +261,11 @@ public class KubePodUtil {
                 .collect(Collectors.toList());
     }
 
+    /**
+     *
+     * Sanitize name based on Kubernetes regex: [a-z0-9]([-a-z0-9]*[a-z0-9])?.
+     */
+    public static String sanitizeVolumeName(String name) {
+        return name.toLowerCase().replaceAll("[^a-z0-9]([^-a-z0-9]*[^a-z0-9])?", "-");
+    }
 }

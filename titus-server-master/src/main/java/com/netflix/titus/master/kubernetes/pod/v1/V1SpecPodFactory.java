@@ -143,6 +143,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.sanitizeVolumeName;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
 @Singleton
@@ -506,7 +507,7 @@ public class V1SpecPodFactory implements PodFactory {
 
             // handle cases where efsId is an ip address
             if (NetworkExt.isIpV4(efsId)) {
-                String name = efsId.replace(".", "-") + efsMountPoint.replace("/", "-").replace(".", "-");
+                String name = sanitizeVolumeName(efsId);
 
                 V1VolumeMount volumeMount = new V1VolumeMount()
                         .name(name)
@@ -528,7 +529,7 @@ public class V1SpecPodFactory implements PodFactory {
                 spec.addVolumesItem(volume);
 
             } else {
-                String name = efsId + efsMountPoint.replace("/", "-").replace(".", "-");
+                String name = sanitizeVolumeName(efsId + efsMountPoint);
 
                 V1VolumeMount volumeMount = new V1VolumeMount()
                         .name(name)
