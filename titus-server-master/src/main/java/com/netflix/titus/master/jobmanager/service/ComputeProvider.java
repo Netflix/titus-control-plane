@@ -16,6 +16,9 @@
 
 package com.netflix.titus.master.jobmanager.service;
 
+import java.util.List;
+
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import reactor.core.publisher.Mono;
@@ -37,4 +40,7 @@ public interface ComputeProvider {
      * Given a platform provider create error, resolve it to a reason code defined in {@link com.netflix.titus.api.jobmanager.model.job.TaskStatus}.
      */
     String resolveReasonCode(Throwable error);
+
+    List<ContainerState> getPodStatus(String taskId);
+
 }

@@ -16,10 +16,13 @@
 
 package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.job.ContainerState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -81,6 +84,10 @@ class StubbedComputeProvider implements ComputeProvider {
         providerTask.schedule();
     }
 
+    @Override
+    public List<ContainerState> getPodStatus(String taskId) {
+        return Collections.emptyList();
+    }
     public void failNextTaskLaunch(RuntimeException simulatedError) {
         this.simulatedError = simulatedError;
     }

@@ -607,7 +607,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId) {
-       return Optional.of(kubeApiServerIntegrator.getPodStatus(taskId));
+       return Optional.of(runtime.getComputeProvider().getPodStatus(taskId));
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {
