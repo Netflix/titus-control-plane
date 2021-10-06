@@ -23,7 +23,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.master.clusteroperations.ClusterAgentAutoScaler;
 
 public class TaskPlacementFailure {
 
@@ -64,7 +63,8 @@ public class TaskPlacementFailure {
          */
         AgentContainerLimit,
 
-        /**terminateContainerOnBadAgent
+        /**
+         * terminateContainerOnBadAgent
          * Task not launched due to job hard constraint. It has lower priority than the previous failure kinds.
          */
         JobHardConstraint,
@@ -99,7 +99,7 @@ public class TaskPlacementFailure {
 
         /**
          * Super set of <tt>TRANSIENT</tt> failures that must never modify opportunistic scheduling behavior. It
-         * includes failures that are expected to disappear after more capacity is added by {@link ClusterAgentAutoScaler}
+         * includes failures that are expected to disappear after more capacity is added by ClusterAgentAutoScaler
          *
          * @see DefaultSchedulingService
          */
@@ -113,8 +113,6 @@ public class TaskPlacementFailure {
 
         /**
          * Failures that should never trigger cluster autoscaling
-         *
-         * @see ClusterAgentAutoScaler
          */
         public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(
                 WaitingForInUseIpAllocation,
