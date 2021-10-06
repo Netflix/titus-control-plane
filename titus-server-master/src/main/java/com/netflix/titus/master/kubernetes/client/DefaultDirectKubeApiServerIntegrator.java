@@ -170,14 +170,13 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                     V1ContainerStatus v1ContainerStatus1 = iterator.next();
                     V1ContainerState status = v1ContainerStatus1.getState();
                     ContainerHealth health = ContainerHealth.Unset;
-                    if (status != null) {
-                        if ("running".equals(status)) {
+                    switch (status.toString()) {
+                        case V1ContainerState.SERIALIZED_NAME_RUNNING:
                             health = ContainerHealth.Healthy;
-                        } else if ("terminated".equals(status)) {
+                        case V1ContainerState.SERIALIZED_NAME_TERMINATED:
                             health = ContainerHealth.Unhealthy;
-                        } else if ("waiting".equals(status)) {
+                        case V1ContainerState.SERIALIZED_NAME_WAITING:
                             health = ContainerHealth.Unset;
-                        }
                     }
                     ContainerState containerState =
                             ContainerState.newBuilder()
