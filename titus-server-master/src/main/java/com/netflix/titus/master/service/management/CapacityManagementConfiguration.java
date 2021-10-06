@@ -48,24 +48,6 @@ public interface CapacityManagementConfiguration {
     @DefaultValue("10")
     int getDefaultApplicationInstanceCount();
 
-    /**
-     * Interval at which information about available agent capacity is updated.
-     */
-    @DefaultValue("30000")
-    long getAvailableCapacityUpdateIntervalMs();
-
-    /**
-     * The buffer percentage size of the critical tier
-     */
-    @DefaultValue("0.05")
-    double getCriticalTierBuffer();
-
-    /**
-     * The buffer percentage size of the flex tier
-     */
-    @DefaultValue("0.05")
-    double getFlexTierBuffer();
-
     @DefaultValue("fenzo")
     String getDefaultSchedulerName();
 

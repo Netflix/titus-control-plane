@@ -22,7 +22,6 @@ import java.util.Optional;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
-import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.testkit.data.core.ApplicationSlaGenerator;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.rx.ObservableRecorder;
@@ -36,22 +35,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DefaultApplicationSlaManagementServiceTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
 
-    private final CapacityMonitoringService capacityMonitoringService = mock(CapacityMonitoringService.class);
-
     private final ApplicationSlaStore storage = mock(ApplicationSlaStore.class);
 
     private final ApplicationSlaGenerator generator = new ApplicationSlaGenerator(ApplicationSlaSample.CriticalSmall);
 
     private final DefaultApplicationSlaManagementService slaManagementService = new DefaultApplicationSlaManagementService(
-            capacityMonitoringService,
             storage,
             null
     );
@@ -113,14 +107,12 @@ public class DefaultApplicationSlaManagementServiceTest {
         when(storage.create(myApp)).thenReturn(Observable.empty());
 
         ObservableRecorder<Void> cpmRecorder = ObservableRecorder.newRecorder(Observable.empty());
-        when(capacityMonitoringService.refresh()).thenReturn(cpmRecorder.getObservable());
 
         // First add new application SLA, which will queue capacity change update
         slaManagementService.addApplicationSLA(myApp).toBlocking().firstOrDefault(null);
 
         // Check that capacityAllocationService is triggered correctly
         testScheduler.triggerActions();
-        verify(capacityMonitoringService, times(1)).refresh();
         assertThat(cpmRecorder.numberOfFinishedSubscriptions()).isEqualTo(1);
     }
 
@@ -131,14 +123,12 @@ public class DefaultApplicationSlaManagementServiceTest {
         when(storage.remove(myApp.getAppName())).thenReturn(Observable.empty());
 
         ObservableRecorder<Void> cpmRecorder = ObservableRecorder.newRecorder(Observable.empty());
-        when(capacityMonitoringService.refresh()).thenReturn(cpmRecorder.getObservable());
 
         // First add new application SLA, which will queue capacity change update
         slaManagementService.removeApplicationSLA(myApp.getAppName()).toBlocking().firstOrDefault(null);
 
         // Check that capacityAllocationService is triggered correctly
         testScheduler.triggerActions();
-        verify(capacityMonitoringService, times(1)).refresh();
         assertThat(cpmRecorder.numberOfFinishedSubscriptions()).isEqualTo(1);
     }
 
