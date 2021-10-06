@@ -75,5 +75,5 @@ public interface ReadOnlyJobOperations {
         return ReactorExt.toFlux(observeJob(jobId));
     }
 
-    Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId);
+    Optional<List<ContainerState>> findEphemeralTaskStatus(String taskId);
 }

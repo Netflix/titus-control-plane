@@ -79,7 +79,7 @@ public class GrpcJobManagementModelConvertersTest {
 
 
     @Test
-    public void testToGrpc() {
+    public void testToGrpcContainerState() {
         TaskStatus.ContainerState containerState = GrpcJobManagementModelConverters.toGrpcContainerState(ContainerState.newBuilder()
                 .withContainerName("test").withContainerHealth(ContainerHealth.Unset).build());
         assertThat(containerState.isInitialized()).isTrue();

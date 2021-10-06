@@ -219,7 +219,7 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
     }
 
     public static class Builder extends AbstractBuilder<TaskState, Builder, TaskStatus> {
-        private List<ContainerState> containerState;
+        private List<ContainerState> containerStates;
 
         private Builder() {
         }
@@ -229,7 +229,7 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
         }
 
         public Builder withContainerState(List<ContainerState> containerState) {
-            this.containerState = containerState;
+            this.containerStates = containerState;
             return this;
         }
 
@@ -240,7 +240,7 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
                     reasonCode == null ? TaskStatus.REASON_UNKNOWN : reasonCode,
                     toCompleteReasonMessage(),
                     timestamp,
-                    containerState == CollectionsExt.nonNull(containerState) ? new ArrayList<>() : containerState
+                    containerStates == CollectionsExt.nonNull(containerStates) ? new ArrayList<>() : containerStates
             );
         }
     }

@@ -158,37 +158,37 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     }
 
     public List<ContainerState> getPodStatus(String taskId) {
-        if (pods.containsKey(taskId)) {
-            List<V1ContainerStatus> v1ContainerStatus = pods.get(taskId).getStatus().getContainerStatuses();
-            ArrayList<ContainerState> containerstates = new ArrayList();
-            if (v1ContainerStatus.isEmpty() || v1ContainerStatus.size() == 0) {
-                // we have pod status but no container status just yet
-                return Collections.emptyList();
-            } else {
-                ListIterator<V1ContainerStatus> iterator = v1ContainerStatus.listIterator();
-                while (iterator.hasNext()) {
-                    V1ContainerStatus v1ContainerStatus1 = iterator.next();
-                    V1ContainerState status = v1ContainerStatus1.getState();
-                    ContainerHealth health = ContainerHealth.Unset;
-                    switch (status.toString()) {
-                        case V1ContainerState.SERIALIZED_NAME_RUNNING:
-                            health = ContainerHealth.Healthy;
-                        case V1ContainerState.SERIALIZED_NAME_TERMINATED:
-                            health = ContainerHealth.Unhealthy;
-                        case V1ContainerState.SERIALIZED_NAME_WAITING:
-                            health = ContainerHealth.Unset;
-                    }
-                    ContainerState containerState =
-                            ContainerState.newBuilder()
-                                    .withContainerName(v1ContainerStatus1.getName())
-                                    .withContainerHealth(health)
-                                    .build();
-                    containerstates.add(containerState);
-                }
-                return containerstates;
-            }
+        if(pods.get(taskId) == null) {
+            return Collections.emptyList();
         }
-        return Collections.emptyList();
+
+        List<V1ContainerStatus> v1ContainerStatus = pods.get(taskId).getStatus().getContainerStatuses();
+        ArrayList<ContainerState> containerstates = new ArrayList();
+        if (v1ContainerStatus.isEmpty() || v1ContainerStatus.size() == 0) {
+            // we have pod status but no container status just yet
+            return Collections.emptyList();
+        } else {
+            ListIterator<V1ContainerStatus> iterator = v1ContainerStatus.listIterator();
+            while (iterator.hasNext()) {
+                V1ContainerStatus v1ContainerStatus1 = iterator.next();
+                V1ContainerState status = v1ContainerStatus1.getState();
+                ContainerHealth health = ContainerHealth.Unset;
+                if (V1ContainerState.SERIALIZED_NAME_RUNNING.equals(status)) {
+                    health = ContainerHealth.Healthy;
+                } else if (V1ContainerState.SERIALIZED_NAME_TERMINATED.equals(status)) {
+                    health = ContainerHealth.Unhealthy;
+                } else if (V1ContainerState.SERIALIZED_NAME_WAITING.equals(status)) {
+                    health = ContainerHealth.Unset;
+                }
+                ContainerState containerState =
+                        ContainerState.newBuilder()
+                                .withContainerName(v1ContainerStatus1.getName())
+                                .withContainerHealth(health)
+                                .build();
+                containerstates.add(containerState);
+            }
+            return containerstates;
+        }
     }
 
     @Override

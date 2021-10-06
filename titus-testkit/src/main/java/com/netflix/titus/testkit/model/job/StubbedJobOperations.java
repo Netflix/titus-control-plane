@@ -151,7 +151,7 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Optional<List<ContainerState>> getEphemeralTaskStatus(String taskId) {
+    public Optional<List<ContainerState>> findEphemeralTaskStatus(String taskId) {
         return Optional.of(Collections.emptyList());
     }
 
