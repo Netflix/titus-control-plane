@@ -58,6 +58,7 @@ import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
+import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
@@ -167,9 +168,22 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 ListIterator<V1ContainerStatus> iterator = v1ContainerStatus.listIterator();
                 while (iterator.hasNext()) {
                     V1ContainerStatus v1ContainerStatus1 = iterator.next();
+                    V1ContainerState status = v1ContainerStatus1.getState();
+                    ContainerHealth health = ContainerHealth.Unset;
+                    if (status != null) {
+                        if ("running".equals(status)) {
+                            health = ContainerHealth.Healthy;
+                        } else if ("terminated".equals(status)) {
+                            health = ContainerHealth.Unhealthy;
+                        } else if ("waiting".equals(status)) {
+                            health = ContainerHealth.Unset;
+                        }
+                    }
                     ContainerState containerState =
                             ContainerState.newBuilder()
-                                    .withContainerName(v1ContainerStatus1.getName()).withContainerHealth(ContainerHealth.Unset).build();
+                                    .withContainerName(v1ContainerStatus1.getName())
+                                    .withContainerHealth(health)
+                                    .build();
                     containerstates.add(containerState);
                 }
                 return containerstates;
