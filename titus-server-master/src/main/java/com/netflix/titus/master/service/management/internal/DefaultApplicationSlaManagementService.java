@@ -26,7 +26,6 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,6 @@ import rx.Observable;
 @Singleton
 public class DefaultApplicationSlaManagementService implements ApplicationSlaManagementService {
 
-    private final CapacityMonitoringService capacityMonitoringService;
     private final ApplicationSlaStore storage;
     private static final Logger logger = LoggerFactory.getLogger(DefaultApplicationSlaManagementService.class);
 
@@ -44,10 +42,7 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
      * is used.
      */
     @Inject
-    public DefaultApplicationSlaManagementService(CapacityMonitoringService capacityMonitoringService,
-                                                  ApplicationSlaStore storage,
-                                                  ManagementSubsystemInitializer initializer) {
-        this.capacityMonitoringService = capacityMonitoringService;
+    public DefaultApplicationSlaManagementService(ApplicationSlaStore storage, ManagementSubsystemInitializer initializer) {
         this.storage = storage;
     }
 
@@ -93,8 +88,7 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
 
     @Override
     public Observable<Void> addApplicationSLA(ApplicationSLA applicationSLA) {
-        // We trigger refresh, but not wait for the result, as we only care that first part (create) succeeded.
-        return storage.create(applicationSLA).doOnCompleted(() -> capacityMonitoringService.refresh().subscribe());
+        return storage.create(applicationSLA);
     }
 
     @Override
@@ -102,7 +96,6 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
         if (applicationName.equals(DEFAULT_APPLICATION)) {
             return Observable.error(new IllegalArgumentException(DEFAULT_APPLICATION + " cannot be removed"));
         }
-        // We trigger refresh, but not wait for the result, as we only care that first part (remove) succeeded.
-        return storage.remove(applicationName).doOnCompleted(() -> capacityMonitoringService.refresh().subscribe());
+        return storage.remove(applicationName);
     }
 }

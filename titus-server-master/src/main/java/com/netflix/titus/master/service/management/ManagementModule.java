@@ -22,11 +22,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.master.service.management.internal.DefaultApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.internal.DefaultAvailableCapacityService;
-import com.netflix.titus.master.service.management.internal.DefaultCapacityMonitoringService;
 import com.netflix.titus.master.service.management.internal.DefaultResourceConsumptionService;
 import com.netflix.titus.master.service.management.internal.ResourceConsumptionLog;
-import com.netflix.titus.master.service.management.internal.SimpleCapacityGuaranteeStrategy;
 
 public class ManagementModule extends AbstractModule {
 
@@ -35,10 +32,7 @@ public class ManagementModule extends AbstractModule {
         bind(ManagementSubsystemInitializer.class).asEagerSingleton();
 
         // Capacity management
-        bind(CapacityGuaranteeStrategy.class).to(SimpleCapacityGuaranteeStrategy.class);
         bind(ApplicationSlaManagementService.class).to(DefaultApplicationSlaManagementService.class);
-        bind(CapacityMonitoringService.class).to(DefaultCapacityMonitoringService.class).asEagerSingleton();
-        bind(AvailableCapacityService.class).to(DefaultAvailableCapacityService.class);
 
         // Resource consumption monitoring
         bind(ResourceConsumptionService.class).to(DefaultResourceConsumptionService.class).asEagerSingleton();

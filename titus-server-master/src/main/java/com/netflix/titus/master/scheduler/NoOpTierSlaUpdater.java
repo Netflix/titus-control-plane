@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.service.management;
+package com.netflix.titus.master.scheduler;
 
-import java.util.Optional;
+import java.util.Collections;
+import javax.inject.Singleton;
 
-import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.model.Tier;
+import com.netflix.fenzo.queues.tiered.TieredQueueSlas;
+import rx.Observable;
 
-/**
- * Provides information about total available capacity within all tiers.
- * <p>
- * TODO This interface is very close to {@link CapacityAllocationService}, and probably we should merge them into single entity
- */
-public interface AvailableCapacityService {
+@Singleton
+public class NoOpTierSlaUpdater implements TierSlaUpdater {
 
-    Optional<ResourceDimension> totalCapacityOf(Tier tier);
+    private final TieredQueueSlas empty = new TieredQueueSlas(Collections.emptyMap(), Collections.emptyMap());
+
+    @Override
+    public Observable<TieredQueueSlas> tieredQueueSlaUpdates() {
+        return Observable.just(empty).concatWith(Observable.never());
+    }
 }

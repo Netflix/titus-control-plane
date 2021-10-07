@@ -57,7 +57,7 @@ public final class SchedulerModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(VMOperations.class).to(VMOperationsImpl.class);
-        bind(TierSlaUpdater.class).to(DefaultTierSlaUpdater.class);
+        bind(TierSlaUpdater.class).to(NoOpTierSlaUpdater.class);
         bind(PreferentialNamedConsumableResourceEvaluator.class).to(TitusNetworkInterfaceFitnessEvaluator.class);
         bind(new TypeLiteral<SchedulingService<? extends TaskRequest>>() {
         }).to(DefaultSchedulingService.class).asEagerSingleton();
