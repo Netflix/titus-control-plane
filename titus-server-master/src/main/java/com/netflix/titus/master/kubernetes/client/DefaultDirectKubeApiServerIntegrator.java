@@ -164,6 +164,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
         List<V1ContainerStatus> v1ContainerStatus = pods.get(taskId).getStatus().getContainerStatuses();
         ArrayList<ContainerState> containerstates = new ArrayList();
+        if (v1ContainerStatus == null) {
+            return Collections.emptyList();
+        }
         if (v1ContainerStatus.isEmpty() || v1ContainerStatus.size() == 0) {
             // we have pod status but no container status just yet
             return Collections.emptyList();
