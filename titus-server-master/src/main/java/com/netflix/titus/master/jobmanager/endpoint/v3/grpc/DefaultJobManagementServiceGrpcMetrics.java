@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
@@ -91,6 +92,13 @@ class DefaultJobManagementServiceGrpcMetrics {
         }
     }
 
+    void observeJobsEventEmitted(String trxId) {
+        StreamHolder holder = streamHolders.get(trxId);
+        if (holder != null) {
+            holder.eventEmitted();
+        }
+    }
+
     void updatePendingSubscriptionsGauges() {
         Map<String, Integer> counters = new HashMap<>();
         for (StreamHolder holder : streamHolders.values()) {
@@ -114,9 +122,12 @@ class DefaultJobManagementServiceGrpcMetrics {
     private class StreamHolder {
 
         private final String callerId;
+        private final Counter eventsCounter;
 
         private StreamHolder(CallMetadata callMetadata) {
             this.callerId = CollectionsExt.isNullOrEmpty(callMetadata.getCallers()) ? "unknown" : callMetadata.getCallers().get(0).getId();
+            this.eventsCounter = registry.counter(ROOT + "observeJobsSubscriptionEvents",
+                    "callerId", callerId);
         }
 
         private String getCallerId() {
@@ -143,6 +154,10 @@ class DefaultJobManagementServiceGrpcMetrics {
                     "callerId", callerId,
                     "status", "completed"
             ).record(elapsed, TimeUnit.MILLISECONDS);
+        }
+
+        private void eventEmitted() {
+            eventsCounter.increment();
         }
     }
 }
