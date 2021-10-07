@@ -654,7 +654,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     }
                 })
                 .subscribe(
-                        responseObserver::onNext,
+                        event -> {
+                            metrics.observeJobsEventEmitted(trxId);
+                            responseObserver.onNext(event);
+                        },
                         e -> {
                             if (!closingProcessed.getAndSet(true)) {
                                 metrics.observeJobsError(trxId, start.elapsed(TimeUnit.MILLISECONDS), e);
