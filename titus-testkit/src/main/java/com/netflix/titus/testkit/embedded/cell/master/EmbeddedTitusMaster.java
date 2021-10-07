@@ -32,10 +32,8 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.util.Modules;
-import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.JettyModule;
@@ -82,12 +80,8 @@ import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
-import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.mesos.NoOpVirtualMachineMasterService;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
-import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
@@ -132,7 +126,6 @@ public class EmbeddedTitusMaster {
     private final List<AuditLogEvent> auditLogs = new CopyOnWriteArrayList<>();
 
     private ManagedChannel grpcChannel;
-    private final ConcurrentMap<String, OpportunisticCpuAvailability> opportunisticCpuAvailability = new ConcurrentHashMap<>();
 
     private EmbeddedTitusMaster(Builder builder) {
         this.config = new DefaultSettableConfig();
@@ -182,7 +175,6 @@ public class EmbeddedTitusMaster {
             embeddedKubeModule = new EmbeddedKubeModule(embeddedKubeCluster);
         }
 
-        opportunisticCpuAvailability.clear();
         injector = InjectorBuilder.fromModules(
                 Modules.override(new TitusRuntimeModule(false)).with(new AbstractModule() {
                     @Override
@@ -208,7 +200,6 @@ public class EmbeddedTitusMaster {
                                       bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
                                       bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
                                       bind(LoadBalancerJobValidator.class).to(NoOpLoadBalancerJobValidator.class);
-                                      bind(OpportunisticCpuAvailabilityProvider.class).toInstance(() -> new HashMap<>(opportunisticCpuAvailability));
                                   }
 
                                   @Provides
@@ -366,11 +357,6 @@ public class EmbeddedTitusMaster {
         boot();
     }
 
-    public SchedulingService<? extends TaskRequest> getSchedulingService() {
-        return getInstance(new Key<SchedulingService<? extends TaskRequest>>() {
-        });
-    }
-
     public <T> T getInstance(Class<T> type) {
         return injector.getInstance(type);
     }
@@ -405,10 +391,6 @@ public class EmbeddedTitusMaster {
                 .withProperties(properties)
                 .withEnableDisruptionBudget(enableDisruptionBudget)
                 .withV3JobStore(jobStore);
-    }
-
-    public void addOpportunisticCpu(String machineId, OpportunisticCpuAvailability availability) {
-        opportunisticCpuAvailability.put(machineId, availability);
     }
 
     public static class Builder {

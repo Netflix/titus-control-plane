@@ -65,9 +65,6 @@ import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeActi
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import com.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
-import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,9 +104,6 @@ public class JobReconciliationFrameworkFactory {
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobStore store;
     private final ApplicationSlaManagementService capacityGroupService;
-    private final SystemSoftConstraint systemSoftConstraint;
-    private final SystemHardConstraint systemHardConstraint;
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
     private final EntitySanitizer permissiveEntitySanitizer;
     private final EntitySanitizer strictEntitySanitizer;
     private final VersionSupplier versionSupplier;
@@ -130,16 +124,13 @@ public class JobReconciliationFrameworkFactory {
                                              @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
                                              ApplicationSlaManagementService capacityGroupService,
-                                             SystemSoftConstraint systemSoftConstraint,
-                                             SystemHardConstraint systemHardConstraint,
-                                             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              @Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer permissiveEntitySanitizer,
                                              @Named(JOB_STRICT_SANITIZER) EntitySanitizer strictEntitySanitizer,
                                              VersionSupplier versionSupplier,
                                              TitusRuntime titusRuntime) {
         this(jobManagerConfiguration, featureConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store,
-                capacityGroupService, systemSoftConstraint, systemHardConstraint,
-                constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer, versionSupplier,
+                capacityGroupService,
+                permissiveEntitySanitizer, strictEntitySanitizer, versionSupplier,
                 titusRuntime, Optional.empty());
     }
 
@@ -149,9 +140,6 @@ public class JobReconciliationFrameworkFactory {
                                              DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
                                              ApplicationSlaManagementService capacityGroupService,
-                                             SystemSoftConstraint systemSoftConstraint,
-                                             SystemHardConstraint systemHardConstraint,
-                                             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              EntitySanitizer permissiveEntitySanitizer,
                                              EntitySanitizer strictEntitySanitizer,
                                              VersionSupplier versionSupplier,
@@ -161,9 +149,6 @@ public class JobReconciliationFrameworkFactory {
         this.featureConfiguration = featureConfiguration;
         this.store = store;
         this.capacityGroupService = capacityGroupService;
-        this.systemSoftConstraint = systemSoftConstraint;
-        this.systemHardConstraint = systemHardConstraint;
-        this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.permissiveEntitySanitizer = permissiveEntitySanitizer;
         this.strictEntitySanitizer = strictEntitySanitizer;
         this.versionSupplier = versionSupplier;

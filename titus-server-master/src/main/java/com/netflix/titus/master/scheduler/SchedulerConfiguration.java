@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,18 +18,12 @@ package com.netflix.titus.master.scheduler;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.master.scheduler.fitness.networkinterface.TitusNetworkInterfaceFitnessEvaluator;
 
+/**
+ * Configuration used by the regional failover.
+ */
 @Configuration(prefix = "titus.scheduler")
 public interface SchedulerConfiguration {
-
-    /**
-     * @return whether or not the scheduler should be started on initialization. Note: this value is only read at
-     * the time of becoming leader.
-     */
-    @DefaultValue("true")
-    boolean isSchedulerEnabled();
 
     /**
      * @return sleep interval between consecutive scheduler iterations.
@@ -38,137 +32,10 @@ public interface SchedulerConfiguration {
     long getSchedulerIterationIntervalMs();
 
     /**
-     * A way of rate limiting the scheduler loop when there are no perceived changes in the system. Keep in mind that
-     * some scheduler operations (e.g.: opportunistic scheduling) rely on external state changes that are not related to
-     * offers or new tasks arriving.
-     * <p>
-     * A high delay will slow down opportunistic scheduling when no opportunistic resources can be found in a scheduling
-     * iteration. A low delay will cause the scheduler to do more work and consume more resources (CPU/memory) when
-     * tasks are potentially not schedulable and waiting for new offers.
-     *
-     * @return max interval between scheduler iterations when no new offers and no new tasks arrived
-     */
-    @DefaultValue("5000")
-    long getSchedulerMaxIdleIntervalMs();
-
-    /**
-     * @return the maximum amount of concurrent threads to use while computing scheduler placements.
-     */
-    @DefaultValue("8")
-    int getSchedulerMaxConcurrent();
-
-    /**
-     * @return the the amount of successful tasks that should be evaluated in the next scheduling iteration.
-     */
-    @DefaultValue("500")
-    long getTaskBatchSize();
-
-    /**
-     * An option to enable filtering of machines before scheduling iteration.
-     *
-     * @return whether to enable filtering of machines before scheduling iteration.
-     */
-    @DefaultValue("true")
-    boolean isSchedulingMachinesFilterEnabled();
-
-    /**
-     * An option to enable shuffling the machines list from the machines filter.
-     *
-     * @return whether to enable shuffling the machines list from the machines filter.
-     */
-    @DefaultValue("true")
-    boolean isSchedulingMachinesFilterShuffleEnabled();
-
-    /**
-     * @return whether to turn off the constraint that prevents concurrent task launches.
-     */
-    @DefaultValue("true")
-    boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();
-
-    /**
-     * @return the maximum number of launching tasks per machine.
-     */
-    @DefaultValue("1")
-    int getMaxLaunchingTasksPerMachine();
-
-    /**
-     * @return the maximum number of tasks per machine.
-     */
-    @DefaultValue("120")
-    int getMaxTasksPerMachine();
-
-    /**
-     * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
-     *
-     * @return whether or not to use the default fenzo network interface allocation strategy.
-     */
-    @DefaultValue("false")
-    boolean isFenzoNetworkInterfaceAllocationEnabled();
-
-    /**
      * An option to enable spreading for service jobs in the critical tier.
      *
      * @return whether or not to prefer spreading for service jobs in the critical tier.
      */
     @DefaultValue("true")
     boolean isCriticalServiceJobSpreadingEnabled();
-
-    /**
-     * @return whether or not to use system selectors
-     */
-    @DefaultValue("false")
-    boolean isSystemSelectorsEnabled();
-
-    @DefaultValue("true")
-    boolean isExitUponFenzoSchedulingErrorEnabled();
-
-    @DefaultValue("30000")
-    long getTierSlaUpdateIntervalMs();
-
-    /**
-     * Return the attribute name to use to get the instance id.
-     */
-    @DefaultValue("id")
-    String getInstanceAttributeName();
-
-    /**
-     * Return the amount of time in milliseconds that is preferred before re-using a network interface. This delay
-     * only impacts the score during network interface allocation, but will not prevent a network interface from being chosen.
-     */
-    @DefaultValue("300000")
-    long getPreferredNetworkInterfaceDelayMs();
-
-    /**
-     * Amount of time to keep information about task execution failures on an agent.
-     */
-    @DefaultValue("900000")
-    long getContainerFailureTrackingRetentionMs();
-
-    /**
-     * Whether to spread based on job in the Critical tier.
-     */
-    @DefaultValue("true")
-    boolean isCriticalTierJobSpreadingEnabled();
-
-    /**
-     * Availability zone attribute name to look at on the {@link AgentInstance}.
-     */
-    @DefaultValue("availabilityZone")
-    String getAvailabilityZoneAttributeName();
-
-    /**
-     * Machine type attribute name to look at on the {@link AgentInstance}.
-     */
-    @DefaultValue("machineType")
-    String getMachineTypeAttributeName();
-
-    @DefaultValue("600000")
-    long getLeaseDumpIntervalMs();
-
-    /**
-     * @return timeout for waiting for a state dump from the scheduler. A good value is at least
-     * 3 * {@link SchedulerConfiguration#getSchedulerMaxIdleIntervalMs()}.
-     */
-    @DefaultValue("15000")
-    long getStateDumpTimeoutMs();
 }

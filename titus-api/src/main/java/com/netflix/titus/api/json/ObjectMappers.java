@@ -68,8 +68,6 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
-import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
-import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -95,6 +93,8 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
@@ -155,16 +155,6 @@ import com.netflix.titus.api.jobmanager.store.mixin.VolumeMountMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.VolumeSourceMixin;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.scheduler.model.Match;
-import com.netflix.titus.api.scheduler.model.Must;
-import com.netflix.titus.api.scheduler.model.Operator;
-import com.netflix.titus.api.scheduler.model.Should;
-import com.netflix.titus.api.scheduler.model.SystemSelector;
-import com.netflix.titus.api.scheduler.store.mixin.MatchMixin;
-import com.netflix.titus.api.scheduler.store.mixin.MustMixin;
-import com.netflix.titus.api.scheduler.store.mixin.OperatorMixin;
-import com.netflix.titus.api.scheduler.store.mixin.ShouldMixin;
-import com.netflix.titus.api.scheduler.store.mixin.SystemSelectorMixin;
 import com.netflix.titus.api.store.v2.ApplicationSlaMixIn;
 import com.netflix.titus.api.store.v2.ResourceDimensionMixin;
 import com.netflix.titus.common.util.jackson.CommonObjectMappers;
@@ -317,13 +307,6 @@ public class ObjectMappers {
 
         objectMapper.addMixIn(TimeWindow.class, TimeWindowMixIn.class);
         objectMapper.addMixIn(HourlyTimeWindow.class, HourlyTimeWindowMixIn.class);
-
-        // Scheduler
-        objectMapper.addMixIn(Match.class, MatchMixin.class);
-        objectMapper.addMixIn(Must.class, MustMixin.class);
-        objectMapper.addMixIn(Operator.class, OperatorMixin.class);
-        objectMapper.addMixIn(Should.class, ShouldMixin.class);
-        objectMapper.addMixIn(SystemSelector.class, SystemSelectorMixin.class);
 
         return objectMapper;
     }

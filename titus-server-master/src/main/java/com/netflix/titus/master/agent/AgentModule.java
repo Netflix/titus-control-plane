@@ -29,6 +29,7 @@ import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import com.netflix.titus.api.connector.cloud.noop.NoOpInstanceCloudConnector;
 import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
 import com.netflix.titus.common.util.feature.FeatureGuards;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
@@ -43,7 +44,6 @@ import com.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import com.netflix.titus.master.agent.store.AgentStoreReaper;
 import com.netflix.titus.master.agent.store.AgentStoreReaperConfiguration;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
-import com.netflix.titus.master.scheduler.VmOperationsInstanceCloudConnector;
 import rx.schedulers.Schedulers;
 
 public class AgentModule extends AbstractModule {
@@ -59,7 +59,7 @@ public class AgentModule extends AbstractModule {
         bind(AgentStore.class).to(InMemoryAgentStore.class);
         bind(AgentStoreReaper.class).asEagerSingleton();
 
-        bind(InstanceCloudConnector.class).to(VmOperationsInstanceCloudConnector.class);
+        bind(InstanceCloudConnector.class).to(NoOpInstanceCloudConnector.class);
     }
 
     @Provides

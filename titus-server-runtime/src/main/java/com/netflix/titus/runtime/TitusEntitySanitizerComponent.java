@@ -27,7 +27,6 @@ import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder;
 import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
@@ -45,7 +44,6 @@ import static com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder.LOAD_BALANCER_SANITIZER;
-import static com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
 
 @Configuration
 public class TitusEntitySanitizerComponent {
@@ -104,12 +102,6 @@ public class TitusEntitySanitizerComponent {
     @Named(LOAD_BALANCER_SANITIZER)
     public EntitySanitizer getLoadBalancerEntitySanitizer() {
         return new LoadBalancerSanitizerBuilder().build();
-    }
-
-    @Bean
-    @Named(SCHEDULER_SANITIZER)
-    public EntitySanitizer getSchedulerEntitySanitizer() {
-        return new SchedulerSanitizerBuilder().build();
     }
 
     @Bean

@@ -20,11 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -36,7 +33,6 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.jobmanager.store.JobStore;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -48,21 +44,14 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
-import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Observable;
 
 public class BasicTaskActions {
@@ -178,50 +167,6 @@ public class BasicTaskActions {
                             return modelActionHolders;
                         }
                 );
-    }
-
-    /**
-     * Add a task to {@link SchedulingService}, and create runtime entity holder for it.
-     */
-    public static TitusChangeAction scheduleTask(ApplicationSlaManagementService capacityGroupService,
-                                                 SchedulingService<? extends TaskRequest> schedulingService,
-                                                 Job<?> job,
-                                                 Task task,
-                                                 Supplier<Boolean> opportunisticSchedulingEnabled,
-                                                 Supplier<Set<String>> activeTasksGetter,
-                                                 ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-                                                 SystemSoftConstraint systemSoftConstraint,
-                                                 SystemHardConstraint systemHardConstraint,
-                                                 CallMetadata callMetadata) {
-        return TitusChangeAction.newAction("scheduleTask")
-                .task(task)
-                .trigger(V3JobOperations.Trigger.Reconciler)
-                .summary("Adding task to scheduler")
-                .callMetadata(callMetadata)
-                .applyModelUpdate(self -> {
-                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-                    schedulingService.addTask(new V3QueueableTask(
-                            tierAssignment.getLeft(),
-                            tierAssignment.getRight(),
-                            job,
-                            task,
-                            JobFunctions.getJobRuntimePrediction(job),
-                            opportunisticSchedulingEnabled,
-                            activeTasksGetter,
-                            constraintEvaluatorTransformer,
-                            systemSoftConstraint,
-                            systemHardConstraint
-                    ));
-
-                    TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
-                            .summary("Creating new task entity holder")
-                            .taskMaybeUpdate(jobHolder -> {
-                                EntityHolder newTask = EntityHolder.newRoot(task.getId(), task);
-                                EntityHolder newRoot = jobHolder.addChild(newTask);
-                                return Optional.of(Pair.of(newRoot, newTask));
-                            });
-                    return ModelActionHolder.running(modelUpdateAction);
-                });
     }
 
     /**

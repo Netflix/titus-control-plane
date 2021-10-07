@@ -23,10 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import com.netflix.fenzo.ConstraintEvaluator;
-import com.netflix.fenzo.TaskRequest;
-import com.netflix.fenzo.TaskTrackerState;
-import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
@@ -55,9 +51,6 @@ import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
-import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
-import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -103,8 +96,6 @@ public class JobsScenarioBuilder {
 
     private final List<JobScenarioBuilder> jobScenarioBuilders = new ArrayList<>();
 
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = mock(ConstraintEvaluatorTransformer.class);
-
     public JobsScenarioBuilder() {
         this.versionSupplier = VersionSuppliers.newInstance(titusRuntime.getClock());
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
@@ -134,29 +125,6 @@ public class JobsScenarioBuilder {
     }
 
     private DefaultV3JobOperations createAndActivateV3JobOperations() {
-        SystemSoftConstraint systemSoftConstraint = new SystemSoftConstraint() {
-            @Override
-            public String getName() {
-                return "Test System Soft Constraint";
-            }
-
-            @Override
-            public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-                return 1.0;
-            }
-        };
-        SystemHardConstraint systemHardConstraint = new SystemHardConstraint() {
-            @Override
-            public String getName() {
-                return "TestSystemHardConstraint";
-            }
-
-            @Override
-            public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-                return new ConstraintEvaluator.Result(true, "");
-            }
-        };
-
         TokenBucket stuckInStateRateLimiter = Limiters.unlimited("stuckInState");
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 configuration,
@@ -165,9 +133,6 @@ public class JobsScenarioBuilder {
                 capacityGroupService,
                 jobStore,
                 versionSupplier,
-                constraintEvaluatorTransformer,
-                systemSoftConstraint,
-                systemHardConstraint,
                 stuckInStateRateLimiter,
                 titusRuntime,
                 testScheduler
@@ -179,9 +144,6 @@ public class JobsScenarioBuilder {
                 capacityGroupService,
                 jobStore,
                 versionSupplier,
-                constraintEvaluatorTransformer,
-                systemSoftConstraint,
-                systemHardConstraint,
                 stuckInStateRateLimiter,
                 titusRuntime,
                 testScheduler
@@ -215,9 +177,6 @@ public class JobsScenarioBuilder {
                         serviceDifferenceResolver,
                         jobStore,
                         capacityGroupService,
-                        systemSoftConstraint,
-                        systemHardConstraint,
-                        constraintEvaluatorTransformer,
                         newJobSanitizer(VerifierMode.Permissive),
                         newJobSanitizer(VerifierMode.Strict),
                         versionSupplier,

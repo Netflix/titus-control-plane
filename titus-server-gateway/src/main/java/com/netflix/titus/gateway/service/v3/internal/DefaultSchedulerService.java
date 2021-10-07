@@ -16,107 +16,35 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
-import java.util.Set;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.protobuf.Empty;
-import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.sanitizer.ValidationError;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
 import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
-import com.netflix.titus.grpc.protogen.SystemSelector;
-import com.netflix.titus.grpc.protogen.SystemSelectorId;
-import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
-import com.netflix.titus.grpc.protogen.SystemSelectors;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
 import io.grpc.stub.StreamObserver;
-import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createEmptyClientResponseObserver;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultSchedulerService implements SchedulerService {
     private final GrpcClientConfiguration configuration;
     private final SchedulerServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
-    private final EntitySanitizer entitySanitizer;
 
     @Inject
     public DefaultSchedulerService(GrpcClientConfiguration configuration,
                                    SchedulerServiceStub client,
-                                   CallMetadataResolver callMetadataResolver,
-                                   @Named(SCHEDULER_SANITIZER) EntitySanitizer entitySanitizer) {
+                                   CallMetadataResolver callMetadataResolver) {
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
-        this.entitySanitizer = entitySanitizer;
-    }
-
-    @Override
-    public Observable<SystemSelectors> getSystemSelectors() {
-        return createRequestObservable(emitter -> {
-            StreamObserver<SystemSelectors> streamObserver = createSimpleClientResponseObserver(emitter);
-            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
-        }, configuration.getRequestTimeout());
-    }
-
-    @Override
-    public Observable<SystemSelector> getSystemSelector(String id) {
-        return createRequestObservable(emitter -> {
-            StreamObserver<SystemSelector> streamObserver = createSimpleClientResponseObserver(emitter);
-            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
-        }, configuration.getRequestTimeout());
-    }
-
-    @Override
-    public Completable createSystemSelector(SystemSelector systemSelector) {
-        com.netflix.titus.api.scheduler.model.SystemSelector coreSystemSelector = GrpcSchedulerModelConverters.toCoreSystemSelector(systemSelector);
-        Set<ValidationError> violations = entitySanitizer.validate(coreSystemSelector);
-        if (!violations.isEmpty()) {
-            return Completable.error(TitusServiceException.invalidArgument(violations));
-        }
-
-        return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
-        }, configuration.getRequestTimeout());
-    }
-
-    @Override
-    public Completable updateSystemSelector(String id, SystemSelector systemSelector) {
-        com.netflix.titus.api.scheduler.model.SystemSelector coreSystemSelector = GrpcSchedulerModelConverters.toCoreSystemSelector(systemSelector);
-        Set<ValidationError> violations = entitySanitizer.validate(coreSystemSelector);
-        if (!violations.isEmpty()) {
-            return Completable.error(TitusServiceException.invalidArgument(violations));
-        }
-
-        return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            SystemSelectorUpdate systemSelectorUpdate = SystemSelectorUpdate.newBuilder().setId(id).setSystemSelector(systemSelector).build();
-            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
-        }, configuration.getRequestTimeout());
-    }
-
-    @Override
-    public Completable deleteSystemSelector(String id) {
-        return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
-        }, configuration.getRequestTimeout());
     }
 
     @Override

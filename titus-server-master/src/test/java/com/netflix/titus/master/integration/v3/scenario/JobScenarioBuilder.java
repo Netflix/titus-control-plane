@@ -36,7 +36,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.protobuf.Empty;
 import com.google.protobuf.UInt32Value;
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -58,7 +57,6 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeCluster;
@@ -94,8 +92,6 @@ public class JobScenarioBuilder {
     private final EmbeddedTitusOperations titusOperations;
     private final JobsScenarioBuilder jobsScenarioBuilder;
     private final String jobId;
-    private final SchedulingService<? extends TaskRequest> schedulingService;
-    private final DiagnosticReporter diagnosticReporter;
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
 
@@ -108,17 +104,11 @@ public class JobScenarioBuilder {
 
     private final Subscription eventStreamSubscription;
 
-    public JobScenarioBuilder(EmbeddedTitusOperations titusOperations,
-                              JobsScenarioBuilder jobsScenarioBuilder,
-                              String jobId,
-                              SchedulingService<? extends TaskRequest> schedulingService,
-                              DiagnosticReporter diagnosticReporter) {
+    public JobScenarioBuilder(EmbeddedTitusOperations titusOperations, JobsScenarioBuilder jobsScenarioBuilder, String jobId) {
         this.client = titusOperations.getV3GrpcClient();
         this.titusOperations = titusOperations;
         this.jobsScenarioBuilder = jobsScenarioBuilder;
         this.jobId = jobId;
-        this.schedulingService = schedulingService;
-        this.diagnosticReporter = diagnosticReporter;
 
         // FIXME Job is not made immediately visible after it is accepted by reconciliation framework
         rethrow(() -> Thread.sleep(1000));
@@ -636,8 +626,7 @@ public class JobScenarioBuilder {
 
         private TaskHolder() {
             this.taskEventStream = ReplaySubject.create();
-            this.taskScenarioBuilder = new TaskScenarioBuilder(titusOperations, JobScenarioBuilder.this, taskEventStream,
-                    schedulingService, diagnosticReporter);
+            this.taskScenarioBuilder = new TaskScenarioBuilder(titusOperations, JobScenarioBuilder.this, taskEventStream);
         }
 
         private TaskScenarioBuilder getTaskScenarioBuilder() {

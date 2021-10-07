@@ -25,7 +25,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -34,7 +33,6 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.Page;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -59,8 +57,6 @@ public class JobsScenarioBuilder extends ExternalResource {
 
     private EmbeddedTitusOperations titusOperations;
     private JobManagementServiceGrpc.JobManagementServiceStub client;
-    private SchedulingService<? extends TaskRequest> schedulingService;
-    private DiagnosticReporter diagnosticReporter;
 
     private final List<JobScenarioBuilder> jobScenarioBuilders = new ArrayList<>();
 
@@ -89,13 +85,9 @@ public class JobsScenarioBuilder extends ExternalResource {
     protected void before() throws Throwable {
         if (titusStackResource != null) {
             this.titusOperations = titusStackResource.getOperations();
-            this.schedulingService = titusStackResource.getMaster().getSchedulingService();
-            this.diagnosticReporter = new DiagnosticReporter(titusStackResource.getMaster());
         }
         if (titusMasterResource != null) {
             this.titusOperations = titusMasterResource.getOperations();
-            this.schedulingService = titusMasterResource.getMaster().getSchedulingService();
-            this.diagnosticReporter = new DiagnosticReporter(titusMasterResource.getMaster());
         }
         this.client = titusOperations.getV3GrpcClient();
         this.jobScenarioBuilders.addAll(loadJobs());
@@ -127,7 +119,7 @@ public class JobsScenarioBuilder extends ExternalResource {
         TestStreamObserver<JobChangeNotification> eventStream = new TestStreamObserver<>();
         client.observeJob(jobId, eventStream);
 
-        JobScenarioBuilder jobScenarioBuilder = new JobScenarioBuilder(titusOperations, this, jobId.getId(), schedulingService, diagnosticReporter);
+        JobScenarioBuilder jobScenarioBuilder = new JobScenarioBuilder(titusOperations, this, jobId.getId());
         jobScenarioBuilders.add(jobScenarioBuilder);
 
         jobScenario.apply(jobScenarioBuilder);
@@ -205,7 +197,7 @@ public class JobsScenarioBuilder extends ExternalResource {
 
                 List<JobScenarioBuilder> result = new ArrayList<>();
                 queryResult.getItemsList().forEach(job -> {
-                    result.add(new JobScenarioBuilder(titusOperations, this, job.getId(), schedulingService, diagnosticReporter));
+                    result.add(new JobScenarioBuilder(titusOperations, this, job.getId()));
                 });
 
                 return result;

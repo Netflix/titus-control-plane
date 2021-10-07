@@ -57,8 +57,6 @@ import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.KubeFitAction;
-import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.Fit;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import org.slf4j.Logger;
@@ -115,15 +113,10 @@ public class TitusRuntimeModule extends AbstractModule {
             FitComponent root = fitFramework.getRootComponent();
             root.createChild(LeaderActivator.COMPONENT);
             root.createChild(V3JobOperations.COMPONENT);
-            root.createChild(SchedulingService.COMPONENT);
             root.createChild(DirectKubeApiServerIntegrator.COMPONENT);
 
             // Add custom FIT actions
             FitRegistry fitRegistry = fitFramework.getFitRegistry();
-            fitRegistry.registerActionKind(
-                    MesosStatusOverrideFitAction.DESCRIPTOR,
-                    (id, properties) -> injection -> new MesosStatusOverrideFitAction(id, properties, injection)
-            );
             fitRegistry.registerActionKind(
                     JobStoreFitAction.DESCRIPTOR,
                     (id, properties) -> injection -> new JobStoreFitAction(id, properties, injection)
