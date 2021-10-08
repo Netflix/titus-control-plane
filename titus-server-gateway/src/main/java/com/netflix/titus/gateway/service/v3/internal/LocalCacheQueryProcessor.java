@@ -206,7 +206,7 @@ public class LocalCacheQueryProcessor {
 
         List<com.netflix.titus.api.jobmanager.model.job.Job> matchingJobs = new ArrayList<>();
         jobsById.forEach((jobId, job) -> {
-            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = jobSnapshot.getTasks(jobId);
+            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = new ArrayList<>(jobSnapshot.getTasks(jobId).values());
             Pair<Job<?>, List<com.netflix.titus.api.jobmanager.model.job.Task>> jobTaskPair = Pair.of(job, tasks);
             if (queryFilter.test(jobTaskPair)) {
                 matchingJobs.add(job);
@@ -224,9 +224,9 @@ public class LocalCacheQueryProcessor {
 
         List<com.netflix.titus.api.jobmanager.model.job.Task> matchingTasks = new ArrayList<>();
         jobsById.forEach((jobId, job) -> {
-            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = jobSnapshot.getTasks(jobId);
+            Map<String, com.netflix.titus.api.jobmanager.model.job.Task> tasks = jobSnapshot.getTasks(jobId);
             if (!CollectionsExt.isNullOrEmpty(tasks)) {
-                tasks.forEach(task -> {
+                tasks.forEach((taskId, task) -> {
                     Pair<Job<?>, com.netflix.titus.api.jobmanager.model.job.Task> jobTaskPair = Pair.of(job, task);
                     if (queryFilter.test(jobTaskPair)) {
                         matchingTasks.add(task);
@@ -246,7 +246,7 @@ public class LocalCacheQueryProcessor {
         Map<String, Job<?>> allJobsMap = snapshot.getJobMap();
 
         allJobsMap.forEach((jobId, job) -> {
-            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = snapshot.getTasks(jobId);
+            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = new ArrayList<>(snapshot.getTasks(jobId).values());
             if (jobsPredicate.test(Pair.of(job, tasks))) {
                 result.add(toGrpcJobEvent(job, now));
             }
@@ -272,7 +272,7 @@ public class LocalCacheQueryProcessor {
         if (event instanceof JobUpdateEvent) {
             JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
             Job<?> job = jobUpdateEvent.getCurrent();
-            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = snapshot.getTasks(job.getId());
+            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = new ArrayList<>(snapshot.getTasks(job.getId()).values());
             return jobsPredicate.test(Pair.of(job, tasks)) ? Optional.of(toGrpcJobEvent(job, now)) : Optional.empty();
         }
 

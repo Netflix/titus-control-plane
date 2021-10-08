@@ -149,7 +149,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
         private ReplicatorEvent<JobSnapshot, JobManagerEvent<?>> buildInitialCache() {
             Map<String, Job<?>> jobs = new HashMap<>();
-            Map<String, List<Task>> tasksByJobId = new HashMap<>();
+            Map<String, Map<String, Task>> tasksByJobId = new HashMap<>();
             snapshotEvents.forEach(event -> {
                 if (event instanceof JobUpdateEvent) {
                     Job<?> job = ((JobUpdateEvent) event).getCurrent();
@@ -159,7 +159,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                     Task task = taskUpdateEvent.getCurrent();
                     Job<?> taskJob = jobs.get(task.getJobId());
                     if (taskJob != null) {
-                        tasksByJobId.computeIfAbsent(task.getJobId(), t -> new ArrayList<>()).add(task);
+                        tasksByJobId.computeIfAbsent(task.getJobId(), t -> new HashMap<>()).put(task.getId(), task);
                     } else {
                         titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                     }

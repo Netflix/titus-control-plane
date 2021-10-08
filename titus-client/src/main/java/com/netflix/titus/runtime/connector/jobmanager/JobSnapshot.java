@@ -61,14 +61,14 @@ public abstract class JobSnapshot extends ReplicatedSnapshot {
     @Deprecated
     public abstract List<Task> getTasks();
 
-    public abstract List<Task> getTasks(String jobId);
+    public abstract Map<String, Task> getTasks(String jobId);
 
     /**
      * This value is expensive to compute on each update. {@link PCollectionJobSnapshot} computes it lazily to avoid
      * the overhead. Consider using other methods.
      */
     @Deprecated
-    public abstract List<Pair<Job<?>, List<Task>>> getJobsAndTasks();
+    public abstract List<Pair<Job<?>, Map<String, Task>>> getJobsAndTasks();
 
     public abstract Optional<Pair<Job<?>, Task>> findTaskById(String taskId);
 

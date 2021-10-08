@@ -16,7 +16,6 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -53,7 +52,7 @@ public final class JobSnapshotFactories {
     private static class LegacyJobSnapshotFactory implements JobSnapshotFactory {
 
         @Override
-        public JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+        public JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId) {
             return LegacyJobSnapshot.newInstance(UUID.randomUUID().toString(), jobsById, tasksByJobId);
         }
     }
@@ -69,7 +68,7 @@ public final class JobSnapshotFactories {
         }
 
         @Override
-        public JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+        public JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId) {
             return PCollectionJobSnapshot.newInstance(
                     UUID.randomUUID().toString(),
                     jobsById,

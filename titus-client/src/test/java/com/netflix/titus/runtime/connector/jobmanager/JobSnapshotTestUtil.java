@@ -16,9 +16,7 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -30,10 +28,10 @@ import com.netflix.titus.testkit.model.job.JobGenerator;
 
 class JobSnapshotTestUtil {
 
-    static JobSnapshot newSnapshot(JobSnapshotFactory factory, Pair<Job<?>, List<Task>>... pairs) {
+    static JobSnapshot newSnapshot(JobSnapshotFactory factory, Pair<Job<?>, Map<String, Task>>... pairs) {
         Map<String, Job<?>> jobsById = new HashMap<>();
-        Map<String, List<Task>> tasksByJobId = new HashMap<>();
-        for (Pair<Job<?>, List<Task>> pair : pairs) {
+        Map<String, Map<String, Task>> tasksByJobId = new HashMap<>();
+        for (Pair<Job<?>, Map<String, Task>> pair : pairs) {
             Job<?> job = pair.getLeft();
             jobsById.put(job.getId(), job);
             tasksByJobId.put(job.getId(), pair.getRight());
@@ -41,11 +39,12 @@ class JobSnapshotTestUtil {
         return factory.newSnapshot(jobsById, tasksByJobId);
     }
 
-    static Pair<Job<?>, List<Task>> newJobWithTasks(int jobIdx, int taskCount) {
+    static Pair<Job<?>, Map<String, Task>> newJobWithTasks(int jobIdx, int taskCount) {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob().toBuilder().withId("job#" + jobIdx).build();
-        List<Task> tasks = new ArrayList<>();
+        Map<String, Task> tasks = new HashMap<>();
         for (int t = 0; t < taskCount; t++) {
-            tasks.add(newTask(job, t));
+            BatchJobTask task = newTask(job, t);
+            tasks.put(task.getId(), task);
         }
         return Pair.of(job, tasks);
     }

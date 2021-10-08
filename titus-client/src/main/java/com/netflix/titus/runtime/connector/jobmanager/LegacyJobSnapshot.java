@@ -45,10 +45,10 @@ public class LegacyJobSnapshot extends JobSnapshot {
     private static final LegacyJobSnapshot EMPTY = new Builder("empty", Collections.emptyMap(), Collections.emptyMap()).build();
 
     private final Map<String, Job<?>> jobsById;
-    private final Map<String, List<Task>> tasksByJobId;
+    private final Map<String, Map<String, Task>> tasksByJobId;
     private final List<Job<?>> allJobs;
     private final List<Task> allTasks;
-    private final List<Pair<Job<?>, List<Task>>> allJobsAndTasks;
+    private final List<Pair<Job<?>, Map<String, Task>>> allJobsAndTasks;
     private final Map<String, Task> taskById;
 
     private final String signature;
@@ -57,11 +57,11 @@ public class LegacyJobSnapshot extends JobSnapshot {
         return EMPTY;
     }
 
-    public static LegacyJobSnapshot newInstance(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+    public static LegacyJobSnapshot newInstance(String snapshotId, Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId) {
         return new Builder(snapshotId, jobsById, tasksByJobId).build();
     }
 
-    public static Builder newBuilder(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+    public static Builder newBuilder(String snapshotId, Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId) {
         return new Builder(snapshotId, jobsById, tasksByJobId);
     }
 
@@ -69,8 +69,8 @@ public class LegacyJobSnapshot extends JobSnapshot {
         return new Builder(snapshotId);
     }
 
-    private LegacyJobSnapshot(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId,
-                              List<Job<?>> allJobs, List<Task> allTasks, List<Pair<Job<?>, List<Task>>> allJobsAndTasks,
+    private LegacyJobSnapshot(String snapshotId, Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId,
+                              List<Job<?>> allJobs, List<Task> allTasks, List<Pair<Job<?>, Map<String, Task>>> allJobsAndTasks,
                               Map<String, Task> taskById) {
         super(snapshotId);
         this.jobsById = jobsById;
@@ -104,11 +104,13 @@ public class LegacyJobSnapshot extends JobSnapshot {
         return allTasks;
     }
 
-    public List<Task> getTasks(String jobId) {
-        return tasksByJobId.getOrDefault(jobId, Collections.emptyList());
+    @Override
+    public Map<String, Task> getTasks(String jobId) {
+        return tasksByJobId.getOrDefault(jobId, Collections.emptyMap());
     }
 
-    public List<Pair<Job<?>, List<Task>>> getJobsAndTasks() {
+    @Override
+    public List<Pair<Job<?>, Map<String, Task>>> getJobsAndTasks() {
         return allJobsAndTasks;
     }
 
@@ -166,7 +168,7 @@ public class LegacyJobSnapshot extends JobSnapshot {
     public String toString() {
         StringBuilder sb = new StringBuilder("JobSnapshot2{snapshotId=").append(snapshotId).append(", jobs=");
         jobsById.forEach((id, job) -> {
-            List<Task> tasks = tasksByJobId.get(id);
+            Map<String, Task> tasks = tasksByJobId.get(id);
             int tasksCount = tasks == null ? 0 : tasks.size();
             sb.append(id).append('=').append(tasksCount).append(',');
         });
@@ -184,7 +186,7 @@ public class LegacyJobSnapshot extends JobSnapshot {
     public static class Builder {
         private final String snapshotId;
         private final Map<String, Job<?>> jobsById;
-        private final Map<String, List<Task>> tasksByJobId;
+        private final Map<String, Map<String, Task>> tasksByJobId;
 
         private Builder(String snapshotId) {
             this.snapshotId = snapshotId;
@@ -196,24 +198,22 @@ public class LegacyJobSnapshot extends JobSnapshot {
             this(from.snapshotId, from.jobsById, from.tasksByJobId);
         }
 
-        private Builder(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+        private Builder(String snapshotId, Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId) {
             this.snapshotId = snapshotId;
             this.jobsById = new HashMap<>(jobsById);
-            HashMap<String, List<Task>> copy = new HashMap<>();
-            tasksByJobId.forEach((jobId, tasks) -> copy.put(jobId, new ArrayList<>(tasks)));
+            HashMap<String, Map<String, Task>> copy = new HashMap<>();
+            tasksByJobId.forEach((jobId, tasks) -> copy.put(jobId, new HashMap<>(tasks)));
             this.tasksByJobId = copy;
         }
 
         public LegacyJobSnapshot build() {
             List<Task> allTasks = new ArrayList<>();
-            Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
+            Map<String, Map<String, Task>> immutableTasksByJobId = new HashMap<>();
             Map<String, Task> taskById = new HashMap<>();
             this.tasksByJobId.forEach((jobId, tasks) -> {
-                allTasks.addAll(tasks);
-                immutableTasksByJobId.put(jobId, unmodifiableList(tasks));
-                for (Task task : tasks) {
-                    taskById.put(task.getId(), task);
-                }
+                allTasks.addAll(tasks.values());
+                immutableTasksByJobId.put(jobId, unmodifiableMap(tasks));
+                taskById.putAll(tasks);
             });
 
             return new LegacyJobSnapshot(
@@ -245,8 +245,9 @@ public class LegacyJobSnapshot extends JobSnapshot {
                     task.getJobId();
             Preconditions.checkArgument(StringExt.isNotEmpty(jobIdIndexToUpdate));
 
-            if (tasksByJobId.containsKey(jobIdIndexToUpdate)) {
-                tasksByJobId.get(jobIdIndexToUpdate).removeIf(t -> t.getId().equals(task.getId()));
+            Map<String, Task> tasks = tasksByJobId.get(jobIdIndexToUpdate);
+            if (tasks != null) {
+                tasks.remove(task.getId());
             }
 
             return this;
@@ -256,23 +257,26 @@ public class LegacyJobSnapshot extends JobSnapshot {
             if (movedFromAnotherJob) {
                 removeTask(task, true);
             }
-            tasksByJobId.putIfAbsent(task.getJobId(), new ArrayList<>());
-            List<Task> jobTasks = tasksByJobId.get(task.getJobId());
-            jobTasks.removeIf(t -> t.getId().equals(task.getId()));
-            jobTasks.add(task);
+            Map<String, Task> jobTasks = tasksByJobId.get(task.getJobId());
+            if (jobTasks == null) {
+                jobTasks = new HashMap<>();
+                tasksByJobId.put(task.getJobId(), jobTasks);
+            }
+            jobTasks.put(task.getId(), task);
 
             return this;
         }
 
-        private static List<Pair<Job<?>, List<Task>>> buildAllJobsAndTasksList(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
-            List<Pair<Job<?>, List<Task>>> result = new ArrayList<>();
+        private static List<Pair<Job<?>, Map<String, Task>>> buildAllJobsAndTasksList(Map<String, Job<?>> jobsById,
+                                                                                      Map<String, Map<String, Task>> tasksByJobId) {
+            List<Pair<Job<?>, Map<String, Task>>> result = new ArrayList<>();
 
             jobsById.values().forEach(job -> {
-                List<Task> tasks = tasksByJobId.get(job.getId());
+                Map<String, Task> tasks = tasksByJobId.get(job.getId());
                 if (CollectionsExt.isNullOrEmpty(tasks)) {
-                    result.add(Pair.of(job, Collections.emptyList()));
+                    result.add(Pair.of(job, Collections.emptyMap()));
                 } else {
-                    result.add(Pair.of(job, unmodifiableList(tasks)));
+                    result.add(Pair.of(job, unmodifiableMap(tasks)));
                 }
             });
 
