@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -38,8 +39,8 @@ public class PCollectionJobSnapshotTest {
 
     @Test
     public void testAutoFixMode() {
-        Pair<Job<?>, List<Task>> pair1 = newJobWithTasks(1, 2);
-        List<Task> tasks1 = pair1.getRight();
+        Pair<Job<?>, Map<String, Task>> pair1 = newJobWithTasks(1, 2);
+        List<Task> tasks1 = new ArrayList<>(pair1.getRight().values());
 
         JobSnapshot initial = newSnapshot(newFactory(true), pair1);
         JobSnapshot updated = initial.updateTask(tasks1.get(0), true).orElse(null);
@@ -49,8 +50,8 @@ public class PCollectionJobSnapshotTest {
 
     @Test
     public void testNoAutoFixMode() {
-        Pair<Job<?>, List<Task>> pair1 = newJobWithTasks(1, 2);
-        List<Task> tasks1 = pair1.getRight();
+        Pair<Job<?>, Map<String, Task>> pair1 = newJobWithTasks(1, 2);
+        List<Task> tasks1 = new ArrayList<>(pair1.getRight().values());
 
         JobSnapshot initial = newSnapshot(newFactory(false), pair1);
         try {

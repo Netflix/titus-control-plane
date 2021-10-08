@@ -18,7 +18,6 @@ package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +35,8 @@ import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.model.job.JobGenerator;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
 import org.pcollections.PSequence;
 import org.pcollections.TreePVector;
 
@@ -56,21 +57,21 @@ public class JobSnapshotPerf {
     private final Random random = new Random();
 
     private JobSnapshot snapshot;
-    private PSequence<Pair<Job<?>, PSequence<Task>>> jobAndTasks = TreePVector.empty();
+    private PSequence<Pair<Job<?>, PMap<String, Task>>> jobAndTasks = TreePVector.empty();
 
     public JobSnapshotPerf(int jobCount, int taskPerJobCount, double createUpdateRatio, boolean legacyMode) {
         this.taskPerJobCount = taskPerJobCount;
         this.createUpdateRatio = createUpdateRatio;
         Map<String, Job<?>> jobs = new HashMap<>();
-        Map<String, List<Task>> taskByJobId = new HashMap<>();
+        Map<String, Map<String, Task>> taskByJobId = new HashMap<>();
         for (int j = 0; j < jobCount; j++) {
-            Pair<Job<?>, List<Task>> jobWithTasks = newJobWithTasks();
+            Pair<Job<?>, Map<String, Task>> jobWithTasks = newJobWithTasks();
             Job<?> job = jobWithTasks.getLeft();
-            List<Task> tasks = jobWithTasks.getRight();
+            Map<String, Task> tasks = jobWithTasks.getRight();
 
             jobs.put(job.getId(), job);
             taskByJobId.put(job.getId(), tasks);
-            jobAndTasks = jobAndTasks.plus(Pair.of(job, TreePVector.from(tasks)));
+            jobAndTasks = jobAndTasks.plus(Pair.of(job, HashTreePMap.from(tasks)));
         }
         this.snapshot = legacyMode
                 ? LegacyJobSnapshot.newInstance("test", jobs, taskByJobId)
@@ -79,11 +80,12 @@ public class JobSnapshotPerf {
                 });
     }
 
-    private Pair<Job<?>, List<Task>> newJobWithTasks() {
+    private Pair<Job<?>, Map<String, Task>> newJobWithTasks() {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob().toBuilder().withId("job#" + jobIdx.getAndIncrement()).build();
-        List<Task> tasks = new ArrayList<>();
+        Map<String, Task> tasks = new HashMap<>();
         for (int t = 0; t < taskPerJobCount; t++) {
-            tasks.add(newTask(job));
+            BatchJobTask task = newTask(job);
+            tasks.put(task.getId(), task);
         }
         return Pair.of(job, tasks);
     }
@@ -121,9 +123,9 @@ public class JobSnapshotPerf {
     private void createJob() {
         Job<?> toRemove = jobAndTasks.get(0).getLeft();
 
-        Pair<Job<?>, List<Task>> toAdd = newJobWithTasks();
+        Pair<Job<?>, Map<String, Task>> toAdd = newJobWithTasks();
         Job<?> toAddJob = toAdd.getLeft();
-        List<Task> toAddTasks = toAdd.getRight();
+        Map<String, Task> toAddTasks = toAdd.getRight();
 
         // Remove old job by moving it to the finished state.
         Job<?> finishedJob = toRemove.toBuilder().withStatus(JobStatus.newBuilder().withState(JobState.Finished).build()).build();
@@ -131,17 +133,17 @@ public class JobSnapshotPerf {
 
         // Add new job as a replacement
         snapshot.updateJob(toAddJob).ifPresent(newSnapshot -> this.snapshot = newSnapshot);
-        toAddTasks.forEach(task ->
+        toAddTasks.forEach((taskId, task) ->
                 snapshot.updateTask(task, false).ifPresent(newSnapshot -> this.snapshot = newSnapshot)
         );
 
         // Clean local map
-        jobAndTasks = jobAndTasks.minus(0).plus(Pair.of(toAddJob, TreePVector.from(toAddTasks)));
+        jobAndTasks = jobAndTasks.minus(0).plus(Pair.of(toAddJob, HashTreePMap.from(toAddTasks)));
     }
 
     private void updateJob() {
         int idx = random.nextInt(jobAndTasks.size());
-        Pair<Job<?>, PSequence<Task>> jobToUpdate = jobAndTasks.get(idx);
+        Pair<Job<?>, PMap<String, Task>> jobToUpdate = jobAndTasks.get(idx);
         Job<?> updatedJob = jobToUpdate.getLeft().toBuilder().withVersion(Version.newBuilder().withTimestamp(System.currentTimeMillis()).build()).build();
 
         snapshot.updateJob(updatedJob).ifPresent(newSnapshot -> this.snapshot = newSnapshot);
@@ -152,14 +154,14 @@ public class JobSnapshotPerf {
 
     private void createTask() {
         int idx = random.nextInt(jobAndTasks.size());
-        Pair<Job<?>, PSequence<Task>> toUpdate = this.jobAndTasks.get(idx);
+        Pair<Job<?>, PMap<String, Task>> toUpdate = this.jobAndTasks.get(idx);
 
         Job<?> job = toUpdate.getLeft();
-        PSequence<Task> tasks = toUpdate.getRight();
+        PMap<String, Task> tasks = toUpdate.getRight();
 
         // Remove task
         int taskIdx = random.nextInt(tasks.size());
-        Task taskToRemove = tasks.get(taskIdx);
+        Task taskToRemove = new ArrayList<>(tasks.values()).get(taskIdx);
         Task finishedTask = taskToRemove.toBuilder().withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build()).build();
         snapshot.updateTask(finishedTask, false).ifPresent(newSnapshot -> this.snapshot = newSnapshot);
 
@@ -168,23 +170,23 @@ public class JobSnapshotPerf {
         snapshot.updateTask(newTask, false).ifPresent(newSnapshot -> this.snapshot = newSnapshot);
 
         // Clean local map
-        jobAndTasks = jobAndTasks.with(idx, Pair.of(job, tasks.minus(taskIdx).plus(newTask)));
+        jobAndTasks = jobAndTasks.with(idx, Pair.of(job, tasks.minus(taskIdx).plus(newTask.getId(), newTask)));
     }
 
     private void updateTask() {
         int idx = random.nextInt(jobAndTasks.size());
-        Pair<Job<?>, PSequence<Task>> toUpdate = this.jobAndTasks.get(idx);
+        Pair<Job<?>, PMap<String, Task>> toUpdate = this.jobAndTasks.get(idx);
 
         Job<?> job = toUpdate.getLeft();
-        PSequence<Task> tasks = toUpdate.getRight();
+        PMap<String, Task> tasks = toUpdate.getRight();
 
         int taskIdx = random.nextInt(tasks.size());
-        Task taskToUpdate = tasks.get(taskIdx);
+        Task taskToUpdate = new ArrayList<>(tasks.values()).get(taskIdx);
         Task updatedTask = taskToUpdate.toBuilder().withVersion(Version.newBuilder().withTimestamp(System.currentTimeMillis()).build()).build();
         snapshot.updateTask(updatedTask, false).ifPresent(newSnapshot -> this.snapshot = newSnapshot);
 
         // Clean local map
-        jobAndTasks = jobAndTasks.with(idx, Pair.of(job, tasks.with(taskIdx, updatedTask)));
+        jobAndTasks = jobAndTasks.with(idx, Pair.of(job, tasks.plus(updatedTask.getId(), updatedTask)));
     }
 
     public static void main(String[] args) {

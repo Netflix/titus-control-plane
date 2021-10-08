@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -63,7 +64,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
 
     @Override
     public List<Task> getTasks(String jobId) {
-        return replicator.getCurrent().getTasks(jobId);
+        return new ArrayList<>(replicator.getCurrent().getTasks(jobId).values());
     }
 
     @Override
@@ -76,7 +77,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
         JobSnapshot snapshot = replicator.getCurrent();
 
         return snapshot.getJobMap().values().stream()
-                .filter(job -> queryPredicate.test(Pair.of(job, snapshot.getTasks(job.getId()))))
+                .filter(job -> queryPredicate.test(Pair.of(job, new ArrayList<>(snapshot.getTasks(job.getId()).values()))))
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());
@@ -87,7 +88,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
         JobSnapshot snapshot = replicator.getCurrent();
 
         return snapshot.getJobMap().values().stream()
-                .flatMap(job -> snapshot.getTasks(job.getId()).stream()
+                .flatMap(job -> snapshot.getTasks(job.getId()).values().stream()
                         .filter(task -> queryPredicate.test(Pair.of(job, task)))
                         .map(task -> Pair.<Job<?>, Task>of(job, task))
                 )
@@ -113,7 +114,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
                     if (event.getRight() instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event.getRight();
                         Job<?> job = jobUpdateEvent.getCurrent();
-                        List<Task> tasks = replicator.getCurrent().getTasks(job.getId());
+                        List<Task> tasks = new ArrayList<>(replicator.getCurrent().getTasks(job.getId()).values());
                         return jobsPredicate.test(Pair.of(job, tasks));
                     }
                     if (event.getRight() instanceof TaskUpdateEvent) {

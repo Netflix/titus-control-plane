@@ -32,12 +32,14 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
-import org.pcollections.PSequence;
-import org.pcollections.TreePVector;
 
+/**
+ * TODO Finished tasks are not handled correctly for batch jobs (they are in active data set until replaced).
+ */
 public class PCollectionJobSnapshot extends JobSnapshot {
 
     private static final JobSnapshot EMPTY = newInstance(
@@ -45,7 +47,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
             });
 
     private final PMap<String, Job<?>> jobsById;
-    private final PMap<String, PSequence<Task>> tasksByJobId;
+    private final PMap<String, PMap<String, Task>> tasksByJobId;
     private final PMap<String, Task> taskById;
     private final boolean autoFixInconsistencies;
     private final Consumer<String> inconsistentDataListener;
@@ -59,7 +61,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
     private volatile List<Task> allTasks;
     private final Lock allTasksLock = new ReentrantLock();
 
-    private volatile List<Pair<Job<?>, List<Task>>> allJobTaskPairs;
+    private volatile List<Pair<Job<?>, Map<String, Task>>> allJobTaskPairs;
     private final Lock allJobTaskPairsLock = new ReentrantLock();
 
     public static JobSnapshot empty() {
@@ -68,20 +70,20 @@ public class PCollectionJobSnapshot extends JobSnapshot {
 
     public static JobSnapshot newInstance(String snapshotId,
                                           Map<String, Job<?>> jobsById,
-                                          Map<String, List<Task>> tasksByJobId,
+                                          Map<String, Map<String, Task>> tasksByJobId,
                                           boolean autoFixInconsistencies,
                                           Consumer<String> inconsistentDataListener) {
-        Map<String, PSequence<Task>> mTasksByJobId = new HashMap<>();
+        Map<String, PMap<String, Task>> mTasksByJobId = new HashMap<>();
         Map<String, Task> taskById = new HashMap<>();
         jobsById.forEach((jobId, job) -> {
             if (!tasksByJobId.containsKey(jobId)) {
-                mTasksByJobId.put(jobId, TreePVector.empty());
+                mTasksByJobId.put(jobId, HashTreePMap.empty());
             }
         });
         tasksByJobId.forEach((jobId, tasks) -> {
-            TreePVector<Task> pTasks = TreePVector.from(tasks);
+            PMap<String, Task> pTasks = HashTreePMap.from(tasks);
             mTasksByJobId.put(jobId, pTasks);
-            tasks.forEach(task -> taskById.put(task.getId(), task));
+            taskById.putAll(tasks);
         });
 
         return new PCollectionJobSnapshot(
@@ -96,7 +98,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
 
     private PCollectionJobSnapshot(String snapshotId,
                                    PMap<String, Job<?>> jobsById,
-                                   PMap<String, PSequence<Task>> tasksByJobId,
+                                   PMap<String, PMap<String, Task>> tasksByJobId,
                                    PMap<String, Task> taskById,
                                    boolean autoFixInconsistencies,
                                    Consumer<String> inconsistentDataListener) {
@@ -119,6 +121,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         }
         allJobsLock.lock();
         try {
+            if (allJobs != null) {
+                return allJobs;
+            }
             this.allJobs = Collections.unmodifiableList(new ArrayList<>(jobsById.values()));
         } finally {
             allJobsLock.unlock();
@@ -141,6 +146,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         }
         allTasksLock.lock();
         try {
+            if (allTasks != null) {
+                return allTasks;
+            }
             this.allTasks = Collections.unmodifiableList(new ArrayList<>(taskById.values()));
         } finally {
             allTasksLock.unlock();
@@ -148,23 +156,29 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         return allTasks;
     }
 
-    public List<Task> getTasks(String jobId) {
-        PSequence<Task> tasks = tasksByJobId.get(jobId);
+    @Override
+    public Map<String, Task> getTasks(String jobId) {
+        PMap<String, Task> tasks = tasksByJobId.get(jobId);
         if (tasks == null) {
-            return TreePVector.empty();
+            return HashTreePMap.empty();
         }
         return tasks;
     }
 
-    public List<Pair<Job<?>, List<Task>>> getJobsAndTasks() {
+    @Override
+    public List<Pair<Job<?>, Map<String, Task>>> getJobsAndTasks() {
         if (allJobTaskPairs != null) {
             return allJobTaskPairs;
         }
         allJobTaskPairsLock.lock();
         try {
-            List<Pair<Job<?>, List<Task>>> acc = new ArrayList<>();
+            if (allJobTaskPairs != null) {
+                return allJobTaskPairs;
+            }
+
+            List<Pair<Job<?>, Map<String, Task>>> acc = new ArrayList<>();
             jobsById.forEach((jobId, job) -> {
-                PSequence<Task> tasks = tasksByJobId.getOrDefault(jobId, TreePVector.empty());
+                Map<String, Task> tasks = tasksByJobId.getOrDefault(jobId, HashTreePMap.empty());
                 acc.add(Pair.of(job, tasks));
             });
             this.allJobTaskPairs = acc;
@@ -190,10 +204,10 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         if (previous == null && job.getStatus().getState() == JobState.Finished) {
             return Optional.empty();
         }
-
         if (job.getStatus().getState() == JobState.Finished) {
             return Optional.of(removeJob(job));
-        } else if (previous == null) {
+        }
+        if (previous == null) {
             return Optional.of(addNewJob(job));
         }
         return Optional.of(updateExistingJob(job));
@@ -222,7 +236,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById.plus(job.getId(), job),
-                tasksByJobId.plus(job.getId(), TreePVector.empty()),
+                tasksByJobId.plus(job.getId(), HashTreePMap.empty()),
                 taskById,
                 autoFixInconsistencies,
                 inconsistentDataListener
@@ -241,18 +255,12 @@ public class PCollectionJobSnapshot extends JobSnapshot {
     }
 
     private JobSnapshot removeJob(Job<?> job) {
-        PMap<String, Task> newTaskById = taskById;
-        for (Task task : taskById.values()) {
-            if (task.getJobId().equals(job.getId())) {
-                newTaskById = newTaskById.minus(task.getId());
-            }
-        }
-
+        PMap<String, Task> tasks = tasksByJobId.get(job.getId());
         return new PCollectionJobSnapshot(
                 this.snapshotId,
                 jobsById.minus(job.getId()),
                 tasksByJobId.minus(job.getId()),
-                newTaskById,
+                CollectionsExt.isNullOrEmpty(tasks) ? taskById : taskById.minusAll(tasks.keySet()),
                 autoFixInconsistencies,
                 inconsistentDataListener
         );
@@ -260,15 +268,15 @@ public class PCollectionJobSnapshot extends JobSnapshot {
 
     private JobSnapshot addNewTask(Task task) {
         String jobId = task.getJobId();
-        PSequence<Task> tasks = tasksByJobId.get(jobId);
+        PMap<String, Task> tasks = tasksByJobId.get(jobId);
 
-        PSequence<Task> newTasks;
-        if (tasks == null) {
-            newTasks = TreePVector.singleton(task);
+        PMap<String, Task> newTasks;
+        if (CollectionsExt.isNullOrEmpty(tasks)) {
+            newTasks = HashTreePMap.singleton(task.getId(), task);
         } else {
-            newTasks = tasks.plus(task);
+            newTasks = tasks.plus(task.getId(), task);
         }
-        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
+        PMap<String, PMap<String, Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
@@ -289,8 +297,8 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         String jobId = task.getJobId();
 
         // tasksByJobId
-        PSequence<Task> newTasks = replaceTask(task, tasksByJobId.get(jobId));
-        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
+        PMap<String, Task> newTasks = replaceTask(task, tasksByJobId.get(jobId));
+        PMap<String, PMap<String, Task>> newTasksByJobId = tasksByJobId.plus(jobId, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
@@ -315,8 +323,8 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         }
 
         // tasksByJobId
-        PSequence<Task> newTasks = removeTask(task, tasksByJobId.get(jobIdIndexToUpdate));
-        PMap<String, PSequence<Task>> newTasksByJobId = tasksByJobId.plus(jobIdIndexToUpdate, newTasks);
+        PMap<String, Task> newTasks = removeTask(task, tasksByJobId.get(jobIdIndexToUpdate));
+        PMap<String, PMap<String, Task>> newTasksByJobId = tasksByJobId.plus(jobIdIndexToUpdate, newTasks);
 
         return new PCollectionJobSnapshot(
                 this.snapshotId,
@@ -328,34 +336,27 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         );
     }
 
-    private PSequence<Task> replaceTask(Task task, PSequence<Task> tasks) {
+    private PMap<String, Task> replaceTask(Task task, PMap<String, Task> tasks) {
         if (tasks == null) {
             inconsistentData("task %s replacement requested, but the task list is null", task.getId());
-            return TreePVector.singleton(task);
+            return HashTreePMap.singleton(task.getId(), task);
         }
-        for (int i = 0; i < tasks.size(); i++) {
-            Task next = tasks.get(i);
-            if (next.getId().equals(task.getId())) {
-                return tasks.with(i, task);
-            }
+        if (!tasks.containsKey(task.getId())) {
+            inconsistentData("task %s replacement requested, but it could not be found in the task list", task.getId());
         }
-        inconsistentData("task %s replacement requested, but it could not be found in the task list", task.getId());
-        return tasks.plus(task);
+        return tasks.plus(task.getId(), task);
     }
 
-    private PSequence<Task> removeTask(Task task, PSequence<Task> tasks) {
+    private PMap<String, Task> removeTask(Task task, PMap<String, Task> tasks) {
         if (tasks == null) {
             inconsistentData("remove task %s requested, but the task list is null", task.getId());
-            return TreePVector.empty();
+            return HashTreePMap.empty();
         }
-        for (int i = 0; i < tasks.size(); i++) {
-            Task next = tasks.get(i);
-            if (next.getId().equals(task.getId())) {
-                return tasks.minus(i);
-            }
+        if (!tasks.containsKey(task.getId())) {
+            inconsistentData("remove task %s requested, but it could not be found in the task list", task.getId());
+            return tasks;
         }
-        inconsistentData("remove task %s requested, but it could not be found in the task list", task.getId());
-        return tasks;
+        return tasks.minus(task.getId());
     }
 
     private void inconsistentData(String message, Object... args) {
@@ -380,7 +381,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
     public String toString() {
         StringBuilder sb = new StringBuilder("JobSnapshot{snapshotId=").append(snapshotId).append(", jobs=");
         jobsById.forEach((id, job) -> {
-            List<Task> tasks = tasksByJobId.get(id);
+            PMap<String, Task> tasks = tasksByJobId.get(id);
             int tasksCount = tasks == null ? 0 : tasks.size();
             sb.append(id).append('=').append(tasksCount).append(',');
         });

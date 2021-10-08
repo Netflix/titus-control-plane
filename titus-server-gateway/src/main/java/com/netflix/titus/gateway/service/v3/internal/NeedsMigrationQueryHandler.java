@@ -128,9 +128,9 @@ class NeedsMigrationQueryHandler {
 
         List<com.netflix.titus.grpc.protogen.Task> matchingTasks = new ArrayList<>();
         jobMap.forEach((jobId, job) -> {
-            List<Task> tasks = jobSnapshot.getTasks(jobId);
+            Map<String, Task> tasks = jobSnapshot.getTasks(jobId);
             if (!CollectionsExt.isNullOrEmpty(tasks)) {
-                tasks.forEach(task -> {
+                tasks.forEach((taskId, task) -> {
                     TaskRelocationPlan plan = relocationPlans.get(task.getId());
                     Pair<Job<?>, Task> jobTaskPair = Pair.of(job, task);
                     if (plan != null) {

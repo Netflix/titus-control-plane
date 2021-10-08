@@ -43,7 +43,6 @@ import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
-import org.assertj.core.api.Condition;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.scheduler.Schedulers;
@@ -157,8 +156,7 @@ public class GrpcJobReplicatorEventStreamTest {
                     Optional<Pair<Job<?>, Task>> taskOpt = snapshot.findTaskById(task.getId());
                     assertThat(taskOpt).isPresent();
                     assertThat(taskOpt.get().getRight().getStatus().getState()).isEqualTo(TaskState.Started);
-                    assertThat(snapshot.getTasks(sourceJobId))
-                            .haveExactly(1, new Condition<>(t -> t.getId().equals(task.getId()), "found the task"));
+                    assertThat(snapshot.getTasks(sourceJobId)).containsKey(task.getId());
                 })
                 .then(() -> dataGenerator.getJobOperations()
                         .moveServiceTask(sourceJobId, targetJobId, task.getId(), CallMetadata.newBuilder().withCallerId("Test").withCallReason("testing").build())

@@ -16,12 +16,11 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
-import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 
 public interface JobSnapshotFactory {
-    JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId);
+    JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId);
 }
