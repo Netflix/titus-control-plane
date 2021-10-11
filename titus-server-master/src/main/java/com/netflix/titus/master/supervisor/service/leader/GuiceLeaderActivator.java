@@ -22,8 +22,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.netflix.fenzo.TaskRequest;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
@@ -37,10 +35,6 @@ import com.netflix.titus.common.util.guice.ContainerEventBus.ContainerEventListe
 import com.netflix.titus.common.util.guice.ContainerEventBus.ContainerStartedEvent;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.scheduler.AgentQualityTracker;
-import com.netflix.titus.master.scheduler.ContainerFailureBasedAgentQualityTracker;
-import com.netflix.titus.master.scheduler.DefaultSchedulingService;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -211,11 +205,6 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
         try {
             try {
                 activationLifecycle.activate();
-
-                // FIXME Circular dependencies forces are to postpone the activation process.
-                ((ContainerFailureBasedAgentQualityTracker) injector.getInstance(AgentQualityTracker.class)).start();
-                ((DefaultSchedulingService) injector.getInstance(new Key<SchedulingService<? extends TaskRequest>>() {
-                })).startScheduling();
             } catch (Exception e) {
                 stopBeingLeader();
 

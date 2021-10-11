@@ -26,7 +26,6 @@ import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
 import com.netflix.titus.common.framework.scheduler.endpoint.LocalSchedulerResource;
 import com.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
-import com.netflix.titus.master.scheduler.endpoint.http.OpportunisticAvailabilityResource;
 import com.netflix.titus.master.supervisor.endpoint.http.SupervisorResource;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
@@ -78,10 +77,8 @@ public class JerseyModule extends JerseyServletModule {
             config.getClasses().add(LocalSchedulerResource.class);
             config.getClasses().add(ServerStatusResource.class);
             config.getClasses().add(SupervisorResource.class);
-            config.getClasses().add(OpportunisticAvailabilityResource.class);
 
             // V2 resources
-            config.getClasses().add(VmManagementResource.class);
             config.getClasses().add(ApplicationSlaManagementResource.class);
             config.getClasses().add(ResourceConsumptionResource.class);
 

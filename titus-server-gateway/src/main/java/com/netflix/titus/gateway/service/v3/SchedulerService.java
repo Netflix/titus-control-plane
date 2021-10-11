@@ -16,55 +16,13 @@
 
 package com.netflix.titus.gateway.service.v3;
 
-import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
-import com.netflix.titus.grpc.protogen.SystemSelector;
-import com.netflix.titus.grpc.protogen.SystemSelectors;
-import rx.Completable;
 import rx.Observable;
 
 /**
  * Gateway service for the scheduler component.
  */
 public interface SchedulerService {
-
-    /**
-     * @return all system selectors
-     */
-    Observable<SystemSelectors> getSystemSelectors();
-
-    /**
-     * Get a system selector by id.
-     *
-     * @param id the system selector id
-     * @throws SchedulerException {@link SchedulerException.ErrorCode#SystemSelectorNotFound} if the system selector is not found
-     */
-    Observable<SystemSelector> getSystemSelector(String id);
-
-    /**
-     * Create a system selector.
-     *
-     * @param systemSelector the system selector
-     * @throws SchedulerException {@link SchedulerException.ErrorCode#SystemSelectorAlreadyExists} if the system selector already exists
-     */
-    Completable createSystemSelector(SystemSelector systemSelector);
-
-    /**
-     * Updates a system selector.
-     *
-     * @param id             the system selector id
-     * @param systemSelector the system selector
-     * @throws SchedulerException {@link SchedulerException.ErrorCode#SystemSelectorNotFound} if the system selector is not found
-     */
-    Completable updateSystemSelector(String id, SystemSelector systemSelector);
-
-    /**
-     * Deletes a system selector.
-     *
-     * @param id the system selector id
-     * @throws SchedulerException {@link SchedulerException.ErrorCode#SystemSelectorNotFound} if the system selector is not found
-     */
-    Completable deleteSystemSelector(String id);
 
     /**
      * Returns the last known scheduling result for a task.

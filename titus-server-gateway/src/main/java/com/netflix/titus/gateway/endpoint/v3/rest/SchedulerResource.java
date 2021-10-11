@@ -19,20 +19,14 @@ package com.netflix.titus.gateway.endpoint.v3.rest;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
-import com.netflix.titus.grpc.protogen.SystemSelector;
-import com.netflix.titus.grpc.protogen.SystemSelectors;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -49,41 +43,6 @@ public class SchedulerResource {
     @Inject
     public SchedulerResource(SchedulerService schedulerService) {
         this.schedulerService = schedulerService;
-    }
-
-    @GET
-    @ApiOperation("Get all system selectors")
-    @Path("/systemSelectors")
-    public SystemSelectors getSystemSelectors() {
-        return Responses.fromSingleValueObservable(schedulerService.getSystemSelectors());
-    }
-
-    @GET
-    @ApiOperation("Get a system selector with the given name")
-    @Path("/systemSelectors/{id}")
-    public SystemSelector getSystemSelector(@PathParam("id") String id) {
-        return Responses.fromSingleValueObservable(schedulerService.getSystemSelector(id));
-    }
-
-    @POST
-    @ApiOperation("Create a system selector")
-    @Path("/systemSelectors")
-    public Response createSystemSelector(SystemSelector systemSelector) {
-        return Responses.fromCompletable(schedulerService.createSystemSelector(systemSelector));
-    }
-
-    @PUT
-    @ApiOperation("Update a system selector")
-    @Path("/systemSelectors/{id}")
-    public Response updateSystemSelector(@PathParam("id") String id, SystemSelector systemSelector) {
-        return Responses.fromCompletable(schedulerService.updateSystemSelector(id, systemSelector));
-    }
-
-    @DELETE
-    @ApiOperation("Delete a system selector")
-    @Path("/systemSelectors/{id}")
-    public Response deleteSystemSelector(@PathParam("id") String id) {
-        return Responses.fromCompletable(schedulerService.deleteSystemSelector(id));
     }
 
     @GET

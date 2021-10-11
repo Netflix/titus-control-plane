@@ -51,7 +51,6 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
@@ -64,9 +63,6 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskA
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
-import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -91,9 +87,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final ApplicationSlaManagementService capacityGroupService;
     private final JobStore jobStore;
     private final VersionSupplier versionSupplier;
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
-    private final SystemSoftConstraint systemSoftConstraint;
-    private final SystemHardConstraint systemHardConstraint;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
@@ -110,14 +103,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ApplicationSlaManagementService capacityGroupService,
             JobStore jobStore,
             VersionSupplier versionSupplier,
-            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-            SystemSoftConstraint systemSoftConstraint,
-            SystemHardConstraint systemHardConstraint,
             @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime) {
         this(configuration, runtime, featureConfiguration,
                 capacityGroupService, jobStore, versionSupplier,
-                constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint, stuckInStateRateLimiter,
+                stuckInStateRateLimiter,
                 titusRuntime, Schedulers.computation()
         );
     }
@@ -129,9 +119,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ApplicationSlaManagementService capacityGroupService,
             JobStore jobStore,
             VersionSupplier versionSupplier,
-            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-            SystemSoftConstraint systemSoftConstraint,
-            SystemHardConstraint systemHardConstraint,
             @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime,
             Scheduler scheduler) {
@@ -141,9 +128,6 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.capacityGroupService = capacityGroupService;
         this.jobStore = jobStore;
         this.versionSupplier = versionSupplier;
-        this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
-        this.systemSoftConstraint = systemSoftConstraint;
-        this.systemHardConstraint = systemHardConstraint;
         this.stuckInStateRateLimiter = stuckInStateRateLimiter;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();

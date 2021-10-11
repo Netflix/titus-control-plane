@@ -21,7 +21,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
-import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -148,29 +147,6 @@ public class TitusExceptionHandlers {
             case TaskAlreadyStopped:
             case NoQuota:
                 errorBuilder.status(HttpServletResponse.SC_FORBIDDEN);
-                break;
-            default:
-                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-        ErrorResponse errorResponse = errorBuilder.build();
-        return ResponseEntity.status(errorResponse.getStatusCode()).body(errorResponse);
-    }
-
-    @ExceptionHandler(value = {SchedulerException.class})
-    public ResponseEntity<ErrorResponse> handleException(SchedulerException e, WebRequest request) {
-        ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
-                .clientRequest(request)
-                .serverContext()
-                .exceptionContext(e);
-
-        switch (e.getErrorCode()) {
-            case InvalidArgument:
-            case SystemSelectorAlreadyExists:
-            case SystemSelectorEvaluationError:
-                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
-                break;
-            case SystemSelectorNotFound:
-                errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
             default:
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

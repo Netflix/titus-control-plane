@@ -19,15 +19,10 @@ package com.netflix.titus.gateway.endpoint.v3.grpc;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.protobuf.Empty;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
 import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
-import com.netflix.titus.grpc.protogen.SystemSelector;
-import com.netflix.titus.grpc.protogen.SystemSelectorId;
-import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
-import com.netflix.titus.grpc.protogen.SystemSelectors;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,53 +44,6 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
     }
 
     @Override
-    public void getSystemSelectors(Empty request, StreamObserver<SystemSelectors> responseObserver) {
-        Subscription subscription = schedulerService.getSystemSelectors().subscribe(
-                responseObserver::onNext,
-                e -> safeOnError(logger, e, responseObserver),
-                responseObserver::onCompleted
-        );
-        attachCancellingCallback(responseObserver, subscription);
-    }
-
-    @Override
-    public void getSystemSelector(SystemSelectorId request, StreamObserver<SystemSelector> responseObserver) {
-        Subscription subscription = schedulerService.getSystemSelector(request.getId()).subscribe(
-                responseObserver::onNext,
-                e -> safeOnError(logger, e, responseObserver),
-                responseObserver::onCompleted
-        );
-        attachCancellingCallback(responseObserver, subscription);
-    }
-
-    @Override
-    public void createSystemSelector(SystemSelector request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = schedulerService.createSystemSelector(request).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
-    }
-
-    @Override
-    public void updateSystemSelector(SystemSelectorUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = schedulerService.updateSystemSelector(request.getId(), request.getSystemSelector()).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
-    }
-
-    @Override
-    public void deleteSystemSelector(SystemSelectorId request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = schedulerService.deleteSystemSelector(request.getId()).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
-    }
-
-    @Override
     public void getSchedulingResult(SchedulingResultRequest request, StreamObserver<SchedulingResultEvent> responseObserver) {
         Subscription subscription = schedulerService.findLastSchedulingResult(request.getTaskId()).subscribe(
                 responseObserver::onNext,
@@ -113,10 +61,5 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
                 responseObserver::onCompleted
         );
         attachCancellingCallback(responseObserver, subscription);
-    }
-
-    private void emitEmptyReply(StreamObserver<Empty> responseObserver) {
-        responseObserver.onNext(Empty.getDefaultInstance());
-        responseObserver.onCompleted();
     }
 }

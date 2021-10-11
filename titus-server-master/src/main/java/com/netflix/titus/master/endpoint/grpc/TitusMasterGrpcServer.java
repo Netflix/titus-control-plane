@@ -77,7 +77,6 @@ public class TitusMasterGrpcServer {
     private final LeaderServerInterceptor leaderServerInterceptor;
     private final LoadBalancerServiceImplBase loadBalancerService;
     private final GrpcAdmissionControllerServerInterceptor admissionControllerServerInterceptor;
-    private final GrpcToReactorServerFactory reactorServerFactory;
     private final TitusRuntime titusRuntime;
     private final ExecutorService grpcCallbackExecutor;
 
@@ -112,7 +111,6 @@ public class TitusMasterGrpcServer {
         this.config = config;
         this.leaderServerInterceptor = leaderServerInterceptor;
         this.admissionControllerServerInterceptor = admissionControllerServerInterceptor;
-        this.reactorServerFactory = reactorServerFactory;
         this.titusRuntime = titusRuntime;
         this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor");
     }

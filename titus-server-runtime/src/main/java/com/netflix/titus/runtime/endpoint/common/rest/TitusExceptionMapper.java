@@ -32,7 +32,6 @@ import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
-import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -69,9 +68,6 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
         }
         if (exception instanceof EvictionException) {
             return fromEvictionException((EvictionException) exception);
-        }
-        if (exception instanceof SchedulerException) {
-            return fromSchedulerException((SchedulerException) exception);
         }
         if (exception instanceof TimeoutException) {
             return fromTimeoutException((TimeoutException) exception);
@@ -260,28 +256,6 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case TaskAlreadyStopped:
             case NoQuota:
                 errorBuilder.status(HttpServletResponse.SC_FORBIDDEN);
-                break;
-            default:
-                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-        ErrorResponse errorResponse = errorBuilder.build();
-        return Response.status(errorResponse.getStatusCode()).entity(errorResponse).build();
-    }
-
-    private Response fromSchedulerException(SchedulerException e) {
-        ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
-                .clientRequest(httpServletRequest)
-                .serverContext()
-                .exceptionContext(e);
-
-        switch (e.getErrorCode()) {
-            case InvalidArgument:
-            case SystemSelectorAlreadyExists:
-            case SystemSelectorEvaluationError:
-                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
-                break;
-            case SystemSelectorNotFound:
-                errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
             default:
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

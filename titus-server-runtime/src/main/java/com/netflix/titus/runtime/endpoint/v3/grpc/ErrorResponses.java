@@ -26,7 +26,6 @@ import com.google.rpc.DebugInfo;
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
-import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.tuple.Pair;
 import io.grpc.Metadata;
@@ -195,16 +194,6 @@ public final class ErrorResponses {
                     return Status.FAILED_PRECONDITION;
                 case Unknown:
                     return Status.INTERNAL;
-            }
-        } else if (cause instanceof SchedulerException) {
-            SchedulerException e = (SchedulerException) cause;
-            switch (e.getErrorCode()) {
-                case InvalidArgument:
-                case SystemSelectorAlreadyExists:
-                case SystemSelectorEvaluationError:
-                    return Status.INVALID_ARGUMENT;
-                case SystemSelectorNotFound:
-                    return Status.NOT_FOUND;
             }
         }
         return Status.INTERNAL;
