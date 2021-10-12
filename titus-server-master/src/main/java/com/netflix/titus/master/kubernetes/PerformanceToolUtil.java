@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.master.kubernetes;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,12 +23,9 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.unit.TimeUnitExt;
-import io.titanframework.messages.TitanProtos;
-import org.apache.mesos.Protos;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX;
 
@@ -45,22 +42,6 @@ public class PerformanceToolUtil {
     static final String PREPARE_TIME = "github.com.netflix.titus.executor/prepareTime";
     static final String RUN_TIME = "github.com.netflix.titus.executor/runTime";
     static final String KILL_TIME = "github.com.netflix.titus.executor/killTime";
-
-    /**
-     * Performance tool annotations are encoded as environment variables like this:
-     * {@code TASK_LIFECYCLE_1=selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
-     */
-    public static Map<String, String> findPerformanceTestAnnotations(Protos.TaskInfo taskInfo) {
-        TitanProtos.ContainerInfo containerInfo;
-        try {
-            containerInfo = TitanProtos.ContainerInfo.parseFrom(taskInfo.getData());
-        } catch (InvalidProtocolBufferException e) {
-            return Collections.emptyMap();
-        }
-        return findLegacyTaskLifecycleEnv(containerInfo.getUserProvidedEnvMap())
-                .map(PerformanceToolUtil::toLegacyAnnotations)
-                .orElse(Collections.emptyMap());
-    }
 
     public static Map<String, String> toAnnotations(Job job) {
         Map<String, String> attributes = job.getJobDescriptor().getAttributes();

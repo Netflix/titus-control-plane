@@ -52,6 +52,7 @@ import com.netflix.titus.master.kubernetes.pod.topology.DefaultTopologyFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.kubernetes.pod.v0.V0SpecPodFactory;
 import com.netflix.titus.master.kubernetes.pod.v1.V1SpecPodFactory;
+import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 public class KubePodModule extends AbstractModule {
@@ -66,6 +67,15 @@ public class KubePodModule extends AbstractModule {
         bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
         bind(TopologyFactory.class).to(DefaultTopologyFactory.class);
         bind(PodEnvFactory.class).to(DefaultPodEnvFactory.class);
+    }
+
+    /**
+     * TODO Move properties from {@link MesosConfiguration} to other configuration classes.
+     */
+    @Provides
+    @Singleton
+    public MesosConfiguration getMesosConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(MesosConfiguration.class);
     }
 
     @Provides

@@ -45,7 +45,6 @@ import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodPhase;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -65,16 +64,16 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import rx.Completable;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andIpAddress;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodeAnnotations;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.newNode;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andNodeName;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPhase;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPodAnnotations;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPodIp;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andRunning;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andWaiting;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.newPod;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andIpAddress;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodeAnnotations;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.newNode;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andNodeName;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPodAnnotations;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPodIp;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andRunning;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andWaiting;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,7 +94,6 @@ public class KubeNotificationProcessorTest {
 
     private DirectProcessor<PodEvent> podEvents;
     private DirectProcessor<PodEvent> reconcilerPodEvents;
-    private DirectProcessor<ContainerEvent> reconcilerContainerEvents;
     private KubeNotificationProcessor processor;
 
     @Mock
@@ -110,7 +108,6 @@ public class KubeNotificationProcessorTest {
         MockitoAnnotations.initMocks(this);
         podEvents = DirectProcessor.create();
         reconcilerPodEvents = DirectProcessor.create();
-        reconcilerContainerEvents = DirectProcessor.create();
         processor = new KubeNotificationProcessor(new FakeDirectKube(),
                 new FakeReconciler(),
                 jobOperations,
@@ -132,7 +129,6 @@ public class KubeNotificationProcessorTest {
     @After
     public void tearDown() {
         reconcilerPodEvents.onComplete();
-        reconcilerContainerEvents.onComplete();
         podEvents.onComplete();
         processor.shutdown();
     }

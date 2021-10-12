@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.jobmanager.service;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -25,29 +24,19 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Strings;
-import com.netflix.archaius.api.Config;
-import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
-import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
-import com.netflix.titus.api.jobmanager.service.JobManagerException;
-import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
@@ -55,16 +44,11 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import org.apache.mesos.Protos;
-
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
 
 /**
  * Collection of common functions.
  */
 public final class JobManagerUtil {
-    private static final ObjectMapper mapper = ObjectMappers.defaultMapper();
-    private static final String EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX = "titusMaster.jobManager";
 
     private JobManagerUtil() {
     }
@@ -187,68 +171,6 @@ public final class JobManagerUtil {
         return Optional.of(resourceId.substring("resource-eni-".length()));
     }
 
-    public static Function<Task, Task> newTaskLaunchConfigurationUpdater(String zoneAttributeName,
-                                                                         VirtualMachineLease lease,
-                                                                         PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
-                                                                         Optional<String> executorUriOverrideOpt,
-                                                                         Map<String, String> attributesMap,
-                                                                         Map<String, String> opportunisticResourcesContext,
-                                                                         String tier,
-                                                                         TitusRuntime titusRuntime) {
-        return oldTask -> {
-            if (oldTask.getStatus().getState() != TaskState.Accepted) {
-                throw JobManagerException.unexpectedTaskState(oldTask, TaskState.Accepted);
-            }
-
-            Map<String, String> taskContext = new HashMap<>(opportunisticResourcesContext);
-            Map<String, Protos.Attribute> attributes = CollectionsExt.nonNull(lease.getAttributeMap());
-            String hostIp = findAttribute(attributes, "hostIp").orElse(lease.hostname());
-            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, hostIp);
-            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST_IP, hostIp);
-
-            executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
-            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_TIER, tier);
-
-            if (!attributes.isEmpty()) {
-                attributesMap.forEach((k, v) -> taskContext.put("agent." + k, v));
-
-                // TODO Some agent attribute names are configurable, some not. We need to clean this up.
-                findAttribute(attributes, zoneAttributeName).ifPresent(value ->
-                        taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, value)
-                );
-                findAttribute(attributes, "id").ifPresent(value ->
-                        taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, value)
-                );
-            }
-
-            TaskStatus taskStatus = JobModel.newTaskStatus()
-                    .withState(TaskState.Launched)
-                    .withReasonCode("scheduled")
-                    .withReasonMessage("Fenzo task placement on node " + TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID + ". Next it needs to start.")
-                    .withTimestamp(titusRuntime.getClock().wallTime())
-                    .build();
-
-            TwoLevelResource twoLevelResource = TwoLevelResource.newBuilder()
-                    .withName(consumeResult.getAttrName())
-                    .withValue(consumeResult.getResName())
-                    .withIndex(consumeResult.getIndex())
-                    .build();
-
-            return JobFunctions.addAllocatedResourcesToTask(oldTask, taskStatus, twoLevelResource, taskContext);
-        };
-    }
-
-    public static Optional<TitusExecutorDetails> parseDetails(String statusData) {
-        if (StringExt.isEmpty(statusData)) {
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(mapper.readValue(statusData, TitusExecutorDetails.class));
-        } catch (IOException e) {
-            return Optional.empty();
-        }
-    }
-
     /**
      * @return {@link Optional#empty()} when no binpacking should be applied for task relocation purposes
      */
@@ -256,33 +178,5 @@ public final class JobManagerUtil {
         return job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy() instanceof SelfManagedDisruptionBudgetPolicy
                 ? Optional.of("SelfManaged")
                 : Optional.empty();
-    }
-
-    public static Optional<String> getExecutorUriOverride(Config config,
-                                                          Map<String, String> attributesMap) {
-        String ami = attributesMap.getOrDefault("ami", "defaultAmi");
-        String amiExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".amiExecutorUriOverride." + ami, "");
-        if (!Strings.isNullOrEmpty(amiExecutorUriOverride)) {
-            return Optional.of(amiExecutorUriOverride);
-        }
-
-        String asg = attributesMap.getOrDefault("asg", "defaultAsg");
-        String asgExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".asgExecutorUriOverride." + asg, "");
-        if (!Strings.isNullOrEmpty(asgExecutorUriOverride)) {
-            return Optional.of(asgExecutorUriOverride);
-        }
-
-        String instance = attributesMap.getOrDefault("id", "defaultInstance");
-        String instanceExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".instanceExecutorUriOverride." + instance, "");
-        if (!Strings.isNullOrEmpty(instanceExecutorUriOverride)) {
-            return Optional.of(instanceExecutorUriOverride);
-        }
-
-        return Optional.empty();
-    }
-
-    private static Optional<String> findAttribute(Map<String, Protos.Attribute> attributes, String name) {
-        Protos.Attribute attribute = attributes.get(name);
-        return (attribute != null) ? Optional.of(attribute.getText().getValue()) : Optional.empty();
     }
 }

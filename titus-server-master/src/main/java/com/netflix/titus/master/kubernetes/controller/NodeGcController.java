@@ -34,12 +34,11 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +64,7 @@ public class NodeGcController extends BaseGcController<V1Node> {
     @Inject
     public NodeGcController(
             TitusRuntime titusRuntime,
-            LocalScheduler scheduler,
+            @Named(GC_CONTROLLER) LocalScheduler scheduler,
             @Named(NODE_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
             @Named(NODE_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
             AgentManagementService agentManagementService,

@@ -17,7 +17,7 @@
 package com.netflix.titus.master.kubernetes.controller;
 
 import com.google.gson.JsonSyntaxException;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;

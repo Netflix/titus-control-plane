@@ -27,7 +27,7 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 /**

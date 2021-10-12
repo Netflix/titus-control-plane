@@ -19,8 +19,6 @@ package com.netflix.titus.master.model;
 import java.util.Collection;
 
 import com.google.common.base.Preconditions;
-import com.netflix.fenzo.sla.ResAllocs;
-import com.netflix.fenzo.sla.ResAllocsBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
@@ -237,24 +235,6 @@ public class ResourceDimensions {
                 .withMemoryMB(descriptor.getMemoryGB() * 1024)
                 .withDiskMB(descriptor.getStorageGB() * 1024)
                 .withNetworkMbs(descriptor.getNetworkMbs())
-                .build();
-    }
-
-    public static ResAllocs toResAllocs(String name, ResourceDimension resourceDimension) {
-        return new ResAllocsBuilder(name)
-                .withCores(resourceDimension.getCpu())
-                .withMemory(resourceDimension.getMemoryMB())
-                .withDisk(resourceDimension.getDiskMB())
-                .withNetworkMbps(resourceDimension.getNetworkMbs())
-                .build();
-    }
-
-    public static ResourceDimension fromResAllocs(ResAllocs resAllocs) {
-        return ResourceDimension.newBuilder()
-                .withCpus(resAllocs.getCores())
-                .withMemoryMB((long) resAllocs.getMemory())
-                .withDiskMB((long) resAllocs.getDisk())
-                .withNetworkMbs((long) resAllocs.getNetworkMbps())
                 .build();
     }
 }

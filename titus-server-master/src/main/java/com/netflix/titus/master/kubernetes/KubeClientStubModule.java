@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos;
+package com.netflix.titus.master.kubernetes;
 
 import javax.inject.Singleton;
 
@@ -25,7 +25,7 @@ import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
 import com.netflix.titus.master.kubernetes.client.NoOpDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.kubeapiserver.NoOpJobManagementReconciler;
+import com.netflix.titus.master.kubernetes.controller.NoOpJobManagementReconciler;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
 

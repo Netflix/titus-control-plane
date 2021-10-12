@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.master.kubernetes;
 
 import java.util.Optional;
 
@@ -25,7 +25,6 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Either;
-import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -37,15 +36,15 @@ import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andDeletionTimestamp;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andMessage;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPhase;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andReason;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andRunning;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andScheduled;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andTerminated;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andWaiting;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.newPod;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andDeletionTimestamp;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andMessage;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andReason;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andRunning;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andScheduled;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andTerminated;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andWaiting;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

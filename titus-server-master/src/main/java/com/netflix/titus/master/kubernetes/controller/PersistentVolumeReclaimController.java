@@ -52,7 +52,7 @@ public class PersistentVolumeReclaimController extends BaseGcController<V1Persis
 
     @Inject
     public PersistentVolumeReclaimController(TitusRuntime titusRuntime,
-                                             LocalScheduler scheduler,
+                                             @Named(GC_CONTROLLER) LocalScheduler scheduler,
                                              @Named(PERSISTENT_VOLUME_RECLAIM_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
                                              @Named(PERSISTENT_VOLUME_RECLAIM_CONTROLLER) ControllerConfiguration controllerConfiguration,
                                              KubeApiFacade kubeApiFacade) {

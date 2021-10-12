@@ -48,7 +48,7 @@ import com.netflix.titus.master.kubernetes.client.model.PodDeletedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
