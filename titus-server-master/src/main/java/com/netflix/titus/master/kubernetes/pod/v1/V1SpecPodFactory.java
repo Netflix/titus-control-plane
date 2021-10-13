@@ -80,6 +80,8 @@ import io.kubernetes.client.openapi.models.V1VolumeMount;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_PERF_ENABLED;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
@@ -127,6 +129,8 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_FUSE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_HOSTNAME_STYLE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHED_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHEMA_VERSION;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SECCOMP_AGENT_NET_ENABLED;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SECCOMP_AGENT_PERF_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SYSTEM_ENV_VAR_NAMES;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_CPU;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_EPHERMERAL_STORAGE;
@@ -452,6 +456,11 @@ public class V1SpecPodFactory implements PodFactory {
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX:
                     annotations.put(LOG_S3_PATH_PREFIX, v);
+                case JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_PERF_ENABLED:
+                    annotations.put(POD_SECCOMP_AGENT_PERF_ENABLED, v);
+                    break;
+                case JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED:
+                    annotations.put(POD_SECCOMP_AGENT_NET_ENABLED, v);
                     break;
                 default:
                     annotations.put(k, v);

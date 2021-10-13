@@ -244,6 +244,17 @@ public final class JobAttributes {
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.serviceMesh";
 
+    /**
+     * Enable TSA for perf-related syscalls
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_PERF_ENABLED =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.seccompAgentEnabledForPerfSyscalls";
+    /**
+     * Enable TSA for network-related syscalls
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.seccompAgentEnabledForNetSyscalls";
+
     /*
      * EBS volume job attributes (set in {@link JobDescriptor#getAttributes()}.
      * EBS volume IDs are attributes as we do not expect to expose them directly as first-class Titus API
