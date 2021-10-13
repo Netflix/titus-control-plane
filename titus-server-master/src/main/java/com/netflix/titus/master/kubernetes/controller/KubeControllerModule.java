@@ -16,14 +16,20 @@
 
 package com.netflix.titus.master.kubernetes.controller;
 
+import java.time.Duration;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.common.framework.scheduler.LocalScheduler;
+import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalScheduler;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
+import reactor.core.scheduler.Schedulers;
 
+import static com.netflix.titus.master.kubernetes.controller.BaseGcController.GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.DefaultKubeJobManagementReconciler.GC_UNKNOWN_PODS;
 import static com.netflix.titus.master.kubernetes.controller.NodeGcController.NODE_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeClaimGcController.PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER;
@@ -47,6 +53,13 @@ public class KubeControllerModule extends AbstractModule {
         bind(PersistentVolumeUnassociatedGcController.class).asEagerSingleton();
         bind(PersistentVolumeClaimGcController.class).asEagerSingleton();
         bind(PersistentVolumeReclaimController.class).asEagerSingleton();
+    }
+
+    @Provides
+    @Singleton
+    @Named(GC_CONTROLLER)
+    public LocalScheduler getLocalScheduler(TitusRuntime titusRuntime) {
+        return new DefaultLocalScheduler(Duration.ofMillis(100), Schedulers.elastic(), titusRuntime.getClock(), titusRuntime.getRegistry());
     }
 
     @Provides

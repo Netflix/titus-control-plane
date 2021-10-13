@@ -25,7 +25,10 @@ import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
 
 /**
  * Titus executor data model for reporting back resource allocation data.
+ *
+ * @deprecated Remove after migrating to V1 pod spec.
  */
+@Deprecated
 public class TitusExecutorDetails {
 
     private final Map<String, String> ipAddresses;

@@ -21,6 +21,10 @@ import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import io.titanframework.messages.TitanProtos;
 
+/**
+ * @deprecated Remove after migrating to V1 pod spec.
+ */
+@Deprecated
 public class ContainerInfoUtil {
 
     public static void setContainerInfoEnvVariables(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Container container, Task task) {

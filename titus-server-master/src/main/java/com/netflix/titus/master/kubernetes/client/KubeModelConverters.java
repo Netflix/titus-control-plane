@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1CSIPersistentVolumeSource;
 import io.kubernetes.client.openapi.models.V1LabelSelector;

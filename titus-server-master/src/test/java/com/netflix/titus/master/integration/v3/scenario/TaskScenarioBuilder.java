@@ -27,8 +27,6 @@ import java.util.function.Predicate;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
-import com.netflix.fenzo.TaskRequest;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.aws.AwsInstanceType;

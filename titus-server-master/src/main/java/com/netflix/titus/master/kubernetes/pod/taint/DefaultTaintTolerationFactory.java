@@ -30,7 +30,7 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Toleration;

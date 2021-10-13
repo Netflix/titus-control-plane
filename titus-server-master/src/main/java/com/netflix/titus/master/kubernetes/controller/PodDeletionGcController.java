@@ -32,7 +32,6 @@ import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +50,7 @@ public class PodDeletionGcController extends BaseGcController<V1Pod> {
     @Inject
     public PodDeletionGcController(
             TitusRuntime titusRuntime,
-            LocalScheduler scheduler,
+            @Named(GC_CONTROLLER) LocalScheduler scheduler,
             @Named(POD_DELETION_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
             @Named(POD_DELETION_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
             KubeApiFacade kubeApiFacade,

@@ -28,7 +28,7 @@ import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
@@ -46,7 +46,7 @@ public class PodOnUnknownNodeGcController extends BaseGcController<V1Pod> {
     @Inject
     public PodOnUnknownNodeGcController(
             TitusRuntime titusRuntime,
-            LocalScheduler scheduler,
+            @Named(GC_CONTROLLER) LocalScheduler scheduler,
             @Named(POD_ON_UNKNOWN_NODE_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
             @Named(POD_ON_UNKNOWN_NODE_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
             KubeApiFacade kubeApiFacade

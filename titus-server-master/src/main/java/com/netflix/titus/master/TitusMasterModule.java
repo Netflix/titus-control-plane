@@ -46,8 +46,7 @@ import com.netflix.titus.master.kubernetes.KubeModule;
 import com.netflix.titus.master.kubernetes.controller.KubeControllerModule;
 import com.netflix.titus.master.kubernetes.pod.KubePodModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
-import com.netflix.titus.master.mesos.KubeClientStubModule;
-import com.netflix.titus.master.mesos.MesosModule;
+import com.netflix.titus.master.kubernetes.KubeClientStubModule;
 import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
 import com.netflix.titus.master.store.StoreModule;
@@ -69,7 +68,6 @@ import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 public class TitusMasterModule extends AbstractModule {
 
     public enum Mode {
-        MESOS,
         KUBE,
         EMBEDDED_KUBE,
     }
@@ -99,9 +97,6 @@ public class TitusMasterModule extends AbstractModule {
 
         // Feature flags
         install(new FeatureFlagModule());
-
-        // Mesos
-        install(new MesosModule());
 
         // Kubernetes
         if (mode == Mode.KUBE) {

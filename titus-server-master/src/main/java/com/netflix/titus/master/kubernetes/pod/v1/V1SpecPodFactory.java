@@ -61,7 +61,7 @@ import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
-import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
+import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;

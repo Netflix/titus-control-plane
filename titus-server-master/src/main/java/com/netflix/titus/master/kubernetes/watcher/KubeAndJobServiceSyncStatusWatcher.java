@@ -45,7 +45,7 @@ import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
-import com.netflix.titus.master.mesos.kubeapiserver.PodToTaskMapper;
+import com.netflix.titus.master.kubernetes.PodToTaskMapper;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;

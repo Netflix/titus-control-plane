@@ -39,8 +39,6 @@ import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import com.netflix.titus.master.jobmanager.store.ArchivedTasksGc;
 import com.netflix.titus.master.jobmanager.store.ArchivedTasksGcConfiguration;
-import com.netflix.titus.master.mesos.DefaultV3TaskInfoRequestFactory;
-import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +61,6 @@ public class V3JobManagerModule extends AbstractModule {
         bind(ReadOnlyJobOperations.class).to(DefaultV3JobOperations.class);
         bind(JobSubmitLimiter.class).to(DefaultJobSubmitLimiter.class);
 
-        bind(TaskInfoRequestFactory.class).to(DefaultV3TaskInfoRequestFactory.class);
         bind(KubeNotificationProcessor.class).asEagerSingleton();
 
         bind(JobAndTaskMetrics.class).asEagerSingleton();

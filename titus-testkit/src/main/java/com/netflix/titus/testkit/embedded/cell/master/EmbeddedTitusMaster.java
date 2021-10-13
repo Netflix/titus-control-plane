@@ -80,8 +80,6 @@ import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
-import com.netflix.titus.master.mesos.NoOpVirtualMachineMasterService;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
@@ -163,7 +161,6 @@ public class EmbeddedTitusMaster {
         Stopwatch timer = Stopwatch.createStarted();
         logger.info("Starting Titus Master");
 
-        TitusMasterModule.Mode mode = embeddedKubeCluster != null ? TitusMasterModule.Mode.EMBEDDED_KUBE : TitusMasterModule.Mode.MESOS;
         Module embeddedKubeModule;
         if (embeddedKubeCluster == null) {
             embeddedKubeModule = new AbstractModule() {
@@ -184,7 +181,7 @@ public class EmbeddedTitusMaster {
                     }
                 }),
                 embeddedKubeModule,
-                Modules.override(new TitusMasterModule(enableREST, mode))
+                Modules.override(new TitusMasterModule(enableREST, TitusMasterModule.Mode.EMBEDDED_KUBE))
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {
@@ -192,8 +189,6 @@ public class EmbeddedTitusMaster {
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
                                       bind(AgentStore.class).toInstance(agentStore);
-
-                                      bind(VirtualMachineMasterService.class).toInstance(new NoOpVirtualMachineMasterService());
 
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
 

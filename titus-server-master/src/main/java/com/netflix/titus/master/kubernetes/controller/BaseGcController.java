@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.PreDestroy;
+import javax.inject.Named;
 
 import com.netflix.spectator.api.Gauge;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
@@ -41,6 +42,8 @@ import org.slf4j.LoggerFactory;
 public abstract class BaseGcController<T> {
     private static final Logger logger = LoggerFactory.getLogger(BaseGcController.class);
 
+    static final String GC_CONTROLLER = "gcController";
+
     protected final String name;
     protected final String description;
     protected final TitusRuntime titusRuntime;
@@ -60,7 +63,7 @@ public abstract class BaseGcController<T> {
     public BaseGcController(
             String name,
             String description,
-            TitusRuntime titusRuntime,
+            @Named(GC_CONTROLLER) TitusRuntime titusRuntime,
             LocalScheduler scheduler,
             FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
             ControllerConfiguration controllerConfiguration

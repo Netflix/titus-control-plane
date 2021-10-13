@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.master.kubernetes;
 
 import java.util.Optional;
 
@@ -26,7 +26,6 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
-import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.client.model.PodPhase;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import io.kubernetes.client.openapi.models.V1Node;

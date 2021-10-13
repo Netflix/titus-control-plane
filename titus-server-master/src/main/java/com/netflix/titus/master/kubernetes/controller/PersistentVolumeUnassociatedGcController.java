@@ -32,7 +32,7 @@ import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -62,7 +62,7 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
 
     @Inject
     public PersistentVolumeUnassociatedGcController(TitusRuntime titusRuntime,
-                                                    LocalScheduler scheduler,
+                                                    @Named(GC_CONTROLLER) LocalScheduler scheduler,
                                                     @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
                                                     @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
                                                     KubeApiFacade kubeApiFacade,

@@ -22,7 +22,7 @@ import java.util.List;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 
 /**
  * Farzone resource pool resolver.

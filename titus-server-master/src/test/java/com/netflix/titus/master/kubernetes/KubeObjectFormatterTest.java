@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.master.kubernetes;
 
-import com.netflix.titus.master.kubernetes.KubeObjectFormatter;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.junit.Test;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andIpAddress;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodeAllocatableResources;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodeLabels;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andNodePhase;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.andTaint;
-import static com.netflix.titus.master.mesos.kubeapiserver.NodeDataGenerator.newNode;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andLabel;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andNodeName;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andPhase;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.andReason;
-import static com.netflix.titus.master.mesos.kubeapiserver.PodDataGenerator.newPod;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andIpAddress;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodeAllocatableResources;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodeLabels;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodePhase;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andTaint;
+import static com.netflix.titus.master.kubernetes.NodeDataGenerator.newNode;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andLabel;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andNodeName;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.andReason;
+import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class KubeObjectFormatterTest {

@@ -7,7 +7,6 @@ dependencies {
     compile project(':titus-server-runtime')
 
     // Netflix dependencies
-    compile "com.netflix.fenzo:fenzo-core:${fenzoVersion}"
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
     compile "com.netflix.numerus:numerus:${numerusVersion}"
     compile "com.netflix.runtime:health-guice:${runtimeHealthVersion}"
@@ -17,7 +16,6 @@ dependencies {
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
 
     // Misc dependencies
-    compile "org.apache.mesos:mesos:${mesosVersion}"
     compile "io.kubernetes:client-java:${kubernetesClientVersion}"
     compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
     compile "com.google.inject:guice:${guiceVersion}"

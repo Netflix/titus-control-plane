@@ -87,9 +87,7 @@ subprojects {
         jettyVersion = '9.2.12.v20150709'
         jerseyVersion = '1.19.+'
         jooqVersion = '3.11.+'
-        fenzoVersion = '1.1.0-rc.9'
         spectatorVersion = '0.59.+'
-        mesosVersion = '1.7.2'
         postgresqlVersion = '42.2.9'
         protobufVersion = '3.7.+'
         protobufVersionOSAware = protobufVersion
