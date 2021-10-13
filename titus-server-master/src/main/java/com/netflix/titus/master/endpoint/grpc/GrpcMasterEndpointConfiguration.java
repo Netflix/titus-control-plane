@@ -18,7 +18,6 @@ package com.netflix.titus.master.endpoint.grpc;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.annotations.PropertyName;
 
 @Configuration(prefix = "titus.master.grpcServer")
 public interface GrpcMasterEndpointConfiguration {
@@ -32,12 +31,6 @@ public interface GrpcMasterEndpointConfiguration {
      */
     @DefaultValue("30000")
     long getShutdownTimeoutMs();
-
-    /**
-     * TODO Feature flag. Remove once stable.
-     */
-    @DefaultValue("false")
-    boolean isJobSizeValidationEnabled();
 
     @DefaultValue("true")
     boolean isAdmissionControllerEnabled();

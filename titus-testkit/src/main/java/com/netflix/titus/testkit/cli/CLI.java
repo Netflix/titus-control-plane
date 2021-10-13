@@ -26,10 +26,6 @@ import java.util.logging.Level;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.netflix.titus.testkit.cli.command.HealthCommand;
-import com.netflix.titus.testkit.cli.command.agent.AgentInstanceGetCommand;
-import com.netflix.titus.testkit.cli.command.agent.AgentLifecycleUpdateCommand;
-import com.netflix.titus.testkit.cli.command.agent.AgentObserveCommand;
-import com.netflix.titus.testkit.cli.command.agent.AgentServerGroupGetCommand;
 import com.netflix.titus.testkit.cli.command.eviction.EvictionEventsCommand;
 import com.netflix.titus.testkit.cli.command.job.JobGetCommand;
 import com.netflix.titus.testkit.cli.command.job.JobInServiceCommand;
@@ -75,11 +71,6 @@ public class CLI {
 
     private static final Map<String, CliCommand> BUILTIN_COMMANDS = ImmutableMap.<String, CliCommand>builder()
             .put("health", new HealthCommand())
-            // Agent management
-            .put("agentServerGroups", new AgentServerGroupGetCommand())
-            .put("agentInstances", new AgentInstanceGetCommand())
-            .put("agentLifecycle", new AgentLifecycleUpdateCommand())
-            .put("agentObserve", new AgentObserveCommand())
             // Job management
             .put("submit", new JobSubmitCommand())
             .put("jobTemplate", new JobTemplateCommand())

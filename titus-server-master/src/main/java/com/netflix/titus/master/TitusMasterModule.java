@@ -25,8 +25,6 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.supervisor.service.MasterDescription;
-import com.netflix.titus.master.agent.AgentModule;
-import com.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import com.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;
 import com.netflix.titus.master.audit.service.AuditModule;
 import com.netflix.titus.master.config.CellInfoResolver;
@@ -42,11 +40,11 @@ import com.netflix.titus.master.eviction.service.EvictionServiceModule;
 import com.netflix.titus.master.health.HealthModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
+import com.netflix.titus.master.kubernetes.KubeClientStubModule;
 import com.netflix.titus.master.kubernetes.KubeModule;
 import com.netflix.titus.master.kubernetes.controller.KubeControllerModule;
 import com.netflix.titus.master.kubernetes.pod.KubePodModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
-import com.netflix.titus.master.kubernetes.KubeClientStubModule;
 import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
 import com.netflix.titus.master.store.StoreModule;
@@ -114,7 +112,6 @@ public class TitusMasterModule extends AbstractModule {
 
         // Service
         install(new AuditModule());
-        install(new AgentModule());
         install(new SchedulerModule());
         install(new V3JobManagerModule());
 
@@ -140,7 +137,6 @@ public class TitusMasterModule extends AbstractModule {
         install(new MasterEndpointModule());
         install(new HealthModule());
         install(new V3EndpointModule());
-        install(new AgentEndpointModule());
         install(new AutoScalingModule());
         install(new LoadBalancerModule());
 

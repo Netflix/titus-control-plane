@@ -27,7 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -35,9 +34,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
-import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
-import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -50,8 +47,6 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
-import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -94,9 +89,6 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.endpoint.common.CellDecorator;
 import com.netflix.titus.master.endpoint.grpc.GrpcMasterEndpointConfiguration;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.model.ResourceDimensions;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
@@ -140,9 +132,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             .setSnapshotEnd(JobChangeNotification.SnapshotEnd.newBuilder())
             .build();
 
-    private final GrpcMasterEndpointConfiguration configuration;
-    private final AgentManagementService agentManagementService;
-    private final ApplicationSlaManagementService capacityGroupService;
     private final V3JobOperations jobOperations;
     private final EntitySanitizer entitySanitizer;
     private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionValidator;
@@ -158,8 +147,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Inject
     public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
-                                           AgentManagementService agentManagementService,
-                                           ApplicationSlaManagementService capacityGroupService,
                                            V3JobOperations jobOperations,
                                            LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
@@ -171,9 +158,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            AuthorizationService authorizationService,
                                            GrpcObjectsCacheConfiguration grpcObjectsCacheConfiguration,
                                            TitusRuntime titusRuntime) {
-        this.configuration = configuration;
-        this.agentManagementService = agentManagementService;
-        this.capacityGroupService = capacityGroupService;
         this.jobOperations = jobOperations;
         this.entitySanitizer = entitySanitizer;
         this.admissionValidator = admissionValidator;
@@ -212,17 +196,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     private Mono<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validateAndConvertJobDescriptorToCoreModel(JobDescriptor jobDescriptor) {
         return Mono.defer(() -> {
-            if (configuration.isJobSizeValidationEnabled()) {
-                com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor);
-
-                Tier tier = findTier(coreJobDescriptor);
-                ResourceDimension requestedResources = toResourceDimension(coreJobDescriptor.getContainer().getContainerResources());
-                List<ResourceDimension> tierResourceLimits = getTierResourceLimits(tier);
-                if (isTooLarge(requestedResources, tierResourceLimits)) {
-                    return Mono.error(JobManagerException.invalidContainerResources(tier, requestedResources, tierResourceLimits));
-                }
-            }
-
             com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
             try {
                 coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(cellDecorator.ensureCellInfo(jobDescriptor));
@@ -784,33 +757,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .addAllItems(tasks)
                 .setPagination(toGrpcPagination(runtimePagination))
                 .build();
-    }
-
-    private ResourceDimension toResourceDimension(ContainerResources containerResources) {
-        return ResourceDimension.newBuilder()
-                .withCpus(containerResources.getCpu())
-                .withGpu(containerResources.getGpu())
-                .withMemoryMB(containerResources.getMemoryMB())
-                .withDiskMB(containerResources.getDiskMB())
-                .withNetworkMbs(containerResources.getNetworkMbps())
-                .build();
-    }
-
-    private Tier findTier(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
-        return JobManagerUtil.getTierAssignment(jobDescriptor, capacityGroupService).getLeft();
-    }
-
-    private List<ResourceDimension> getTierResourceLimits(Tier tier) {
-        return agentManagementService.getInstanceGroups().stream()
-                .filter(instanceGroup -> instanceGroup.getTier().equals(tier))
-                .map(instanceGroup ->
-                        agentManagementService.findResourceLimits(instanceGroup.getInstanceType()).orElse(instanceGroup.getResourceDimension())
-                )
-                .collect(Collectors.toList());
-    }
-
-    private boolean isTooLarge(ResourceDimension requestedResources, List<ResourceDimension> tierResourceLimits) {
-        return tierResourceLimits.stream().noneMatch(limit -> ResourceDimensions.isBigger(limit, requestedResources));
     }
 
     private List<JobChangeNotification> createJobsSnapshot(
