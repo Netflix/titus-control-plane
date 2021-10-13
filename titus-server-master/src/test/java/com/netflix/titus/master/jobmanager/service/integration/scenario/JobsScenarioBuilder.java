@@ -241,6 +241,11 @@ public class JobsScenarioBuilder {
         return this;
     }
 
+    public JobsScenarioBuilder breakStoreForTasks() {
+        jobStore.setStoreState(StubbedJobStore.StoreState.BrokenForTasks);
+        return this;
+    }
+
     public JobsScenarioBuilder trigger() {
         testScheduler.triggerActions();
         return this;
