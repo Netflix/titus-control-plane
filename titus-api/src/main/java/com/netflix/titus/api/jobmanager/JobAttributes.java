@@ -211,6 +211,12 @@ public final class JobAttributes {
     public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS =
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.killWaitSeconds";
 
+    /**
+     * Require a token or not on the imds
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.imds.requireToken";
+
     /*
      * Log location container attributes (set in {@link Container#getAttributes()}.
      */

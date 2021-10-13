@@ -79,6 +79,7 @@ import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_PERF_ENABLED;
@@ -124,6 +125,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_A
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_BURSTING_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ELASTIC_IPS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ELASTIC_IP_POOL;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IMDS_REQUIRE_TOKEN;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_JUMBO_FRAMES_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
@@ -476,6 +478,8 @@ public class V1SpecPodFactory implements PodFactory {
                 case JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED:
                     annotations.put(POD_SECCOMP_AGENT_NET_ENABLED, v);
                     break;
+                case JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN:
+                    annotations.put(NETWORK_IMDS_REQUIRE_TOKEN, v);
                 default:
                     annotations.put(k, v);
                     break;
