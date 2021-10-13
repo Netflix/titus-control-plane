@@ -19,17 +19,18 @@ package com.netflix.titus.runtime.connector.jobmanager.replicator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -95,7 +96,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     protected Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnection() {
         return Flux
                 .<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>>create(sink -> {
-                    CacheUpdater cacheUpdater = new CacheUpdater();
+                    CacheUpdater cacheUpdater = new CacheUpdater(jobSnapshotFactory, titusRuntime);
                     logger.info("Connecting to the job event stream (filteringCriteria={})...", filteringCriteria);
                     Disposable disposable = client.observeJobs(filteringCriteria).subscribe(
                             jobEvent -> {
@@ -118,12 +119,21 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                 .doFinally(signal -> subscriptionCounter.decrementAndGet());
     }
 
-    private class CacheUpdater {
+    @VisibleForTesting
+    static class CacheUpdater {
+
+        private final JobSnapshotFactory jobSnapshotFactory;
+        private final TitusRuntime titusRuntime;
 
         private final List<JobManagerEvent<?>> snapshotEvents = new ArrayList<>();
         private final AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
 
-        private Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
+        CacheUpdater(JobSnapshotFactory jobSnapshotFactory, TitusRuntime titusRuntime) {
+            this.jobSnapshotFactory = jobSnapshotFactory;
+            this.titusRuntime = titusRuntime;
+        }
+
+        Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
             if (lastJobSnapshotRef.get() != null) {
                 return processCacheUpdate(event);
             }
@@ -131,19 +141,11 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                 return Optional.of(buildInitialCache());
             }
 
-            if (event instanceof JobUpdateEvent) {
-                JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
-                Job job = jobUpdateEvent.getCurrent();
-                if (job.getStatus().getState() != JobState.Finished) {
-                    snapshotEvents.add(event);
-                }
-            } else if (event instanceof TaskUpdateEvent) {
-                TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
-                Task task = taskUpdateEvent.getCurrentTask();
-                if (task.getStatus().getState() != TaskState.Finished) {
-                    snapshotEvents.add(event);
-                }
+            // Snapshot event. Collect all of them before processing.
+            if (event instanceof JobUpdateEvent || event instanceof TaskUpdateEvent) {
+                snapshotEvents.add(event);
             }
+
             return Optional.empty();
         }
 
@@ -165,6 +167,17 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                     }
                 }
             });
+
+            // Filter out completed jobs. We could not do it sooner, as the job/task finished state could be proceeded by
+            // earlier events so we have to collapse all of it.
+            Iterator<Job<?>> jobIt = jobs.values().iterator();
+            while (jobIt.hasNext()) {
+                Job<?> job = jobIt.next();
+                if (job.getStatus().getState() == JobState.Finished) {
+                    jobIt.remove();
+                    tasksByJobId.remove(job.getId());
+                }
+            }
 
             JobSnapshot initialSnapshot = jobSnapshotFactory.newSnapshot(jobs, tasksByJobId);
 
