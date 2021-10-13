@@ -400,6 +400,10 @@ public class V1SpecPodFactory implements PodFactory {
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID),
                 id -> annotations.put(KubeConstants.STATIC_IP_ALLOCATION_ID, id)
         );
+        Evaluators.acceptNotNull(
+                job.getJobDescriptor().getNetworkConfiguration().getNetworkModeName(),
+                modeName -> annotations.put(KubeConstants.NETWORK_MODE, modeName)
+        );
 
         // convert container attributes into annotations
         container.getAttributes().forEach((k, v) -> {
