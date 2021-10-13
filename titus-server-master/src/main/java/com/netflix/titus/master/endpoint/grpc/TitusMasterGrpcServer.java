@@ -30,10 +30,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
-import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.common.util.loadshedding.grpc.GrpcAdmissionControllerServerInterceptor;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
@@ -69,7 +66,6 @@ public class TitusMasterGrpcServer {
     private final HealthImplBase healthService;
     private final SupervisorServiceImplBase titusSupervisorService;
     private final JobManagementServiceImplBase jobManagementService;
-    private final AgentManagementServiceImplBase agentManagementService;
     private final EvictionServiceImplBase evictionService;
     private final AutoScalingServiceImplBase appAutoScalingService;
     private final SchedulerServiceImplBase schedulerService;
@@ -89,7 +85,6 @@ public class TitusMasterGrpcServer {
             HealthImplBase healthService,
             SupervisorServiceImplBase titusSupervisorService,
             JobManagementServiceImplBase jobManagementService,
-            AgentManagementServiceImplBase agentManagementService,
             EvictionServiceImplBase evictionService,
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
@@ -97,13 +92,11 @@ public class TitusMasterGrpcServer {
             GrpcMasterEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor,
             GrpcAdmissionControllerServerInterceptor admissionControllerServerInterceptor,
-            GrpcToReactorServerFactory reactorServerFactory,
             TitusRuntime titusRuntime
     ) {
         this.healthService = healthService;
         this.titusSupervisorService = titusSupervisorService;
         this.jobManagementService = jobManagementService;
-        this.agentManagementService = agentManagementService;
         this.evictionService = evictionService;
         this.appAutoScalingService = appAutoScalingService;
         this.loadBalancerService = loadBalancerService;
@@ -137,10 +130,6 @@ public class TitusMasterGrpcServer {
                 .addService(ServerInterceptors.intercept(
                         jobManagementService,
                         createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
-                ))
-                .addService(ServerInterceptors.intercept(
-                        agentManagementService,
-                        createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
                 ))
                 .addService(ServerInterceptors.intercept(
                         evictionService,

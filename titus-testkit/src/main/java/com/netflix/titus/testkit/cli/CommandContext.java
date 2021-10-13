@@ -25,12 +25,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
-import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
-import com.netflix.titus.runtime.connector.agent.RemoteAgentManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.ReactorJobManagementServiceStub;
 import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClient;
@@ -114,15 +110,6 @@ public class CommandContext {
                 JobManagementServiceGrpc.getServiceDescriptor()
         );
         return new RemoteJobManagementClient("cli", reactorStub, titusRuntime);
-    }
-
-    public AgentManagementClient getAgentManagementClient() {
-        ReactorAgentManagementServiceStub reactorStub = getGrpcToReactorClientFactory().apply(
-                AgentManagementServiceGrpc.newStub(createChannel()),
-                ReactorAgentManagementServiceStub.class,
-                AgentManagementServiceGrpc.getServiceDescriptor()
-        );
-        return new RemoteAgentManagementClient(reactorStub);
     }
 
     public void shutdown() {

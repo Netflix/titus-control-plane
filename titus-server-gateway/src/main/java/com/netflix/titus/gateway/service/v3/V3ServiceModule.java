@@ -29,11 +29,10 @@ import com.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementServi
 import com.netflix.titus.gateway.service.v3.internal.DisruptionBudgetSanitizerConfiguration;
 import com.netflix.titus.gateway.service.v3.internal.GatewayConfiguration;
 import com.netflix.titus.gateway.service.v3.internal.GatewayJobServiceGateway;
-import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorModule;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
@@ -41,8 +40,6 @@ import com.netflix.titus.runtime.service.LoadBalancerService;
 public class V3ServiceModule extends AbstractModule {
     @Override
     protected void configure() {
-        install(new AgentManagerConnectorModule());
-
         bind(HealthService.class).to(DefaultHealthService.class);
         bind(JobServiceGateway.class).to(GatewayJobServiceGateway.class);
         bind(AutoScalingService.class).to(DefaultAutoScalingService.class);

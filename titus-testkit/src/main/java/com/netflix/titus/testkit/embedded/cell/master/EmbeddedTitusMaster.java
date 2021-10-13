@@ -16,11 +16,8 @@
 
 package com.netflix.titus.testkit.embedded.cell.master;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Singleton;
@@ -76,7 +73,6 @@ import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
-import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
@@ -116,7 +112,6 @@ public class EmbeddedTitusMaster {
 
     private final JobStore jobStore;
     private final boolean cassandraJobStore;
-    private final AgentStore agentStore;
 
     private final EmbeddedKubeCluster embeddedKubeCluster;
 
@@ -141,7 +136,6 @@ public class EmbeddedTitusMaster {
         );
         this.jobStore = builder.v3JobStore == null ? new InMemoryJobStore() : builder.v3JobStore;
         this.cassandraJobStore = builder.cassandraJobStore;
-        this.agentStore = builder.agentStore == null ? new InMemoryAgentStore() : builder.agentStore;
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
 
@@ -188,7 +182,6 @@ public class EmbeddedTitusMaster {
                                       bind(InstanceCloudConnector.class).toInstance(new NoOpInstanceCloudConnector());
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
-                                      bind(AgentStore.class).toInstance(agentStore);
 
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
 

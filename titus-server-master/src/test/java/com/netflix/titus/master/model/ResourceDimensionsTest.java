@@ -17,11 +17,7 @@
 package com.netflix.titus.master.model;
 
 import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.common.aws.AwsInstanceDescriptor;
-import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.agent.ServerInfo;
-import com.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import com.netflix.titus.testkit.data.core.ResourceDimensionSample;
 import org.junit.Test;
 
@@ -87,19 +83,5 @@ public class ResourceDimensionsTest {
         ResourceDimension original = ResourceDimensionSample.SmallWithGpuAndOpportunistic.builder().withMemoryMB(small2X.getMemoryMB()).build();
 
         assertThat(ResourceDimensions.alignUp(original, small2X)).isEqualTo(small2X);
-    }
-
-    @Test
-    public void testFromServerInfoMapping() throws Exception {
-        ServerInfo m42xl = ServerInfoResolvers.fromAwsInstanceTypes()
-                .resolve(AwsInstanceType.M4_2XLarge.getDescriptor().getId())
-                .get();
-        ResourceDimension actual = ResourceDimensions.fromServerInfo(m42xl);
-        AwsInstanceDescriptor descriptor = AwsInstanceType.M4_2XLarge.getDescriptor();
-
-        assertThat(actual.getCpu()).isEqualTo(descriptor.getvCPUs());
-        assertThat(actual.getMemoryMB()).isEqualTo(descriptor.getMemoryGB() * 1024);
-        assertThat(actual.getDiskMB()).isEqualTo(descriptor.getStorageGB() * 1024);
-        assertThat(actual.getNetworkMbs()).isEqualTo(descriptor.getNetworkMbs());
     }
 }

@@ -31,7 +31,6 @@ import reactor.core.scheduler.Schedulers;
 
 import static com.netflix.titus.master.kubernetes.controller.BaseGcController.GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.DefaultKubeJobManagementReconciler.GC_UNKNOWN_PODS;
-import static com.netflix.titus.master.kubernetes.controller.NodeGcController.NODE_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeClaimGcController.PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeReclaimController.PERSISTENT_VOLUME_RECLAIM_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeUnassociatedGcController.PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER;
@@ -45,7 +44,6 @@ public class KubeControllerModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(KubeJobManagementReconciler.class).to(DefaultKubeJobManagementReconciler.class);
-        bind(NodeGcController.class).asEagerSingleton();
         bind(PodOnUnknownNodeGcController.class).asEagerSingleton();
         bind(PodDeletionGcController.class).asEagerSingleton();
         bind(PodTerminalGcController.class).asEagerSingleton();
@@ -73,20 +71,6 @@ public class KubeControllerModule extends AbstractModule {
     @Named(GC_UNKNOWN_PODS)
     public FixedIntervalTokenBucketConfiguration getGcUnknownPodsTokenBucketConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titusMaster.kube.gcUnknownPodsTokenBucket");
-    }
-
-    @Provides
-    @Singleton
-    @Named(NODE_GC_CONTROLLER)
-    public FixedIntervalTokenBucketConfiguration getNodeGcControllerTokenBucketConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titus.kubernetes.controller." + NODE_GC_CONTROLLER);
-    }
-
-    @Provides
-    @Singleton
-    @Named(NODE_GC_CONTROLLER)
-    public ControllerConfiguration getNodeGcControllerConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(ControllerConfiguration.class, "titus.kubernetes.controller." + NODE_GC_CONTROLLER);
     }
 
     @Provides

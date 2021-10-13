@@ -23,7 +23,6 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.agent.ServerInfo;
 
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 
@@ -215,16 +214,6 @@ public class ResourceDimensions {
 
     public static String format(ResourceDimension input) {
         return format(input, new StringBuilder()).toString();
-    }
-
-    public static ResourceDimension fromServerInfo(ServerInfo serverInfo) {
-        return ResourceDimension.newBuilder()
-                .withCpus(serverInfo.getCpus())
-                .withMemoryMB(serverInfo.getMemoryGB() * 1024)
-                .withDiskMB(serverInfo.getStorageGB() * 1024)
-                .withNetworkMbs(serverInfo.getNetworkMbs())
-                .withGpu(serverInfo.getGpus())
-                .build();
     }
 
     public static ResourceDimension fromAwsInstanceType(AwsInstanceType instanceType) {
