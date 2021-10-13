@@ -128,10 +128,6 @@ public class V0SpecPodFactory implements PodFactory {
         String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
         labels.put(KubeConstants.LABEL_CAPACITY_GROUP, capacityGroup);
 
-        if (configuration.isBytePodResourceEnabled()) {
-            labels.put(KubeConstants.POD_LABEL_BYTE_UNITS, "true");
-        }
-
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
                 .annotations(annotations)
@@ -233,15 +229,10 @@ public class V0SpecPodFactory implements PodFactory {
         Quantity memory;
         Quantity disk;
         Quantity network;
-        if (configuration.isBytePodResourceEnabled()) {
-            memory = new Quantity(containerResources.getMemoryMB() + "Mi");
-            disk = new Quantity(containerResources.getDiskMB() + "Mi");
-            network = new Quantity(containerResources.getNetworkMbps() + "M");
-        } else {
-            memory = new Quantity(String.valueOf(containerResources.getMemoryMB()));
-            disk = new Quantity(String.valueOf(containerResources.getDiskMB()));
-            network = new Quantity(String.valueOf(containerResources.getNetworkMbps()));
-        }
+
+        memory = new Quantity(containerResources.getMemoryMB() + "Mi");
+        disk = new Quantity(containerResources.getDiskMB() + "Mi");
+        network = new Quantity(containerResources.getNetworkMbps() + "M");
 
         requests.put(RESOURCE_MEMORY, memory);
         limits.put(RESOURCE_MEMORY, memory);
