@@ -182,6 +182,18 @@ public final class JobAttributes {
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.allowNetworkBursting";
 
     /**
+     * Elastic IP pool
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTE_EIP_POOL =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.elasticIPPool";
+
+    /**
+     * Elastic IPs
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTE_EIPS =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.elasticIPs";
+
+    /**
      * Sets SCHED_BATCH -- Linux batch scheduling, for cache-friendly handling of lowprio, batch-like, CPU-bound, 100% non-interactive tasks.
      */
     public static final String JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH =

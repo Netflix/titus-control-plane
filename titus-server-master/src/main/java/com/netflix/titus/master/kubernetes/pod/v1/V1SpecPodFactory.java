@@ -95,6 +95,8 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRI
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_REGEXP;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_THRESHOLD_TIME;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTE_EIPS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTE_EIP_POOL;
 import static com.netflix.titus.api.jobmanager.JobAttributes.TITUS_PARAMETER_AGENT_PREFIX;
 import static com.netflix.titus.api.jobmanager.model.job.Container.ATTRIBUTE_NETFLIX_APP_METADATA;
 import static com.netflix.titus.api.jobmanager.model.job.Container.ATTRIBUTE_NETFLIX_APP_METADATA_SIG;
@@ -120,6 +122,8 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_UPLOA
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ACCOUNT_ID;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ASSIGN_IVP6_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_BURSTING_ENABLED;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ELASTIC_IPS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ELASTIC_IP_POOL;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_JUMBO_FRAMES_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
@@ -421,6 +425,12 @@ public class V1SpecPodFactory implements PodFactory {
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING:
                     annotations.put(NETWORK_BURSTING_ENABLED, v);
+                    break;
+                case JOB_PARAMETER_ATTRIBUTE_EIP_POOL:
+                    annotations.put(NETWORK_ELASTIC_IP_POOL, v);
+                    break;
+                case JOB_PARAMETER_ATTRIBUTE_EIPS:
+                    annotations.put(NETWORK_ELASTIC_IPS, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH:
                     annotations.put(POD_SCHED_POLICY, v);
