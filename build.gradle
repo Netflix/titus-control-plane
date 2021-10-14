@@ -203,12 +203,11 @@ subprojects {
             exclude 'com/netflix/titus/master/integration/**/*'
         } else if ("onlyMaster1".equalsIgnoreCase(integrationTestScope)) {
             include 'com/netflix/titus/master/integration/**/*'
-            exclude 'com/netflix/titus/master/integration/v3/job/**/*'
+            exclude 'com/netflix/titus/master/integration/v3/job/basic/**/*', 'com/netflix/titus/master/integration/v3/job/other/**/*'
         } else if ("onlyMaster2".equalsIgnoreCase(integrationTestScope)) {
-            include 'com/netflix/titus/master/integration/v3/job/**/*'
-            exclude 'com/netflix/titus/master/integration/v3/job/query/*'
+            include 'com/netflix/titus/master/integration/v3/job/basic/**/*'
         } else if ("onlyMaster3".equalsIgnoreCase(integrationTestScope)) {
-            include 'com/netflix/titus/master/integration/v3/job/query/*'
+            include 'com/netflix/titus/master/integration/v3/job/other/**/*'
         }
 
         useJUnit {

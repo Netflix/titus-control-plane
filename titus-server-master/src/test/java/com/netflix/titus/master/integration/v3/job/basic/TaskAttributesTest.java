@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration.v3.job;
+package com.netflix.titus.master.integration.v3.job.basic;
 
-import com.netflix.titus.api.jobmanager.TaskAttributes;
+import java.util.Collections;
+
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
@@ -37,13 +37,11 @@ import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTask
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
-public class TaskMoveTest extends BaseIntegrationTest {
+public class TaskAttributesTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCell(2).toMaster(master ->
-            master.withProperty("titus.feature.moveTaskApiEnabled", "true")
-    ), true);
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicKubeCell(1), true);
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
@@ -56,24 +54,26 @@ public class TaskMoveTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSubmitSimpleServiceJob() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, 2, jobScenarioBuilder -> jobScenarioBuilder
+    public void testUpdateTaskAttributes() throws Exception {
+        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
+                        .updateTaskAttributes(Collections.singletonMap("attributeA", "value123"))
+                        .assertTaskUpdate(task -> assertThat(task.getAttributes()).containsEntry("attributeA", "value123"))
+                )
         );
-        String targetJobId = jobsScenarioBuilder.takeJob(0).getJobId();
-        String sourceJobId = jobsScenarioBuilder.takeJob(1).getJobId();
+    }
 
-        jobsScenarioBuilder.takeJob(1)
-                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.moveTask(targetJobId))
-                .expectJobUpdateEvent(job -> JobFunctions.getJobDesiredSize(job) == 0, "Job with no tasks expected");
-
-        jobsScenarioBuilder.takeJob(0)
-                .expectJobUpdateEvent(job -> JobFunctions.getJobDesiredSize(job) == 2, "Job with two tasks expected")
-                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder
-                        .assertTaskUpdate(task -> {
-                            assertThat(task.getJobId()).isEqualTo(targetJobId);
-                            assertThat(task.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, sourceJobId);
-                        })
-                );
+    @Test(timeout = 30_000)
+    public void testDeleteTaskAttributes() throws Exception {
+        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
+                        .updateTaskAttributes(Collections.singletonMap("attributeA", "value123"))
+                        .assertTaskUpdate(task -> assertThat(task.getAttributes()).containsEntry("attributeA", "value123"))
+                        .deleteTaskAttributes(Collections.singletonList("attributeA"))
+                        .assertTaskUpdate(task -> assertThat(task.getAttributes()).doesNotContainKeys("attributeA"))
+                )
+        );
     }
 }
