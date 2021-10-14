@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -43,6 +44,13 @@ public final class JobSnapshotFactories {
      */
     public static JobSnapshotFactory newDefault() {
         return PCOLLECTION_JOB_SNAPSHOT_FACTORY;
+    }
+
+    /**
+     * Returns empty snapshot built using {@link #newDefault()}.
+     */
+    public static JobSnapshot newDefaultEmptySnapshot() {
+        return newDefault().newSnapshot(Collections.emptyMap(), Collections.emptyMap());
     }
 
     public static JobSnapshotFactory newDefault(boolean autoFixInconsistencies, Consumer<String> inconsistentDataListener) {

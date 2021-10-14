@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,6 +63,7 @@ import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters.toGrpcPagination;
@@ -182,9 +184,11 @@ public class LocalCacheQueryProcessor {
 
         Flux<JobChangeNotification> eventStream = Flux.defer(() -> {
             AtomicBoolean first = new AtomicBoolean(true);
+            AtomicReference<JobManagerEvent<?>> lastEmittedEvent = new AtomicReference<>();
             return jobDataReplicator.events().flatMap(event -> {
                 long now = titusRuntime.getClock().wallTime();
-                Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(event.getLeft(), event.getRight(), now, jobsPredicate, tasksPredicate);
+                JobManagerEvent<?> jobManagerEvent = event.getRight();
+                Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(event.getLeft(), jobManagerEvent, now, jobsPredicate, tasksPredicate);
 
                 // On first event emit full snapshot first
                 if (first.getAndSet(false)) {
@@ -192,6 +196,14 @@ public class LocalCacheQueryProcessor {
                     grpcEvent.ifPresent(snapshotEvents::add);
                     return Flux.fromIterable(snapshotEvents);
                 }
+
+                // Job data replicator emits the last event periodically if there is nothing in the stream.
+                // We have to filter out these duplicates here.
+                if (lastEmittedEvent.get() == jobManagerEvent) {
+                    return Mono.empty();
+                }
+                lastEmittedEvent.set(jobManagerEvent);
+
                 return grpcEvent.map(Flux::just).orElseGet(Flux::empty);
             });
         });
