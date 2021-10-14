@@ -26,13 +26,11 @@ import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.model.event.TaskTerminationEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.Reference;
-
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcTier;
 
 public final class GrpcEvictionModelConverters {
 
@@ -163,5 +161,25 @@ public final class GrpcEvictionModelConverters {
             return Optional.of(grpcEvent);
         }
         return Optional.empty();
+    }
+
+    public static Tier toCoreTier(com.netflix.titus.grpc.protogen.Tier grpcTier) {
+        switch (grpcTier) {
+            case Flex:
+                return Tier.Flex;
+            case Critical:
+                return Tier.Critical;
+        }
+        return Tier.Flex; // Default to flex
+    }
+
+    public static com.netflix.titus.grpc.protogen.Tier toGrpcTier(Tier tier) {
+        switch (tier) {
+            case Critical:
+                return com.netflix.titus.grpc.protogen.Tier.Critical;
+            case Flex:
+                return com.netflix.titus.grpc.protogen.Tier.Flex;
+        }
+        throw new IllegalArgumentException("Unrecognized Tier value: " + tier);
     }
 }

@@ -19,7 +19,6 @@ package com.netflix.titus.runtime;
 import java.time.Duration;
 import javax.inject.Named;
 
-import com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.CustomJobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
@@ -40,7 +39,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import reactor.core.publisher.Flux;
 
-import static com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder.LOAD_BALANCER_SANITIZER;
@@ -90,12 +88,6 @@ public class TitusEntitySanitizerComponent {
                 .withJobConstraintConfiguration(jobConfiguration)
                 .withJobAsserts(jobAssertions)
                 .build();
-    }
-
-    @Bean
-    @Named(AGENT_SANITIZER)
-    public EntitySanitizer getAgentEntitySanitizer() {
-        return new AgentSanitizerBuilder().build();
     }
 
     @Bean

@@ -23,7 +23,6 @@ import com.datastax.driver.core.Session;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -38,7 +37,6 @@ public class CassandraStoreModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(AgentStore.class).to(CassandraAgentStore.class);
         bind(AppScalePolicyStore.class).to(CassAppScalePolicyStore.class);
         bind(JobStore.class).to(CassandraJobStore.class);
         bind(LoadBalancerStore.class).to(CassandraLoadBalancerStore.class);
