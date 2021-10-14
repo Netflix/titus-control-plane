@@ -182,6 +182,18 @@ public final class JobAttributes {
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.allowNetworkBursting";
 
     /**
+     * Elastic IP pool
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTE_EIP_POOL =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.elasticIPPool";
+
+    /**
+     * Elastic IPs
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTE_EIPS =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.elasticIPs";
+
+    /**
      * Sets SCHED_BATCH -- Linux batch scheduling, for cache-friendly handling of lowprio, batch-like, CPU-bound, 100% non-interactive tasks.
      */
     public static final String JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH =
@@ -198,6 +210,12 @@ public final class JobAttributes {
      */
     public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS =
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.killWaitSeconds";
+
+    /**
+     * Require a token or not on the imds
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.imds.requireToken";
 
     /*
      * Log location container attributes (set in {@link Container#getAttributes()}.
