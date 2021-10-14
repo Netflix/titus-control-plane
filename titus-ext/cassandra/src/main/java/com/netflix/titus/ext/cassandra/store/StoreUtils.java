@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.netflix.titus.api.agent.store.AgentStoreException;
+import com.netflix.titus.api.jobmanager.store.JobStoreException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
@@ -68,7 +68,7 @@ final class StoreUtils {
 
                 @Override
                 public void onFailure(@Nonnull Throwable e) {
-                    emitter.onError(AgentStoreException.cassandraDriverError(e));
+                    emitter.onError(JobStoreException.cassandraDriverError(e));
                 }
             }, MoreExecutors.directExecutor());
         }, Emitter.BackpressureMode.NONE);
@@ -94,7 +94,7 @@ final class StoreUtils {
                                         converted.add(value);
                                     } else {
                                         if (failOnError) {
-                                            throw AgentStoreException.badData(value, violations);
+                                            throw JobStoreException.badData(value, violations);
                                         }
                                         logger.warn("Ignoring bad record of type {} due to validation constraint violations: record={}, violations={}", type, value, violations);
                                     }
@@ -121,10 +121,6 @@ final class StoreUtils {
         }).flatMap(
                 statement -> StoreUtils.execute(session, statement)
         ).toCompletable();
-    }
-
-    static Completable remove(Session session, PreparedStatement deleteStatment, List<String> ids) {
-        return execute(session, deleteStatment.bind(ids)).toCompletable();
     }
 
     static Completable remove(Session session, PreparedStatement deleteStatment, String id) {

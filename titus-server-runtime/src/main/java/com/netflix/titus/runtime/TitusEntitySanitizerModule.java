@@ -23,7 +23,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.api.Config;
-import com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder;
 import com.netflix.titus.api.appscale.model.sanitizer.ScalingPolicySanitizerBuilder;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.CustomJobConfiguration;
@@ -37,7 +36,6 @@ import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.archaius2.ObjectConfigurationResolver;
 
-import static com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
 import static com.netflix.titus.api.appscale.model.sanitizer.ScalingPolicySanitizerBuilder.SCALING_POLICY_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
@@ -97,13 +95,6 @@ public class TitusEntitySanitizerModule extends AbstractModule {
                 .withJobConstraintConfiguration(jobConfiguration)
                 .withJobAsserts(jobAssertions)
                 .build();
-    }
-
-    @Provides
-    @Singleton
-    @Named(AGENT_SANITIZER)
-    public EntitySanitizer getAgentEntitySanitizer() {
-        return new AgentSanitizerBuilder().build();
     }
 
     @Provides

@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -197,10 +196,6 @@ public class JobComponentStub {
                         .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, agentIpAddress)
                         .build());
 
-    }
-
-    public void place(String taskId, AgentInstance agentInstance) {
-        place(taskId, agentInstance.getId(), agentInstance.getIpAddress());
     }
 
     public void forget(Task task) {

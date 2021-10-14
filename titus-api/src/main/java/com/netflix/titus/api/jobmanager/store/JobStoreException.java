@@ -16,6 +16,10 @@
 
 package com.netflix.titus.api.jobmanager.store;
 
+import java.util.Set;
+
+import com.netflix.titus.common.model.sanitizer.ValidationError;
+
 import static java.lang.String.format;
 
 /**
@@ -25,6 +29,7 @@ public class JobStoreException extends RuntimeException {
 
     public enum ErrorCode {
         CASSANDRA_DRIVER_ERROR,
+        BAD_DATA,
         JOB_ALREADY_EXISTS,
         JOB_MUST_BE_ACTIVE,
         JOB_DOES_NOT_EXIST,
@@ -64,5 +69,12 @@ public class JobStoreException extends RuntimeException {
 
     public static JobStoreException cassandraDriverError(Throwable e) {
         return new JobStoreException(e.getMessage(), ErrorCode.CASSANDRA_DRIVER_ERROR, e);
+    }
+
+    public static <T> JobStoreException badData(T value, Set<ValidationError> violations) {
+        return new JobStoreException(
+                String.format("Entity %s violates constraints: %s", value, violations),
+                ErrorCode.BAD_DATA
+        );
     }
 }

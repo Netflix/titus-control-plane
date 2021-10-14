@@ -16,8 +16,6 @@
 
 package com.netflix.titus.api.agent.service;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
-
 public class AgentManagementException extends RuntimeException {
 
     public enum ErrorCode {
@@ -39,39 +37,16 @@ public class AgentManagementException extends RuntimeException {
         return errorCode;
     }
 
-    public static AgentManagementException initializationError(String message, Throwable cause, Object... args) {
-        return new AgentManagementException(ErrorCode.InitializationError, message, cause, args);
-    }
-
     public static AgentManagementException agentGroupNotFound(String agentGroupId) {
         return new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s not found", null, agentGroupId);
-    }
-
-    public static <T> T checkInstanceGroupFound(T instanceGroupData, String instanceGroupId) {
-        if (instanceGroupData == null) {
-            throw new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s not found", null, instanceGroupId);
-        }
-        return instanceGroupData;
     }
 
     public static AgentManagementException agentNotFound(String agentInstanceId) {
         return new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s not found", null, agentInstanceId);
     }
 
-    public static AgentManagementException instanceTypeNotFound(String instanceType) {
-        return new AgentManagementException(ErrorCode.InstanceTypeNotFound, "Instance type %s not found", null, instanceType);
-    }
-
-
     public static AgentManagementException invalidArgument(String message, Object... args) {
         throw new AgentManagementException(ErrorCode.InvalidArgument, message, null, args);
-    }
-
-    public static AgentInstance checkAgentFound(AgentInstance agentInstance, String agentInstanceId) {
-        if (agentInstance == null) {
-            throw new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s not found", null, agentInstanceId);
-        }
-        return agentInstance;
     }
 
     public static void checkArgument(boolean condition, String message, Object... args) {

@@ -36,7 +36,6 @@ import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.JettyModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import com.netflix.titus.api.audit.model.AuditLogEvent;
 import com.netflix.titus.api.audit.service.AuditLogService;
@@ -393,7 +392,6 @@ public class EmbeddedTitusMaster {
 
         private JobStore v3JobStore;
         private boolean cassandraJobStore;
-        private AgentStore agentStore;
         private EmbeddedKubeCluster embeddedKubeCluster;
         private SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor;
 
