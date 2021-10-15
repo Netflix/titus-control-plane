@@ -50,7 +50,6 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
-import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -531,53 +530,26 @@ public class V1SpecPodFactory implements PodFactory {
             boolean readOnly = efsMount.getMountPerm() == EfsMount.MountPerm.RO;
             String efsId = efsMount.getEfsId();
             String efsMountPoint = efsMount.getMountPoint();
+            String efsRelativeMountPoint = StringExt.isEmpty(efsMount.getEfsRelativeMountPoint()) ? "/" : efsMount.getEfsRelativeMountPoint();
+            String name = sanitizeVolumeName(efsId + efsRelativeMountPoint);
 
-            // handle cases where efsId is an ip address
-            if (NetworkExt.isIpV4(efsId)) {
-                String name = sanitizeVolumeName(efsId);
+            V1VolumeMount volumeMount = new V1VolumeMount()
+                    .name(name)
+                    .mountPath(efsMountPoint);
+            container.addVolumeMountsItem(volumeMount);
 
-                V1VolumeMount volumeMount = new V1VolumeMount()
-                        .name(name)
-                        .mountPath(efsMountPoint);
+            V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
+                    .server(efsId)
+                    .readOnly(readOnly);
+            // "path" here represents the server-side relative mount path, sometimes called
+            // the "exported directory", and goes into the v1 Volume
+            nfsVolumeSource.setPath(efsRelativeMountPoint);
 
-                container.addVolumeMountsItem(volumeMount);
+            V1Volume volume = new V1Volume()
+                    .name(name)
+                    .nfs(nfsVolumeSource);
 
-                V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
-                        .server(efsId)
-                        .readOnly(readOnly);
-
-                String path = StringExt.isEmpty(efsMount.getEfsRelativeMountPoint()) ? "/" : efsMountPoint;
-                nfsVolumeSource.setPath(path);
-
-                V1Volume volume = new V1Volume()
-                        .name(name)
-                        .nfs(nfsVolumeSource);
-
-                spec.addVolumesItem(volume);
-
-            } else {
-                String name = sanitizeVolumeName(efsId + efsMountPoint);
-
-                V1VolumeMount volumeMount = new V1VolumeMount()
-                        .name(name)
-                        .mountPath(efsMountPoint);
-
-                container.addVolumeMountsItem(volumeMount);
-
-                String server = efsId + ".efs." + configuration.getTargetRegion() + ".amazonaws.com";
-                V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
-                        .server(server)
-                        .readOnly(readOnly);
-
-                String path = StringExt.isEmpty(efsMount.getEfsRelativeMountPoint()) ? "/" : efsMountPoint;
-                nfsVolumeSource.setPath(path);
-
-                V1Volume volume = new V1Volume()
-                        .name(name)
-                        .nfs(nfsVolumeSource);
-
-                spec.addVolumesItem(volume);
-            }
+            spec.addVolumesItem(volume);
         }
     }
 
