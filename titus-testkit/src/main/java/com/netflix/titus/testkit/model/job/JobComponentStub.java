@@ -62,6 +62,8 @@ public class JobComponentStub {
     private final MutableDataGenerator<Job> jobGenerator;
     private final Map<String, MutableDataGenerator<JobDescriptor>> jobTemplates = new HashMap<>();
 
+    private boolean connectionDelay;
+
     public JobComponentStub(TitusRuntime titusRuntime) {
         this.stubbedJobData = new StubbedJobData(titusRuntime);
         this.stubbedJobOperations = new StubbedJobOperations(stubbedJobData);
@@ -210,7 +212,15 @@ public class JobComponentStub {
         );
     }
 
+    public void delayConnection() {
+        connectionDelay = true;
+    }
+
     public Observable<JobManagerEvent<?>> observeJobs(boolean snapshot) {
+        if (connectionDelay) {
+            connectionDelay = false;
+            return Observable.never();
+        }
         return stubbedJobData.events(snapshot);
     }
 

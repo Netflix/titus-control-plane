@@ -16,8 +16,13 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 
 public class JobManagerDataReplicationModule extends AbstractModule {
@@ -25,5 +30,11 @@ public class JobManagerDataReplicationModule extends AbstractModule {
     protected void configure() {
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
+    }
+
+    @Provides
+    @Singleton
+    public JobDataReplicatorConfiguration getJobDataReplicatorConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(JobDataReplicatorConfiguration.class);
     }
 }

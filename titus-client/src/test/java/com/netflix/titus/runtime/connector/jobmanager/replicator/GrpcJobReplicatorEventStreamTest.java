@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -52,6 +53,7 @@ import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -71,18 +73,20 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final JobComponentStub dataGenerator = new JobComponentStub(titusRuntime);
+    private final JobDataReplicatorConfiguration configuration = Mockito.mock(JobDataReplicatorConfiguration.class);
+
+    private final JobComponentStub jobServiceStub = new JobComponentStub(titusRuntime);
 
     private final JobManagementClient client = mock(JobManagementClient.class);
 
     @Before
     public void setUp() {
-        dataGenerator.addJobTemplate(SERVICE_JOB, JobDescriptorGenerator.serviceJobDescriptors()
+        jobServiceStub.addJobTemplate(SERVICE_JOB, JobDescriptorGenerator.serviceJobDescriptors()
                 .map(jd -> jd.but(d -> d.getExtensions().toBuilder().withCapacity(Capacity.newBuilder().withDesired(SERVICE_DESIRED).withMax(10).build())))
                 .cast(JobDescriptor.class)
         );
 
-        dataGenerator.addJobTemplate(BATCH_JOB, JobDescriptorGenerator.batchJobDescriptors()
+        jobServiceStub.addJobTemplate(BATCH_JOB, JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(d -> d.getExtensions().toBuilder().withSize(BATCH_DESIRED)))
                 .cast(JobDescriptor.class)
         );
@@ -90,7 +94,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheBootstrap() {
-        dataGenerator.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
+        jobServiceStub.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
 
         newConnectVerifier()
                 .assertNext(initialReplicatorEvent -> {
@@ -107,11 +111,11 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheJobUpdate() {
-        Job job = dataGenerator.createJob(SERVICE_JOB);
+        Job job = jobServiceStub.createJob(SERVICE_JOB);
 
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.Accepted))
-                .then(() -> dataGenerator.moveJobToKillInitiatedState(job))
+                .then(() -> jobServiceStub.moveJobToKillInitiatedState(job))
                 .assertNext(next -> assertThat(next.getSnapshot().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.KillInitiated))
                 .thenCancel()
                 .verify();
@@ -119,12 +123,12 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheJobRemove() {
-        Job job = dataGenerator.createJob(SERVICE_JOB);
-        dataGenerator.moveJobToKillInitiatedState(job);
+        Job job = jobServiceStub.createJob(SERVICE_JOB);
+        jobServiceStub.moveJobToKillInitiatedState(job);
 
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.KillInitiated))
-                .then(() -> dataGenerator.finishJob(job))
+                .then(() -> jobServiceStub.finishJob(job))
                 .assertNext(next -> assertThat(next.getSnapshot().getJobs()).isEmpty())
 
                 .thenCancel()
@@ -133,12 +137,12 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheTaskUpdate() {
-        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(BATCH_JOB);
+        Pair<Job, List<Task>> pair = jobServiceStub.createJobAndTasks(BATCH_JOB);
         Task task = pair.getRight().get(0);
 
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Accepted))
-                .then(() -> dataGenerator.moveTaskToState(task, TaskState.Launched))
+                .then(() -> jobServiceStub.moveTaskToState(task, TaskState.Launched))
                 .assertNext(next -> assertThat(next.getSnapshot().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Launched))
 
                 .thenCancel()
@@ -147,8 +151,8 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheTaskMove() {
-        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(SERVICE_JOB);
-        Job target = dataGenerator.createJob(SERVICE_JOB);
+        Pair<Job, List<Task>> pair = jobServiceStub.createJobAndTasks(SERVICE_JOB);
+        Job target = jobServiceStub.createJob(SERVICE_JOB);
         Task task = pair.getRight().get(0);
         String sourceJobId = pair.getLeft().getId();
         String targetJobId = target.getId();
@@ -157,7 +161,7 @@ public class GrpcJobReplicatorEventStreamTest {
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().getTaskMap().values())
                         .allSatisfy(t -> assertThat(t.getStatus().getState()).isEqualTo(TaskState.Accepted)))
-                .then(() -> dataGenerator.moveTaskToState(task, TaskState.Started))
+                .then(() -> jobServiceStub.moveTaskToState(task, TaskState.Started))
                 .assertNext(next -> {
                     JobSnapshot snapshot = next.getSnapshot();
                     Optional<Pair<Job<?>, Task>> taskOpt = snapshot.findTaskById(task.getId());
@@ -165,7 +169,7 @@ public class GrpcJobReplicatorEventStreamTest {
                     assertThat(taskOpt.get().getRight().getStatus().getState()).isEqualTo(TaskState.Started);
                     assertThat(snapshot.getTasks(sourceJobId)).containsKey(task.getId());
                 })
-                .then(() -> dataGenerator.getJobOperations()
+                .then(() -> jobServiceStub.getJobOperations()
                         .moveServiceTask(sourceJobId, targetJobId, task.getId(), CallMetadata.newBuilder().withCallerId("Test").withCallReason("testing").build())
                         .test()
                         .awaitTerminalEvent()
@@ -204,12 +208,12 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheTaskRemove() {
-        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(BATCH_JOB);
+        Pair<Job, List<Task>> pair = jobServiceStub.createJobAndTasks(BATCH_JOB);
         Task task = pair.getRight().get(0);
 
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Accepted))
-                .then(() -> dataGenerator.moveTaskToState(task, TaskState.Finished))
+                .then(() -> jobServiceStub.moveTaskToState(task, TaskState.Finished))
                 .assertNext(next -> assertThat(next.getSnapshot().getTaskMap()).isEmpty())
 
                 .thenCancel()
@@ -218,7 +222,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testReemit() {
-        dataGenerator.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
+        jobServiceStub.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
 
         newConnectVerifier()
                 .expectNextCount(1)
@@ -226,6 +230,19 @@ public class GrpcJobReplicatorEventStreamTest {
                 .expectNextCount(1)
 
                 .thenCancel()
+                .verify();
+    }
+
+    @Test
+    public void testConnectionTimeout() {
+        when(configuration.getConnectionTimeoutMs()).thenReturn(30_000L);
+        when(configuration.isConnectionTimeoutEnabled()).thenReturn(true);
+
+        jobServiceStub.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
+        jobServiceStub.delayConnection();
+        newConnectVerifier()
+                .thenAwait(Duration.ofMillis(30_000))
+                .expectError(TimeoutException.class)
                 .verify();
     }
 
@@ -252,8 +269,8 @@ public class GrpcJobReplicatorEventStreamTest {
     }
 
     private GrpcJobReplicatorEventStream newStream() {
-        when(client.observeJobs(any())).thenReturn(ReactorExt.toFlux(dataGenerator.observeJobs(true)));
-        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newDefault(), new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
+        when(client.observeJobs(any())).thenReturn(ReactorExt.toFlux(jobServiceStub.observeJobs(true)));
+        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newDefault(), configuration, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
     private StepVerifier.FirstStep<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnectVerifier() {

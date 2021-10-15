@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -48,6 +50,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
@@ -62,20 +65,24 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     private final JobManagementClient client;
     private final Map<String, String> filteringCriteria;
     private final JobSnapshotFactory jobSnapshotFactory;
+    private final JobDataReplicatorConfiguration configuration;
+
     private final ValueRangeCounter eventProcessingLatencies;
     private final AtomicInteger subscriptionCounter = new AtomicInteger();
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         JobSnapshotFactory jobSnapshotFactory,
+                                        JobDataReplicatorConfiguration configuration,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
-        this(client, Collections.emptyMap(), jobSnapshotFactory, metrics, titusRuntime, scheduler);
+        this(client, Collections.emptyMap(), jobSnapshotFactory, configuration, metrics, titusRuntime, scheduler);
     }
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         Map<String, String> filteringCriteria,
                                         JobSnapshotFactory jobSnapshotFactory,
+                                        JobDataReplicatorConfiguration configuration,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
@@ -83,6 +90,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         this.client = client;
         this.filteringCriteria = filteringCriteria;
         this.jobSnapshotFactory = jobSnapshotFactory;
+        this.configuration = configuration;
 
         PolledMeter.using(titusRuntime.getRegistry()).withName(METRICS_ROOT + "activeSubscriptions").monitorValue(subscriptionCounter);
         this.eventProcessingLatencies = SpectatorExt.newValueRangeCounter(
@@ -98,7 +106,21 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                 .<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>>create(sink -> {
                     CacheUpdater cacheUpdater = new CacheUpdater(jobSnapshotFactory, titusRuntime);
                     logger.info("Connecting to the job event stream (filteringCriteria={})...", filteringCriteria);
-                    Disposable disposable = client.observeJobs(filteringCriteria).subscribe(
+
+                    ConnectableFlux<JobManagerEvent<?>> connectableStream = client.observeJobs(filteringCriteria).publish();
+                    Flux<JobManagerEvent<?>> augmentedStream;
+                    if (configuration.isConnectionTimeoutEnabled()) {
+                        augmentedStream = Flux.merge(
+                                connectableStream.take(1).timeout(Duration.ofMillis(configuration.getConnectionTimeoutMs())).ignoreElements()
+                                        .onErrorMap(TimeoutException.class, error ->
+                                                new TimeoutException(String.format("No event received from stream in %sms", configuration.getConnectionTimeoutMs()))
+                                        ),
+                                connectableStream
+                        );
+                    } else {
+                        augmentedStream = connectableStream;
+                    }
+                    Disposable disposable = augmentedStream.subscribe(
                             jobEvent -> {
                                 long started = titusRuntime.getClock().wallTime();
                                 try {
@@ -114,6 +136,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                             () -> ExceptionExt.silent(sink::complete)
                     );
                     sink.onDispose(disposable);
+                    connectableStream.connect();
                 })
                 .doOnSubscribe(subscription -> subscriptionCounter.incrementAndGet())
                 .doFinally(signal -> subscriptionCounter.decrementAndGet());
@@ -134,6 +157,20 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         }
 
         Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
+            if (logger.isDebugEnabled()) {
+                if (event instanceof JobUpdateEvent) {
+                    Job job = ((JobUpdateEvent) event).getCurrent();
+                    logger.info("Received job update event: jobId={}, state={}, version={}", job.getId(), job.getStatus(), job.getVersion());
+                } else if (event instanceof TaskUpdateEvent) {
+                    Task task = ((TaskUpdateEvent) event).getCurrent();
+                    logger.info("Received task update event: taskId={}, state={}, version={}", task.getId(), task.getStatus(), task.getVersion());
+                } else if (event.equals(JobManagerEvent.snapshotMarker())) {
+                    logger.info("Received snapshot marker");
+                } else {
+                    logger.info("Received unrecognized event type: {}", event);
+                }
+            }
+
             if (lastJobSnapshotRef.get() != null) {
                 return processCacheUpdate(event);
             }

@@ -17,7 +17,10 @@
 package com.netflix.titus.runtime.connector.jobmanager;
 
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,15 +29,21 @@ import org.springframework.context.annotation.Configuration;
 public class JobManagementDataReplicationComponent {
 
     @Bean
+    public JobDataReplicatorConfiguration getJobDataReplicatorConfiguration(MyEnvironment environment) {
+        return Archaius2Ext.newConfiguration(JobDataReplicatorConfiguration.class, environment);
+    }
+
+    @Bean
     public JobSnapshotFactory getJobSnapshotFactory() {
         return JobSnapshotFactories.newDefault();
     }
 
     @Bean
-    public JobDataReplicator getJobDataReplicator(JobManagementClient jobManagementClient,
+    public JobDataReplicator getJobDataReplicator(JobDataReplicatorConfiguration configuration,
+                                                  JobManagementClient jobManagementClient,
                                                   JobSnapshotFactory jobSnapshotFactory,
                                                   TitusRuntime titusRuntime) {
-        return new JobDataReplicatorProvider(jobManagementClient, jobSnapshotFactory, titusRuntime).get();
+        return new JobDataReplicatorProvider(configuration, jobManagementClient, jobSnapshotFactory, titusRuntime).get();
     }
 
     @Bean
