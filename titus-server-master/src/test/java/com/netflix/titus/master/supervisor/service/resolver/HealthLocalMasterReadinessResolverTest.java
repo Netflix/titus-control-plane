@@ -121,8 +121,12 @@ public class HealthLocalMasterReadinessResolverTest {
     private Iterator<ReadinessStatus> newStreamInitiallyHealthy() {
         // Starts healthy
         Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        ReadinessState first = it.next().getState();
+        if (first == ReadinessState.NotReady) {
+            assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        } else {
+            assertThat(first).isEqualTo(ReadinessState.Enabled);
+        }
         return it;
     }
 }
