@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +59,8 @@ import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -114,7 +115,7 @@ public class LocalCacheQueryProcessor {
                 ? "unknown"
                 : callMetadata.getCallers().get(0).getId();
 
-        if (jobDataReplicator.getStalenessMs() > configuration.getMaxAcceptableCacheStaleness()) {
+        if (jobDataReplicator.getStalenessMs() > configuration.getMaxAcceptableCacheStalenessMs()) {
             allow = false;
             reason = "stale";
         } else {
@@ -184,25 +185,39 @@ public class LocalCacheQueryProcessor {
 
         Flux<JobChangeNotification> eventStream = Flux.defer(() -> {
             AtomicBoolean first = new AtomicBoolean(true);
-            AtomicReference<JobManagerEvent<?>> lastEmittedEvent = new AtomicReference<>();
             return jobDataReplicator.events().flatMap(event -> {
-                long now = titusRuntime.getClock().wallTime();
                 JobManagerEvent<?> jobManagerEvent = event.getRight();
-                Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(event.getLeft(), jobManagerEvent, now, jobsPredicate, tasksPredicate);
+
+                long now = titusRuntime.getClock().wallTime();
+                JobSnapshot snapshot = event.getLeft();
+                Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(snapshot, jobManagerEvent, now, jobsPredicate, tasksPredicate);
 
                 // On first event emit full snapshot first
                 if (first.getAndSet(false)) {
-                    List<JobChangeNotification> snapshotEvents = buildSnapshot(event.getLeft(), now, jobsPredicate, tasksPredicate);
+                    List<JobChangeNotification> snapshotEvents = buildSnapshot(snapshot, now, jobsPredicate, tasksPredicate);
                     grpcEvent.ifPresent(snapshotEvents::add);
                     return Flux.fromIterable(snapshotEvents);
                 }
 
-                // Job data replicator emits the last event periodically if there is nothing in the stream.
-                // We have to filter out these duplicates here.
-                if (lastEmittedEvent.get() == jobManagerEvent) {
+                // If we already emitted something we have to first disconnect this stream, and let the client
+                // subscribe again. Snapshot marker indicates that the underlying GRPC stream was disconnected.
+                if (jobManagerEvent == JobManagerEvent.snapshotMarker()) {
+                    return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
+                            "Downstream event stream reconnected."
+                    )));
+                }
+
+                // Job data replicator emits keep alive events periodically if there is nothing in the stream. We have
+                // to filter them out here.
+                if (jobManagerEvent == JobManagerEvent.keepAliveEvent()) {
+                    // Check if staleness is not too high.
+                    if(jobDataReplicator.getStalenessMs() > configuration.getObserveJobsStalenessDisconnectMs()) {
+                        return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
+                                "Data staleness in the event stream is too high. Most likely caused by connectivity issue to the downstream server."
+                        )));
+                    }
                     return Mono.empty();
                 }
-                lastEmittedEvent.set(jobManagerEvent);
 
                 return grpcEvent.map(Flux::just).orElseGet(Flux::empty);
             });

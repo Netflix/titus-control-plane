@@ -27,11 +27,13 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractReplicatorEventStream.class);
 
+    private final TRIGGER keepAliveEvent;
     protected final DataReplicatorMetrics metrics;
     protected final TitusRuntime titusRuntime;
     protected final Scheduler scheduler;
 
-    protected AbstractReplicatorEventStream(DataReplicatorMetrics metrics, TitusRuntime titusRuntime, Scheduler scheduler) {
+    protected AbstractReplicatorEventStream(TRIGGER keepAliveEvent, DataReplicatorMetrics metrics, TitusRuntime titusRuntime, Scheduler scheduler) {
+        this.keepAliveEvent = keepAliveEvent;
         this.metrics = metrics;
         this.titusRuntime = titusRuntime;
         this.scheduler = scheduler;
@@ -44,7 +46,7 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
                 .transformDeferred(ReactorExt.reEmitter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
-                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getSnapshot(), cacheEvent.getTrigger(), titusRuntime.getClock().wallTime()),
+                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getSnapshot(), keepAliveEvent, titusRuntime.getClock().wallTime()),
                         LATENCY_REPORT_INTERVAL,
                         scheduler
                 ))

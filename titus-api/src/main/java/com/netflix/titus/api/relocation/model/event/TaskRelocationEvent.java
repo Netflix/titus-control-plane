@@ -21,9 +21,14 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 public abstract class TaskRelocationEvent {
 
     public static TaskRelocationSnapshotEndEvent SNAPSHOT_END_EVENT = new TaskRelocationSnapshotEndEvent();
+    public static TaskRelocationKeepAliveEvent KEEP_ALIVE_EVENT = new TaskRelocationKeepAliveEvent();
 
     public static TaskRelocationEvent newSnapshotEndEvent() {
         return SNAPSHOT_END_EVENT;
+    }
+
+    public static TaskRelocationEvent newKeepAliveEvent() {
+        return KEEP_ALIVE_EVENT;
     }
 
     public static TaskRelocationPlanUpdateEvent taskRelocationPlanUpdated(TaskRelocationPlan plan) {
@@ -38,6 +43,13 @@ public abstract class TaskRelocationEvent {
         @Override
         public boolean equals(Object obj) {
             return obj instanceof TaskRelocationSnapshotEndEvent;
+        }
+    }
+
+    private static class TaskRelocationKeepAliveEvent extends TaskRelocationEvent {
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof TaskRelocationKeepAliveEvent;
         }
     }
 }

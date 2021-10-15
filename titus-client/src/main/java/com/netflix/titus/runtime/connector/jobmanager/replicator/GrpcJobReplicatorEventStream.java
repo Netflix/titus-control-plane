@@ -86,7 +86,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
-        super(metrics, titusRuntime, scheduler);
+        super(JobManagerEvent.keepAliveEvent(), metrics, titusRuntime, scheduler);
         this.client = client;
         this.filteringCriteria = filteringCriteria;
         this.jobSnapshotFactory = jobSnapshotFactory;
