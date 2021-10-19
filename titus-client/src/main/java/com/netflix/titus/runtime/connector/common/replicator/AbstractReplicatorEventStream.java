@@ -44,7 +44,7 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
 
         return newConnection()
                 .transformDeferred(ReactorExt.reEmitter(
-                        // If there are no events in the stream, we will periodically emit the last cache instance
+                        // If there are no events in the stream, we will periodically the emit keep alive event
                         // with the updated cache update timestamp, so it does not look stale.
                         cacheEvent -> new ReplicatorEvent<>(cacheEvent.getSnapshot(), keepAliveEvent, titusRuntime.getClock().wallTime()),
                         LATENCY_REPORT_INTERVAL,
