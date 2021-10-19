@@ -108,7 +108,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final LocalCacheQueryProcessor localCacheQueryProcessor;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
-    private final TaskRelocationDataInjector taskRelocationDataInjector;
+    private final DataInjector dataInjector;
     private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
     private final Clock clock;
 
@@ -119,7 +119,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     JobManagementServiceStub client,
                                     JobStore store,
                                     LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
-                                    TaskRelocationDataInjector taskRelocationDataInjector,
+                                    DataInjector dataInjector,
                                     NeedsMigrationQueryHandler needsMigrationQueryHandler,
                                     LocalCacheQueryProcessor localCacheQueryProcessor,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
@@ -130,6 +130,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                     AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer,
                                     TitusRuntime titusRuntime) {
+//                                  Nakubclient client) {
         super(new SanitizingJobServiceGateway(
                 new GrpcJobServiceGateway(client, tunablesConfiguration, titusRuntime),
                 new ExtendedJobSanitizer(
@@ -148,7 +149,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.localCacheQueryProcessor = localCacheQueryProcessor;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
-        this.taskRelocationDataInjector = taskRelocationDataInjector;
+        this.dataInjector = dataInjector;
         this.needsMigrationQueryHandler = needsMigrationQueryHandler;
         this.clock = titusRuntime.getClock();
     }
@@ -227,7 +228,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 },
                 tunablesConfiguration.getRequestTimeoutMs()
         );
-        observable = taskRelocationDataInjector.injectIntoTask(taskId, observable);
+        observable = dataInjector.injectIntoTask(taskId, observable);
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -287,7 +288,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             }
         }
 
-        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
+        return dataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
     }
 
     @Override

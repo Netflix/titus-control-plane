@@ -35,9 +35,11 @@ import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -45,9 +47,9 @@ import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 @Singleton
-class TaskRelocationDataInjector {
+class DataInjector {
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskRelocationDataInjector.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataInjector.class);
 
     /**
      * We can tolerate task relocation cache staleness up to 60sec. This should be ok, as the relocation service
@@ -61,31 +63,41 @@ class TaskRelocationDataInjector {
     private final RelocationServiceClient relocationServiceClient;
     private final RelocationDataReplicator relocationDataReplicator;
     private final Scheduler scheduler;
+    private final NamespacedKubernetesClient namespacedKubernetesClient;
+    /*getFabric8IOClient() {
+        return Fabric8IOClients.mustHaveKubeConnectivity(
+                Fabric8IOClients.createFabric8IOClient()
+        );
+    }*/
 
     @Inject
-    TaskRelocationDataInjector(
-            GrpcClientConfiguration configuration,
-            JobManagerConfiguration jobManagerConfiguration,
-            FeatureActivationConfiguration featureActivationConfiguration,
-            RelocationServiceClient relocationServiceClient,
-            RelocationDataReplicator relocationDataReplicator) {
-        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator, Schedulers.computation());
-    }
-
-    @VisibleForTesting
-    TaskRelocationDataInjector(
+    DataInjector(
             GrpcClientConfiguration configuration,
             JobManagerConfiguration jobManagerConfiguration,
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
-            Scheduler scheduler) {
+            NamespacedKubernetesClient namespacedKubernetesClient) {
+        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator,
+                Schedulers.computation(), namespacedKubernetesClient);
+    }
+
+
+    @VisibleForTesting
+    DataInjector(
+            GrpcClientConfiguration configuration,
+            JobManagerConfiguration jobManagerConfiguration,
+            FeatureActivationConfiguration featureActivationConfiguration,
+            RelocationServiceClient relocationServiceClient,
+            RelocationDataReplicator relocationDataReplicator,
+            Scheduler scheduler, NamespacedKubernetesClient namespacedKubernetesClient) {
         this.configuration = configuration;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.featureActivationConfiguration = featureActivationConfiguration;
         this.relocationServiceClient = relocationServiceClient;
         this.relocationDataReplicator = relocationDataReplicator;
         this.scheduler = scheduler;
+        this.namespacedKubernetesClient = namespacedKubernetesClient;
     }
 
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {

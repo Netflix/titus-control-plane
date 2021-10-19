@@ -38,6 +38,7 @@ import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
@@ -68,14 +69,16 @@ public class TaskRelocationDataInjectorTest {
 
     private final RelocationServiceClient relocationServiceClient = mock(RelocationServiceClient.class);
     private final RelocationDataReplicator relocationDataReplicator = mock(RelocationDataReplicator.class);
+    private final NamespacedKubernetesClient namespacedKubernetesClient = mock(NamespacedKubernetesClient.class);
 
-    private final TaskRelocationDataInjector taskRelocationDataInjector = new TaskRelocationDataInjector(
+    private final DataInjector dataInjector = new DataInjector(
             grpcConfiguration,
             jobManagerConfiguration,
             featureActivationConfiguration,
             relocationServiceClient,
             relocationDataReplicator,
-            testScheduler
+            testScheduler,
+            namespacedKubernetesClient
     );
 
     @Before
@@ -93,7 +96,7 @@ public class TaskRelocationDataInjectorTest {
                 Mono.just(Optional.of(newRelocationPlan(TASK1, deadlineTimestamp)))
         );
 
-        Task merged = taskRelocationDataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).toBlocking().first();
+        Task merged = dataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).toBlocking().first();
         assertThat(merged.getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getMigrationDetails().getDeadline()).isEqualTo(deadlineTimestamp);
     }
@@ -101,7 +104,7 @@ public class TaskRelocationDataInjectorTest {
     @Test
     public void testFindTaskWithoutRelocationDeadline() {
         when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(Mono.just(Optional.empty()));
-        Task merged = taskRelocationDataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).toBlocking().first();
+        Task merged = dataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).toBlocking().first();
         assertThat(merged.getMigrationDetails().getNeedsMigration()).isFalse();
     }
 
@@ -112,7 +115,7 @@ public class TaskRelocationDataInjectorTest {
         Task legacyTask = toLegacyTask(TASK1, deadlineTimestamp);
 
         when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(Mono.just(Optional.empty()));
-        taskRelocationDataInjector.injectIntoTask(legacyTask.getId(), Observable.just(legacyTask)).toBlocking().first();
+        dataInjector.injectIntoTask(legacyTask.getId(), Observable.just(legacyTask)).toBlocking().first();
 
         assertThat(legacyTask).isEqualToComparingFieldByField(legacyTask);
     }
@@ -122,7 +125,7 @@ public class TaskRelocationDataInjectorTest {
         when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(Mono.never());
 
         ExtTestSubscriber<Task> testSubscriber = new ExtTestSubscriber<>();
-        taskRelocationDataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).subscribe(testSubscriber);
+        dataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).subscribe(testSubscriber);
 
         testSubscriber.assertOpen();
         testScheduler.advanceTimeBy(RELOCATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -145,7 +148,7 @@ public class TaskRelocationDataInjectorTest {
         );
         when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.just(relocationPlans));
 
-        TaskQueryResult merged = taskRelocationDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = dataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -166,7 +169,7 @@ public class TaskRelocationDataInjectorTest {
 
         when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.just(relocationPlans));
 
-        TaskQueryResult merged = taskRelocationDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = dataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -188,7 +191,7 @@ public class TaskRelocationDataInjectorTest {
         List<TaskRelocationPlan> relocationPlans = Collections.singletonList(newRelocationPlan(TASK1, deadline1));
         when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.just(relocationPlans));
 
-        TaskQueryResult merged = taskRelocationDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = dataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -206,7 +209,7 @@ public class TaskRelocationDataInjectorTest {
                 .build();
 
         ExtTestSubscriber<TaskQueryResult> testSubscriber = new ExtTestSubscriber<>();
-        taskRelocationDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).subscribe(testSubscriber);
+        dataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).subscribe(testSubscriber);
 
         testSubscriber.assertOpen();
         testScheduler.advanceTimeBy(RELOCATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
