@@ -26,6 +26,7 @@ import java.util.Objects;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
@@ -36,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
+import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
@@ -205,6 +207,41 @@ public class V1SpecPodFactoryTest {
         V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
         String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
         assertThat(networkModeAnnotationValue).isEqualTo("UnknownNetworkMode");
+    }
+
+    @Test
+    public void testEFSMountsGetTransformedSafely() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+
+        EfsMount newEfsMount = new EfsMount("1.2.3.4", "/mountpoint", EfsMount.MountPerm.RO, "/relative");
+        Container newContainer = job.getJobDescriptor().getContainer();
+        ContainerResources newContainerResources = newContainer.getContainerResources();
+        Container newContainerWithEFS = newContainer.toBuilder().withContainerResources(newContainerResources.newBuilder()
+                .withEfsMounts(Collections.singletonList(newEfsMount))
+                .build()).build();
+
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
+                .withContainer(newContainerWithEFS).build())
+                .build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        // Part 1: the volume section needs to be well-formed
+        List<V1Volume> volumes = pod.getSpec().getVolumes();
+        assertThat(volumes.size()).isEqualTo(2); // one for nfs, one for shm
+        V1Volume v1NFSVolume = volumes.get(0);
+        assertThat(v1NFSVolume.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSVolume.getNfs().getServer()).isEqualTo("1.2.3.4");
+        assertThat(v1NFSVolume.getNfs().getPath()).isEqualTo("/relative");
+        assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(true);
+
+        // Part 2: the volume mount section needs to applied to the first container in the podspec
+        List<V1VolumeMount> vms = pod.getSpec().getContainers().get(0).getVolumeMounts();
+        assertThat(vms.size()).isEqualTo(2); // one for nfs, one for shm
+        V1VolumeMount v1NFSvm = vms.get(0);
+        assertThat(v1NFSvm.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSvm.getMountPath()).isEqualTo("/mountpoint");
     }
 
 }
