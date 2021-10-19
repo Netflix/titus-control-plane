@@ -19,13 +19,14 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 
 public abstract class JobManagerEvent<TYPE> {
 
     private static final SnapshotMarkerEvent SNAPSHOT_MARKER = new SnapshotMarkerEvent();
+    private static final KeepAliveEvent KEEP_ALIVE_EVENT = new KeepAliveEvent();
 
     private final TYPE current;
     private final Optional<TYPE> previous;
@@ -74,10 +75,21 @@ public abstract class JobManagerEvent<TYPE> {
         return SNAPSHOT_MARKER;
     }
 
+    public static JobManagerEvent<Job> keepAliveEvent() {
+        return KEEP_ALIVE_EVENT;
+    }
+
     private static class SnapshotMarkerEvent extends JobManagerEvent<Job> {
 
         private SnapshotMarkerEvent() {
             super(Job.newBuilder().build(), Optional.empty(), CallMetadata.newBuilder().withCallerId("SnapshotMarkerEvent").withCallReason("initializing").build());
+        }
+    }
+
+    private static class KeepAliveEvent extends JobManagerEvent<Job> {
+
+        private KeepAliveEvent() {
+            super(Job.newBuilder().build(), Optional.empty(), CallMetadata.newBuilder().withCallerId("KeepAliveEvent").withCallReason("keep alive event").build());
         }
     }
 }

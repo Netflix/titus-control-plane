@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
+import com.netflix.titus.api.eviction.model.event.EvictionKeepAliveEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
@@ -54,7 +55,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
                                              DataReplicatorMetrics metrics,
                                              TitusRuntime titusRuntime,
                                              Scheduler scheduler) {
-        super(metrics, titusRuntime, scheduler);
+        super(EvictionKeepAliveEvent.getInstance(), metrics, titusRuntime, scheduler);
         this.client = client;
     }
 

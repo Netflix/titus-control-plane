@@ -31,9 +31,9 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.runtime.connector.jobmanager.LegacyJobSnapshot;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.TaskRelocationSnapshot;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
@@ -67,7 +67,7 @@ public class NeedsMigrationQueryHandlerTest {
 
     @Before
     public void setUp() {
-        when(jobDataReplicator.getCurrent()).thenReturn(LegacyJobSnapshot.newBuilder("snapshot1").build());
+        when(jobDataReplicator.getCurrent()).thenReturn(JobSnapshotFactories.newDefaultEmptySnapshot());
         when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.newBuilder().build());
     }
 

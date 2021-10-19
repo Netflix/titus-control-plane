@@ -29,10 +29,16 @@ public interface GatewayConfiguration {
     int getMaxTaskPageSize();
 
     /**
-     * If the cache staleness is above this threshold, it will not be used.
+     * If the cache staleness is above this threshold, it will not be used for query requests.
      */
     @DefaultValue("5000")
-    long getMaxAcceptableCacheStaleness();
+    long getMaxAcceptableCacheStalenessMs();
+
+    /**
+     * If the cache staleness is above this threshold, disconnect all observeJob(s) sourced from this cache.
+     */
+    @DefaultValue("5000")
+    long getObserveJobsStalenessDisconnectMs();
 
     /**
      * Configure callers whose queries should be handled from the local cache.

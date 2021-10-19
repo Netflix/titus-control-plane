@@ -166,7 +166,7 @@ public class LegacyJobSnapshot extends JobSnapshot {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("JobSnapshot2{snapshotId=").append(snapshotId).append(", jobs=");
+        StringBuilder sb = new StringBuilder("LegacyJobSnapshot{snapshotId=").append(snapshotId).append(", jobs=");
         jobsById.forEach((id, job) -> {
             Map<String, Task> tasks = tasksByJobId.get(id);
             int tasksCount = tasks == null ? 0 : tasks.size();

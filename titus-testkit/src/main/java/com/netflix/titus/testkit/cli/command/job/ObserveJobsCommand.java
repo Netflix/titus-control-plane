@@ -21,6 +21,8 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
 /**
+ *
  */
 public class ObserveJobsCommand implements CliCommand {
 
@@ -73,21 +76,38 @@ public class ObserveJobsCommand implements CliCommand {
 
         JobEventPropagationMetrics metrics = JobEventPropagationMetrics.newExternalClientMetrics("cli", context.getTitusRuntime());
 
+        while (true) {
+            logger.info("Establishing a new connection to the job event stream endpoint...");
+            executeOne(events, metrics);
+        }
+    }
+
+    private void executeOne(Flux<JobManagerEvent<?>> events, JobEventPropagationMetrics metrics) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean snapshotRead = new AtomicBoolean();
         events.subscribe(
                 next -> {
-                    logger.info("Emitted: {}", next);
                     if (next == JobManagerEvent.snapshotMarker()) {
+                        logger.info("Emitted: snapshot marker");
                         snapshotRead.set(true);
                     } else if (next instanceof JobUpdateEvent) {
+                        Job<?> job = ((JobUpdateEvent) next).getCurrent();
+                        logger.info("Emitted job update: jobId={}, jobState={}, version={}",
+                                job.getId(), job.getStatus(), job.getVersion()
+                        );
                         Optional<EventPropagationTrace> trace = metrics.recordJob(((JobUpdateEvent) next).getCurrent(), !snapshotRead.get());
                         trace.ifPresent(t -> {
                             logger.info("Event propagation data: stages={}", t);
                         });
                     } else if (next instanceof TaskUpdateEvent) {
+                        Task task = ((TaskUpdateEvent) next).getCurrent();
+                        logger.info("Emitted task update: jobId={}, taskId={}, taskState={}, version={}",
+                                task.getJobId(), task.getId(), task.getStatus(), task.getVersion()
+                        );
                         Optional<EventPropagationTrace> trace = metrics.recordTask(((TaskUpdateEvent) next).getCurrent(), !snapshotRead.get());
                         trace.ifPresent(t -> logger.info("Event propagation data: {}", t));
+                    } else {
+                        logger.info("Unrecognized event type: {}", next);
                     }
                 },
                 e -> {

@@ -45,7 +45,7 @@ public class GrpcRelocationReplicatorEventStream extends AbstractReplicatorEvent
                                                DataReplicatorMetrics metrics,
                                                TitusRuntime titusRuntime,
                                                Scheduler scheduler) {
-        super(metrics, titusRuntime, scheduler);
+        super(TaskRelocationEvent.newKeepAliveEvent(), metrics, titusRuntime, scheduler);
         this.client = client;
     }
 
