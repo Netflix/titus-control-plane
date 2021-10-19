@@ -150,7 +150,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         actions.addAll(applyRuntime(engine, refJobView, engine.getRunningView(), storeModel, allowedNewTasks));
 
         if (actions.isEmpty()) {
-            actions.addAll(removeCompletedJob(engine.getReferenceView(), storeModel, jobStore, versionSupplier));
+            actions.addAll(removeCompletedJob(refJobView, engine.getReferenceView(), storeModel, jobStore, versionSupplier));
         }
 
         return actions;
@@ -303,17 +303,27 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         return actions;
     }
 
-    private static List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel,
+    private static List<ChangeAction> removeCompletedJob(BatchJobView refJobView,
+                                                         EntityHolder referenceModel,
+                                                         EntityHolder storeModel,
                                                          JobStore titusStore, VersionSupplier versionSupplier) {
-        if (!DifferenceResolverUtils.hasJobState(referenceModel, JobState.Finished)) {
-            if (DifferenceResolverUtils.allDone(storeModel)) {
-                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId(), versionSupplier));
-            }
-        } else {
+
+        // Finished: do the final cleanup
+        if (DifferenceResolverUtils.hasJobState(referenceModel, JobState.Finished)) {
             if (!BasicJobActions.isClosed(referenceModel)) {
                 return Collections.singletonList(BasicJobActions.removeJobFromStore(referenceModel.getEntity(), titusStore));
             }
+            return Collections.emptyList();
         }
+
+        // All tasks executed or KillInitiated
+        int notStartedTasks = refJobView.getRequiredSize() - refJobView.getTasks().size();
+        if (notStartedTasks <= 0 || DifferenceResolverUtils.hasJobState(referenceModel, JobState.KillInitiated)) {
+            if (DifferenceResolverUtils.allDone(storeModel)) {
+                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId(), versionSupplier));
+            }
+        }
+
         return Collections.emptyList();
     }
 

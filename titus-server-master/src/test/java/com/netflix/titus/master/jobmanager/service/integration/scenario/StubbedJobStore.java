@@ -64,6 +64,7 @@ public class StubbedJobStore implements JobStore {
     enum StoreState {
         Normal,
         Broken,
+        BrokenForTasks,
         Slow,
     }
 
@@ -262,7 +263,7 @@ public class StubbedJobStore implements JobStore {
                         jobToServiceTaskIndex.put(job.getId(), new ServiceTaskIndex());
                     }
                     eventSubject.onNext(Pair.of(StoreEvent.JobAdded, job));
-                }));
+                }), false);
     }
 
     @Override
@@ -271,7 +272,7 @@ public class StubbedJobStore implements JobStore {
                 Completable.fromAction(() -> {
                     addJobInternal(job);
                     eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, job));
-                }));
+                }), false);
     }
 
     private void addJobInternal(Job job) {
@@ -305,7 +306,7 @@ public class StubbedJobStore implements JobStore {
                         archivedJobs.put(removedJob.getId(), removedJob);
                         eventSubject.onNext(Pair.of(StoreEvent.JobRemoved, job));
                     }
-                }));
+                }), false);
     }
 
     @Override
@@ -341,7 +342,7 @@ public class StubbedJobStore implements JobStore {
                     } else {
                         throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
                     }
-                }));
+                }), true);
     }
 
     @Override
@@ -354,7 +355,7 @@ public class StubbedJobStore implements JobStore {
                     } else {
                         throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
                     }
-                }));
+                }), true);
     }
 
     private void addTaskInternal(Task task) {
@@ -372,28 +373,27 @@ public class StubbedJobStore implements JobStore {
 
     @Override
     public Completable replaceTask(Task oldTask, Task newTask) {
-        return beforeCompletable(() ->
-                storeTask(newTask).concatWith(deleteTask(oldTask))
-        );
+        return beforeCompletable(() -> storeTask(newTask).concatWith(deleteTask(oldTask)), true);
     }
 
     @Override
     public Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter) {
         return beforeCompletable(() ->
-                Completable.fromAction(() -> {
-                    Preconditions.checkArgument(jobs.containsKey(jobFrom.getId()), "jobFrom=%s not found", jobFrom.getId());
-                    Preconditions.checkArgument(jobs.containsKey(jobTo.getId()), "jobTo=%s not found", jobTo.getId());
-                    Preconditions.checkArgument(tasks.containsKey(taskAfter.getId()), "task=%s not found", taskAfter.getId());
+                        Completable.fromAction(() -> {
+                            Preconditions.checkArgument(jobs.containsKey(jobFrom.getId()), "jobFrom=%s not found", jobFrom.getId());
+                            Preconditions.checkArgument(jobs.containsKey(jobTo.getId()), "jobTo=%s not found", jobTo.getId());
+                            Preconditions.checkArgument(tasks.containsKey(taskAfter.getId()), "task=%s not found", taskAfter.getId());
 
-                    jobs.put(jobFrom.getId(), jobFrom);
-                    jobs.put(jobTo.getId(), jobTo);
-                    tasks.put(taskAfter.getId(), taskAfter);
-                    jobToServiceTaskIndex.get(jobFrom.getId()).removeTask(taskAfter);
-                    jobToServiceTaskIndex.get(jobTo.getId()).addTask(taskAfter);
-                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobFrom));
-                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobTo));
-                    eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, taskAfter));
-                })
+                            jobs.put(jobFrom.getId(), jobFrom);
+                            jobs.put(jobTo.getId(), jobTo);
+                            tasks.put(taskAfter.getId(), taskAfter);
+                            jobToServiceTaskIndex.get(jobFrom.getId()).removeTask(taskAfter);
+                            jobToServiceTaskIndex.get(jobTo.getId()).addTask(taskAfter);
+                            eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobFrom));
+                            eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobTo));
+                            eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, taskAfter));
+                        }),
+                true
         );
     }
 
@@ -406,7 +406,7 @@ public class StubbedJobStore implements JobStore {
                         archivedTasks.put(removedTask.getId(), removedTask);
                         eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
                     }
-                }));
+                }), true);
     }
 
     @Override
@@ -447,16 +447,23 @@ public class StubbedJobStore implements JobStore {
         });
     }
 
-    private Completable beforeCompletable(Supplier<Completable> action) {
-        switch (storeState) {
-            case Normal:
-                return action.get();
-            case Broken:
-                return Completable.error(new IOException("Store is broken"));
-            case Slow:
-                return Completable.never();
-        }
-        throw new IllegalStateException("Unrecognized store state: " + storeState);
+    private Completable beforeCompletable(Supplier<Completable> action, boolean taskAction) {
+        return Completable.defer(() -> {
+            switch (storeState) {
+                case Normal:
+                    return action.get();
+                case Broken:
+                    return Completable.error(new IOException("Store is broken"));
+                case BrokenForTasks:
+                    if (taskAction) {
+                        return Completable.error(new IOException("Store is broken for tasks"));
+                    }
+                    return action.get();
+                case Slow:
+                    return Completable.never();
+            }
+            return Completable.error(new IllegalStateException("Unrecognized store state: " + storeState));
+        });
     }
 
     private <R> Observable<R> beforeObservable(Supplier<Observable<R>> action) {

@@ -22,6 +22,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -399,6 +400,20 @@ public class BatchJobSchedulingTest {
     @Test
     public void testBatchJobRuntimeLimitWithNoRetries() {
         testBatchJobRuntimeLimit(false);
+    }
+
+    @Test
+    public void testBatchJobRetriesWhenTaskCreateWriteToStoreFails() {
+        jobsScenarioBuilder.breakStoreForTasks()
+                .scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                        .advance()
+                        .enableStore()
+                        .advance(500, TimeUnit.MILLISECONDS)
+                        .expectTaskEvent(0, 0, event -> {
+                            Task task = event.getCurrentTask();
+                            assertThat(task.getOriginalId()).isEqualTo(task.getId());
+                        })
+                );
     }
 
     private void testBatchJobRuntimeLimit(boolean retryOnRuntimeLimit) {
