@@ -36,7 +36,6 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
@@ -66,7 +65,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_DNS_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_IMAGE_PULL_POLICY;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.FENZO_SCHEDULER;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NEVER_RESTART_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_CPU;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_EPHERMERAL_STORAGE;
@@ -75,6 +73,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_NETWORK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
 @Singleton
@@ -148,19 +147,8 @@ public class V0SpecPodFactory implements PodFactory {
         List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
         List<V1Volume> volumes = buildV1Volumes(job.getJobDescriptor().getVolumes());
 
-        String schedulerName = FENZO_SCHEDULER;
-        if (useKubeScheduler) {
-            ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
-            if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
-                if (schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
-                    schedulerName = configuration.getReservedCapacityKubeSchedulerName();
-                } else {
-                    schedulerName = configuration.getReservedCapacityKubeSchedulerNameForBinPacking();
-                }
-            } else {
-                schedulerName = configuration.getKubeSchedulerName();
-            }
-        }
+        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
+        String schedulerName = selectScheduler(schedulerConfiguration, capacityGroupDescriptor, configuration);
 
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)

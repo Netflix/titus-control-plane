@@ -45,6 +45,7 @@ import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -66,6 +67,8 @@ public class V1SpecPodFactoryTest {
     String NONE_MOUNT_PROPAGATION = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationNone.toString();
 
     private final KubePodConfiguration configuration = mock(KubePodConfiguration.class);
+
+    private final SchedulerConfiguration schedulerConfiguration = mock(SchedulerConfiguration.class);
 
     private final ApplicationSlaManagementService capacityGroupManagement = mock(ApplicationSlaManagementService.class);
 
@@ -90,7 +93,8 @@ public class V1SpecPodFactoryTest {
                 taintTolerationFactory,
                 topologyFactory,
                 podEnvFactory,
-                logStorageInfo
+                logStorageInfo,
+                schedulerConfiguration
         );
     }
 

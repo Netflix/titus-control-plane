@@ -37,12 +37,15 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
+import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
 import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1EnvVar;
@@ -262,10 +265,23 @@ public class KubePodUtil {
     }
 
     /**
-     *
      * Sanitize name based on Kubernetes regex: [a-z0-9]([-a-z0-9]*[a-z0-9])?.
      */
     public static String sanitizeVolumeName(String name) {
         return name.toLowerCase().replaceAll("[^a-z0-9]([^-a-z0-9]*[^a-z0-9])?", "-");
+    }
+
+    public static String selectScheduler(SchedulerConfiguration schedulerConfiguration, ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
+        String schedulerName;
+        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
+            if (schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
+                schedulerName = configuration.getReservedCapacityKubeSchedulerName();
+            } else {
+                schedulerName = configuration.getReservedCapacityKubeSchedulerNameForBinPacking();
+            }
+        } else {
+            schedulerName = configuration.getKubeSchedulerName();
+        }
+        return schedulerName;
     }
 }

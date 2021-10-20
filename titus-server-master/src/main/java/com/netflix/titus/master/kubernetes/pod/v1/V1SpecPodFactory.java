@@ -47,7 +47,6 @@ import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSo
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.EfsMount;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
@@ -61,6 +60,7 @@ import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
@@ -153,6 +153,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeI
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.sanitizeVolumeName;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
 @Singleton
@@ -167,6 +168,7 @@ public class V1SpecPodFactory implements PodFactory {
     private final TopologyFactory topologyFactory;
     private final PodEnvFactory podEnvFactory;
     private final LogStorageInfo<Task> logStorageInfo;
+    private final SchedulerConfiguration schedulerConfiguration;
 
     @Inject
     public V1SpecPodFactory(KubePodConfiguration configuration,
@@ -175,7 +177,8 @@ public class V1SpecPodFactory implements PodFactory {
                             TaintTolerationFactory taintTolerationFactory,
                             TopologyFactory topologyFactory,
                             PodEnvFactory podEnvFactory,
-                            LogStorageInfo<Task> logStorageInfo) {
+                            LogStorageInfo<Task> logStorageInfo,
+                            SchedulerConfiguration schedulerConfiguration) {
         this.configuration = configuration;
         this.capacityGroupManagement = capacityGroupManagement;
         this.podAffinityFactory = podAffinityFactory;
@@ -183,6 +186,8 @@ public class V1SpecPodFactory implements PodFactory {
         this.topologyFactory = topologyFactory;
         this.podEnvFactory = podEnvFactory;
         this.logStorageInfo = logStorageInfo;
+        this.schedulerConfiguration = schedulerConfiguration;
+
     }
 
     @Override
@@ -236,11 +241,8 @@ public class V1SpecPodFactory implements PodFactory {
         List<V1Container> allContainers = Stream.concat(Stream.of(container), extraContainers.stream()).collect(Collectors.toList());
         List<V1Volume> volumes = buildV1Volumes(job.getJobDescriptor().getVolumes());
 
-        String schedulerName = configuration.getKubeSchedulerName();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
-        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
-            schedulerName = configuration.getReservedCapacityKubeSchedulerName();
-        }
+        String schedulerName = selectScheduler(schedulerConfiguration, capacityGroupDescriptor, configuration);
 
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
