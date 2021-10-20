@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.snapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +22,13 @@ import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.junit.Test;
 
-import static com.netflix.titus.runtime.connector.jobmanager.JobSnapshotTestUtil.newJobWithTasks;
-import static com.netflix.titus.runtime.connector.jobmanager.JobSnapshotTestUtil.newSnapshot;
+import static com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotTestUtil.newJobWithTasks;
+import static com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotTestUtil.newSnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -34,6 +36,8 @@ import static org.assertj.core.api.Assertions.fail;
  * Negative test scenarios only. Positive tests are in {@link JobSnapshotTest}.
  */
 public class PCollectionJobSnapshotTest {
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     private final List<String> inconsistenciesReports = new ArrayList<>();
 
@@ -64,6 +68,6 @@ public class PCollectionJobSnapshotTest {
     }
 
     private JobSnapshotFactory newFactory(boolean autoFix) {
-        return JobSnapshotFactories.newDefault(autoFix, inconsistenciesReports::add);
+        return JobSnapshotFactories.newDefault(autoFix, inconsistenciesReports::add, titusRuntime);
     }
 }

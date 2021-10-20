@@ -24,12 +24,13 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactories;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
@@ -44,6 +45,8 @@ public class StreamDataReplicatorPerf {
     private static final Task TASK = JobGenerator.oneBatchTask().toBuilder().withJobId(JOB.getId()).build();
 
     public static void main(String[] args) throws InterruptedException {
+        TitusRuntime titusRuntime = TitusRuntimes.internal();
+
         JobManagementClient client = Mockito.mock(JobManagementClient.class);
         JobDataReplicatorConfiguration configuration = Mockito.mock(JobDataReplicatorConfiguration.class);
 
@@ -57,7 +60,9 @@ public class StreamDataReplicatorPerf {
                     .concatWith(Flux.interval(Duration.ofSeconds(1)).take(1).flatMap(tick -> Flux.error(new RuntimeException("Simulated error"))));
         }));
 
-        JobDataReplicator replicator = new JobDataReplicatorProvider(configuration, client, JobSnapshotFactories.newDefault(), TitusRuntimes.internal()).get();
+        JobDataReplicator replicator = new JobDataReplicatorProvider(configuration, client,
+                JobSnapshotFactories.newDefault(titusRuntime), titusRuntime
+        ).get();
         replicator.events().subscribe(System.out::println);
 
         Thread.sleep(3600_000);
