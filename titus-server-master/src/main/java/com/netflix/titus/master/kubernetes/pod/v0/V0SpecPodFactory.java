@@ -64,6 +64,7 @@ import io.titanframework.messages.TitanProtos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_DNS_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_IMAGE_PULL_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.FENZO_SCHEDULER;
@@ -159,6 +160,11 @@ public class V0SpecPodFactory implements PodFactory {
                 }
             } else {
                 schedulerName = configuration.getKubeSchedulerName();
+            }
+            // Final override for any job in v4 transition mode, we *always* do binpacking, otherwise
+            // it defeats the purpose of v4 savings
+            if (job.getJobDescriptor().getNetworkConfiguration().getNetworkModeName() == Ipv6AndIpv4Fallback.toString()) {
+                schedulerName = configuration.getReservedCapacityKubeSchedulerNameForBinPacking();
             }
         }
 
