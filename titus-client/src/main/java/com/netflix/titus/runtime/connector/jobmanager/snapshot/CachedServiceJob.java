@@ -51,45 +51,46 @@ class CachedServiceJob extends CachedJob {
     }
 
     @Override
-    public Optional<JobSnapshot> updateTask(PCollectionJobSnapshot snapshot, Task task) {
-        Task current = tasks.get(task.getId());
+    public Optional<JobSnapshot> updateTask(PCollectionJobSnapshot snapshot, Task updatedTask) {
+        String taskId = updatedTask.getId();
+        Task currentTaskVersion = tasks.get(taskId);
 
         // TODO See above.
-        if (task.getStatus().getState() == TaskState.Finished) {
-            if (current == null) {
+        if (updatedTask.getStatus().getState() == TaskState.Finished) {
+            if (currentTaskVersion == null) {
                 return Optional.empty();
             }
-            return removeTask(snapshot, task);
+            return removeTask(snapshot, updatedTask);
         }
 
-        if (current == null) {
-            CachedServiceJob update = new CachedServiceJob(job, tasks.plus(task.getId(), task), titusRuntime);
+        if (currentTaskVersion == null) {
+            CachedServiceJob update = new CachedServiceJob(job, tasks.plus(taskId, updatedTask), titusRuntime);
             return Optional.ofNullable(snapshot.newSnapshot(
                     snapshot.cachedJobsById.plus(job.getId(), update),
                     snapshot.jobsById,
-                    snapshot.taskById.plus(task.getId(), task)
+                    snapshot.taskById.plus(taskId, updatedTask)
             ));
         }
 
         // This task collides with another one
-        if (task.getVersion().getTimestamp() < current.getVersion().getTimestamp()) {
+        if (updatedTask.getVersion().getTimestamp() < currentTaskVersion.getVersion().getTimestamp()) {
             // It is an earlier version. Ignore it.
             titusRuntime.getCodeInvariants().inconsistent(
                     "Received earlier version of a task: current=%s, received=%s",
-                    current.getVersion().getTimestamp(), task.getVersion().getTimestamp()
+                    currentTaskVersion.getVersion().getTimestamp(), updatedTask.getVersion().getTimestamp()
             );
             return Optional.empty();
         }
 
         CachedServiceJob update = new CachedServiceJob(
                 job,
-                tasks.minus(current.getId()).plus(task.getId(), task),
+                tasks.plus(taskId, updatedTask),
                 titusRuntime
         );
         return Optional.ofNullable(snapshot.newSnapshot(
                 snapshot.cachedJobsById.plus(job.getId(), update),
                 snapshot.jobsById,
-                snapshot.taskById.minus(current.getId()).plus(task.getId(), task)
+                snapshot.taskById.plus(taskId, updatedTask)
         ));
     }
 
