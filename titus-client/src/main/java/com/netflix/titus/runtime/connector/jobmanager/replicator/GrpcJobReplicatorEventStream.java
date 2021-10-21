@@ -45,8 +45,8 @@ import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorE
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;

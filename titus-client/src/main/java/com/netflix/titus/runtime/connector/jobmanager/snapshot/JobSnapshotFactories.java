@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.snapshot;
 
 import java.util.Collections;
 import java.util.Map;
@@ -23,56 +23,48 @@ import java.util.function.Consumer;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 public final class JobSnapshotFactories {
 
-    private static final LegacyJobSnapshotFactory LEGACY_JOB_SNAPSHOT_FACTORY = new LegacyJobSnapshotFactory();
-
-    private static final PCollectionJobSnapshotFactory PCOLLECTION_JOB_SNAPSHOT_FACTORY = new PCollectionJobSnapshotFactory(
-            false,
-            message -> {
-            }
-    );
-
-    public static JobSnapshotFactory newLegacy() {
-        return LEGACY_JOB_SNAPSHOT_FACTORY;
-    }
-
     /**
      * Default {@link JobSnapshotFactory} throws an exception if inconsistent state is detected.
-     * Use {@link #newDefault(boolean, Consumer)} to change this behavior.
+     * Use {@link #newDefault(boolean, Consumer, TitusRuntime)} to change this behavior.
      */
-    public static JobSnapshotFactory newDefault() {
-        return PCOLLECTION_JOB_SNAPSHOT_FACTORY;
+    public static JobSnapshotFactory newDefault(TitusRuntime titusRuntime) {
+        return new PCollectionJobSnapshotFactory(
+                false,
+                message -> {
+                },
+                titusRuntime
+        );
     }
 
     /**
-     * Returns empty snapshot built using {@link #newDefault()}.
+     * Returns empty snapshot built using {@link #newDefault(TitusRuntime)}.
      */
-    public static JobSnapshot newDefaultEmptySnapshot() {
-        return newDefault().newSnapshot(Collections.emptyMap(), Collections.emptyMap());
+    public static JobSnapshot newDefaultEmptySnapshot(TitusRuntime titusRuntime) {
+        return newDefault(titusRuntime).newSnapshot(Collections.emptyMap(), Collections.emptyMap());
     }
 
-    public static JobSnapshotFactory newDefault(boolean autoFixInconsistencies, Consumer<String> inconsistentDataListener) {
-        return new PCollectionJobSnapshotFactory(autoFixInconsistencies, inconsistentDataListener);
-    }
-
-    private static class LegacyJobSnapshotFactory implements JobSnapshotFactory {
-
-        @Override
-        public JobSnapshot newSnapshot(Map<String, Job<?>> jobsById, Map<String, Map<String, Task>> tasksByJobId) {
-            return LegacyJobSnapshot.newInstance(UUID.randomUUID().toString(), jobsById, tasksByJobId);
-        }
+    public static JobSnapshotFactory newDefault(boolean autoFixInconsistencies,
+                                                Consumer<String> inconsistentDataListener,
+                                                TitusRuntime titusRuntime) {
+        return new PCollectionJobSnapshotFactory(autoFixInconsistencies, inconsistentDataListener, titusRuntime);
     }
 
     private static class PCollectionJobSnapshotFactory implements JobSnapshotFactory {
 
         private final boolean autoFixInconsistencies;
         private final Consumer<String> inconsistentDataListener;
+        private final TitusRuntime titusRuntime;
 
-        private PCollectionJobSnapshotFactory(boolean autoFixInconsistencies, Consumer<String> inconsistentDataListener) {
+        private PCollectionJobSnapshotFactory(boolean autoFixInconsistencies,
+                                              Consumer<String> inconsistentDataListener,
+                                              TitusRuntime titusRuntime) {
             this.autoFixInconsistencies = autoFixInconsistencies;
             this.inconsistentDataListener = inconsistentDataListener;
+            this.titusRuntime = titusRuntime;
         }
 
         @Override
@@ -82,7 +74,8 @@ public final class JobSnapshotFactories {
                     jobsById,
                     tasksByJobId,
                     autoFixInconsistencies,
-                    inconsistentDataListener
+                    inconsistentDataListener,
+                    titusRuntime
             );
         }
     }

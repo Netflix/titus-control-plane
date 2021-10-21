@@ -35,8 +35,8 @@ import com.netflix.titus.runtime.connector.common.replicator.RetryableReplicator
 import com.netflix.titus.runtime.connector.common.replicator.StreamDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactory;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactory;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton

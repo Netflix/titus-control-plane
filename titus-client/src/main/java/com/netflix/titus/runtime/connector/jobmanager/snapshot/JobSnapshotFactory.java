@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.snapshot;
 
 import java.util.Map;
 

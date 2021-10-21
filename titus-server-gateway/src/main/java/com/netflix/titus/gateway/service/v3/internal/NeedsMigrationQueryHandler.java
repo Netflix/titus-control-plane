@@ -39,7 +39,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;

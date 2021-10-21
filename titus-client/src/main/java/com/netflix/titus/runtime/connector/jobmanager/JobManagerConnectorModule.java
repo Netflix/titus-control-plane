@@ -26,6 +26,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactories;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactory;
 import io.grpc.Channel;
 
 public class JobManagerConnectorModule extends AbstractModule {
@@ -40,7 +42,6 @@ public class JobManagerConnectorModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(JobSnapshotFactory.class).toInstance(JobSnapshotFactories.newDefault());
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
     }
@@ -56,5 +57,11 @@ public class JobManagerConnectorModule extends AbstractModule {
     public ReactorJobManagementServiceStub getReactorReactorJobManagementServiceStub(GrpcToReactorClientFactory factory,
                                                                                      @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return factory.apply(JobManagementServiceGrpc.newStub(channel), ReactorJobManagementServiceStub.class, JobManagementServiceGrpc.getServiceDescriptor());
+    }
+
+    @Provides
+    @Singleton
+    public JobSnapshotFactory getJobSnapshotFactory(TitusRuntime titusRuntime) {
+        return JobSnapshotFactories.newDefault(titusRuntime);
     }
 }

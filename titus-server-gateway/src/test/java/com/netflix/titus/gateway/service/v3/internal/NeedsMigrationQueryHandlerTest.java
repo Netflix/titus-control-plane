@@ -16,10 +16,10 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.model.Page;
@@ -32,8 +32,8 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactories;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.TaskRelocationSnapshot;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
@@ -67,7 +67,7 @@ public class NeedsMigrationQueryHandlerTest {
 
     @Before
     public void setUp() {
-        when(jobDataReplicator.getCurrent()).thenReturn(JobSnapshotFactories.newDefaultEmptySnapshot());
+        when(jobDataReplicator.getCurrent()).thenReturn(JobSnapshotFactories.newDefaultEmptySnapshot(titusRuntime));
         when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.newBuilder().build());
     }
 
@@ -147,15 +147,11 @@ public class NeedsMigrationQueryHandlerTest {
     }
 
     private static Pair<Job<?>, List<Task>> newJobAndTasks(String jobId, int taskCount) {
-        Job<BatchJobExt> job = JobGenerator.oneBatchJob().toBuilder().withId(jobId).build();
-        List<Task> tasks = new ArrayList<>();
-        for (int i = 0; i < taskCount; i++) {
-            tasks.add(JobGenerator.oneBatchTask().toBuilder()
-                    .withId(job.getId() + '#' + i)
-                    .withJobId(job.getId())
-                    .build()
-            );
-        }
+        Job<BatchJobExt> job = JobFunctions.changeBatchJobSize(
+                JobGenerator.oneBatchJob().toBuilder().withId(jobId).build(),
+                taskCount
+        );
+        List<Task> tasks = (List) JobGenerator.batchTasks(job).getValues(taskCount);
         return Pair.of(job, tasks);
     }
 }

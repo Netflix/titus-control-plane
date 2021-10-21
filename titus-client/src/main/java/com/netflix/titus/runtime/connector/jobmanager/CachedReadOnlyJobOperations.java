@@ -34,6 +34,7 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
 import reactor.core.publisher.Flux;
 import rx.Observable;
 

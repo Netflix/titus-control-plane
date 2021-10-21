@@ -45,9 +45,9 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshotFactories;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.GrpcJobReplicatorEventStream.CacheUpdater;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactories;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -208,14 +208,14 @@ public class GrpcJobReplicatorEventStreamTest {
 
     @Test
     public void testCacheTaskRemove() {
-        Pair<Job, List<Task>> pair = jobServiceStub.createJobAndTasks(BATCH_JOB);
-        Task task = pair.getRight().get(0);
+        Pair<Job, List<Task>> pair = jobServiceStub.createJobAndTasks(SERVICE_JOB);
+        List<Task> tasks = pair.getRight();
+        Task task = tasks.get(0);
 
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Accepted))
                 .then(() -> jobServiceStub.moveTaskToState(task, TaskState.Finished))
-                .assertNext(next -> assertThat(next.getSnapshot().getTaskMap()).isEmpty())
-
+                .assertNext(next -> assertThat(next.getSnapshot().getTaskMap()).hasSize(tasks.size() - 1))
                 .thenCancel()
                 .verify();
     }
@@ -257,7 +257,7 @@ public class GrpcJobReplicatorEventStreamTest {
         Job<?> finishedJob = JobFunctions.changeJobStatus(acceptedJob, JobStatus.newBuilder().withState(JobState.Finished).build());
         Task finishedTask = JobFunctions.changeTaskStatus(acceptedTask, TaskStatus.newBuilder().withState(TaskState.Finished).build());
 
-        CacheUpdater cacheUpdater = new CacheUpdater(JobSnapshotFactories.newDefault(), titusRuntime);
+        CacheUpdater cacheUpdater = new CacheUpdater(JobSnapshotFactories.newDefault(titusRuntime), titusRuntime);
         assertThat(cacheUpdater.onEvent(JobUpdateEvent.newJob(acceptedJob, CallMetadataConstants.UNDEFINED_CALL_METADATA))).isEmpty();
         assertThat(cacheUpdater.onEvent(TaskUpdateEvent.newTask(acceptedJob, acceptedTask, CallMetadataConstants.UNDEFINED_CALL_METADATA))).isEmpty();
         assertThat(cacheUpdater.onEvent(TaskUpdateEvent.taskChange(acceptedJob, finishedTask, acceptedTask, CallMetadataConstants.UNDEFINED_CALL_METADATA))).isEmpty();
@@ -270,7 +270,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private GrpcJobReplicatorEventStream newStream() {
         when(client.observeJobs(any())).thenReturn(ReactorExt.toFlux(jobServiceStub.observeJobs(true)));
-        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newDefault(), configuration, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
+        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newDefault(titusRuntime), configuration, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
     private StepVerifier.FirstStep<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnectVerifier() {

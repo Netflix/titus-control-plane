@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.snapshot;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,28 +29,24 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.Version;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.pcollections.PMap;
 
-import static com.netflix.titus.runtime.connector.jobmanager.JobSnapshotTestUtil.newJobWithTasks;
-import static com.netflix.titus.runtime.connector.jobmanager.JobSnapshotTestUtil.newSnapshot;
+import static com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotTestUtil.newBatchJobWithTasks;
+import static com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotTestUtil.newJobWithTasks;
+import static com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotTestUtil.newServiceJobWithTasks;
+import static com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotTestUtil.newSnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(Parameterized.class)
 public class JobSnapshotTest {
 
-    private final JobSnapshotFactory factory;
+    private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    @Parameterized.Parameters
-    public static List<JobSnapshotFactory> factories() {
-        return Arrays.asList(JobSnapshotFactories.newDefault(), JobSnapshotFactories.newLegacy());
-    }
-
-    public JobSnapshotTest(JobSnapshotFactory factory) {
-        this.factory = factory;
-    }
+    private final JobSnapshotFactory factory = JobSnapshotFactories.newDefault(titusRuntime);
 
     @Test
     public void testInitialization() {
@@ -88,8 +83,8 @@ public class JobSnapshotTest {
 
     @Test
     public void testJobAndTaskUpdate() {
-        Pair<Job<?>, Map<String, Task>> pair1 = newJobWithTasks(1, 2);
-        Pair<Job<?>, Map<String, Task>> pair2 = newJobWithTasks(2, 2);
+        Pair<Job<?>, Map<String, Task>> pair1 = (Pair) newServiceJobWithTasks(1, 2, 1_000);
+        Pair<Job<?>, Map<String, Task>> pair2 = (Pair) newBatchJobWithTasks(2, 2);
         Job<?> job1 = pair1.getLeft();
         Job<?> job2 = pair2.getLeft();
         List<Task> tasks1 = new ArrayList<>(pair1.getRight().values());
@@ -144,12 +139,12 @@ public class JobSnapshotTest {
 
     @Test
     public void testMovedTask() {
-        Pair<Job<?>, Map<String, Task>> pair1 = newJobWithTasks(1, 2);
-        Pair<Job<?>, Map<String, Task>> pair2 = newJobWithTasks(2, 0);
+        Pair<Job<ServiceJobExt>, PMap<String, Task>> pair1 = newServiceJobWithTasks(1, 2, 1_000);
+        Pair<Job<ServiceJobExt>, PMap<String, Task>> pair2 = newServiceJobWithTasks(2, 0, 1_000);
         Job<?> job1 = pair1.getLeft();
         Job<?> job2 = pair2.getLeft();
         List<Task> tasks1 = new ArrayList<>(pair1.getRight().values());
-        JobSnapshot initial = newSnapshot(factory, pair1, pair2);
+        JobSnapshot initial = newSnapshot(factory, (Pair) pair1, (Pair) pair2);
 
         Task movedTask = tasks1.get(0).toBuilder()
                 .withJobId(job2.getId())

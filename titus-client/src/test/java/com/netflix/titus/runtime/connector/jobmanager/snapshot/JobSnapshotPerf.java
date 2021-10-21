@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.snapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +33,8 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.pcollections.HashTreePMap;
@@ -41,13 +43,11 @@ import org.pcollections.PSequence;
 import org.pcollections.TreePVector;
 
 /**
- * Compare performance of {@link LegacyJobSnapshot} and {@link  PCollectionJobSnapshot}.
- * <p>
- * Results for 10_000K rounds (jobs=5_000, tasksPerJob=1):
- * DefaultJobSnapshot: 		37776[ms]
- * PCollectionJobSnapshot:	1721[ms]
+ * Performance test for {@link PCollectionJobSnapshot}.
  */
 public class JobSnapshotPerf {
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     private final int taskPerJobCount;
     private final double createUpdateRatio;
@@ -59,7 +59,7 @@ public class JobSnapshotPerf {
     private JobSnapshot snapshot;
     private PSequence<Pair<Job<?>, PMap<String, Task>>> jobAndTasks = TreePVector.empty();
 
-    public JobSnapshotPerf(int jobCount, int taskPerJobCount, double createUpdateRatio, boolean legacyMode) {
+    public JobSnapshotPerf(int jobCount, int taskPerJobCount, double createUpdateRatio) {
         this.taskPerJobCount = taskPerJobCount;
         this.createUpdateRatio = createUpdateRatio;
         Map<String, Job<?>> jobs = new HashMap<>();
@@ -73,11 +73,11 @@ public class JobSnapshotPerf {
             taskByJobId.put(job.getId(), tasks);
             jobAndTasks = jobAndTasks.plus(Pair.of(job, HashTreePMap.from(tasks)));
         }
-        this.snapshot = legacyMode
-                ? LegacyJobSnapshot.newInstance("test", jobs, taskByJobId)
-                : PCollectionJobSnapshot.newInstance(
+        this.snapshot = PCollectionJobSnapshot.newInstance(
                 "test", jobs, taskByJobId, false, message -> {
-                });
+                },
+                titusRuntime
+        );
     }
 
     private Pair<Job<?>, Map<String, Task>> newJobWithTasks() {
@@ -94,6 +94,7 @@ public class JobSnapshotPerf {
         return JobGenerator.oneBatchTask().toBuilder()
                 .withId("task#" + taskIdx.getAndIncrement() + "@" + job.getId())
                 .withJobId(job.getId())
+                .withVersion(Version.newBuilder().withTimestamp(System.currentTimeMillis()).build())
                 .build();
     }
 
@@ -161,7 +162,11 @@ public class JobSnapshotPerf {
 
         // Remove task
         int taskIdx = random.nextInt(tasks.size());
-        Task taskToRemove = new ArrayList<>(tasks.values()).get(taskIdx);
+        String taskToRemoveId = new ArrayList<>(tasks.values()).get(taskIdx).getId();
+        Task taskToRemove = snapshot.getTaskMap().get(taskToRemoveId);
+        if (taskToRemove == null) {
+            return;
+        }
         Task finishedTask = taskToRemove.toBuilder().withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build()).build();
         snapshot.updateTask(finishedTask, false).ifPresent(newSnapshot -> this.snapshot = newSnapshot);
 
@@ -190,7 +195,7 @@ public class JobSnapshotPerf {
     }
 
     public static void main(String[] args) {
-        JobSnapshotPerf perf = new JobSnapshotPerf(5000, 1, 0.5, false);
+        JobSnapshotPerf perf = new JobSnapshotPerf(5000, 1, 0.5);
         Stopwatch stopwatch = Stopwatch.createStarted();
         perf.run(10_000);
         System.out.println("Finished in: " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + "[ms]");
