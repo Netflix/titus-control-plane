@@ -46,6 +46,7 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
+import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -144,6 +145,10 @@ public class LocalCacheQueryProcessor {
         return allow;
     }
 
+    public Optional<com.netflix.titus.grpc.protogen.Job> findJob(String jobId) {
+        return jobDataReplicator.getCurrent().findJob(jobId).map(GrpcJobManagementModelConverters::toGrpcJob);
+    }
+
     public JobQueryResult findJobs(JobQuery jobQuery) {
         JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria = GrpcJobQueryModelConverters.toJobQueryCriteria(jobQuery);
         Page page = toPage(jobQuery.getPage());
@@ -161,6 +166,12 @@ public class LocalCacheQueryProcessor {
                 .build();
     }
 
+    public Optional<Task> findTask(String taskId) {
+        return jobDataReplicator.getCurrent()
+                .findTaskById(taskId)
+                .map(jobTaskPair -> GrpcJobManagementModelConverters.toGrpcTask(jobTaskPair.getRight(), logStorageInfo));
+    }
+
     public TaskQueryResult findTasks(TaskQuery taskQuery) {
         JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria = GrpcJobQueryModelConverters.toJobQueryCriteria(taskQuery);
         Page page = toPage(taskQuery.getPage());
@@ -176,6 +187,19 @@ public class LocalCacheQueryProcessor {
                 .setPagination(toGrpcPagination(pageResult.getPagination()))
                 .addAllItems(grpcTasks)
                 .build();
+    }
+
+    public Observable<JobChangeNotification> observeJob(String jobId) {
+        ObserveJobsQuery query = ObserveJobsQuery.newBuilder().putFilteringCriteria("jobIds", jobId).build();
+        return observeJobs(query).takeUntil(this::isJobFinishedEvent);
+    }
+
+    /**
+     * Job finished event is the last one that is emitted for every completed job.
+     */
+    private boolean isJobFinishedEvent(JobChangeNotification event) {
+        return event.getNotificationCase() == JobChangeNotification.NotificationCase.JOBUPDATE &&
+                event.getJobUpdate().getJob().getStatus().getState() == JobStatus.JobState.Finished;
     }
 
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query) {
@@ -211,7 +235,7 @@ public class LocalCacheQueryProcessor {
                 // to filter them out here.
                 if (jobManagerEvent == JobManagerEvent.keepAliveEvent()) {
                     // Check if staleness is not too high.
-                    if(jobDataReplicator.getStalenessMs() > configuration.getObserveJobsStalenessDisconnectMs()) {
+                    if (jobDataReplicator.getStalenessMs() > configuration.getObserveJobsStalenessDisconnectMs()) {
                         return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
                                 "Data staleness in the event stream is too high. Most likely caused by connectivity issue to the downstream server."
                         )));

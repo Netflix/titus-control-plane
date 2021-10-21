@@ -16,6 +16,7 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -104,6 +105,18 @@ public class LocalCacheQueryProcessorTest {
     }
 
     @Test
+    public void testFindJob() {
+        Job<?> job1 = addToJobDataReplicator(newJobAndTasks("job1", 2)).getLeft();
+        Job<?> job2 = addToJobDataReplicator(newJobAndTasks("job2", 4)).getLeft();
+
+        for (Job<?> job : Arrays.asList(job1, job2)) {
+            com.netflix.titus.grpc.protogen.Job result = processor.findJob(job.getId()).orElse(null);
+            assertThat(result).isNotNull();
+            assertThat(result.getId()).isEqualTo(job.getId());
+        }
+    }
+
+    @Test
     public void testFindJobs() {
         Job<?> job1 = addToJobDataReplicator(newJobAndTasks("job1", 2)).getLeft();
         Job<?> job2 = addToJobDataReplicator(newJobAndTasks("job2", 4)).getLeft();
@@ -158,11 +171,23 @@ public class LocalCacheQueryProcessorTest {
     }
 
     @Test
+    public void testFindTask() {
+        Task task1 = addToJobDataReplicator(newJobAndTasks("job1", 2)).getRight().get(0);
+        Task task2 = addToJobDataReplicator(newJobAndTasks("job2", 4)).getRight().get(0);
+
+        for (Task task : Arrays.asList(task1, task2)) {
+            com.netflix.titus.grpc.protogen.Task result = processor.findTask(task.getId()).orElse(null);
+            assertThat(result).isNotNull();
+            assertThat(result.getId()).isEqualTo(task.getId());
+        }
+    }
+
+    @Test
     public void testObserveJobsEmitsEmptySnapshotIfNoJobsAreRunning() throws InterruptedException {
         ExtTestSubscriber<JobChangeNotification> subscriber = new ExtTestSubscriber<>();
         processor.observeJobs(ObserveJobsQuery.getDefaultInstance()).subscribe(subscriber);
 
-        jobDataReplicatorSink.emitNext(Pair.of(jobDataReplicator.getCurrent(), JobManagerEvent.snapshotMarker()), Sinks.EmitFailureHandler.FAIL_FAST);
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), JobManagerEvent.snapshotMarker()));
 
         JobChangeNotification receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
         assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.SNAPSHOTEND);
@@ -180,7 +205,7 @@ public class LocalCacheQueryProcessorTest {
 
         // Job update event, which also triggers snapshot
         JobUpdateEvent jobUpdateEvent = JobUpdateEvent.newJob(job, JUNIT_CALL_METADATA);
-        jobDataReplicatorSink.emitNext(Pair.of(jobDataReplicator.getCurrent(), jobUpdateEvent), Sinks.EmitFailureHandler.FAIL_FAST);
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), jobUpdateEvent));
         JobChangeNotification receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
         assertThat(receivedEvent).isNotNull();
         assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.JOBUPDATE);
@@ -195,7 +220,7 @@ public class LocalCacheQueryProcessorTest {
 
         // Task update event
         TaskUpdateEvent taskUpdateEvent = TaskUpdateEvent.newTask(job, task1, JUNIT_CALL_METADATA);
-        jobDataReplicatorSink.emitNext(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent), Sinks.EmitFailureHandler.FAIL_FAST);
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent));
         receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
         assertThat(receivedEvent).isNotNull();
         assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.TASKUPDATE);
@@ -203,16 +228,60 @@ public class LocalCacheQueryProcessorTest {
         // Job replicator re-sends events if there is nothing new to keep the stream active. Make sure that
         // we filter the keep alive events.
         TaskUpdateEvent taskUpdateEvent2 = TaskUpdateEvent.newTask(job, task2, JUNIT_CALL_METADATA);
-        jobDataReplicatorSink.emitNext(Pair.of(jobDataReplicator.getCurrent(), JobManagerEvent.keepAliveEvent()), Sinks.EmitFailureHandler.FAIL_FAST);
-        jobDataReplicatorSink.emitNext(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent2), Sinks.EmitFailureHandler.FAIL_FAST);
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), JobManagerEvent.keepAliveEvent()));
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent2));
         receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
         assertThat(receivedEvent).isNotNull();
         assertThat(receivedEvent.getTaskUpdate().getTask().getId()).isEqualTo(task2.getId());
 
         // Now repeat taskUpdateEvent which this time should go through.
-        jobDataReplicatorSink.emitNext(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent), Sinks.EmitFailureHandler.FAIL_FAST);
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent));
         receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
         assertThat(receivedEvent).isNotNull();
+        assertThat(receivedEvent.getTaskUpdate().getTask().getId()).isEqualTo(task1.getId());
+
+        // Check that is correctly terminated
+        jobDataReplicatorSink.tryEmitError(new RuntimeException("simulated stream error"));
+        assertThat(subscriber.getError()).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    public void testObserveJob() throws InterruptedException {
+        ExtTestSubscriber<JobChangeNotification> subscriber = new ExtTestSubscriber<>();
+        processor.observeJob("job1").subscribe(subscriber);
+
+        Pair<Job<?>, List<Task>> jobAndTasks = addToJobDataReplicator(newJobAndTasks("job1", 2));
+        Job<?> job2 = addToJobDataReplicator(newJobAndTasks("job2", 2)).getLeft();
+        Job<?> job1 = jobAndTasks.getLeft();
+        Task task1 = jobAndTasks.getRight().get(0);
+        Task task2 = jobAndTasks.getRight().get(1);
+
+        // Job update event, which also triggers snapshot
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), JobUpdateEvent.newJob(job2, JUNIT_CALL_METADATA)));
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), JobUpdateEvent.newJob(job1, JUNIT_CALL_METADATA)));
+
+        JobChangeNotification receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
+        assertThat(receivedEvent).isNotNull();
+        assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.JOBUPDATE);
+        assertThat(receivedEvent.getJobUpdate().getJob().getId()).isEqualTo(job1.getId());
+        receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
+        assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.TASKUPDATE);
+        assertThat(receivedEvent.getTaskUpdate().getTask().getJobId()).isEqualTo(job1.getId());
+        receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
+        assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.TASKUPDATE);
+        assertThat(receivedEvent.getTaskUpdate().getTask().getJobId()).isEqualTo(job1.getId());
+        receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
+        assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.SNAPSHOTEND);
+        receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
+        assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.JOBUPDATE);
+        assertThat(receivedEvent.getJobUpdate().getJob().getId()).isEqualTo(job1.getId());
+
+        // Task update event
+        TaskUpdateEvent taskUpdateEvent = TaskUpdateEvent.newTask(job1, task1, JUNIT_CALL_METADATA);
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent));
+        receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
+        assertThat(receivedEvent).isNotNull();
+        assertThat(receivedEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.TASKUPDATE);
         assertThat(receivedEvent.getTaskUpdate().getTask().getId()).isEqualTo(task1.getId());
 
         // Check that is correctly terminated
@@ -236,5 +305,9 @@ public class LocalCacheQueryProcessorTest {
         );
         List<Task> tasks = (List) JobGenerator.batchTasks(job).getValues(taskCount);
         return Pair.of(job, tasks);
+    }
+
+    private void emitEvent(Pair<JobSnapshot, JobManagerEvent<?>> e) {
+        jobDataReplicatorSink.emitNext(e, Sinks.EmitFailureHandler.FAIL_FAST);
     }
 }

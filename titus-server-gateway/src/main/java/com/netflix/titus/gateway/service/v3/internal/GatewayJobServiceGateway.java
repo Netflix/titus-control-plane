@@ -17,6 +17,7 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -154,6 +155,14 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
     @Override
     public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
+        if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "findJob", callMetadata)) {
+            Job grpcJob = localCacheQueryProcessor.findJob(jobId).orElse(null);
+            if (grpcJob != null) {
+                return Observable.just(grpcJob);
+            }
+            return retrieveArchivedJob(jobId);
+        }
+
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, callMetadata, tunablesConfiguration.getRequestTimeoutMs()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
@@ -193,6 +202,14 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
     @Override
     public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
+        if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "findTask", callMetadata)) {
+            Task grpcTask = localCacheQueryProcessor.findTask(taskId).orElse(null);
+            if (grpcTask != null) {
+                return Observable.just(grpcTask);
+            }
+            return retrieveArchivedTask(taskId);
+        }
+
         Observable<Task> observable = createRequestObservable(
                 emitter -> {
                     StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
@@ -232,14 +249,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
         Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(taskQuery.getFilteringCriteriaMap().getOrDefault("taskStates", "")));
 
-        // We use cache only if archived data is not requested to keep the implementation simple.
-        // TODO Support local cache access mixed with archived data.
-        if (localCacheQueryProcessor.canUseCache(taskQuery.getFilteringCriteriaMap(), "findTasks", callMetadata)) {
-            if (!taskStates.contains(TaskState.Finished.name())) {
-                return Observable.just(localCacheQueryProcessor.findTasks(taskQuery));
-            }
-        }
-
         Observable<TaskQueryResult> observable;
         if (v3JobIds.isEmpty()) {
             // Active task set only
@@ -272,6 +281,14 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     }
 
     @Override
+    public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
+        if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "observeJob", callMetadata)) {
+            return localCacheQueryProcessor.observeJob(jobId);
+        }
+        return super.observeJob(jobId, callMetadata);
+    }
+
+    @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(query.getFilteringCriteriaMap(), "observeJobs", callMetadata)) {
             return localCacheQueryProcessor.observeJobs(query);
@@ -280,6 +297,10 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {
+        if (localCacheQueryProcessor.canUseCache(taskQuery.getFilteringCriteriaMap(), "findTasks", callMetadata)) {
+            return Observable.just(localCacheQueryProcessor.findTasks(taskQuery));
+        }
+
         return createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, callMetadata, tunablesConfiguration.getRequestTimeoutMs()).findTasks(taskQuery, streamObserver);
