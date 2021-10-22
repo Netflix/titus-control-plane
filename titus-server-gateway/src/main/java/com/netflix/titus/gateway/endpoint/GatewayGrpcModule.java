@@ -26,6 +26,7 @@ import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultSchedulerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.gateway.eviction.EvictionModule;
+import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
@@ -50,6 +51,7 @@ public class GatewayGrpcModule extends AbstractModule {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(DefaultSchedulerServiceGrpc.class);
         bind(TitusGatewayGrpcServer.class).asEagerSingleton();
+        bind(KubeApiConnector.class).asEagerSingleton();
     }
 
     @Provides
