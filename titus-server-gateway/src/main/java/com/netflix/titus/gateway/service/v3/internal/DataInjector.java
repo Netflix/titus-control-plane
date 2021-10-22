@@ -35,7 +35,6 @@ import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
@@ -167,6 +166,7 @@ class DataInjector {
     private long getTaskRelocationTimeout() {
         return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
     }
+
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
         if(relocationPlan == null) {

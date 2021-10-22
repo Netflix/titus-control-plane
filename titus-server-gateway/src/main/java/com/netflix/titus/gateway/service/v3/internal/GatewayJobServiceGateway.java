@@ -66,6 +66,7 @@ import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
@@ -129,8 +130,8 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     JobAssertions jobAssertions,
                                     AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                     AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer,
-                                    TitusRuntime titusRuntime) {
-//                                  Nakubclient client) {
+                                    TitusRuntime titusRuntime
+                                    ) {
         super(new SanitizingJobServiceGateway(
                 new GrpcJobServiceGateway(client, tunablesConfiguration, titusRuntime),
                 new ExtendedJobSanitizer(
