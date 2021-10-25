@@ -34,14 +34,14 @@ public class StreamDataReplicatorTest {
 
     private final ReplicatorEventStreamStub replicatorEventStream = new ReplicatorEventStreamStub();
 
-    private final DataReplicatorMetrics metrics = new DataReplicatorMetrics("test", titusRuntime);
+    private final DataReplicatorMetrics metrics = new DataReplicatorMetrics("test", false, titusRuntime);
 
     private final DirectProcessor<ReplicatorEvent<StringSnapshot, String>> eventPublisher = DirectProcessor.create();
 
     @Test
     public void testBootstrap() {
         StepVerifier
-                .withVirtualTime(() -> StreamDataReplicator.newStreamDataReplicator(replicatorEventStream, metrics, titusRuntime))
+                .withVirtualTime(() -> StreamDataReplicator.newStreamDataReplicator(replicatorEventStream, false, metrics, titusRuntime))
                 .expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(1))
 

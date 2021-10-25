@@ -23,16 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -48,7 +43,6 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
@@ -77,6 +71,7 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
+import com.netflix.titus.grpc.protogen.ObserveJobsWithKeepAliveRequest;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
@@ -85,11 +80,9 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.endpoint.common.CellDecorator;
 import com.netflix.titus.master.endpoint.grpc.GrpcMasterEndpointConfiguration;
-import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -114,6 +107,7 @@ import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.master.jobmanager.endpoint.v3.grpc.ObserveJobsContext.SNAPSHOT_END_MARKER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
@@ -128,10 +122,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementServiceGrpc.class);
 
-    private static final JobChangeNotification SNAPSHOT_END_MARKER = JobChangeNotification.newBuilder()
-            .setSnapshotEnd(JobChangeNotification.SnapshotEnd.newBuilder())
-            .build();
-
     private final V3JobOperations jobOperations;
     private final EntitySanitizer entitySanitizer;
     private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionValidator;
@@ -144,6 +134,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final Scheduler observeJobsScheduler;
     private final DefaultGrpcObjectsCache grpcObjectsCache;
     private final DefaultJobManagementServiceGrpcMetrics metrics;
+    private final ObserveJobsContext eventProcessingContext;
 
     @Inject
     public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
@@ -173,6 +164,14 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.grpcObjectsCache = new DefaultGrpcObjectsCache(jobOperations, grpcObjectsCacheConfiguration, logStorageInfo, titusRuntime);
         grpcObjectsCache.activate();
         this.metrics = new DefaultJobManagementServiceGrpcMetrics(titusRuntime);
+        this.eventProcessingContext = new ObserveJobsContext(
+                jobOperations,
+                callMetadataResolver,
+                grpcObjectsCache,
+                observeJobsScheduler,
+                metrics,
+                titusRuntime
+        );
     }
 
     @PreDestroy
@@ -597,60 +596,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void observeJobs(ObserveJobsQuery query, StreamObserver<JobChangeNotification> responseObserver) {
-        Stopwatch start = Stopwatch.createStarted();
+        new ObserveJobsSubscription(eventProcessingContext).observeJobs(query, responseObserver);
+    }
 
-        String trxId = UUID.randomUUID().toString();
-        CallMetadata callMetadata = callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA);
-        metrics.observeJobsStarted(trxId, callMetadata);
-
-        JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria = toJobQueryCriteria(query);
-        V3JobQueryCriteriaEvaluator jobsPredicate = new V3JobQueryCriteriaEvaluator(criteria, titusRuntime);
-        V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
-
-        Observable<JobChangeNotification> eventStream = jobOperations.observeJobs(jobsPredicate, tasksPredicate)
-                // avoid clogging the computation scheduler
-                .observeOn(observeJobsScheduler)
-                .subscribeOn(observeJobsScheduler, false)
-                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, grpcObjectsCache, titusRuntime.getClock().wallTime()))
-                .compose(ObservableExt.head(() -> {
-                    List<JobChangeNotification> snapshot = createJobsSnapshot(jobsPredicate, tasksPredicate);
-                    snapshot.add(SNAPSHOT_END_MARKER);
-                    return snapshot;
-                }))
-                .doOnError(e -> logger.error("Unexpected error in jobs event stream", e));
-
-        AtomicBoolean closingProcessed = new AtomicBoolean();
-        Subscription subscription = eventStream
-                .doOnUnsubscribe(() -> {
-                    if (!closingProcessed.getAndSet(true)) {
-                        metrics.observeJobsUnsubscribed(trxId, start.elapsed(TimeUnit.MILLISECONDS));
-                    }
-                })
-                .subscribe(
-                        event -> {
-                            metrics.observeJobsEventEmitted(trxId);
-                            responseObserver.onNext(event);
-                        },
-                        e -> {
-                            if (!closingProcessed.getAndSet(true)) {
-                                metrics.observeJobsError(trxId, start.elapsed(TimeUnit.MILLISECONDS), e);
-                            }
-                            responseObserver.onError(
-                                    new StatusRuntimeException(Status.INTERNAL
-                                            .withDescription("All jobs monitoring stream terminated with an error")
-                                            .withCause(e))
-                            );
-                        },
-                        () -> {
-                            if (!closingProcessed.getAndSet(true)) {
-                                metrics.observeJobsCompleted(trxId, start.elapsed(TimeUnit.MILLISECONDS));
-                            }
-                            responseObserver.onCompleted();
-                        }
-                );
-
-        ServerCallStreamObserver<JobChangeNotification> serverObserver = (ServerCallStreamObserver<JobChangeNotification>) responseObserver;
-        serverObserver.setOnCancelHandler(subscription::unsubscribe);
+    @Override
+    public StreamObserver<ObserveJobsWithKeepAliveRequest> observeJobsWithKeepAlive(StreamObserver<JobChangeNotification> responseObserver) {
+        return new ObserveJobsSubscription(eventProcessingContext).observeJobsWithKeepAlive(responseObserver);
     }
 
     @Override
@@ -686,6 +637,19 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         ServerCallStreamObserver<JobChangeNotification> serverObserver = (ServerCallStreamObserver<JobChangeNotification>) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
+    }
+
+    List<JobChangeNotification> createJobSnapshot(String jobId) {
+        long now = titusRuntime.getClock().wallTime();
+        List<JobChangeNotification> snapshot = new ArrayList<>();
+
+        com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalArgumentException("Job with id " + jobId + " not found"));
+        snapshot.add(eventProcessingContext.toJobChangeNotification(coreJob, now));
+
+        List<com.netflix.titus.api.jobmanager.model.job.Task> coreTasks = jobOperations.getTasks(jobId);
+        coreTasks.forEach(task -> snapshot.add(eventProcessingContext.toJobChangeNotification(task, now)));
+
+        return snapshot;
     }
 
     private Mono<Void> authorizeJobCreate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
@@ -756,60 +720,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         return TaskQueryResult.newBuilder()
                 .addAllItems(tasks)
                 .setPagination(toGrpcPagination(runtimePagination))
-                .build();
-    }
-
-    private List<JobChangeNotification> createJobsSnapshot(
-            Predicate<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, List<com.netflix.titus.api.jobmanager.model.job.Task>>> jobsPredicate,
-            Predicate<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task>> tasksPredicate) {
-        long now = titusRuntime.getClock().wallTime();
-        List<JobChangeNotification> snapshot = new ArrayList<>();
-
-        // Generics casting issue
-        List allJobsAndTasksRaw = jobOperations.getJobsAndTasks();
-        List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, List<com.netflix.titus.api.jobmanager.model.job.Task>>> allJobsAndTasks = allJobsAndTasksRaw;
-        allJobsAndTasks.forEach(pair -> {
-            com.netflix.titus.api.jobmanager.model.job.Job<?> job = pair.getLeft();
-            List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = pair.getRight();
-            if (jobsPredicate.test(pair)) {
-                snapshot.add(toJobChangeNotification(job, now));
-            }
-            tasks.forEach(task -> {
-                if (tasksPredicate.test(Pair.of(job, task))) {
-                    snapshot.add(toJobChangeNotification(task, now));
-                }
-            });
-        });
-
-        return snapshot;
-    }
-
-    private List<JobChangeNotification> createJobSnapshot(String jobId) {
-        long now = titusRuntime.getClock().wallTime();
-        List<JobChangeNotification> snapshot = new ArrayList<>();
-
-        com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalArgumentException("Job with id " + jobId + " not found"));
-        snapshot.add(toJobChangeNotification(coreJob, now));
-
-        List<com.netflix.titus.api.jobmanager.model.job.Task> coreTasks = jobOperations.getTasks(jobId);
-        coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task, now)));
-
-        return snapshot;
-    }
-
-    private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob, long now) {
-        Job grpcJob = grpcObjectsCache.getJob(coreJob);
-        return JobChangeNotification.newBuilder()
-                .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder().setJob(grpcJob))
-                .setTimestamp(now)
-                .build();
-    }
-
-    private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Task coreTask, long now) {
-        com.netflix.titus.grpc.protogen.Task grpcTask = grpcObjectsCache.getTask(coreTask);
-        return JobChangeNotification.newBuilder()
-                .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(grpcTask))
-                .setTimestamp(now)
                 .build();
     }
 

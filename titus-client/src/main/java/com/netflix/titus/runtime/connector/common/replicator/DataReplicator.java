@@ -31,15 +31,26 @@ public interface DataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> ex
     SNAPSHOT getCurrent();
 
     /**
-     * Returns the number of milliseconds since the last data refresh time.
+     * Equivalent to calling "clock.wallTime() - getLastCheckpointTimestamp()".
      */
     long getStalenessMs();
 
     /**
-     * Emits periodically the number of milliseconds since the last data refresh time. Emits an error when the
-     * cache refresh process fails, and cannot resume.
+     * Returns the timestamp for which all server side changes that happened before it are guaranteed to be in cache.
+     * The actual cache state may be more up to date, so this is an upper bound on the replication latency.
+     * Returns -1 if the value is not known.
+     */
+    long getLastCheckpointTimestamp();
+
+    /**
+     * Equivalent to "observeLastCheckpointTimestamp().map(timestamp -> clock.wallTime() - timestamp)".
      */
     Flux<Long> observeDataStalenessMs();
+
+    /**
+     * Emits a value when a new checkpoint marker is received.
+     */
+    Flux<Long> observeLastCheckpointTimestamp();
 
     /**
      * Emits events that triggered snapshot updates.

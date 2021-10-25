@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.netflix.archaius.api.config.SettableConfig;
+import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -34,6 +36,7 @@ import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobQuery;
@@ -51,7 +54,9 @@ import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static com.netflix.titus.gateway.service.v3.internal.LocalCacheQueryProcessor.PARAMETER_USE_CACHE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -71,7 +76,8 @@ public class LocalCacheQueryProcessorTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private final GatewayConfiguration configuration = mock(GatewayConfiguration.class);
+    private final SettableConfig configurationMap = new DefaultSettableConfig();
+    private final GatewayConfiguration configuration = Archaius2Ext.newConfiguration(GatewayConfiguration.class, configurationMap);
 
     private final JobDataReplicator jobDataReplicator = mock(JobDataReplicator.class);
 
@@ -79,16 +85,18 @@ public class LocalCacheQueryProcessorTest {
             configuration,
             jobDataReplicator,
             EmptyLogStorageInfo.empty(),
+            Schedulers.immediate(),
             titusRuntime
     );
 
     private final Sinks.Many<Pair<JobSnapshot, JobManagerEvent<?>>> jobDataReplicatorSink = Sinks.many().multicast().directAllOrNothing();
+    private final Sinks.Many<Long> jobDataReplicatorCheckpointSink = Sinks.many().multicast().directAllOrNothing();
 
     @Before
     public void setUp() {
         when(jobDataReplicator.getCurrent()).thenReturn(JobSnapshotFactories.newDefaultEmptySnapshot(titusRuntime));
         when(jobDataReplicator.events()).thenReturn(jobDataReplicatorSink.asFlux());
-        when(configuration.getQueryFromCacheCallerId()).thenReturn("NONE");
+        when(jobDataReplicator.observeLastCheckpointTimestamp()).thenReturn(jobDataReplicatorCheckpointSink.asFlux());
     }
 
     @Test
@@ -100,7 +108,7 @@ public class LocalCacheQueryProcessorTest {
     @Test
     public void testCanUseCacheByCallerId() {
         assertThat(processor.canUseCache(Collections.emptyMap(), "anything", JUNIT_CALL_METADATA)).isFalse();
-        when(configuration.getQueryFromCacheCallerId()).thenReturn("junit.*");
+        configurationMap.setProperty("titusGateway.queryFromCacheCallerId", "junit.*");
         assertThat(processor.canUseCache(Collections.emptyMap(), "anything", JUNIT_CALL_METADATA)).isTrue();
     }
 
@@ -228,7 +236,7 @@ public class LocalCacheQueryProcessorTest {
         // Job replicator re-sends events if there is nothing new to keep the stream active. Make sure that
         // we filter the keep alive events.
         TaskUpdateEvent taskUpdateEvent2 = TaskUpdateEvent.newTask(job, task2, JUNIT_CALL_METADATA);
-        emitEvent(Pair.of(jobDataReplicator.getCurrent(), JobManagerEvent.keepAliveEvent()));
+        emitEvent(Pair.of(jobDataReplicator.getCurrent(), JobManagerEvent.keepAliveEvent(-1)));
         emitEvent(Pair.of(jobDataReplicator.getCurrent(), taskUpdateEvent2));
         receivedEvent = subscriber.takeNext(30, TimeUnit.SECONDS);
         assertThat(receivedEvent).isNotNull();
@@ -242,6 +250,7 @@ public class LocalCacheQueryProcessorTest {
 
         // Check that is correctly terminated
         jobDataReplicatorSink.tryEmitError(new RuntimeException("simulated stream error"));
+        await().until(() -> subscriber.getError() != null);
         assertThat(subscriber.getError()).isInstanceOf(RuntimeException.class);
     }
 
@@ -286,7 +295,26 @@ public class LocalCacheQueryProcessorTest {
 
         // Check that is correctly terminated
         jobDataReplicatorSink.tryEmitError(new RuntimeException("simulated stream error"));
+        await().until(() -> subscriber.getError() != null);
         assertThat(subscriber.getError()).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    public void testSync() {
+        long startTime = titusRuntime.getClock().wallTime() - 10;
+
+        ExtTestSubscriber<Task> subscriber = new ExtTestSubscriber<>();
+        processor.syncCache("test", Task.class).subscribe(subscriber);
+
+        assertThat(subscriber.isUnsubscribed()).isFalse();
+
+        // Move forward, but not ahead of the current time threshold
+        jobDataReplicatorCheckpointSink.emitNext(startTime + 1, Sinks.EmitFailureHandler.FAIL_FAST);
+        assertThat(subscriber.isUnsubscribed()).isFalse();
+
+        // Now pass the threshold
+        jobDataReplicatorCheckpointSink.emitNext(startTime + 60_000, Sinks.EmitFailureHandler.FAIL_FAST);
+        await().until(subscriber::isUnsubscribed);
     }
 
     private Pair<Job<?>, List<Task>> addToJobDataReplicator(Pair<Job<?>, List<Task>> jobAndTasks) {

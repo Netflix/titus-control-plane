@@ -52,6 +52,7 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
     public EvictionDataReplicatorProvider(EvictionServiceClient client, TitusRuntime titusRuntime) {
         StreamDataReplicator<EvictionDataSnapshot, EvictionEvent> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(client, titusRuntime),
+                false,
                 new EvictionDataReplicatorMetrics(EVICTION_REPLICATOR, titusRuntime),
                 titusRuntime
         ).blockFirst(Duration.ofMillis(EVICTION_BOOTSTRAP_TIMEOUT_MS));
@@ -94,7 +95,7 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
     private static class EvictionDataReplicatorMetrics extends DataReplicatorMetrics<EvictionDataSnapshot, EvictionEvent> {
 
         private EvictionDataReplicatorMetrics(String source, TitusRuntime titusRuntime) {
-            super(source, titusRuntime);
+            super(source, false, titusRuntime);
         }
 
         @Override

@@ -73,7 +73,7 @@ public class GrpcRelocationReplicatorEventStreamTest {
     }
 
     private GrpcRelocationReplicatorEventStream newStream() {
-        return new GrpcRelocationReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
+        return new GrpcRelocationReplicatorEventStream(client, new DataReplicatorMetrics("test", false, titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
     private StepVerifier.FirstStep<ReplicatorEvent<TaskRelocationSnapshot, TaskRelocationEvent>> newConnectVerifier() {

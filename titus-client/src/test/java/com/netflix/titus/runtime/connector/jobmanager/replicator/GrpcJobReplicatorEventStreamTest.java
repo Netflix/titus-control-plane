@@ -44,6 +44,7 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
+import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.GrpcJobReplicatorEventStream.CacheUpdater;
 import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
@@ -73,7 +74,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final JobDataReplicatorConfiguration configuration = Mockito.mock(JobDataReplicatorConfiguration.class);
+    private final JobConnectorConfiguration configuration = Mockito.mock(JobConnectorConfiguration.class);
 
     private final JobComponentStub jobServiceStub = new JobComponentStub(titusRuntime);
 
@@ -270,7 +271,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private GrpcJobReplicatorEventStream newStream() {
         when(client.observeJobs(any())).thenReturn(ReactorExt.toFlux(jobServiceStub.observeJobs(true)));
-        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newDefault(titusRuntime), configuration, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
+        return new GrpcJobReplicatorEventStream(client, JobSnapshotFactories.newDefault(titusRuntime), configuration, new DataReplicatorMetrics("test", false, titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
     private StepVerifier.FirstStep<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnectVerifier() {

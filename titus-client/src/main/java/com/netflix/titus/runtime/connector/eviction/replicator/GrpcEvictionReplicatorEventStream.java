@@ -55,7 +55,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
                                              DataReplicatorMetrics metrics,
                                              TitusRuntime titusRuntime,
                                              Scheduler scheduler) {
-        super(EvictionKeepAliveEvent.getInstance(), metrics, titusRuntime, scheduler);
+        super(false, EvictionKeepAliveEvent.getInstance(), metrics, titusRuntime, scheduler);
         this.client = client;
     }
 

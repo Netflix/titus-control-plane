@@ -23,11 +23,17 @@ public class ReplicatorEvent<SNAPSHOT, TRIGGER> {
     private final SNAPSHOT snapshot;
     private final TRIGGER trigger;
     private final long lastUpdateTime;
+    private final long lastCheckpointTimestamp;
 
     public ReplicatorEvent(SNAPSHOT snapshot, TRIGGER trigger, long lastUpdateTime) {
+        this(snapshot, trigger, lastUpdateTime, -1);
+    }
+
+    public ReplicatorEvent(SNAPSHOT snapshot, TRIGGER trigger, long lastUpdateTime, long lastCheckpointTimestamp) {
         this.snapshot = snapshot;
         this.trigger = trigger;
         this.lastUpdateTime = lastUpdateTime;
+        this.lastCheckpointTimestamp = lastCheckpointTimestamp;
     }
 
     public SNAPSHOT getSnapshot() {
@@ -42,6 +48,10 @@ public class ReplicatorEvent<SNAPSHOT, TRIGGER> {
         return lastUpdateTime;
     }
 
+    public long getLastCheckpointTimestamp() {
+        return lastCheckpointTimestamp;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -51,14 +61,12 @@ public class ReplicatorEvent<SNAPSHOT, TRIGGER> {
             return false;
         }
         ReplicatorEvent<?, ?> that = (ReplicatorEvent<?, ?>) o;
-        return lastUpdateTime == that.lastUpdateTime &&
-                Objects.equals(snapshot, that.snapshot) &&
-                Objects.equals(trigger, that.trigger);
+        return lastUpdateTime == that.lastUpdateTime && lastCheckpointTimestamp == that.lastCheckpointTimestamp && Objects.equals(snapshot, that.snapshot) && Objects.equals(trigger, that.trigger);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(snapshot, trigger, lastUpdateTime);
+        return Objects.hash(snapshot, trigger, lastUpdateTime, lastCheckpointTimestamp);
     }
 
     @Override
@@ -67,6 +75,7 @@ public class ReplicatorEvent<SNAPSHOT, TRIGGER> {
                 "snapshot=" + snapshot +
                 ", trigger=" + trigger +
                 ", lastUpdateTime=" + lastUpdateTime +
+                ", lastCheckpointTimestamp=" + lastCheckpointTimestamp +
                 '}';
     }
 }

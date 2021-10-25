@@ -34,6 +34,9 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
@@ -45,11 +48,8 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
-import com.netflix.titus.common.model.admission.AdmissionSanitizer;
-import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
-import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
@@ -272,6 +272,11 @@ public class EmbeddedTitusGateway {
     public static Builder aDefaultTitusGateway() {
         return new Builder()
                 .withProperty("titusGateway.endpoint.grpc.shutdownTimeoutMs", "0");
+        // TODO Uncomment when TitusGateway cache is enabled
+//                .withProperty("titus.connector.jobService.keepAliveReplicatedStreamEnabled", "true")
+//                .withProperty("titus.connector.jobService.keepAliveIntervalMs", "10")
+//                .withProperty("titusGateway.maxAcceptableCacheStalenessMs", "30000")
+//                .withProperty("titusGateway.queryFromCacheCallerId", ".*");
     }
 
     public static class Builder {

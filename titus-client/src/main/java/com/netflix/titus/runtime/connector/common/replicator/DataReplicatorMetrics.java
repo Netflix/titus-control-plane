@@ -35,6 +35,7 @@ public class DataReplicatorMetrics<SNAPSHOT, TRIGGER> {
     private static final String ROOT = "titus.dataReplicator.";
 
     private final String source;
+    private final boolean useCheckpointTimestamp;
     private final Clock clock;
     private final Registry registry;
 
@@ -43,8 +44,9 @@ public class DataReplicatorMetrics<SNAPSHOT, TRIGGER> {
     private final Gauge staleness;
     private final ConcurrentMap<String, AtomicLong> cacheCollectionSizes = new ConcurrentHashMap<>();
 
-    public DataReplicatorMetrics(String source, TitusRuntime titusRuntime) {
+    public DataReplicatorMetrics(String source, boolean useCheckpointTimestamp, TitusRuntime titusRuntime) {
         this.source = source;
+        this.useCheckpointTimestamp = useCheckpointTimestamp;
         this.clock = titusRuntime.getClock();
         this.registry = titusRuntime.getRegistry();
 
@@ -70,7 +72,8 @@ public class DataReplicatorMetrics<SNAPSHOT, TRIGGER> {
     }
 
     public void event(ReplicatorEvent<SNAPSHOT, TRIGGER> event) {
-        staleness.set(clock.wallTime() - event.getLastUpdateTime());
+        long timestamp = useCheckpointTimestamp ? event.getLastCheckpointTimestamp() : event.getLastUpdateTime();
+        staleness.set(clock.wallTime() - timestamp);
     }
 
     protected void setCacheCollectionSize(String name, long size) {

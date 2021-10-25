@@ -102,7 +102,7 @@ public class GrpcEvictionReplicatorEventStreamTest {
     }
 
     private GrpcEvictionReplicatorEventStream newStream() {
-        return new GrpcEvictionReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
+        return new GrpcEvictionReplicatorEventStream(client, new DataReplicatorMetrics("test", false, titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
     private StepVerifier.FirstStep<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> newConnectVerifier() {

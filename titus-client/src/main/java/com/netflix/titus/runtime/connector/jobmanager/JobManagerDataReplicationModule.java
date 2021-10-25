@@ -16,14 +16,16 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorConfiguration;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
+import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactory;
 
 public class JobManagerDataReplicationModule extends AbstractModule {
     @Override
@@ -34,7 +36,23 @@ public class JobManagerDataReplicationModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public JobDataReplicatorConfiguration getJobDataReplicatorConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(JobDataReplicatorConfiguration.class);
+    public JobConnectorConfiguration getJobDataReplicatorConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(JobConnectorConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public JobDataReplicatorProvider getJobDataReplicatorProvider(JobConnectorConfiguration configuration,
+                                                                  JobManagementClient client,
+                                                                  @Named(JobManagerConnectorModule.KEEP_ALIVE_ENABLED)
+                                                                          JobManagementClient keepAliveEnabledClient,
+                                                                  JobSnapshotFactory jobSnapshotFactory,
+                                                                  TitusRuntime titusRuntime) {
+        return new JobDataReplicatorProvider(
+                configuration,
+                configuration.isKeepAliveReplicatedStreamEnabled() ? keepAliveEnabledClient : client,
+                jobSnapshotFactory,
+                titusRuntime
+        );
     }
 }

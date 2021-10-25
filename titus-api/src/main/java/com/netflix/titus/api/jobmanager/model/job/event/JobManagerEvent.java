@@ -26,7 +26,6 @@ import com.netflix.titus.api.model.callmetadata.CallMetadata;
 public abstract class JobManagerEvent<TYPE> {
 
     private static final SnapshotMarkerEvent SNAPSHOT_MARKER = new SnapshotMarkerEvent();
-    private static final KeepAliveEvent KEEP_ALIVE_EVENT = new KeepAliveEvent();
 
     private final TYPE current;
     private final Optional<TYPE> previous;
@@ -75,8 +74,8 @@ public abstract class JobManagerEvent<TYPE> {
         return SNAPSHOT_MARKER;
     }
 
-    public static JobManagerEvent<Job> keepAliveEvent() {
-        return KEEP_ALIVE_EVENT;
+    public static JobManagerEvent<Job> keepAliveEvent(long timestamp) {
+        return new JobKeepAliveEvent(timestamp);
     }
 
     private static class SnapshotMarkerEvent extends JobManagerEvent<Job> {
@@ -86,10 +85,4 @@ public abstract class JobManagerEvent<TYPE> {
         }
     }
 
-    private static class KeepAliveEvent extends JobManagerEvent<Job> {
-
-        private KeepAliveEvent() {
-            super(Job.newBuilder().build(), Optional.empty(), CallMetadata.newBuilder().withCallerId("KeepAliveEvent").withCallReason("keep alive event").build());
-        }
-    }
 }

@@ -45,8 +45,18 @@ public class DataReplicatorDelegate<SNAPSHOT extends ReplicatedSnapshot, TRIGGER
     }
 
     @Override
+    public long getLastCheckpointTimestamp() {
+        return delegate.getLastCheckpointTimestamp();
+    }
+
+    @Override
     public Flux<Long> observeDataStalenessMs() {
         return delegate.observeDataStalenessMs();
+    }
+
+    @Override
+    public Flux<Long> observeLastCheckpointTimestamp() {
+        return delegate.observeLastCheckpointTimestamp();
     }
 
     @Override

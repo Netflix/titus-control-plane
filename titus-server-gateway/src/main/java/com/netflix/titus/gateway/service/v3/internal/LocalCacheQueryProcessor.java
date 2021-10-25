@@ -25,11 +25,14 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -40,6 +43,9 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.spectator.MetricSelector;
+import com.netflix.titus.common.util.spectator.SpectatorExt;
+import com.netflix.titus.common.util.spectator.ValueRangeCounter;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.gateway.MetricConstants;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -66,6 +72,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import rx.Observable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters.toGrpcPagination;
@@ -85,6 +93,7 @@ public class LocalCacheQueryProcessor {
 
     private static final String METRIC_ROOT = MetricConstants.METRIC_ROOT + "localCacheQueryProcessor.";
     private static final String METRIC_CACHE_USE_ALLOWED = METRIC_ROOT + "cacheUseAllowed";
+    private static final long[] LEVELS = new long[]{1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 30_000};
 
     private final GatewayConfiguration configuration;
     private final JobDataReplicator jobDataReplicator;
@@ -92,18 +101,49 @@ public class LocalCacheQueryProcessor {
     private final TitusRuntime titusRuntime;
 
     private final Function<String, Matcher> callerIdMatcher;
+    private final MetricSelector<ValueRangeCounter> syncDelayMetric;
+
+    private final Scheduler scheduler;
 
     @Inject
     public LocalCacheQueryProcessor(GatewayConfiguration configuration,
                                     JobDataReplicator jobDataReplicator,
                                     LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                     TitusRuntime titusRuntime) {
+        this(configuration,
+                jobDataReplicator,
+                logStorageInfo,
+                Schedulers.newBoundedElastic(
+                        configuration.getLocalCacheSchedulerThreadPoolSize(),
+                        Integer.MAX_VALUE,
+                        LocalCacheQueryProcessor.class.getSimpleName() + "-event-processor"
+                ),
+                titusRuntime
+        );
+    }
+
+    public LocalCacheQueryProcessor(GatewayConfiguration configuration,
+                                    JobDataReplicator jobDataReplicator,
+                                    LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
+                                    Scheduler scheduler,
+                                    TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.jobDataReplicator = jobDataReplicator;
         this.logStorageInfo = logStorageInfo;
         this.titusRuntime = titusRuntime;
+        this.scheduler = scheduler;
         this.callerIdMatcher = RegExpExt.dynamicMatcher(configuration::getQueryFromCacheCallerId,
                 "titusGateway.queryFromCacheCallerId", Pattern.DOTALL, logger);
+
+        Registry registry = titusRuntime.getRegistry();
+        this.syncDelayMetric = SpectatorExt.newValueRangeCounter(
+                registry.createId(METRIC_ROOT + "syncDelay"), new String[]{"endpoint"}, LEVELS, registry
+        );
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        scheduler.dispose();
     }
 
     public boolean canUseCache(Map<String, String> queryParameters,
@@ -209,44 +249,71 @@ public class LocalCacheQueryProcessor {
 
         Flux<JobChangeNotification> eventStream = Flux.defer(() -> {
             AtomicBoolean first = new AtomicBoolean(true);
-            return jobDataReplicator.events().flatMap(event -> {
-                JobManagerEvent<?> jobManagerEvent = event.getRight();
+            return jobDataReplicator.events()
+                    .subscribeOn(scheduler)
+                    .publishOn(scheduler)
+                    .flatMap(event -> {
+                        JobManagerEvent<?> jobManagerEvent = event.getRight();
 
-                long now = titusRuntime.getClock().wallTime();
-                JobSnapshot snapshot = event.getLeft();
-                Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(snapshot, jobManagerEvent, now, jobsPredicate, tasksPredicate);
+                        long now = titusRuntime.getClock().wallTime();
+                        JobSnapshot snapshot = event.getLeft();
+                        Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(snapshot, jobManagerEvent, now, jobsPredicate, tasksPredicate);
 
-                // On first event emit full snapshot first
-                if (first.getAndSet(false)) {
-                    List<JobChangeNotification> snapshotEvents = buildSnapshot(snapshot, now, jobsPredicate, tasksPredicate);
-                    grpcEvent.ifPresent(snapshotEvents::add);
-                    return Flux.fromIterable(snapshotEvents);
-                }
+                        // On first event emit full snapshot first
+                        if (first.getAndSet(false)) {
+                            List<JobChangeNotification> snapshotEvents = buildSnapshot(snapshot, now, jobsPredicate, tasksPredicate);
+                            grpcEvent.ifPresent(snapshotEvents::add);
+                            return Flux.fromIterable(snapshotEvents);
+                        }
 
-                // If we already emitted something we have to first disconnect this stream, and let the client
-                // subscribe again. Snapshot marker indicates that the underlying GRPC stream was disconnected.
-                if (jobManagerEvent == JobManagerEvent.snapshotMarker()) {
-                    return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
-                            "Downstream event stream reconnected."
-                    )));
-                }
+                        // If we already emitted something we have to first disconnect this stream, and let the client
+                        // subscribe again. Snapshot marker indicates that the underlying GRPC stream was disconnected.
+                        if (jobManagerEvent == JobManagerEvent.snapshotMarker()) {
+                            return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
+                                    "Downstream event stream reconnected."
+                            )));
+                        }
 
-                // Job data replicator emits keep alive events periodically if there is nothing in the stream. We have
-                // to filter them out here.
-                if (jobManagerEvent == JobManagerEvent.keepAliveEvent()) {
-                    // Check if staleness is not too high.
-                    if (jobDataReplicator.getStalenessMs() > configuration.getObserveJobsStalenessDisconnectMs()) {
-                        return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
-                                "Data staleness in the event stream is too high. Most likely caused by connectivity issue to the downstream server."
-                        )));
-                    }
-                    return Mono.empty();
-                }
+                        // Job data replicator emits keep alive events periodically if there is nothing in the stream. We have
+                        // to filter them out here.
+                        if (jobManagerEvent instanceof JobKeepAliveEvent) {
+                            // Check if staleness is not too high.
+                            if (jobDataReplicator.getStalenessMs() > configuration.getObserveJobsStalenessDisconnectMs()) {
+                                return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
+                                        "Data staleness in the event stream is too high. Most likely caused by connectivity issue to the downstream server."
+                                )));
+                            }
+                            return Mono.empty();
+                        }
 
-                return grpcEvent.map(Flux::just).orElseGet(Flux::empty);
-            });
+                        return grpcEvent.map(Flux::just).orElseGet(Flux::empty);
+                    });
         });
         return ReactorExt.toObservable(eventStream);
+    }
+
+    /**
+     * Observable that completes when the job replicator cache checkpoint reaches the request timestamp.
+     * It does not emit any value.
+     */
+    <T> Observable<T> syncCache(String endpoint, Class<T> type) {
+        Flux<T> fluxSync = Flux.defer(() -> {
+            long startTime = titusRuntime.getClock().wallTime();
+            return jobDataReplicator.observeLastCheckpointTimestamp()
+                    .subscribeOn(scheduler)
+                    .publishOn(scheduler)
+                    .skipUntil(timestamp -> timestamp >= startTime)
+                    .take(1)
+                    .flatMap(timestamp -> {
+                        syncDelayMetric.withTags(endpoint).ifPresent(m -> {
+                            long delayMs = titusRuntime.getClock().wallTime() - timestamp;
+                            logger.debug("Cache sync delay: method={}, delaysMs={}", endpoint, delayMs);
+                            m.recordLevel(delayMs);
+                        });
+                        return Mono.empty();
+                    });
+        });
+        return ReactorExt.toObservable(fluxSync);
     }
 
     private List<com.netflix.titus.api.jobmanager.model.job.Job> findMatchingJob(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria) {
