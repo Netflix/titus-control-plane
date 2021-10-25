@@ -86,6 +86,18 @@ public class CachedBatchJobWithOneTaskTest {
     }
 
     @Test
+    public void testRemoveJobWithoutTask() {
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(false).getLeft();
+        CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
+        assertThat(cached1.getTasks()).isEmpty();
+
+        JobSnapshot updatedSnapshot = cached1.removeJob(initialSnapshot, cached1.getJob()).orElse(null);
+        assertThat(updatedSnapshot).isNotNull();
+        assertThat(updatedSnapshot.getJobMap()).hasSize(0);
+        assertThat(updatedSnapshot.getTaskMap()).hasSize(0);
+    }
+
+    @Test
     public void testAddTask() {
         Pair<PCollectionJobSnapshot, Task> initial = initialSnapshot(false);
         PCollectionJobSnapshot initialSnapshot = initial.getLeft();
@@ -122,7 +134,7 @@ public class CachedBatchJobWithOneTaskTest {
         Job<BatchJobExt> job = jobAndTasks.getLeft();
         Task task = CollectionsExt.first(jobAndTasks.getRight().values());
 
-        PCollectionJobSnapshot snapshot = (PCollectionJobSnapshot) PCollectionJobSnapshot.newInstance("test",
+        PCollectionJobSnapshot snapshot = PCollectionJobSnapshot.newInstance("test",
                 Collections.singletonMap(job.getId(), job),
                 Collections.singletonMap(job.getId(), create ? Collections.singletonMap(task.getId(), task) : Collections.emptyMap()),
                 false,

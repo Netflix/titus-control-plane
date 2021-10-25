@@ -88,7 +88,7 @@ public class CachedBatchJobWithOneTask extends CachedJob {
         return Optional.of(snapshot.newSnapshot(
                 snapshot.cachedJobsById.minus(job.getId()),
                 snapshot.jobsById.minus(job.getId()),
-                snapshot.taskById.minus(task.getId())
+                task == null ? snapshot.taskById : snapshot.taskById.minus(task.getId())
         ));
     }
 
