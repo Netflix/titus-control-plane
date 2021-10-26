@@ -17,6 +17,7 @@
 package com.netflix.titus.master.kubernetes.pod.v1;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -540,18 +541,22 @@ public class V1SpecPodFactory implements PodFactory {
                     .mountPath(efsMountPoint);
             container.addVolumeMountsItem(volumeMount);
 
-            V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
-                    .server(efsId)
-                    .readOnly(readOnly);
-            // "path" here represents the server-side relative mount path, sometimes called
-            // the "exported directory", and goes into the v1 Volume
-            nfsVolumeSource.setPath(efsRelativeMountPoint);
-
-            V1Volume volume = new V1Volume()
-                    .name(name)
-                    .nfs(nfsVolumeSource);
-
-            spec.addVolumesItem(volume);
+            // We can't have duplicate volumes in here. In theory there should be a many:one mapping between
+            // EFS mounts and the volumes that back them. For example, there could be two mounts to the same
+            // nfs server, but with different *mount points*, but there should only be 1 volumes behind them
+            List<String> allNames = KubePodUtil.getVolumeNames(spec.getVolumes());
+            if (!allNames.contains(name)) {
+                V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
+                        .server(efsId)
+                        .readOnly(readOnly);
+                // "path" here represents the server-side relative mount path, sometimes called
+                // the "exported directory", and goes into the v1 Volume
+                nfsVolumeSource.setPath(efsRelativeMountPoint);
+                V1Volume volume = new V1Volume()
+                        .name(name)
+                        .nfs(nfsVolumeSource);
+                spec.addVolumesItem(volume);
+            }
         }
     }
 

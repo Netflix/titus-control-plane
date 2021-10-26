@@ -248,4 +248,44 @@ public class V1SpecPodFactoryTest {
         assertThat(v1NFSvm.getMountPath()).isEqualTo("/mountpoint");
     }
 
+    @Test
+    public void testEFSMountsHandlesDuplicateVolumes() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+
+        EfsMount newEfsMount = new EfsMount("1.2.3.4", "/mountpoint", EfsMount.MountPerm.RO, "/relative");
+        EfsMount newEfsMount2 = new EfsMount("1.2.3.4", "/mountpoint2", EfsMount.MountPerm.RO, "/relative");
+
+        Container newContainer = job.getJobDescriptor().getContainer();
+        ContainerResources newContainerResources = newContainer.getContainerResources();
+        Container newContainerWithEFS = newContainer.toBuilder().withContainerResources(newContainerResources.newBuilder()
+                .withEfsMounts(Arrays.asList(newEfsMount, newEfsMount2))
+                .build()).build();
+
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
+                .withContainer(newContainerWithEFS).build())
+                .build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+
+        // Part 1: There should only be *one* EFS volume to share
+        List<V1Volume> volumes = pod.getSpec().getVolumes();
+        assertThat(volumes.size()).isEqualTo(2); // one for nfs, one for shm
+        V1Volume v1NFSVolume = volumes.get(0);
+        assertThat(v1NFSVolume.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSVolume.getNfs().getServer()).isEqualTo("1.2.3.4");
+        assertThat(v1NFSVolume.getNfs().getPath()).isEqualTo("/relative");
+        assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(true);
+
+        // Part 2: there should be *two* volume mounts, both sharing the volume
+        List<V1VolumeMount> vms = pod.getSpec().getContainers().get(0).getVolumeMounts();
+        assertThat(vms.size()).isEqualTo(3); // 2 for nfs, one for shm
+        V1VolumeMount v1NFSvm = vms.get(0);
+        assertThat(v1NFSvm.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSvm.getMountPath()).isEqualTo("/mountpoint");
+        V1VolumeMount v1NFSvm2 = vms.get(1);
+        assertThat(v1NFSvm2.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSvm2.getMountPath()).isEqualTo("/mountpoint2");
+    }
+
 }
