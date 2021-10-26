@@ -268,7 +268,9 @@ public class KubePodUtil {
      * Sanitize name based on Kubernetes regex: [a-z0-9]([-a-z0-9]*[a-z0-9])?.
      */
     public static String sanitizeVolumeName(String name) {
-        return name.toLowerCase().replaceAll("[^a-z0-9]([^-a-z0-9]*[^a-z0-9])?", "-");
+        String replaced = name.toLowerCase().replaceAll("[^a-z0-9]([^-a-z0-9]*[^a-z0-9])?", "-");
+        // All volume names *must* end with a normal char, so we always append something to the end
+        return replaced + "-vol";
     }
 
     public static String selectScheduler(SchedulerConfiguration schedulerConfiguration, ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
