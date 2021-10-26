@@ -52,7 +52,7 @@ public class KubePodUtilTest {
 
     @Test
     public void testSanitizeVolumeName() {
-        String name = "Ab9bac3e:6ea1:4bc3:a803:e0070ca434c3";
-        assertThat(KubePodUtil.sanitizeVolumeName(name)).matches("ab9bac3e-6ea1-4bc3-a803-e0070ca434c3");
+        String name = "Ab9bac3e:6ea1:4bc3:a803:e0070ca434c3/";
+        assertThat(KubePodUtil.sanitizeVolumeName(name)).matches("ab9bac3e-6ea1-4bc3-a803-e0070ca434c3--vol");
     }
 }
