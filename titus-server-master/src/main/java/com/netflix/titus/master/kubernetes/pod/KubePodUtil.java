@@ -273,6 +273,12 @@ public class KubePodUtil {
         return replaced + "-vol";
     }
 
+    public static List<String> getVolumeNames(List<V1Volume> volumes) {
+        return volumes.stream()
+                .map(e -> e.getName())
+                .collect(Collectors.toList());
+    }
+
     public static String selectScheduler(SchedulerConfiguration schedulerConfiguration, ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
         String schedulerName;
         if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
