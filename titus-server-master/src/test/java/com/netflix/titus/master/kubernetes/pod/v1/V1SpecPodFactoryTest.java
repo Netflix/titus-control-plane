@@ -272,7 +272,7 @@ public class V1SpecPodFactoryTest {
         List<V1Volume> volumes = pod.getSpec().getVolumes();
         assertThat(volumes.size()).isEqualTo(2); // one for nfs, one for shm
         V1Volume v1NFSVolume = volumes.get(0);
-        assertThat(v1NFSVolume.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSVolume.getName()).isEqualTo("1-2-3-4-relative-vol");
         assertThat(v1NFSVolume.getNfs().getServer()).isEqualTo("1.2.3.4");
         assertThat(v1NFSVolume.getNfs().getPath()).isEqualTo("/relative");
         assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(true);
@@ -281,10 +281,10 @@ public class V1SpecPodFactoryTest {
         List<V1VolumeMount> vms = pod.getSpec().getContainers().get(0).getVolumeMounts();
         assertThat(vms.size()).isEqualTo(3); // 2 for nfs, one for shm
         V1VolumeMount v1NFSvm = vms.get(0);
-        assertThat(v1NFSvm.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSvm.getName()).isEqualTo("1-2-3-4-relative-vol");
         assertThat(v1NFSvm.getMountPath()).isEqualTo("/mountpoint");
         V1VolumeMount v1NFSvm2 = vms.get(1);
-        assertThat(v1NFSvm2.getName()).isEqualTo("1-2-3-4-relative");
+        assertThat(v1NFSvm2.getName()).isEqualTo("1-2-3-4-relative-vol");
         assertThat(v1NFSvm2.getMountPath()).isEqualTo("/mountpoint2");
     }
 
