@@ -84,6 +84,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.TitusModelActio
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
+import com.netflix.titus.master.jobmanager.service.event.JobCheckpointReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
@@ -593,14 +594,14 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
-                                                      Predicate<Pair<Job<?>, Task>> tasksPredicate) {
-        Observable<JobManagerReconcilerEvent> events = reconciliationFramework.events()
-                .onBackpressureBuffer(
-                        OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE,
-                        () -> logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE),
-                        BackpressureOverflow.ON_OVERFLOW_ERROR
-                );
-        return toJobManagerEvents(events, jobsPredicate, tasksPredicate);
+                                                      Predicate<Pair<Job<?>, Task>> tasksPredicate,
+                                                      boolean withCheckpoints) {
+        Observable<JobManagerReconcilerEvent> events = reconciliationFramework.events().onBackpressureBuffer(
+                OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE,
+                () -> logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE),
+                BackpressureOverflow.ON_OVERFLOW_ERROR
+        );
+        return toJobManagerEvents(events, jobsPredicate, tasksPredicate, withCheckpoints);
     }
 
     @Override
@@ -608,7 +609,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         return Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
                 .flatMap(engineOpt ->
                         engineOpt.map(engine ->
-                                toJobManagerEvents(engine.events(), alwaysTrue(), alwaysTrue())
+                                toJobManagerEvents(engine.events(), alwaysTrue(), alwaysTrue(), false)
                         ).orElseGet(() ->
                                 Observable.error(JobManagerException.jobNotFound(jobId))
                         ));
@@ -658,15 +659,25 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private Observable<JobManagerEvent<?>> toJobManagerEvents(Observable<JobManagerReconcilerEvent> events,
                                                               Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
-                                                              Predicate<Pair<Job<?>, Task>> tasksPredicate) {
-        return events.map(toJobManagerEvent(jobsPredicate, tasksPredicate))
+                                                              Predicate<Pair<Job<?>, Task>> tasksPredicate,
+                                                              boolean withCheckpoints) {
+        return events.map(toJobManagerEvent(jobsPredicate, tasksPredicate, withCheckpoints))
                 .filter(Optional::isPresent)
                 .map(Optional::get);
     }
 
     private Func1<JobManagerReconcilerEvent, Optional<JobManagerEvent<?>>> toJobManagerEvent(
-            Predicate<Pair<Job<?>, List<Task>>> jobsPredicate, Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+            Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+            Predicate<Pair<Job<?>, Task>> tasksPredicate,
+            boolean withCheckpoints) {
         return event -> {
+            if (event instanceof JobCheckpointReconcilerEvent) {
+                if (withCheckpoints) {
+                    JobCheckpointReconcilerEvent checkpoint = (JobCheckpointReconcilerEvent) event;
+                    return Optional.of(JobManagerEvent.keepAliveEvent(checkpoint.getTimestampNano()));
+                }
+                return Optional.empty();
+            }
             if (event instanceof JobNewModelReconcilerEvent) {
                 JobNewModelReconcilerEvent newModelEvent = (JobNewModelReconcilerEvent) event;
                 return toJobUpdateEvent(newModelEvent, jobsPredicate);

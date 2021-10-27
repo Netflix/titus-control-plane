@@ -173,6 +173,10 @@ public class ObserveJobsSubscriptionTest {
         assertThat(expectJobUpdateEvent().getJob().getId()).isEqualTo(job1.getId());
         assertThat(expectTaskUpdateEvent().getTask().getId()).isEqualTo(task1.getId());
         expectSnapshotEvent();
+        triggerActions(1);
+
+        jobComponentStub.emitCheckpoint();
+        triggerActions(1);
         expectKeepAlive(2);
         triggerActions(1);
 
@@ -183,6 +187,8 @@ public class ObserveJobsSubscriptionTest {
 
         // Now keep alive
         request.onNext(newKeepAliveRequest(3));
+        jobComponentStub.emitCheckpoint();
+        triggerActions(1);
         expectKeepAlive(3);
     }
 
@@ -210,7 +216,13 @@ public class ObserveJobsSubscriptionTest {
 
         // Now keep alive
         request.onNext(newKeepAliveRequest(123));
+        triggerActions(5);
         JobChangeNotification nextEvent = responseEvents.poll();
+        assertThat(nextEvent).isNull();
+
+        jobComponentStub.emitCheckpoint();
+        triggerActions(5);
+        nextEvent = responseEvents.poll();
         assertThat(nextEvent).isNotNull();
         assertThat(nextEvent.getNotificationCase()).isEqualTo(JobChangeNotification.NotificationCase.KEEPALIVERESPONSE);
         assertThat(nextEvent.getKeepAliveResponse().getRequest().getRequestId()).isEqualTo(123);

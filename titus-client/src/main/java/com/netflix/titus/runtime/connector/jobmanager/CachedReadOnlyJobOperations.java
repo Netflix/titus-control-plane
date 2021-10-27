@@ -109,7 +109,9 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
      */
     @Override
     @Experimental(deadline = "03/2019")
-    public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate, Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+    public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+                                                      Predicate<Pair<Job<?>, Task>> tasksPredicate,
+                                                      boolean withCheckpoints) {
         Flux<JobManagerEvent<?>> fluxStream = replicator.events()
                 .filter(event -> {
                     if (event.getRight() instanceof JobUpdateEvent) {
@@ -134,7 +136,7 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
     @Override
     @Experimental(deadline = "03/2019")
     public Observable<JobManagerEvent<?>> observeJob(String jobId) {
-        return observeJobs(jobTasks -> jobTasks.getLeft().getId().equals(jobId), jobTask -> jobTask.getLeft().getId().equals(jobId))
+        return observeJobs(jobTasks -> jobTasks.getLeft().getId().equals(jobId), jobTask -> jobTask.getLeft().getId().equals(jobId), false)
                 .takeUntil(event -> {
                     if (event instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;

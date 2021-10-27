@@ -32,7 +32,13 @@ public class EventDistributorTest {
 
     private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private final EventDistributor<SimpleReconcilerEvent> eventDistributor = new EventDistributor<>(titusRuntime.getRegistry());
+    private static final long CHECKPOINT_INTERVAL_MS = 10;
+
+    private final EventDistributor<SimpleReconcilerEvent> eventDistributor = new EventDistributor<>(
+            new SimpleReconcilerEventFactory(),
+            CHECKPOINT_INTERVAL_MS,
+            titusRuntime.getRegistry()
+    );
 
     @Test
     public void testBootstrap() throws Exception {
@@ -90,6 +96,7 @@ public class EventDistributorTest {
         client2.expectChanges("engine1/change1");
 
         client1.unsubscribe();
+        client1.drainCheckpoints();
 
         engine1.emitChange("engine1/change2");
         client2.expectChanges("engine1/change2");
@@ -142,16 +149,31 @@ public class EventDistributorTest {
 
         void expectChanges(String... changes) throws InterruptedException {
             for (String change : changes) {
-                SimpleReconcilerEvent event = receivedEvents.poll(30, TimeUnit.SECONDS);
-                if (event == null) {
-                    throw new IllegalStateException("no event received in the configured time ");
+                while (true) {
+                    SimpleReconcilerEvent event = receivedEvents.poll(30, TimeUnit.SECONDS);
+                    if (event == null) {
+                        throw new IllegalStateException("no event received in the configured time ");
+                    }
+                    if (event.getEventType() != SimpleReconcilerEvent.EventType.Checkpoint) {
+                        assertThat(event.getMessage()).isEqualTo(change);
+                        break;
+                    }
                 }
-                assertThat(event.getMessage()).isEqualTo(change);
             }
         }
 
         void expectNoEvents() {
             assertThat(receivedEvents).isEmpty();
+        }
+
+        void drainCheckpoints() {
+            SimpleReconcilerEvent event;
+            while ((event = receivedEvents.peek()) != null) {
+                if (event.getEventType() != SimpleReconcilerEvent.EventType.Checkpoint) {
+                    return;
+                }
+                receivedEvents.poll();
+            }
         }
 
         void unsubscribe() {

@@ -29,8 +29,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
+import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.DefaultKubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
@@ -92,7 +92,9 @@ public class KubeAndJobServiceSyncStatusWatcherMain {
         }
 
         @Override
-        public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate, Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+        public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+                                                          Predicate<Pair<Job<?>, Task>> tasksPredicate,
+                                                          boolean withCheckpoints) {
             return null;
         }
 

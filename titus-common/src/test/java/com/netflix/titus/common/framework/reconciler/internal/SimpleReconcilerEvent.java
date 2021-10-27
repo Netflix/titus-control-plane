@@ -24,6 +24,7 @@ import java.util.Optional;
 public class SimpleReconcilerEvent {
 
     enum EventType {
+        Checkpoint,
         ChangeRequest,
         Changed,
         ChangeError,

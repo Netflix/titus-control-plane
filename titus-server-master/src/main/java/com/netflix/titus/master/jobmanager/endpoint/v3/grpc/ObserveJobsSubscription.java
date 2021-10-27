@@ -68,7 +68,7 @@ class ObserveJobsSubscription {
     private final TitusRuntime titusRuntime;
 
     // GRPC channel
-    private final BlockingQueue<ObserveJobsWithKeepAliveRequest> grpcClientEvents = new LinkedBlockingDeque<>();
+    private final BlockingQueue<Pair<Long, ObserveJobsWithKeepAliveRequest>> grpcClientEvents = new LinkedBlockingDeque<>();
     private volatile StreamObserver<JobChangeNotification> grpcResponseObserver;
     private volatile boolean grpcStreamInitiated;
     private volatile boolean grpcSnapshotMarkerSent;
@@ -76,6 +76,7 @@ class ObserveJobsSubscription {
 
     // Job service
     private final BlockingQueue<JobChangeNotification> jobServiceEvents = new LinkedBlockingDeque<>();
+    private volatile long lastCheckpointTimestampNano = System.nanoTime();
     private volatile Throwable jobServiceError;
     private volatile boolean jobServiceCompleted;
     @VisibleForTesting
@@ -90,10 +91,10 @@ class ObserveJobsSubscription {
     }
 
     void observeJobs(ObserveJobsQuery query, StreamObserver<JobChangeNotification> responseObserver) {
-        grpcClientEvents.add(ObserveJobsWithKeepAliveRequest.newBuilder()
+        grpcClientEvents.add(Pair.of(0L, ObserveJobsWithKeepAliveRequest.newBuilder()
                 .setQuery(query)
                 .build()
-        );
+        ));
         connect(responseObserver);
         drain();
     }
@@ -103,7 +104,7 @@ class ObserveJobsSubscription {
         return new StreamObserver<ObserveJobsWithKeepAliveRequest>() {
             @Override
             public void onNext(ObserveJobsWithKeepAliveRequest request) {
-                grpcClientEvents.add(request);
+                grpcClientEvents.add(Pair.of(System.nanoTime(), request));
                 drain();
             }
 
@@ -155,23 +156,31 @@ class ObserveJobsSubscription {
                     while (true) {
                         boolean completed = jobServiceCompleted;
                         JobChangeNotification jobServiceEvent = jobServiceEvents.poll();
-                        if (checkTerminated(completed, jobServiceEvent == null)) {
-                            return;
-                        } else if (jobServiceEvent != null) {
-                            if (jobServiceEvent.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
-                                this.grpcSnapshotMarkerSent = true;
+                        // We do not forward the internal keep alive / checkpoint requests, and only use it for synchronization
+                        // with the client initiated keep alive.
+                        if (jobServiceEvent != null && jobServiceEvent.getNotificationCase() == JobChangeNotification.NotificationCase.KEEPALIVERESPONSE) {
+                            if (grpcSnapshotMarkerSent) {
+                                this.lastCheckpointTimestampNano = jobServiceEvent.getKeepAliveResponse().getTimestamp();
                             }
-                        } else if (grpcSnapshotMarkerSent) {
-                            // No more job service events to send. We can drain the GRPC input stream to process
-                            // keep alive requests.
-                            KeepAliveRequest keepAliveRequest = getLastKeepAliveEvent();
-                            if (keepAliveRequest == null) {
-                                break;
+                        } else {
+                            if (checkTerminated(completed, jobServiceEvent == null)) {
+                                return;
+                            } else if (jobServiceEvent != null) {
+                                if (jobServiceEvent.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+                                    this.grpcSnapshotMarkerSent = true;
+                                }
+                            } else if (grpcSnapshotMarkerSent) {
+                                // No more job service events to send. We can drain the GRPC input stream to process
+                                // keep alive requests.
+                                KeepAliveRequest keepAliveRequest = getLastKeepAliveEvent();
+                                if (keepAliveRequest == null) {
+                                    break;
+                                }
+                                jobServiceEvent = toGrpcKeepAliveResponse(keepAliveRequest);
                             }
-                            jobServiceEvent = toGrpcKeepAliveResponse(keepAliveRequest);
-                        }
 
-                        grpcResponseObserver.onNext(jobServiceEvent);
+                            grpcResponseObserver.onNext(jobServiceEvent);
+                        }
                     }
                 }
             } while (wip.decrementAndGet() != 0);
@@ -194,7 +203,7 @@ class ObserveJobsSubscription {
         V3JobQueryCriteriaEvaluator jobsPredicate = new V3JobQueryCriteriaEvaluator(criteria, titusRuntime);
         V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
 
-        Observable<JobChangeNotification> eventStream = context.getJobOperations().observeJobs(jobsPredicate, tasksPredicate)
+        Observable<JobChangeNotification> eventStream = context.getJobOperations().observeJobs(jobsPredicate, tasksPredicate, true)
                 // avoid clogging the computation scheduler
                 .observeOn(context.getObserveJobsScheduler())
                 .subscribeOn(context.getObserveJobsScheduler(), false)
@@ -243,8 +252,9 @@ class ObserveJobsSubscription {
 
     private ObserveJobsQuery getLastObserveJobsQueryEvent() {
         ObserveJobsQuery jobsQuery = null;
-        ObserveJobsWithKeepAliveRequest event;
-        while ((event = grpcClientEvents.poll()) != null) {
+        Pair<Long, ObserveJobsWithKeepAliveRequest> eventPair;
+        while ((eventPair = grpcClientEvents.poll()) != null) {
+            ObserveJobsWithKeepAliveRequest event = eventPair.getRight();
             if (event.getKindCase() == ObserveJobsWithKeepAliveRequest.KindCase.QUERY) {
                 jobsQuery = event.getQuery();
             }
@@ -253,14 +263,34 @@ class ObserveJobsSubscription {
     }
 
     private KeepAliveRequest getLastKeepAliveEvent() {
-        KeepAliveRequest keepAliveRequest = null;
-        ObserveJobsWithKeepAliveRequest event;
-        while ((event = grpcClientEvents.poll()) != null) {
+        Pair<Long, ObserveJobsWithKeepAliveRequest> firstKeepAliveRequestPair = null;
+        KeepAliveRequest lastKeepAliveRequest = null;
+        int count = 0;
+        Pair<Long, ObserveJobsWithKeepAliveRequest> eventPair;
+        while ((eventPair = grpcClientEvents.peek()) != null) {
+            ObserveJobsWithKeepAliveRequest event = eventPair.getRight();
             if (event.getKindCase() == ObserveJobsWithKeepAliveRequest.KindCase.KEEPALIVEREQUEST) {
-                keepAliveRequest = event.getKeepAliveRequest();
+                long requestTimestampNano = eventPair.getLeft();
+                if (requestTimestampNano > lastCheckpointTimestampNano) {
+                    break;
+                }
+                lastKeepAliveRequest = event.getKeepAliveRequest();
+                count++;
+                if (firstKeepAliveRequestPair == null) {
+                    firstKeepAliveRequestPair = eventPair;
+                }
             }
+            grpcClientEvents.poll();
         }
-        return keepAliveRequest;
+
+        if (lastKeepAliveRequest != null) {
+            KeepAliveRequest firstKeepAliveRequest = firstKeepAliveRequestPair.getRight().getKeepAliveRequest();
+            long internalSyncDelayMs = (System.nanoTime() - firstKeepAliveRequestPair.getLeft()) / 1_000_000;
+            logger.info("Acknowledging the keep alive request(s): count={}, requestId(first)={}, requestTimestamp={}, internalSyncDelayMs={}",
+                    count, firstKeepAliveRequest.getRequestId(), firstKeepAliveRequest.getTimestamp(), internalSyncDelayMs
+            );
+        }
+        return lastKeepAliveRequest;
     }
 
     private boolean checkTerminated(boolean isDone, boolean isEmpty) {

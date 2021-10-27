@@ -172,6 +172,10 @@ class StubbedJobData {
         return snapshot ? ObservableExt.fromCollection(this::getEventSnapshot).concatWith(observeJobsSubject) : observeJobsSubject;
     }
 
+    public void emitCheckpoint() {
+        observeJobsSubject.onNext(JobManagerEvent.keepAliveEvent(System.nanoTime()));
+    }
+
     private JobHolder getJobHolderByJobId(String jobId) {
         JobHolder jobHolder = jobHoldersById.get(jobId);
         if (jobHolder == null) {

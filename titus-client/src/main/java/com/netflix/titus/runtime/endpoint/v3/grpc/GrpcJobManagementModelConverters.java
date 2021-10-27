@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -53,8 +54,6 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.Version;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
-import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
-import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
@@ -72,6 +71,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTask
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
+import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -85,6 +85,8 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
@@ -103,6 +105,7 @@ import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
+import com.netflix.titus.grpc.protogen.KeepAliveResponse;
 import com.netflix.titus.grpc.protogen.LogLocation;
 import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
@@ -1368,8 +1371,9 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, GrpcObjectsCache
-            grpcObjectsCache, long now) {
+    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event,
+                                                                    GrpcObjectsCache grpcObjectsCache,
+                                                                    long now) {
         if (event instanceof JobUpdateEvent) {
             JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
             return JobChangeNotification.newBuilder()
@@ -1379,15 +1383,26 @@ public final class GrpcJobManagementModelConverters {
                     .setTimestamp(now)
                     .build();
         }
-
-        TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
-        return JobChangeNotification.newBuilder()
-                .setTaskUpdate(
-                        JobChangeNotification.TaskUpdate.newBuilder()
-                                .setTask(grpcObjectsCache.getTask(taskUpdateEvent.getCurrent()))
-                                .setMovedFromAnotherJob(taskUpdateEvent.isMovedFromAnotherJob())
-                )
-                .setTimestamp(now)
-                .build();
+        if (event instanceof TaskUpdateEvent) {
+            TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+            return JobChangeNotification.newBuilder()
+                    .setTaskUpdate(
+                            JobChangeNotification.TaskUpdate.newBuilder()
+                                    .setTask(grpcObjectsCache.getTask(taskUpdateEvent.getCurrent()))
+                                    .setMovedFromAnotherJob(taskUpdateEvent.isMovedFromAnotherJob())
+                    )
+                    .setTimestamp(now)
+                    .build();
+        }
+        if (event instanceof JobKeepAliveEvent) {
+            JobKeepAliveEvent keepAliveEvent = (JobKeepAliveEvent) event;
+            return JobChangeNotification.newBuilder()
+                    .setKeepAliveResponse(KeepAliveResponse.newBuilder()
+                            .setTimestamp(keepAliveEvent.getTimestamp())
+                            .build()
+                    )
+                    .build();
+        }
+        throw new IllegalStateException("Unrecognized JobManagerEvent type: " + event);
     }
 }
