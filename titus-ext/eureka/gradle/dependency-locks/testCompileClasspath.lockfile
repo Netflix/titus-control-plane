@@ -64,7 +64,7 @@ com.netflix.archaius:archaius-core:0.7.6
 com.netflix.archaius:archaius2-api:2.3.16
 com.netflix.archaius:archaius2-core:2.3.16
 com.netflix.archaius:archaius2-guice:2.3.16
-com.netflix.eureka:eureka-client:1.10.16
+com.netflix.eureka:eureka-client:1.10.17
 com.netflix.frigga:frigga:0.25.0
 com.netflix.governator:governator-api:1.15.11
 com.netflix.governator:governator-core:1.15.11
@@ -90,7 +90,7 @@ com.sun.jersey:jersey-core:1.19.4
 com.sun.jersey:jersey-server:1.19.4
 com.sun.jersey:jersey-servlet:1.19.4
 com.thinkaurelius.thrift:thrift-server:0.3.7
-com.thoughtworks.xstream:xstream:1.4.17
+com.thoughtworks.xstream:xstream:1.4.18
 com.twitter:finagle-core_2.11:6.33.0
 com.twitter:finagle-http_2.11:6.33.0
 com.twitter:finagle-native_2.11:6.33.0
@@ -140,7 +140,7 @@ io.fabric8:kubernetes-model-rbac:5.8.0
 io.fabric8:kubernetes-model-scheduling:5.8.0
 io.fabric8:kubernetes-model-storageclass:5.8.0
 io.fabric8:zjsonpatch:0.3.0
-io.github.x-stream:mxparser:1.2.1
+io.github.x-stream:mxparser:1.2.2
 io.grpc:grpc-api:1.39.0
 io.grpc:grpc-context:1.39.0
 io.grpc:grpc-core:1.39.0
