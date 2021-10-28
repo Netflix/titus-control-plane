@@ -17,11 +17,15 @@
 package com.netflix.titus.runtime.connector.titusmaster;
 
 import java.util.Collections;
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
@@ -55,6 +59,7 @@ import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorCl
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CommonCallMetadataUtils;
 import io.grpc.Channel;
+import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import okhttp3.Interceptor;
 
@@ -72,6 +77,7 @@ public class TitusMasterConnectorModule extends AbstractModule {
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
         bind(LoadBalancerResourceValidator.class).to(DefaultLoadBalancerResourceValidator.class);
         bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
+        bind(Channel.class).annotatedWith(Names.named(MANAGED_CHANNEL_NAME)).toProvider(TitusMasterManagedChannelProvider.class);
     }
 
     @Provides
@@ -103,18 +109,6 @@ public class TitusMasterConnectorModule extends AbstractModule {
                 .connectTimeout(DEFAULT_CONNECT_TIMEOUT)
                 .readTimeout(DEFAULT_READ_TIMEOUT);
         return builder.build();
-    }
-
-    @Provides
-    @Singleton
-    @Named(MANAGED_CHANNEL_NAME)
-    Channel managedChannel(TitusMasterClientConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
-        return NettyChannelBuilder
-                .forTarget("leader://titusmaster")
-                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
-                .usePlaintext()
-                .maxInboundMetadataSize(65536)
-                .build();
     }
 
     @Provides
@@ -167,5 +161,31 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     AutoScalingServiceStub autoScalingClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return AutoScalingServiceGrpc.newStub(channel);
+    }
+
+    @Singleton
+    public static class TitusMasterManagedChannelProvider implements Provider<ManagedChannel> {
+
+        private final ManagedChannel managedChannel;
+
+        @Inject
+        public TitusMasterManagedChannelProvider(TitusMasterClientConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
+            this.managedChannel = NettyChannelBuilder
+                    .forTarget("leader://titusmaster")
+                    .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
+                    .usePlaintext()
+                    .maxInboundMetadataSize(65536)
+                    .build();
+        }
+
+        @PreDestroy
+        public void shutdown() {
+            managedChannel.shutdownNow();
+        }
+
+        @Override
+        public ManagedChannel get() {
+            return managedChannel;
+        }
     }
 }

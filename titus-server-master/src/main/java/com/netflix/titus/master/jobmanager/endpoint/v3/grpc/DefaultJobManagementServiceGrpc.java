@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -131,6 +132,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final CellDecorator cellDecorator;
     private final AuthorizationService authorizationService;
     private final TitusRuntime titusRuntime;
+    private final ExecutorService observeJobsThreadPool;
     private final Scheduler observeJobsScheduler;
     private final DefaultGrpcObjectsCache grpcObjectsCache;
     private final DefaultJobManagementServiceGrpcMetrics metrics;
@@ -158,8 +160,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
         this.authorizationService = authorizationService;
         this.titusRuntime = titusRuntime;
-        this.observeJobsScheduler = Schedulers.from(ExecutorsExt.instrumentedFixedSizeThreadPool(
-                titusRuntime.getRegistry(), "observeJobs", configuration.getServerStreamsThreadPoolSize()));
+        this.observeJobsThreadPool = ExecutorsExt.instrumentedFixedSizeThreadPool(
+                titusRuntime.getRegistry(), "observeJobs", configuration.getServerStreamsThreadPoolSize()
+        );
+        this.observeJobsScheduler = Schedulers.from(observeJobsThreadPool);
 
         this.grpcObjectsCache = new DefaultGrpcObjectsCache(jobOperations, grpcObjectsCacheConfiguration, logStorageInfo, titusRuntime);
         grpcObjectsCache.activate();
@@ -178,6 +182,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void shutdown() {
         metrics.shutdown();
         grpcObjectsCache.shutdown();
+        observeJobsThreadPool.shutdownNow();
     }
 
     @Override

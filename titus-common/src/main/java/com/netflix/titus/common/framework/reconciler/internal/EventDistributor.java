@@ -148,6 +148,7 @@ class EventDistributor<EVENT> {
 
             // Block on the event queue. It is possible that new emitters will be added to the emitterQueue, but we
             // have to drain them only when there are actually events to send.
+            long checkpointTimestamp = System.nanoTime();
             List<EVENT> events = new ArrayList<>();
             try {
                 EVENT event = eventQueue.poll(1, TimeUnit.MILLISECONDS);
@@ -156,12 +157,12 @@ class EventDistributor<EVENT> {
                 }
             } catch (InterruptedException ignore) {
             }
+            eventQueue.drainTo(events);
             long now = System.currentTimeMillis();
             if (keepAliveTimestamp + checkpointIntervalMs < now) {
                 keepAliveTimestamp = now;
-                events.add(eventFactory.newCheckpointEvent(System.nanoTime()));
+                events.add(eventFactory.newCheckpointEvent(checkpointTimestamp));
             }
-            eventQueue.drainTo(events);
             eventQueueDepth.accumulateAndGet(events.size(), (current, delta) -> current - delta);
 
             removeUnsubscribedAndAddNewEmitters();

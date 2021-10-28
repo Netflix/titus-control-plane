@@ -184,6 +184,9 @@ public class EmbeddedTitusGateway {
         if (injector != null) {
             injector.close();
         }
+        if (grpcChannel != null) {
+            grpcChannel.shutdownNow();
+        }
         return this;
     }
 

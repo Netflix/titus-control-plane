@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
