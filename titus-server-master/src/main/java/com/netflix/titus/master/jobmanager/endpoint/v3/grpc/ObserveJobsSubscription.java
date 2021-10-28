@@ -283,10 +283,10 @@ class ObserveJobsSubscription {
             grpcClientEvents.poll();
         }
 
-        if (lastKeepAliveRequest != null) {
+        if (lastKeepAliveRequest != null && logger.isDebugEnabled()) {
             KeepAliveRequest firstKeepAliveRequest = firstKeepAliveRequestPair.getRight().getKeepAliveRequest();
             long internalSyncDelayMs = (System.nanoTime() - firstKeepAliveRequestPair.getLeft()) / 1_000_000;
-            logger.info("Acknowledging the keep alive request(s): count={}, requestId(first)={}, requestTimestamp={}, internalSyncDelayMs={}",
+            logger.debug("Acknowledging the keep alive request(s): count={}, requestId(first)={}, requestTimestamp={}, internalSyncDelayMs={}",
                     count, firstKeepAliveRequest.getRequestId(), firstKeepAliveRequest.getTimestamp(), internalSyncDelayMs
             );
         }
