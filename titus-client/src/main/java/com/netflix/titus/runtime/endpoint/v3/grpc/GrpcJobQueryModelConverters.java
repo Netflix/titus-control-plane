@@ -51,7 +51,7 @@ public class GrpcJobQueryModelConverters extends CommonRuntimeGrpcModelConverter
             "jobIds", "taskIds", "owner", "appName", "applicationName", "imageName", "imageTag", "capacityGroup",
             "jobGroupStack", "jobGroupDetail", "jobGroupSequence",
             "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons",
-            "needsMigration", "skipSystemFailures"
+            "needsMigration", "skipSystemFailures", "platformSidecar"
     );
 
     public static JobQueryCriteria<TaskStatus.TaskState, JobSpecCase> toJobQueryCriteria(ObserveJobsQuery query) {
@@ -91,6 +91,9 @@ public class GrpcJobQueryModelConverters extends CommonRuntimeGrpcModelConverter
         trimAndApplyIfNonEmpty(criteriaMap.get("capacityGroup"), criteriaBuilder::withCapacityGroup);
         trimAndApplyIfNonEmpty(criteriaMap.get("imageName"), criteriaBuilder::withImageName);
         trimAndApplyIfNonEmpty(criteriaMap.get("imageTag"), criteriaBuilder::withImageTag);
+
+        // PlatformSidecar-related criteria
+        trimAndApplyIfNonEmpty(criteriaMap.get("platformSidecar"), criteriaBuilder::withPlatformSidecar);
 
         // Job type
         String jobType = criteriaMap.get("jobType");
@@ -139,7 +142,7 @@ public class GrpcJobQueryModelConverters extends CommonRuntimeGrpcModelConverter
         if (attributeStr != null) {
             Map<String, Set<String>> attributes = StringExt.parseKeyValuesList(attributeStr);
 
-            // As we cannot pass null in GRPC, if attribute key contains is single vale which is empty string, assume no value was given
+            // As we cannot pass null in GRPC, if attribute key contains is single value which is empty string, assume no value was given
             for (Map.Entry<String, Set<String>> entry : attributes.entrySet()) {
                 Set<String> values = entry.getValue();
                 if (values.size() == 1 && "".equals(first(values))) {

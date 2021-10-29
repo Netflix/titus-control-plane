@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -66,6 +67,7 @@ public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements P
         applyJobGroupSequence(criteria.getJobGroupSequence()).ifPresent(predicates::add);
         applyImageName(criteria.getImageName()).ifPresent(predicates::add);
         applyImageTag(criteria.getImageTag()).ifPresent(predicates::add);
+        applyPlatformSidecar(criteria.getPlatformSidecar()).ifPresent(predicates::add);
         applyJobDescriptorAttributes(criteria.getLabels(), criteria.isLabelsAndOp()).ifPresent(predicates::add);
 
         return predicates;
@@ -153,6 +155,19 @@ public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements P
 
     private Optional<Predicate<Pair<Job<?>, TASK_OR_SET>>> applyImageTag(Optional<String> imageTag) {
         return apply(imageTag, job -> job.getJobDescriptor().getContainer().getImage().getTag());
+    }
+
+    private Optional<Predicate<Pair<Job<?>, TASK_OR_SET>>> applyPlatformSidecar(Optional<String> platformSidecarNameOpt) {
+        return platformSidecarNameOpt.map(platformSidecarName ->
+                jobTaskPair -> {
+                    for (PlatformSidecar ps : jobTaskPair.getLeft().getJobDescriptor().getPlatformSidecars()) {
+                        if (ps.getName().equals(platformSidecarName)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+        );
     }
 
     private Optional<Predicate<Pair<Job<?>, TASK_OR_SET>>> apply(Optional<String> expectedOpt, Function<Job<?>, String> valueGetter) {
