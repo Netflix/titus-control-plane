@@ -34,6 +34,9 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
@@ -45,11 +48,8 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
-import com.netflix.titus.common.model.admission.AdmissionSanitizer;
-import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
-import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
@@ -118,6 +118,7 @@ public class EmbeddedTitusGateway {
         props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
         props.put("titusMaster.job.configuration.defaultIamRole", "iam-12345");
         props.put("titusGateway.endpoint.grpc.loadbalancer.enabled", "true");
+        props.put("titus.connector.relocationService.enabled", "false");
         config.setProperties(props);
     }
 
@@ -149,7 +150,7 @@ public class EmbeddedTitusGateway {
                         bindApplicationConfigurationOverride().toInstance(config);
                     }
                 },
-                Modules.override(new TitusGatewayModule(enableREST, false)).with(new AbstractModule() {
+                Modules.override(new TitusGatewayModule(enableREST)).with(new AbstractModule() {
                     @Override
                     protected void configure() {
                         if (store != null) {
