@@ -77,11 +77,8 @@ public class DefaultDeschedulerService implements DeschedulerService {
 
     @Override
     public List<DeschedulingResult> deschedule(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
-        List<Pair<Job, List<Task>>> allJobsAndTasks = jobOperations.getJobsAndTasks();
-        Map<String, Job<?>> jobs = allJobsAndTasks.stream().map(Pair::getLeft).collect(Collectors.toMap(Job::getId, j -> j));
-        Map<String, Task> tasksById = allJobsAndTasks.stream()
-                .flatMap(p -> p.getRight().stream())
-                .collect(Collectors.toMap(Task::getId, t -> t));
+        Map<String, Job<?>> jobs = jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> (Job<?>) j));
+        Map<String, Task> tasksById = jobOperations.getTasks().stream().collect(Collectors.toMap(Task::getId, t -> t));
 
         EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker = new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById);
         EvictionQuotaTracker evictionQuotaTracker = new EvictionQuotaTracker(evictionOperations, jobs);
