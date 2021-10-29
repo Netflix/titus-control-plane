@@ -69,9 +69,10 @@ public class RelocationMetricsStep {
 
         Set<String> jobIds = new HashSet<>();
 
-        jobOperations.getJobs().forEach(job -> {
+        jobOperations.getJobsAndTasks().forEach(jobAndTask -> {
+            Job<?> job = jobAndTask.getLeft();
             jobIds.add(job.getId());
-            metrics.computeIfAbsent(job.getId(), jid -> new JobMetrics(job)).update(job, jobOperations.getTasks(job.getId()), taskToInstanceMap);
+            metrics.computeIfAbsent(job.getId(), jid -> new JobMetrics(job)).update(job, jobAndTask.getRight(), taskToInstanceMap);
         });
 
         // Remove jobs no longer running.

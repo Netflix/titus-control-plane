@@ -82,7 +82,6 @@ public class DefaultDeschedulerService implements DeschedulerService {
         Map<String, Task> tasksById = allJobsAndTasks.stream()
                 .flatMap(p -> p.getRight().stream())
                 .collect(Collectors.toMap(Task::getId, t -> t));
-
         EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker = new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById);
         EvictionQuotaTracker evictionQuotaTracker = new EvictionQuotaTracker(evictionOperations, jobs);
 
