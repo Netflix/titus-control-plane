@@ -16,13 +16,17 @@
 
 package com.netflix.titus.runtime.connector.relocation;
 
-import javax.inject.Named;
+import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Injector;
+import com.google.inject.Key;
 import com.google.inject.Provides;
-import com.google.inject.Singleton;
-import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.google.inject.name.Names;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.runtime.connector.relocation.noop.NoOpRelocationServiceClient;
 import io.grpc.Channel;
 
 public class RelocationClientConnectorModule extends AbstractModule {
@@ -31,13 +35,28 @@ public class RelocationClientConnectorModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(RelocationServiceClient.class).to(RemoteRelocationServiceClient.class);
     }
 
     @Provides
     @Singleton
-    public ReactorRelocationServiceStub getReactorEvictionServiceStub(GrpcToReactorClientFactory factory,
-                                                                      @Named(RELOCATION_CLIENT) Channel channel) {
-        return factory.apply(TaskRelocationServiceGrpc.newStub(channel), ReactorRelocationServiceStub.class, TaskRelocationServiceGrpc.getServiceDescriptor());
+    public RelocationConnectorConfiguration getRelocationConnectorConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(RelocationConnectorConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public RelocationServiceClient getRelocationServiceClient(RelocationConnectorConfiguration configuration,
+                                                              Injector injector,
+                                                              GrpcToReactorClientFactory factory) {
+        if (configuration.isEnabled()) {
+            Channel channel = injector.getInstance(Key.get(Channel.class, Names.named(RELOCATION_CLIENT)));
+            ReactorRelocationServiceStub stub = factory.apply(
+                    TaskRelocationServiceGrpc.newStub(channel),
+                    ReactorRelocationServiceStub.class,
+                    TaskRelocationServiceGrpc.getServiceDescriptor()
+            );
+            return new RemoteRelocationServiceClient(stub);
+        }
+        return new NoOpRelocationServiceClient();
     }
 }
