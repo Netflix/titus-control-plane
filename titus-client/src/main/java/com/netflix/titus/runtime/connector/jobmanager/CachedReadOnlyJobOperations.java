@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -70,7 +71,13 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
 
     @Override
     public List<Pair<Job, List<Task>>> getJobsAndTasks() {
-        return (List) replicator.getCurrent().getJobsAndTasks();
+        List<Pair<Job<?>, Map<String, Task>>> jobsAndTasks = replicator.getCurrent().getJobsAndTasks();
+        List<Pair<Job, List<Task>>> allJobsAndTasks = new ArrayList<>(jobsAndTasks.size());
+        jobsAndTasks.forEach(jobMapPair -> {
+            Pair<Job, List<Task>> pair = Pair.of(jobMapPair.getLeft(), new ArrayList<>(jobMapPair.getRight().values()));
+            allJobsAndTasks.add(pair);
+        });
+        return allJobsAndTasks;
     }
 
     @Override
