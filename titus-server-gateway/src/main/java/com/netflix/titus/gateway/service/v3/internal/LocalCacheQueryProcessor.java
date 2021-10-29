@@ -29,6 +29,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
@@ -102,6 +103,7 @@ public class LocalCacheQueryProcessor {
 
     private final Function<String, Matcher> callerIdMatcher;
     private final MetricSelector<ValueRangeCounter> syncDelayMetric;
+    private final Counter rejectedByStalenessTooHighMetric;
 
     private final Scheduler scheduler;
 
@@ -139,6 +141,7 @@ public class LocalCacheQueryProcessor {
         this.syncDelayMetric = SpectatorExt.newValueRangeCounter(
                 registry.createId(METRIC_ROOT + "syncDelay"), new String[]{"endpoint"}, LEVELS, registry
         );
+        this.rejectedByStalenessTooHighMetric = registry.counter(METRIC_ROOT + "rejectedByStalenessTooHigh");
     }
 
     @PreDestroy
@@ -279,6 +282,7 @@ public class LocalCacheQueryProcessor {
                         if (jobManagerEvent instanceof JobKeepAliveEvent) {
                             // Check if staleness is not too high.
                             if (jobDataReplicator.getStalenessMs() > configuration.getObserveJobsStalenessDisconnectMs()) {
+                                rejectedByStalenessTooHighMetric.increment();
                                 return Mono.error(new StatusRuntimeException(Status.ABORTED.augmentDescription(
                                         "Data staleness in the event stream is too high. Most likely caused by connectivity issue to the downstream server."
                                 )));
