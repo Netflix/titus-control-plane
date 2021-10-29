@@ -68,10 +68,10 @@ public class RelocationMetricsStep {
         Map<String, Node> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
 
         Set<String> jobIds = new HashSet<>();
-        jobOperations.getJobsAndTasks().forEach(jobAndTask -> {
-            Job<?> job = jobAndTask.getLeft();
+
+        jobOperations.getJobs().forEach(job -> {
             jobIds.add(job.getId());
-            metrics.computeIfAbsent(job.getId(), jid -> new JobMetrics(job)).update(job, jobAndTask.getRight(), taskToInstanceMap);
+            metrics.computeIfAbsent(job.getId(), jid -> new JobMetrics(job)).update(job, jobOperations.getTasks(job.getId()), taskToInstanceMap);
         });
 
         // Remove jobs no longer running.
