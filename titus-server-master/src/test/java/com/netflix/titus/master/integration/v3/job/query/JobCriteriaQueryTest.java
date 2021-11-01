@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -416,6 +417,29 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
                     jobsScenarioBuilder.takeJob(jobId).getJob().getJobDescriptor().getJobGroupInfo().getSequence()
             );
         }
+    }
+
+    @Test(timeout = 30_000)
+    public void testSearchByPlatformSidecarV3() {
+        List<PlatformSidecar> ps = Collections.singletonList(PlatformSidecar.newBuilder().withName("testPlatformSidecar").withChannel("").build());
+        JobDescriptor<BatchJobExt> jobDescriptorWithTestSidecar = BATCH_JOB_TEMPLATE.toBuilder()
+                .withApplicationName("testAppThatDoesHavePlatformSidecar")
+                .withPlatformSidecars(ps)
+                .build();
+        jobsScenarioBuilder.schedule(jobDescriptorWithTestSidecar, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+        );
+
+        List<Job> foundJobs = client.findJobs(JobQuery.newBuilder()
+                .putFilteringCriteria("platformSidecar", "testPlatformSidecar")
+                .setPage(PAGE)
+                .build()
+        ).getItemsList();
+        assertThat(foundJobs).hasSize(1);
+        assertThat(foundJobs.get(0).getId()).isNotEmpty(); // Always present
+        com.netflix.titus.grpc.protogen.JobDescriptor foundJobDescriptor = foundJobs.get(0).getJobDescriptor();
+        assertThat(foundJobDescriptor.getPlatformSidecarsList()).isNotEmpty();
+        assertThat(foundJobDescriptor.getPlatformSidecarsList().get(0).getName()).isEqualTo("testPlatformSidecar");
     }
 
     private void testBatchSearchBy(String queryKey, String queryValue) {

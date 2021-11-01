@@ -51,6 +51,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
     private final Optional<String> jobGroupSequence;
     private final boolean needsMigration;
     private final boolean skipSystemFailures;
+    private final Optional<String> platformSidecar;
     private final int limit;
 
     private JobQueryCriteria(Set<String> jobIds,
@@ -72,6 +73,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                              String jobGroupSequence,
                              boolean needsMigration,
                              boolean skipSystemFailures,
+                             String platformSidecar,
                              int limit) {
         this.jobIds = nonNull(jobIds);
         this.taskIds = nonNull(taskIds);
@@ -91,6 +93,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         this.jobGroupDetail = Optional.ofNullable(jobGroupDetail);
         this.jobGroupSequence = Optional.ofNullable(jobGroupSequence);
         this.needsMigration = needsMigration;
+        this.platformSidecar = Optional.ofNullable(platformSidecar);
         this.skipSystemFailures = skipSystemFailures;
         this.limit = limit;
     }
@@ -175,6 +178,10 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         return skipSystemFailures;
     }
 
+    public Optional<String> getPlatformSidecar() {
+        return platformSidecar;
+    }
+
     public int getLimit() {
         return limit;
     }
@@ -197,6 +204,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 .withJobGroupStack(this.jobGroupStack.orElse(null))
                 .withJobGroupSequence(this.jobGroupSequence.orElse(null))
                 .withNeedsMigration(needsMigration)
+                .withPlatformSidecar(this.platformSidecar.orElse(null))
                 .withLimit(this.limit);
     }
 
@@ -216,6 +224,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 && !jobGroupStack.isPresent()
                 && !jobGroupSequence.isPresent()
                 && !needsMigration
+                && !platformSidecar.isPresent()
                 && limit < 1;
     }
 
@@ -247,12 +256,13 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 Objects.equals(jobType, that.jobType) &&
                 Objects.equals(jobGroupStack, that.jobGroupStack) &&
                 Objects.equals(jobGroupDetail, that.jobGroupDetail) &&
-                Objects.equals(jobGroupSequence, that.jobGroupSequence);
+                Objects.equals(jobGroupSequence, that.jobGroupSequence) &&
+                Objects.equals(platformSidecar, that.platformSidecar);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels, labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence, needsMigration, skipSystemFailures, limit);
+        return Objects.hash(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels, labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence, needsMigration, skipSystemFailures, platformSidecar, limit);
     }
 
     @Override
@@ -277,6 +287,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 ", jobGroupSequence=" + jobGroupSequence +
                 ", needsMigration=" + needsMigration +
                 ", skipSystemFailures=" + skipSystemFailures +
+                ", platformSidecar=" + platformSidecar +
                 ", limit=" + limit +
                 '}';
     }
@@ -301,6 +312,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         private String jobGroupSequence;
         private boolean needsMigration;
         private boolean skipSystemFailures;
+        private String platformSidecar;
         private int limit;
 
         private Builder() {
@@ -358,6 +370,11 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
 
         public Builder<TASK_STATE, JOB_TYPE> withImageTag(String imageTag) {
             this.imageTag = imageTag;
+            return this;
+        }
+
+        public Builder<TASK_STATE, JOB_TYPE> withPlatformSidecar(String platformSidecar) {
+            this.platformSidecar = platformSidecar;
             return this;
         }
 
@@ -420,13 +437,14 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                     .withJobType(jobType)
                     .withNeedsMigration(needsMigration)
                     .withSkipSystemFailures(skipSystemFailures)
+                    .withPlatformSidecar(platformSidecar)
                     .withLimit(limit);
         }
 
         public JobQueryCriteria<TASK_STATE, JOB_TYPE> build() {
             return new JobQueryCriteria<>(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels,
                     labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence,
-                    needsMigration, skipSystemFailures, limit);
+                    needsMigration, skipSystemFailures, platformSidecar, limit);
         }
     }
 }
