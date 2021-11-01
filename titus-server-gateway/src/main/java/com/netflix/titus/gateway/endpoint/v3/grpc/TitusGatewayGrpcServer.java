@@ -30,6 +30,7 @@ import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -73,6 +74,7 @@ public class TitusGatewayGrpcServer {
     private final GrpcEndpointConfiguration config;
     private final TitusRuntime titusRuntime;
     private final ExecutorService grpcCallbackExecutor;
+    private final KubeApiConnector kubeApiConnector;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -89,7 +91,8 @@ public class TitusGatewayGrpcServer {
             SchedulerServiceImplBase schedulerService,
             GrpcToReactorServerFactory reactorServerFactory,
             GrpcEndpointConfiguration config,
-            TitusRuntime titusRuntime
+            TitusRuntime titusRuntime,
+            KubeApiConnector kubeApiConnector
     ) {
         this.healthService = healthService;
         this.evictionService = evictionService;
@@ -102,6 +105,7 @@ public class TitusGatewayGrpcServer {
         this.config = config;
         this.titusRuntime = titusRuntime;
         this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor");
+        this.kubeApiConnector = kubeApiConnector;
     }
 
     public int getPort() {
