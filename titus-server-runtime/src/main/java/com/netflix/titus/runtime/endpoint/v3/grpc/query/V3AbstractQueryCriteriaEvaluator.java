@@ -68,6 +68,7 @@ public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements P
         applyImageName(criteria.getImageName()).ifPresent(predicates::add);
         applyImageTag(criteria.getImageTag()).ifPresent(predicates::add);
         applyPlatformSidecar(criteria.getPlatformSidecar()).ifPresent(predicates::add);
+        applyPlatformSidecarChannel(criteria.getPlatformSidecarChannel()).ifPresent(predicates::add);
         applyJobDescriptorAttributes(criteria.getLabels(), criteria.isLabelsAndOp()).ifPresent(predicates::add);
 
         return predicates;
@@ -162,6 +163,19 @@ public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements P
                 jobTaskPair -> {
                     for (PlatformSidecar ps : jobTaskPair.getLeft().getJobDescriptor().getPlatformSidecars()) {
                         if (ps.getName().equals(platformSidecarName)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+        );
+    }
+
+    private Optional<Predicate<Pair<Job<?>, TASK_OR_SET>>> applyPlatformSidecarChannel(Optional<String> platformSidecarChannelOpt) {
+        return platformSidecarChannelOpt.map(platformSidecarChannel ->
+                jobTaskPair -> {
+                    for (PlatformSidecar ps : jobTaskPair.getLeft().getJobDescriptor().getPlatformSidecars()) {
+                        if (ps.getChannel().equals(platformSidecarChannel)) {
                             return true;
                         }
                     }

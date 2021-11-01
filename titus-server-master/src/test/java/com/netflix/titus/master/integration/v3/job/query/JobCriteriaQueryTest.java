@@ -421,7 +421,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testSearchByPlatformSidecarV3() {
-        List<PlatformSidecar> ps = Collections.singletonList(PlatformSidecar.newBuilder().withName("testPlatformSidecar").withChannel("").build());
+        List<PlatformSidecar> ps = Collections.singletonList(PlatformSidecar.newBuilder().withName("testPlatformSidecar").withChannel("testPSChannel").build());
         JobDescriptor<BatchJobExt> jobDescriptorWithTestSidecar = BATCH_JOB_TEMPLATE.toBuilder()
                 .withApplicationName("testAppThatDoesHavePlatformSidecar")
                 .withPlatformSidecars(ps)
@@ -432,6 +432,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
         List<Job> foundJobs = client.findJobs(JobQuery.newBuilder()
                 .putFilteringCriteria("platformSidecar", "testPlatformSidecar")
+                .putFilteringCriteria("platformSidecarChannel", "testPSChannel")
                 .setPage(PAGE)
                 .build()
         ).getItemsList();
