@@ -30,8 +30,14 @@ import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEven
 import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobChangeErrorReconcilerEvent;
 
 /**
+ *
  */
 public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcilerEvent> {
+
+    @Override
+    public JobManagerReconcilerEvent newCheckpointEvent(long timestampNano) {
+        return new JobCheckpointReconcilerEvent(timestampNano);
+    }
 
     @Override
     public JobManagerReconcilerEvent newBeforeChangeEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,

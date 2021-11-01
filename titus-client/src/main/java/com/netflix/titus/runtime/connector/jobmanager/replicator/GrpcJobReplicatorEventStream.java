@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -33,6 +34,7 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -44,7 +46,9 @@ import com.netflix.titus.common.util.spectator.ValueRangeCounter;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
+import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClientWithKeepAlive;
 import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
 import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactory;
 import org.slf4j.Logger;
@@ -65,14 +69,14 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     private final JobManagementClient client;
     private final Map<String, String> filteringCriteria;
     private final JobSnapshotFactory jobSnapshotFactory;
-    private final JobDataReplicatorConfiguration configuration;
+    private final JobConnectorConfiguration configuration;
 
     private final ValueRangeCounter eventProcessingLatencies;
     private final AtomicInteger subscriptionCounter = new AtomicInteger();
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         JobSnapshotFactory jobSnapshotFactory,
-                                        JobDataReplicatorConfiguration configuration,
+                                        JobConnectorConfiguration configuration,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
@@ -82,11 +86,11 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         Map<String, String> filteringCriteria,
                                         JobSnapshotFactory jobSnapshotFactory,
-                                        JobDataReplicatorConfiguration configuration,
+                                        JobConnectorConfiguration configuration,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
-        super(JobManagerEvent.keepAliveEvent(), metrics, titusRuntime, scheduler);
+        super(client instanceof RemoteJobManagementClientWithKeepAlive, JobManagerEvent.keepAliveEvent(-1), metrics, titusRuntime, scheduler);
         this.client = client;
         this.filteringCriteria = filteringCriteria;
         this.jobSnapshotFactory = jobSnapshotFactory;
@@ -148,12 +152,16 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         private final JobSnapshotFactory jobSnapshotFactory;
         private final TitusRuntime titusRuntime;
 
+        private final long startTime;
         private final List<JobManagerEvent<?>> snapshotEvents = new ArrayList<>();
         private final AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
+        private final AtomicLong lastKeepAliveTimestamp;
 
         CacheUpdater(JobSnapshotFactory jobSnapshotFactory, TitusRuntime titusRuntime) {
             this.jobSnapshotFactory = jobSnapshotFactory;
             this.titusRuntime = titusRuntime;
+            this.startTime = titusRuntime.getClock().wallTime();
+            this.lastKeepAliveTimestamp = new AtomicLong(startTime);
         }
 
         Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
@@ -166,6 +174,8 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                     logger.info("Received task update event: taskId={}, state={}, version={}", task.getId(), task.getStatus(), task.getVersion());
                 } else if (event.equals(JobManagerEvent.snapshotMarker())) {
                     logger.info("Received snapshot marker");
+                } else if (event instanceof JobKeepAliveEvent) {
+                    logger.info("Received job keep alive event: {}", event);
                 } else {
                     logger.info("Received unrecognized event type: {}", event);
                 }
@@ -225,11 +235,18 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
             logger.info("Job snapshot loaded: {}", initialSnapshot.toSummaryString());
 
-            return new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime());
+            // Checkpoint timestamp for the cache event, is the time just before establishing the connection.
+            return new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime(), startTime);
         }
 
         private Optional<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> processCacheUpdate(JobManagerEvent<?> event) {
             JobSnapshot lastSnapshot = lastJobSnapshotRef.get();
+
+            if (event instanceof JobKeepAliveEvent) {
+                JobKeepAliveEvent keepAliveEvent = (JobKeepAliveEvent) event;
+                lastKeepAliveTimestamp.set(keepAliveEvent.getTimestamp());
+                return Optional.of(new ReplicatorEvent<>(lastSnapshot, event, titusRuntime.getClock().wallTime(), keepAliveEvent.getTimestamp()));
+            }
 
             Optional<JobSnapshot> newSnapshot;
             JobManagerEvent<?> coreEvent = null;
@@ -262,7 +279,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             }
             if (newSnapshot.isPresent()) {
                 lastJobSnapshotRef.set(newSnapshot.get());
-                return Optional.of(new ReplicatorEvent<>(newSnapshot.get(), coreEvent, titusRuntime.getClock().wallTime()));
+                return Optional.of(new ReplicatorEvent<>(newSnapshot.get(), coreEvent, titusRuntime.getClock().wallTime(), lastKeepAliveTimestamp.get()));
             }
             return Optional.empty();
         }

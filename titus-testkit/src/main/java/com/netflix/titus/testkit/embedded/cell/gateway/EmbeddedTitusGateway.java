@@ -185,6 +185,9 @@ public class EmbeddedTitusGateway {
         if (injector != null) {
             injector.close();
         }
+        if (grpcChannel != null) {
+            grpcChannel.shutdownNow();
+        }
         return this;
     }
 
@@ -273,6 +276,11 @@ public class EmbeddedTitusGateway {
     public static Builder aDefaultTitusGateway() {
         return new Builder()
                 .withProperty("titusGateway.endpoint.grpc.shutdownTimeoutMs", "0");
+        // TODO Uncomment when TitusGateway cache is enabled
+//                .withProperty("titus.connector.jobService.keepAliveReplicatedStreamEnabled", "true")
+//                .withProperty("titus.connector.jobService.keepAliveIntervalMs", "10")
+//                .withProperty("titusGateway.maxAcceptableCacheStalenessMs", "30000")
+//                .withProperty("titusGateway.queryFromCacheCallerId", ".*");
     }
 
     public static class Builder {

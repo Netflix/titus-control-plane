@@ -45,6 +45,7 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
+import com.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -101,7 +102,9 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
                                           Function<EntityHolder, InternalReconciliationEngine<EVENT>> engineFactory,
                                           long idleTimeoutMs,
                                           long activeTimeoutMs,
+                                          long checkpointIntervalMs,
                                           Map<Object, Comparator<EntityHolder>> indexComparators,
+                                          ReconcileEventFactory<EVENT> eventFactory,
                                           Registry registry,
                                           Optional<Scheduler> optionalScheduler) {
         Preconditions.checkArgument(idleTimeoutMs > 0, "idleTimeout <= 0 (%s)", idleTimeoutMs);
@@ -127,7 +130,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
         this.worker = scheduler.createWorker();
 
-        this.eventDistributor = new EventDistributor<>(registry);
+        this.eventDistributor = new EventDistributor<>(eventFactory, checkpointIntervalMs, registry);
 
         this.loopExecutionTime = registry.timer(LOOP_EXECUTION_TIME_METRIC);
         this.lastFullCycleExecutionTimeMs = scheduler.now() - idleTimeoutMs;

@@ -27,6 +27,8 @@ import java.util.Optional;
  */
 public interface ReconcileEventFactory<EVENT> {
 
+    EVENT newCheckpointEvent(long timestamp);
+
     /**
      * Called when a new {@link ChangeAction} is registered, but not executed yet.
      */

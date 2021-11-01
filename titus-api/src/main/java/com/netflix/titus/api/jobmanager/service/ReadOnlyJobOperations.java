@@ -52,21 +52,22 @@ public interface ReadOnlyJobOperations {
     Optional<Pair<Job<?>, Task>> findTaskById(String taskId);
 
     default Observable<JobManagerEvent<?>> observeJobs() {
-        return observeJobs(alwaysTrue(), alwaysTrue());
+        return observeJobs(alwaysTrue(), alwaysTrue(), false);
     }
 
     Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
-                                               Predicate<Pair<Job<?>, Task>> tasksPredicate);
+                                               Predicate<Pair<Job<?>, Task>> tasksPredicate,
+                                               boolean withCheckpoints);
 
     Observable<JobManagerEvent<?>> observeJob(String jobId);
 
     default Flux<JobManagerEvent<?>> observeJobsReactor() {
-        return ReactorExt.toFlux(observeJobs(alwaysTrue(), alwaysTrue()));
+        return ReactorExt.toFlux(observeJobs(alwaysTrue(), alwaysTrue(), false));
     }
 
     default Flux<JobManagerEvent<?>> observeJobsReactor(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
                                                         Predicate<Pair<Job<?>, Task>> tasksPredicate) {
-        return ReactorExt.toFlux(observeJobs(jobsPredicate, tasksPredicate));
+        return ReactorExt.toFlux(observeJobs(jobsPredicate, tasksPredicate, false));
     }
 
     default Flux<JobManagerEvent<?>> observeJobReactor(String jobId) {

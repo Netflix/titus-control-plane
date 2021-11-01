@@ -30,6 +30,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobCheckpointReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
 import org.slf4j.Logger;
@@ -66,7 +67,13 @@ class JobTransactionLogger {
                             return eventStreamWithBackpressure(reconciliationFramework);
                         }))
                 .subscribe(
-                        event -> logger.info(doFormat(event)),
+                        event -> {
+                            if (event instanceof JobCheckpointReconcilerEvent) {
+                                logger.debug("Checkpoint: {}", event);
+                            } else {
+                                logger.info(doFormat(event));
+                            }
+                        },
                         e -> logger.error("Event stream terminated with an error", e),
                         () -> logger.info("Event stream completed")
                 );

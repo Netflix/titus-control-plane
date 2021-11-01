@@ -34,6 +34,8 @@ public class JobManagerConnectorModule extends AbstractModule {
 
     public static final String MANAGED_CHANNEL_NAME = "ManagedChannel";
 
+    public static final String KEEP_ALIVE_ENABLED = "keepAliveEnabled";
+
     private final String clientName;
 
     public JobManagerConnectorModule(String clientName) {
@@ -50,6 +52,16 @@ public class JobManagerConnectorModule extends AbstractModule {
     @Singleton
     public JobManagementClient getJobManagementClient(ReactorJobManagementServiceStub stub, TitusRuntime titusRuntime) {
         return new RemoteJobManagementClient(clientName, stub, titusRuntime);
+    }
+
+    @Provides
+    @Singleton
+    @Named(KEEP_ALIVE_ENABLED)
+    public JobManagementClient getJobManagementClient(JobConnectorConfiguration configuration,
+                                                      JobManagementServiceGrpc.JobManagementServiceStub stub,
+                                                      ReactorJobManagementServiceStub reactorStub,
+                                                      TitusRuntime titusRuntime) {
+        return new RemoteJobManagementClientWithKeepAlive(clientName, configuration, stub, reactorStub, titusRuntime);
     }
 
     @Provides

@@ -33,6 +33,7 @@ import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetri
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.common.replicator.RetryableReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.StreamDataReplicator;
+import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshot;
@@ -51,21 +52,22 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
     private final JobDataReplicatorImpl replicator;
 
     @Inject
-    public JobDataReplicatorProvider(JobDataReplicatorConfiguration configuration,
+    public JobDataReplicatorProvider(JobConnectorConfiguration configuration,
                                      JobManagementClient client,
                                      JobSnapshotFactory jobSnapshotFactory,
                                      TitusRuntime titusRuntime) {
         this(configuration, client, Collections.emptyMap(), jobSnapshotFactory, titusRuntime);
     }
 
-    public JobDataReplicatorProvider(JobDataReplicatorConfiguration configuration,
+    public JobDataReplicatorProvider(JobConnectorConfiguration configuration,
                                      JobManagementClient client,
                                      Map<String, String> filteringCriteria,
                                      JobSnapshotFactory jobSnapshotFactory,
                                      TitusRuntime titusRuntime) {
         StreamDataReplicator<JobSnapshot, JobManagerEvent<?>> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(configuration, client, filteringCriteria, jobSnapshotFactory, titusRuntime),
-                new JobDataReplicatorMetrics(JOB_REPLICATOR, titusRuntime),
+                configuration.isKeepAliveReplicatedStreamEnabled(),
+                new JobDataReplicatorMetrics(JOB_REPLICATOR, configuration, titusRuntime),
                 titusRuntime
         ).blockFirst(Duration.ofMillis(JOB_BOOTSTRAP_TIMEOUT_MS));
 
@@ -82,7 +84,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
         return replicator;
     }
 
-    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobDataReplicatorConfiguration configuration,
+    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobConnectorConfiguration configuration,
                                                                                                             JobManagementClient client,
                                                                                                             Map<String, String> filteringCriteria,
                                                                                                             JobSnapshotFactory jobSnapshotFactory,
@@ -92,13 +94,13 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
                 filteringCriteria,
                 jobSnapshotFactory,
                 configuration,
-                new JobDataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, titusRuntime),
+                new JobDataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, configuration, titusRuntime),
                 titusRuntime,
                 Schedulers.parallel()
         );
         return new RetryableReplicatorEventStream<>(
                 grpcEventStream,
-                new JobDataReplicatorMetrics(JOB_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
+                new JobDataReplicatorMetrics(JOB_REPLICATOR_RETRYABLE_STREAM, configuration, titusRuntime),
                 titusRuntime,
                 Schedulers.parallel()
         );
@@ -112,8 +114,8 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
 
     private static class JobDataReplicatorMetrics extends DataReplicatorMetrics<JobSnapshot, JobManagerEvent<?>> {
 
-        private JobDataReplicatorMetrics(String source, TitusRuntime titusRuntime) {
-            super(source, titusRuntime);
+        private JobDataReplicatorMetrics(String source, JobConnectorConfiguration configuration, TitusRuntime titusRuntime) {
+            super(source, configuration.isKeepAliveReplicatedStreamEnabled(), titusRuntime);
         }
 
         @Override

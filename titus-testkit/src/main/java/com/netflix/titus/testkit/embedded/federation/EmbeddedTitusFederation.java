@@ -52,8 +52,6 @@ import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Named;
-
 /**
  * Run embedded version of TitusFederation.
  */
@@ -141,6 +139,9 @@ public class EmbeddedTitusFederation {
     public EmbeddedTitusFederation shutdown() {
         if (injector != null) {
             injector.close();
+        }
+        if (grpcChannel != null) {
+            grpcChannel.shutdownNow();
         }
         return this;
     }

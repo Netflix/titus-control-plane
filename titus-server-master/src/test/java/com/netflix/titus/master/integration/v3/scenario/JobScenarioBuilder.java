@@ -18,6 +18,7 @@ package com.netflix.titus.master.integration.v3.scenario;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -541,6 +542,28 @@ public class JobScenarioBuilder {
 
     public JobScenarioBuilder inJob(Consumer<Job<?>> consumer) {
         consumer.accept(getJob());
+        return this;
+    }
+
+    public JobScenarioBuilder inStrippedJob(Consumer<Job<?>> consumer) {
+        Job<?> job = getJob();
+
+        // Remove diagnostic data added by the job replicator.
+        Map<String, String> filteredAttributes = new HashMap<>();
+        job.getJobDescriptor().getAttributes().forEach((key, value) -> {
+            if (!key.startsWith("event.propagation")) {
+                filteredAttributes.put(key, value);
+            }
+        });
+
+        Job strippedJob = job.toBuilder()
+                .withJobDescriptor(((Job) job).getJobDescriptor().toBuilder()
+                        .withAttributes(filteredAttributes)
+                        .build()
+                )
+                .build();
+
+        consumer.accept(strippedJob);
         return this;
     }
 

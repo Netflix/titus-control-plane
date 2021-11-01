@@ -18,12 +18,13 @@ package com.netflix.titus.runtime.connector.common.replicator;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import org.junit.Test;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,24 +35,47 @@ public class StreamDataReplicatorTest {
 
     private final ReplicatorEventStreamStub replicatorEventStream = new ReplicatorEventStreamStub();
 
-    private final DataReplicatorMetrics metrics = new DataReplicatorMetrics("test", titusRuntime);
+    private final DataReplicatorMetrics metrics = new DataReplicatorMetrics("test", false, titusRuntime);
 
-    private final DirectProcessor<ReplicatorEvent<StringSnapshot, String>> eventPublisher = DirectProcessor.create();
+    private final Sinks.Many<ReplicatorEvent<StringSnapshot, String>> eventSink = Sinks.many().multicast().directAllOrNothing();
 
     @Test
     public void testBootstrap() {
         StepVerifier
-                .withVirtualTime(() -> StreamDataReplicator.newStreamDataReplicator(replicatorEventStream, metrics, titusRuntime))
+                .withVirtualTime(() -> StreamDataReplicator.newStreamDataReplicator(replicatorEventStream, false, metrics, titusRuntime))
                 .expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(1))
 
-                .then(() -> eventPublisher.onNext(new ReplicatorEvent<>(new StringSnapshot("firstUpdate"), "firstTrigger", 0)))
+                .then(() -> eventSink.emitNext(new ReplicatorEvent<>(new StringSnapshot("firstUpdate"), "firstTrigger", 0), Sinks.EmitFailureHandler.FAIL_FAST))
                 .assertNext(replicator -> {
                     assertThat(replicator.getCurrent()).isEqualTo(new StringSnapshot("firstUpdate"));
                 })
 
                 .thenCancel()
                 .verify();
+    }
+
+    @Test
+    public void testShutdown() {
+        AtomicReference<StreamDataReplicator> replicatorRef = new AtomicReference<>();
+        StepVerifier
+                .withVirtualTime(() ->
+                        StreamDataReplicator.newStreamDataReplicator(replicatorEventStream, false, metrics, titusRuntime)
+                                .flatMap(replicator -> {
+                                    replicatorRef.set(replicator);
+                                    return replicator.events();
+                                })
+                )
+                .expectSubscription()
+                .then(() -> eventSink.emitNext(new ReplicatorEvent<>(new StringSnapshot("firstUpdate"), "firstTrigger", 0), Sinks.EmitFailureHandler.FAIL_FAST))
+
+                .then(() -> {
+                    assertThat(eventSink.currentSubscriberCount()).isEqualTo(1);
+                    replicatorRef.get().close();
+                    assertThat(eventSink.currentSubscriberCount()).isZero();
+
+                })
+                .verifyErrorMatches(error -> error.getMessage().equals("Data replicator closed"));
     }
 
     private static class StringSnapshot extends ReplicatedSnapshot {
@@ -89,7 +113,7 @@ public class StreamDataReplicatorTest {
 
         @Override
         public Flux<ReplicatorEvent<StringSnapshot, String>> connect() {
-            return eventPublisher;
+            return eventSink.asFlux();
         }
     }
 }

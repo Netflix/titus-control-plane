@@ -26,7 +26,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -39,10 +38,12 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.PageResult;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
@@ -55,8 +56,8 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -173,6 +174,8 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                         : TaskUpdateEvent.taskChange(jobRef.get(), newTask, oldTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
                             case SNAPSHOTEND:
                                 return JobManagerEvent.snapshotMarker();
+                            case KEEPALIVERESPONSE:
+                                return JobManagerEvent.keepAliveEvent(event.getKeepAliveResponse().getRequest().getTimestamp());
                             case NOTIFICATION_NOT_SET:
                             default:
                                 return null;
@@ -187,7 +190,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
         return Flux.defer(() -> {
             Map<String, Job> jobMap = new ConcurrentHashMap<>();
             Map<String, Task> taskMap = new ConcurrentHashMap<>();
-            return stub.observeJobs(ObserveJobsQuery.newBuilder().putAllFilteringCriteria(filteringCriteria).build())
+            return connectObserveJobs(filteringCriteria)
                     .map(event -> {
                         switch (event.getNotificationCase()) {
                             case JOBUPDATE:
@@ -226,6 +229,8 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                         : TaskUpdateEvent.taskChange(job, newTask, oldTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
                             case SNAPSHOTEND:
                                 return JobManagerEvent.snapshotMarker();
+                            case KEEPALIVERESPONSE:
+                                return JobManagerEvent.keepAliveEvent(event.getKeepAliveResponse().getRequest().getTimestamp());
                             case NOTIFICATION_NOT_SET:
                             default:
                                 return null;
@@ -233,6 +238,10 @@ public class RemoteJobManagementClient implements JobManagementClient {
                     })
                     .filter(Objects::nonNull);
         });
+    }
+
+    protected Flux<JobChangeNotification> connectObserveJobs(Map<String, String> filteringCriteria) {
+        return stub.observeJobs(ObserveJobsQuery.newBuilder().putAllFilteringCriteria(filteringCriteria).build());
     }
 
     @Override
@@ -316,7 +325,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
         );
     }
 
-    private boolean isTaskMoved(Task newTask, Task oldTask) {
+    static boolean isTaskMoved(Task newTask, Task oldTask) {
         if (oldTask == null || oldTask.getJobId().equals(newTask.getJobId())) {
             return false;
         }

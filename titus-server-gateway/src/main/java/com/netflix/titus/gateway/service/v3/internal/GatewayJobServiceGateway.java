@@ -156,11 +156,15 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "findJob", callMetadata)) {
-            Job grpcJob = localCacheQueryProcessor.findJob(jobId).orElse(null);
-            if (grpcJob != null) {
-                return Observable.just(grpcJob);
-            }
-            return retrieveArchivedJob(jobId);
+            return localCacheQueryProcessor.syncCache("findJob", Job.class).concatWith(
+                    Observable.defer(() -> {
+                        Job grpcJob = localCacheQueryProcessor.findJob(jobId).orElse(null);
+                        if (grpcJob != null) {
+                            return Observable.just(grpcJob);
+                        }
+                        return retrieveArchivedJob(jobId);
+                    })
+            );
         }
 
         Observable<Job> observable = createRequestObservable(emitter -> {
@@ -194,7 +198,9 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         }
 
         if (localCacheQueryProcessor.canUseCache(jobQuery.getFilteringCriteriaMap(), "findJobs", callMetadata)) {
-            return Observable.just(localCacheQueryProcessor.findJobs(jobQuery));
+            return localCacheQueryProcessor.syncCache("findJobs", JobQueryResult.class).concatWith(
+                    Observable.fromCallable(() -> localCacheQueryProcessor.findJobs(jobQuery))
+            );
         }
 
         return super.findJobs(jobQuery, callMetadata);
@@ -203,11 +209,15 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "findTask", callMetadata)) {
-            Task grpcTask = localCacheQueryProcessor.findTask(taskId).orElse(null);
-            if (grpcTask != null) {
-                return Observable.just(grpcTask);
-            }
-            return retrieveArchivedTask(taskId);
+            return localCacheQueryProcessor.syncCache("findTask", Task.class).concatWith(
+                    Observable.defer(() -> {
+                        Task grpcTask = localCacheQueryProcessor.findTask(taskId).orElse(null);
+                        if (grpcTask != null) {
+                            return Observable.just(grpcTask);
+                        }
+                        return retrieveArchivedTask(taskId);
+                    })
+            );
         }
 
         Observable<Task> observable = createRequestObservable(
@@ -283,7 +293,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "observeJob", callMetadata)) {
-            return localCacheQueryProcessor.observeJob(jobId);
+            return localCacheQueryProcessor.syncCache("observeJob", JobChangeNotification.class).concatWith(localCacheQueryProcessor.observeJob(jobId));
         }
         return super.observeJob(jobId, callMetadata);
     }
@@ -291,14 +301,16 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(query.getFilteringCriteriaMap(), "observeJobs", callMetadata)) {
-            return localCacheQueryProcessor.observeJobs(query);
+            return localCacheQueryProcessor.syncCache("observeJobs", JobChangeNotification.class).concatWith(localCacheQueryProcessor.observeJobs(query));
         }
         return super.observeJobs(query, callMetadata);
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(taskQuery.getFilteringCriteriaMap(), "findTasks", callMetadata)) {
-            return Observable.just(localCacheQueryProcessor.findTasks(taskQuery));
+            return localCacheQueryProcessor.syncCache("findTasks", TaskQueryResult.class).concatWith(
+                    Observable.fromCallable(() -> localCacheQueryProcessor.findTasks(taskQuery))
+            );
         }
 
         return createRequestObservable(emitter -> {

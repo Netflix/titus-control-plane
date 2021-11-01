@@ -56,6 +56,7 @@ public class DefaultReconciliationFrameworkTest {
 
     private static final long IDLE_TIMEOUT_MS = 100;
     private static final long ACTIVE_TIMEOUT_MS = 20;
+    private static final long CHECKPOINT_INTERVAL_MS = 10;
     private static final int STOP_TIMEOUT_MS = 1_000;
 
     private final TestScheduler testScheduler = Schedulers.test();
@@ -78,7 +79,9 @@ public class DefaultReconciliationFrameworkTest {
             engineFactory,
             IDLE_TIMEOUT_MS,
             ACTIVE_TIMEOUT_MS,
+            CHECKPOINT_INTERVAL_MS,
             indexComparators,
+            new SimpleReconcilerEventFactory(),
             new DefaultRegistry(),
             Optional.of(testScheduler)
     );
@@ -121,7 +124,9 @@ public class DefaultReconciliationFrameworkTest {
                 engineFactory,
                 IDLE_TIMEOUT_MS,
                 ACTIVE_TIMEOUT_MS,
+                CHECKPOINT_INTERVAL_MS,
                 indexComparators,
+                new SimpleReconcilerEventFactory(),
                 new DefaultRegistry(),
                 Optional.of(testScheduler)
         );
@@ -129,7 +134,7 @@ public class DefaultReconciliationFrameworkTest {
         AssertableSubscriber<SimpleReconcilerEvent> eventSubscriber = framework.events().test();
 
         eventSubject.onNext(new SimpleReconcilerEvent(EventType.Changed, "test", Optional.empty()));
-        await().timeout(30, TimeUnit.SECONDS).until(() -> eventSubscriber.assertValueCount(1));
+        await().timeout(30, TimeUnit.SECONDS).until(() -> assertThat(eventSubscriber.getValueCount()).isGreaterThanOrEqualTo(1));
     }
 
     @Test
@@ -300,12 +305,22 @@ public class DefaultReconciliationFrameworkTest {
         framework.events().subscribe(eventSubscriber);
 
         engine1Events.onNext(newEvent("event1"));
-        assertThat(eventSubscriber.takeNext(30, TimeUnit.SECONDS).getMessage()).isEqualTo("event1");
+        expectEvent(eventSubscriber, "event1");
         engine1Events.onCompleted();
         assertThat(eventSubscriber.isUnsubscribed()).isFalse();
 
         engine2Events.onNext(newEvent("event2"));
-        assertThat(eventSubscriber.takeNext(30, TimeUnit.SECONDS).getMessage()).isEqualTo("event2");
+        expectEvent(eventSubscriber, "event2");
+    }
+
+    private void expectEvent(ExtTestSubscriber<SimpleReconcilerEvent> eventSubscriber, String message) throws InterruptedException {
+        while (true) {
+            SimpleReconcilerEvent event = eventSubscriber.takeNext(30, TimeUnit.SECONDS);
+            if (event.getEventType() != EventType.Checkpoint) {
+                assertThat(event.getMessage()).isEqualTo(message);
+                return;
+            }
+        }
     }
 
     private SimpleReconcilerEvent newEvent(String message) {

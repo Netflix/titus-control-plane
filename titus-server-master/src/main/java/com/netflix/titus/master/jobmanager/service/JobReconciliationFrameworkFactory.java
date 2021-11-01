@@ -200,7 +200,9 @@ public class JobReconciliationFrameworkFactory {
                 bootstrapModel -> newEngine(bootstrapModel, true),
                 jobManagerConfiguration.getReconcilerIdleTimeoutMs(),
                 jobManagerConfiguration.getReconcilerActiveTimeoutMs(),
+                jobManagerConfiguration.getCheckpointIntervalMs(),
                 INDEX_COMPARATORS,
+                JOB_EVENT_FACTORY,
                 registry,
                 optionalScheduler
         );

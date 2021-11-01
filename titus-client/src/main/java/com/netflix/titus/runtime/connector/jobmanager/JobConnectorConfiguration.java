@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager.replicator;
+package com.netflix.titus.runtime.connector.jobmanager;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.connector.jobService")
-public interface JobDataReplicatorConfiguration {
+public interface JobConnectorConfiguration {
 
     /**
      * Set to true to enable connection timeout if the first event is not emitted in the configured amount of time.
@@ -33,4 +33,16 @@ public interface JobDataReplicatorConfiguration {
      */
     @DefaultValue("30000")
     long getConnectionTimeoutMs();
+
+    /**
+     * Enable {@link JobDataReplicator} with the server side keep alive mechanism. Use only in TitusGateway.
+     */
+    @DefaultValue("true")
+    boolean isKeepAliveReplicatedStreamEnabled();
+
+    /**
+     * Internal at which the keep alive requests are sent over the GRPC channel.
+     */
+    @DefaultValue("100")
+    long getKeepAliveIntervalMs();
 }

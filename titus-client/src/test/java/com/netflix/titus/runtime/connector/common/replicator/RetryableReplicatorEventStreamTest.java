@@ -121,7 +121,7 @@ public class RetryableReplicatorEventStreamTest {
         }));
 
         return new RetryableReplicatorEventStream<>(
-                delegate, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel()
+                delegate, new DataReplicatorMetrics("test", false, titusRuntime), titusRuntime, Schedulers.parallel()
         );
     }
 

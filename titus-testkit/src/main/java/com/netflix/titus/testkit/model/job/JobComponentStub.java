@@ -233,4 +233,8 @@ public class JobComponentStub {
             return GrpcJobManagementModelConverters.toGrpcJobChangeNotification(coreEvent, grpcObjectsCache, clock.wallTime());
         });
     }
+
+    public void emitCheckpoint() {
+        stubbedJobData.emitCheckpoint();
+    }
 }

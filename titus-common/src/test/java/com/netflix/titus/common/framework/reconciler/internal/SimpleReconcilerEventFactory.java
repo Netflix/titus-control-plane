@@ -25,8 +25,14 @@ import com.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 
 /**
+ *
  */
 public class SimpleReconcilerEventFactory implements ReconcileEventFactory<SimpleReconcilerEvent> {
+
+    @Override
+    public SimpleReconcilerEvent newCheckpointEvent(long timestamp) {
+        return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.Checkpoint, "checkpoint: " + timestamp, Optional.empty());
+    }
 
     @Override
     public SimpleReconcilerEvent newBeforeChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, String transactionId) {

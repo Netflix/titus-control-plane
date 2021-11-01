@@ -87,7 +87,7 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
         final JobDescriptor<BatchJobExt> expectedJob = tmpJob;
 
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
-                .inJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(expectedJob))
+                .inStrippedJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(expectedJob))
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachPod(
                         podWithResources(ONE_TASK_BATCH_JOB.getContainer().getContainerResources(), jobConfiguration.getMinDiskSizeMB()),

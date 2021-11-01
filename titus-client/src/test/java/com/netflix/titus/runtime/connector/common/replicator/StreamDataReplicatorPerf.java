@@ -28,7 +28,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorConfiguration;
+import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 import com.netflix.titus.runtime.connector.jobmanager.snapshot.JobSnapshotFactories;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -48,7 +48,7 @@ public class StreamDataReplicatorPerf {
         TitusRuntime titusRuntime = TitusRuntimes.internal();
 
         JobManagementClient client = Mockito.mock(JobManagementClient.class);
-        JobDataReplicatorConfiguration configuration = Mockito.mock(JobDataReplicatorConfiguration.class);
+        JobConnectorConfiguration configuration = Mockito.mock(JobConnectorConfiguration.class);
 
         Mockito.when(client.observeJobs(ArgumentMatchers.any())).thenAnswer(invocation -> Flux.defer(() -> {
 

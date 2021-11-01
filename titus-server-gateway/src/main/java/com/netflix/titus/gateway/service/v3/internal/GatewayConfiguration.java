@@ -45,4 +45,12 @@ public interface GatewayConfiguration {
      */
     @DefaultValue("NONE")
     String getQueryFromCacheCallerId();
+
+    /**
+     * Thread pool size handling client requests from the local cache. The {@link LocalCacheQueryProcessor} sync method
+     * most of the time completes with TJC GRPC callback when handling the keep alive message. Using that GRPC thread
+     * for further processing would cause a bottleneck on both sides.
+     */
+    @DefaultValue("100")
+    int getLocalCacheSchedulerThreadPoolSize();
 }

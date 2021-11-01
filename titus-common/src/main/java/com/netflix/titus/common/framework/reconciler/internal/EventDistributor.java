@@ -33,6 +33,7 @@ import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
 import com.netflix.spectator.api.patterns.PolledMeter;
+import com.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.util.ExceptionExt;
 import org.slf4j.Logger;
@@ -49,6 +50,9 @@ class EventDistributor<EVENT> {
     private static final Logger logger = LoggerFactory.getLogger(EventDistributor.class);
 
     private static final String ROOT_METRIC_NAME = DefaultReconciliationFramework.ROOT_METRIC_NAME + "eventDistributor.";
+
+    private final ReconcileEventFactory<EVENT> eventFactory;
+    private final long checkpointIntervalMs;
 
     // This collection is observed by Spectator poller, so we have to use ConcurrentMap.
     private final ConcurrentMap<String, EngineHolder> engineHolders = new ConcurrentHashMap<>();
@@ -68,7 +72,11 @@ class EventDistributor<EVENT> {
     private final Timer metricLoopExecutionTime;
     private final Counter metricEmittedEvents;
 
-    EventDistributor(Registry registry) {
+    EventDistributor(ReconcileEventFactory<EVENT> eventFactory,
+                     long checkpointIntervalMs,
+                     Registry registry) {
+        this.eventFactory = eventFactory;
+        this.checkpointIntervalMs = checkpointIntervalMs;
         PolledMeter.using(registry).withName(ROOT_METRIC_NAME + "connectedEngines").monitorSize(engineHolders);
         this.metricLoopExecutionTime = registry.timer(ROOT_METRIC_NAME + "executionTime");
         PolledMeter.using(registry).withName(ROOT_METRIC_NAME + "eventQueue").monitorValue(this, self -> self.eventQueueDepth.get());
@@ -129,6 +137,7 @@ class EventDistributor<EVENT> {
     }
 
     private void doLoop() {
+        long keepAliveTimestamp = 0;
         while (true) {
             if (shutdown) {
                 completeEmitters();
@@ -139,6 +148,7 @@ class EventDistributor<EVENT> {
 
             // Block on the event queue. It is possible that new emitters will be added to the emitterQueue, but we
             // have to drain them only when there are actually events to send.
+            long checkpointTimestamp = System.nanoTime();
             List<EVENT> events = new ArrayList<>();
             try {
                 EVENT event = eventQueue.poll(1, TimeUnit.MILLISECONDS);
@@ -148,6 +158,11 @@ class EventDistributor<EVENT> {
             } catch (InterruptedException ignore) {
             }
             eventQueue.drainTo(events);
+            long now = System.currentTimeMillis();
+            if (keepAliveTimestamp + checkpointIntervalMs < now) {
+                keepAliveTimestamp = now;
+                events.add(eventFactory.newCheckpointEvent(checkpointTimestamp));
+            }
             eventQueueDepth.accumulateAndGet(events.size(), (current, delta) -> current - delta);
 
             removeUnsubscribedAndAddNewEmitters();
