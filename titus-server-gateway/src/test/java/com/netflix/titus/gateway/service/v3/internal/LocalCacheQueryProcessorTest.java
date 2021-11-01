@@ -41,6 +41,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
+import com.netflix.titus.grpc.protogen.LogLocation;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -147,6 +148,25 @@ public class LocalCacheQueryProcessorTest {
     }
 
     @Test
+    public void testFindJobsWithFieldsFilter() {
+        Job<?> job1 = addToJobDataReplicator(newJobAndTasks("job1", 2)).getLeft();
+        JobQueryResult page1Result = processor.findJobs(JobQuery.newBuilder()
+                .addFields("status")
+                .setPage(Page.newBuilder().setPageSize(2).build())
+                .build()
+        );
+        assertThat(page1Result.getItemsList()).hasSize(1);
+        com.netflix.titus.grpc.protogen.Job fetchedJob = page1Result.getItemsList().get(0);
+
+        // Check that expected fields are set
+        assertThat(fetchedJob.getId()).isEqualTo(job1.getId());
+        assertThat(fetchedJob.getStatus().getReasonMessage()).isEqualTo(job1.getStatus().getReasonMessage());
+
+        // Check that not requested fields are not set
+        assertThat(fetchedJob.getJobDescriptor()).isEqualTo(com.netflix.titus.grpc.protogen.JobDescriptor.getDefaultInstance());
+    }
+
+    @Test
     public void testFindTasks() {
         List<Task> tasks1 = addToJobDataReplicator(newJobAndTasks("job1", 2)).getRight();
         List<Task> tasks2 = addToJobDataReplicator(newJobAndTasks("job2", 4)).getRight();
@@ -176,6 +196,29 @@ public class LocalCacheQueryProcessorTest {
                 tasks3.stream().map(Task::getId).collect(Collectors.toList())
         );
         assertThat(taskIds).containsAll(expectedTaskIds);
+    }
+
+    @Test
+    public void testFindTasksWithFieldsFilter() {
+        List<Task> tasks1 = addToJobDataReplicator(newJobAndTasks("job1", 2)).getRight();
+        TaskQueryResult page1Result = processor.findTasks(TaskQuery.newBuilder()
+                .addFields("status")
+                .setPage(Page.newBuilder().setPageSize(2).build())
+                .build()
+        );
+        assertThat(page1Result.getItemsList()).hasSize(2);
+
+        Task originalTask = tasks1.get(0);
+        com.netflix.titus.grpc.protogen.Task fetchedTask = page1Result.getItemsList().stream()
+                .filter(t -> t.getId().equals(originalTask.getId()))
+                .findFirst().get();
+
+        // Check that expected fields are set
+        assertThat(fetchedTask.getId()).isEqualTo(originalTask.getId());
+        assertThat(fetchedTask.getStatus().getReasonMessage()).isEqualTo(originalTask.getStatus().getReasonMessage());
+
+        // Check that not requested fields are not set
+        assertThat(fetchedTask.getLogLocation()).isEqualTo(LogLocation.getDefaultInstance());
     }
 
     @Test
