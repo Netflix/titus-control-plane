@@ -474,6 +474,7 @@ public class V1SpecPodFactory implements PodFactory {
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX:
                     annotations.put(LOG_S3_PATH_PREFIX, v);
+                    break;
                 case JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_PERF_ENABLED:
                     annotations.put(POD_SECCOMP_AGENT_PERF_ENABLED, v);
                     break;
@@ -482,6 +483,7 @@ public class V1SpecPodFactory implements PodFactory {
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN:
                     annotations.put(NETWORK_IMDS_REQUIRE_TOKEN, v);
+                    break;
                 default:
                     annotations.put(k, v);
                     break;
