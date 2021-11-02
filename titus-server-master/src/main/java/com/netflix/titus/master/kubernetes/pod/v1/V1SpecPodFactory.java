@@ -220,7 +220,7 @@ public class V1SpecPodFactory implements PodFactory {
                 .labels(labels);
 
         V1Container container = new V1Container()
-                .name(taskId)
+                .name("main")
                 .image(KubePodUtil.buildImageString(configuration.getRegistryUrl(), jobDescriptor.getContainer().getImage()))
                 .env(envVarsList)
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()))
