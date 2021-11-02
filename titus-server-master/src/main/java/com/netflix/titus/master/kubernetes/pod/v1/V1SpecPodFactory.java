@@ -17,7 +17,6 @@
 package com.netflix.titus.master.kubernetes.pod.v1;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -549,7 +548,7 @@ public class V1SpecPodFactory implements PodFactory {
             List<String> allNames = KubePodUtil.getVolumeNames(spec.getVolumes());
             if (!allNames.contains(name)) {
                 V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
-                        .server(efsId)
+                        .server(efsIdToNFSServer(efsId))
                         .readOnly(readOnly);
                 // "path" here represents the server-side relative mount path, sometimes called
                 // the "exported directory", and goes into the v1 Volume
@@ -561,6 +560,32 @@ public class V1SpecPodFactory implements PodFactory {
             }
         }
     }
+
+    /**
+     * efsIdToNFSHostname will "resolve" an EFS ID into a real
+     * hostname for the pod spec to use if necessary.
+     * <p>
+     * We have to do this because the pod spec doesn't know about EFS,
+     * it just has a field for NFS hostname.
+     * <p>
+     * Titus has EFSID as a real entry. This function bridges the
+     * gap and converts an EFS ID into a hostname.
+     */
+    private String efsIdToNFSServer(String efsId) {
+        // Most of the time, the EFS ID passed into the control plane
+        // is a real EFS
+        if (isEFSID(efsId)) {
+            return efsId + ".efs." + this.configuration.getTargetRegion() + ".amazonaws.com";
+        }
+        // But sometimes it is not, and in that case we can just let it go through
+        // as-is
+        return efsId;
+    }
+
+    private boolean isEFSID(String s) {
+        return s.matches("^fs-[0-9a-f]+$");
+    }
+
 
     void appendShmMount(V1PodSpec spec, V1Container container, Job<?> job) {
         int shmMB = job.getJobDescriptor().getContainer().getContainerResources().getShmMB();
