@@ -92,8 +92,7 @@ public class TitusGatewayGrpcServer {
             GrpcToReactorServerFactory reactorServerFactory,
             GrpcEndpointConfiguration config,
             TitusRuntime titusRuntime,
-            KubeApiConnector kubeApiConnector
-    ) {
+            KubeApiConnector kubeApiConnector) {
         this.healthService = healthService;
         this.evictionService = evictionService;
         this.jobManagementService = jobManagementService;

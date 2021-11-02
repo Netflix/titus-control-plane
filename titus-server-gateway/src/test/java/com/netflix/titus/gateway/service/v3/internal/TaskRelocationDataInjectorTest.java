@@ -27,6 +27,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
@@ -69,7 +70,6 @@ public class TaskRelocationDataInjectorTest {
 
     private final RelocationServiceClient relocationServiceClient = mock(RelocationServiceClient.class);
     private final RelocationDataReplicator relocationDataReplicator = mock(RelocationDataReplicator.class);
-    private final NamespacedKubernetesClient namespacedKubernetesClient = mock(NamespacedKubernetesClient.class);
 
     private final DataInjector dataInjector = new DataInjector(
             grpcConfiguration,
@@ -77,9 +77,7 @@ public class TaskRelocationDataInjectorTest {
             featureActivationConfiguration,
             relocationServiceClient,
             relocationDataReplicator,
-            testScheduler,
-            namespacedKubernetesClient
-    );
+            testScheduler);
 
     @Before
     public void setUp() {

@@ -31,14 +31,15 @@ import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
-import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -62,12 +63,6 @@ class DataInjector {
     private final RelocationServiceClient relocationServiceClient;
     private final RelocationDataReplicator relocationDataReplicator;
     private final Scheduler scheduler;
-    private final NamespacedKubernetesClient namespacedKubernetesClient;
-    /*getFabric8IOClient() {
-        return Fabric8IOClients.mustHaveKubeConnectivity(
-                Fabric8IOClients.createFabric8IOClient()
-        );
-    }*/
 
     @Inject
     DataInjector(
@@ -75,10 +70,9 @@ class DataInjector {
             JobManagerConfiguration jobManagerConfiguration,
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
-            RelocationDataReplicator relocationDataReplicator,
-            NamespacedKubernetesClient namespacedKubernetesClient) {
+            RelocationDataReplicator relocationDataReplicator) {
         this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator,
-                Schedulers.computation(), namespacedKubernetesClient);
+                Schedulers.computation());
     }
 
 
@@ -89,14 +83,13 @@ class DataInjector {
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
-            Scheduler scheduler, NamespacedKubernetesClient namespacedKubernetesClient) {
+            Scheduler scheduler) {
         this.configuration = configuration;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.featureActivationConfiguration = featureActivationConfiguration;
         this.relocationServiceClient = relocationServiceClient;
         this.relocationDataReplicator = relocationDataReplicator;
         this.scheduler = scheduler;
-        this.namespacedKubernetesClient = namespacedKubernetesClient;
     }
 
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {

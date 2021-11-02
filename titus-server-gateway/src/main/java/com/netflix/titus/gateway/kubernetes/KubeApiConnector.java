@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.naming.Name;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
@@ -19,9 +20,11 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -45,9 +48,7 @@ public class KubeApiConnector {
     private static final Logger logger = LoggerFactory.getLogger(KubeApiConnector.class);
     private final NamespacedKubernetesClient kubernetesClient;
     private final TitusRuntime titusRuntime;
-    private final KubeConnectorConfiguration configuration;
     private final ConcurrentMap<String, Pod> pods = new ConcurrentHashMap<>();
-
     private volatile SharedInformerFactory sharedInformerFactory;
     private volatile SharedIndexInformer<Pod> podInformer;
     private volatile SharedIndexInformer<Node> nodeInformer;
@@ -57,10 +58,9 @@ public class KubeApiConnector {
     private Disposable subscription;
 
     @Inject
-    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime, KubeConnectorConfiguration configuration) {
+    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime) {
         this.kubernetesClient = kubernetesClient;
         this.titusRuntime = titusRuntime;
-        this.configuration = configuration;
     }
 
     private final Object activationLock = new Object();
@@ -74,7 +74,7 @@ public class KubeApiConnector {
     private SharedIndexInformer<Pod> createPodInformer(SharedInformerFactory sharedInformerFactory) {
         return sharedInformerFactory.sharedIndexInformerFor(
                 Pod.class,
-                configuration.getKubeApiServerIntegratorRefreshIntervalMs());
+                3000);
     }
 
     @PreDestroy
