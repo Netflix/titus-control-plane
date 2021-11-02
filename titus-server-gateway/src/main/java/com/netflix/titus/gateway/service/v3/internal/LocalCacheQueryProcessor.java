@@ -17,9 +17,12 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -42,6 +45,7 @@ import com.netflix.titus.api.model.PageResult;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.spectator.MetricSelector;
@@ -80,6 +84,8 @@ import rx.Observable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toJobQueryCriteria;
+import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.JOB_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.TASK_MINIMUM_FIELD_SET;
 
 @Singleton
 public class LocalCacheQueryProcessor {
@@ -199,8 +205,15 @@ public class LocalCacheQueryProcessor {
         List<Job> matchingJobs = findMatchingJob(queryCriteria);
         PageResult<Job> pageResult = JobManagerCursors.newCoreJobPaginationEvaluator().takePage(page, matchingJobs);
 
+        Set<String> fields = newFieldsFilter(jobQuery.getFieldsList(), JOB_MINIMUM_FIELD_SET);
         List<com.netflix.titus.grpc.protogen.Job> grpcJob = pageResult.getItems().stream()
-                .map(GrpcJobManagementModelConverters::toGrpcJob)
+                .map(coreJob -> {
+                    com.netflix.titus.grpc.protogen.Job job = GrpcJobManagementModelConverters.toGrpcJob(coreJob);
+                    if (!fields.isEmpty()) {
+                        job = ProtobufExt.copy(job, fields);
+                    }
+                    return job;
+                })
                 .collect(Collectors.toList());
 
         return JobQueryResult.newBuilder()
@@ -222,8 +235,15 @@ public class LocalCacheQueryProcessor {
         List<com.netflix.titus.api.jobmanager.model.job.Task> matchingTasks = findMatchingTasks(queryCriteria);
         PageResult<com.netflix.titus.api.jobmanager.model.job.Task> pageResult = JobManagerCursors.newCoreTaskPaginationEvaluator().takePage(page, matchingTasks);
 
+        Set<String> fields = newFieldsFilter(taskQuery.getFieldsList(), TASK_MINIMUM_FIELD_SET);
         List<Task> grpcTasks = pageResult.getItems().stream()
-                .map(task -> GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo))
+                .map(task -> {
+                    Task grpcTask = GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo);
+                    if (!fields.isEmpty()) {
+                        grpcTask = ProtobufExt.copy(grpcTask, fields);
+                    }
+                    return grpcTask;
+                })
                 .collect(Collectors.toList());
 
         return TaskQueryResult.newBuilder()
@@ -318,6 +338,12 @@ public class LocalCacheQueryProcessor {
                     });
         });
         return ReactorExt.toObservable(fluxSync);
+    }
+
+    private Set<String> newFieldsFilter(List<String> fields, Set<String> minimumFieldSet) {
+        return fields.isEmpty()
+                ? Collections.emptySet()
+                : CollectionsExt.merge(new HashSet<>(fields), minimumFieldSet);
     }
 
     private List<com.netflix.titus.api.jobmanager.model.job.Job> findMatchingJob(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria) {
