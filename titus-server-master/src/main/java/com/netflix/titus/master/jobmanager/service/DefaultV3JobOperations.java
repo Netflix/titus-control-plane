@@ -758,7 +758,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             }
 
             // A task is archived at the same time as its replacement is created. We store the finished task which the
-            // new one replaces in the EntityHolder attribute `CreateOrReplaceBatchTaskActions.ATTR_REPLACEMENT_OF`.
+            // new one replaces in the EntityHolder attribute `JobEntityHolders.ATTR_REPLACEMENT_OF`.
             Task archivedTask = (Task) modelUpdateEvent.getChangedEntityHolder().getAttributes().get(JobEntityHolders.ATTR_REPLACEMENT_OF);
             if (archivedTask == null) {
                 return Collections.singletonList(toNewTaskUpdateEvent(job, changed, modelUpdateEvent.getCallMetadata()));
