@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.common.action;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
@@ -32,6 +33,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import rx.Observable;
 
 /**
+ *
  */
 public abstract class TitusChangeAction implements ChangeAction {
 
@@ -41,6 +43,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
     private final V3JobOperations.Trigger trigger;
     private final String id;
+    private final Optional<Task> task;
     private final String name;
     private final String summary;
     private final CallMetadata callMetadata;
@@ -48,14 +51,16 @@ public abstract class TitusChangeAction implements ChangeAction {
     protected TitusChangeAction(TitusChangeAction delegate) {
         this.trigger = delegate.getTrigger();
         this.id = delegate.getId();
+        this.task = delegate.getTask();
         this.name = delegate.getName();
         this.summary = delegate.getSummary();
         this.callMetadata = delegate.getCallMetadata();
     }
 
-    public TitusChangeAction(Trigger trigger, String id, String name, String summary, CallMetadata callMetadata) {
+    public TitusChangeAction(Trigger trigger, String id, Task task, String name, String summary, CallMetadata callMetadata) {
         this.trigger = trigger;
         this.id = id;
+        this.task = Optional.ofNullable(task);
         this.name = name;
         this.summary = summary;
         this.callMetadata = callMetadata == null ? NOT_SET_CALLMETADATA : callMetadata;
@@ -67,6 +72,10 @@ public abstract class TitusChangeAction implements ChangeAction {
 
     public String getId() {
         return id;
+    }
+
+    public Optional<Task> getTask() {
+        return task;
     }
 
     public String getName() {
@@ -97,6 +106,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
         final String name;
         String id;
+        Task task;
         String summary = "None";
         Trigger trigger;
         CallMetadata callMetadata;
@@ -117,6 +127,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
         public Builder task(Task task) {
             this.id = task.getId();
+            this.task = task;
             return this;
         }
 
@@ -137,7 +148,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
         public TitusChangeAction changeWithModelUpdate(Function<Builder, Observable<ModelActionHolder>> actionFun) {
             check();
-            return new TitusChangeAction(trigger, id, name, summary, callMetadata) {
+            return new TitusChangeAction(trigger, id, task, name, summary, callMetadata) {
                 @Override
                 public Observable<List<ModelActionHolder>> apply() {
                     return actionFun.apply(Builder.this).map(Collections::singletonList);
@@ -147,7 +158,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
         public TitusChangeAction changeWithModelUpdates(Function<Builder, Observable<List<ModelActionHolder>>> actionFun) {
             check();
-            return new TitusChangeAction(trigger, id, name, summary, callMetadata) {
+            return new TitusChangeAction(trigger, id, task, name, summary, callMetadata) {
                 @Override
                 public Observable<List<ModelActionHolder>> apply() {
                     return actionFun.apply(Builder.this);
@@ -157,7 +168,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
         public TitusChangeAction applyModelUpdate(Function<Builder, ModelActionHolder> actionFun) {
             check();
-            return new TitusChangeAction(trigger, id, name, summary, callMetadata) {
+            return new TitusChangeAction(trigger, id, task, name, summary, callMetadata) {
                 @Override
                 public Observable<List<ModelActionHolder>> apply() {
                     return Observable.fromCallable(() -> actionFun.apply(Builder.this)).map(Collections::singletonList);
@@ -167,7 +178,7 @@ public abstract class TitusChangeAction implements ChangeAction {
 
         public TitusChangeAction applyModelUpdates(Function<Builder, List<ModelActionHolder>> actionFun) {
             check();
-            return new TitusChangeAction(trigger, id, name, summary, callMetadata) {
+            return new TitusChangeAction(trigger, id, task, name, summary, callMetadata) {
                 @Override
                 public Observable<List<ModelActionHolder>> apply() {
                     return Observable.fromCallable(() -> actionFun.apply(Builder.this));

@@ -41,7 +41,7 @@ import rx.Observable;
 
 public class BasicJobActions {
 
-    private static final String ATTR_JOB_CLOSED = "job.closed";
+    public static final String ATTR_JOB_CLOSED = "job.closed";
 
     /**
      * Write an updated job record to a store. This command calls {@link JobStore#updateJob(Job)}, which assumes

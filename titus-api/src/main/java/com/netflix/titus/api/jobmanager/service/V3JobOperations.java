@@ -40,6 +40,7 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
         API,
         ComputeProvider,
         Reconciler,
+        ReconcilerServiceTaskRemoved,
         Scheduler,
         TaskMigration,
         Eviction,

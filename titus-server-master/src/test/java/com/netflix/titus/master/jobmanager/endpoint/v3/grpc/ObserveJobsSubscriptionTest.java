@@ -69,7 +69,7 @@ public class ObserveJobsSubscriptionTest {
             titusRuntime
     );
 
-    private final ObserveJobsSubscription jobsSubscription = new ObserveJobsSubscription(context);
+    private final ObserveJobsSubscription jobsSubscription = new ObserveJobsSubscription(context, true);
 
     private StreamObserver<JobChangeNotification> responseStreamObserver;
     private final BlockingQueue<JobChangeNotification> responseEvents = new LinkedBlockingDeque<>();

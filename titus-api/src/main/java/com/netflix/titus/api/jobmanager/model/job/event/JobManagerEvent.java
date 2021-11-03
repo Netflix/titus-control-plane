@@ -29,12 +29,14 @@ public abstract class JobManagerEvent<TYPE> {
 
     private final TYPE current;
     private final Optional<TYPE> previous;
+    private final boolean archived;
     private final CallMetadata callMetadata;
 
-    protected JobManagerEvent(TYPE current, Optional<TYPE> previous, CallMetadata callMetadata) {
+    protected JobManagerEvent(TYPE current, Optional<TYPE> previous, boolean archived, CallMetadata callMetadata) {
         this.current = current;
         this.previous = previous;
-        this.callMetadata = callMetadata;
+        this.archived = archived;
+        this.callMetadata = callMetadata == null ? JobManagerConstants.UNDEFINED_CALL_METADATA : callMetadata;
     }
 
     public TYPE getCurrent() {
@@ -45,10 +47,11 @@ public abstract class JobManagerEvent<TYPE> {
         return previous;
     }
 
+    public boolean isArchived() {
+        return archived;
+    }
+
     public CallMetadata getCallMetadata() {
-        if (callMetadata == null) {
-            return JobManagerConstants.UNDEFINED_CALL_METADATA;
-        }
         return callMetadata;
     }
 
@@ -57,17 +60,16 @@ public abstract class JobManagerEvent<TYPE> {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof JobManagerEvent)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         JobManagerEvent<?> that = (JobManagerEvent<?>) o;
-        return current.equals(that.current) &&
-                previous.equals(that.previous);
+        return archived == that.archived && Objects.equals(current, that.current) && Objects.equals(previous, that.previous) && Objects.equals(callMetadata, that.callMetadata);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(current, previous);
+        return Objects.hash(current, previous, archived, callMetadata);
     }
 
     public static JobManagerEvent<Job> snapshotMarker() {
@@ -81,8 +83,11 @@ public abstract class JobManagerEvent<TYPE> {
     private static class SnapshotMarkerEvent extends JobManagerEvent<Job> {
 
         private SnapshotMarkerEvent() {
-            super(Job.newBuilder().build(), Optional.empty(), CallMetadata.newBuilder().withCallerId("SnapshotMarkerEvent").withCallReason("initializing").build());
+            super(Job.newBuilder().build(),
+                    Optional.empty(),
+                    false,
+                    CallMetadata.newBuilder().withCallerId("SnapshotMarkerEvent").withCallReason("initializing").build()
+            );
         }
     }
-
 }

@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +102,6 @@ import rx.BackpressureOverflow;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Func1;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.common.util.FunctionExt.alwaysTrue;
@@ -579,7 +579,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                             name = "moveTask(from)";
                             summary = "Moving a task out of this job to job " + jobTo.getId();
                         }
-                        return new TitusChangeAction(Trigger.API, rootId, name, summary, callMetadata) {
+                        return new TitusChangeAction(Trigger.API, rootId, null, name, summary, callMetadata) {
                             @Override
                             public Observable<List<ModelActionHolder>> apply() {
                                 return modelUpdatesObservable;
@@ -661,91 +661,120 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                                               Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
                                                               Predicate<Pair<Job<?>, Task>> tasksPredicate,
                                                               boolean withCheckpoints) {
-        return events.map(toJobManagerEvent(jobsPredicate, tasksPredicate, withCheckpoints))
-                .filter(Optional::isPresent)
-                .map(Optional::get);
+        return events.flatMap(event -> Observable.from(toJobManagerEvent(jobsPredicate, tasksPredicate, withCheckpoints, event)));
     }
 
-    private Func1<JobManagerReconcilerEvent, Optional<JobManagerEvent<?>>> toJobManagerEvent(
+    private List<JobManagerEvent<?>> toJobManagerEvent(
             Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
             Predicate<Pair<Job<?>, Task>> tasksPredicate,
-            boolean withCheckpoints) {
-        return event -> {
-            if (event instanceof JobCheckpointReconcilerEvent) {
-                if (withCheckpoints) {
-                    JobCheckpointReconcilerEvent checkpoint = (JobCheckpointReconcilerEvent) event;
-                    return Optional.of(JobManagerEvent.keepAliveEvent(checkpoint.getTimestampNano()));
+            boolean withCheckpoints,
+            JobManagerReconcilerEvent event) {
+        if (event instanceof JobCheckpointReconcilerEvent) {
+            if (withCheckpoints) {
+                JobCheckpointReconcilerEvent checkpoint = (JobCheckpointReconcilerEvent) event;
+                return Collections.singletonList(JobManagerEvent.keepAliveEvent(checkpoint.getTimestampNano()));
+            }
+            return Collections.emptyList();
+        }
+        if (event instanceof JobNewModelReconcilerEvent) {
+            JobNewModelReconcilerEvent newModelEvent = (JobNewModelReconcilerEvent) event;
+            return toNewJobUpdateEvent(newModelEvent, jobsPredicate);
+        }
+        if (!(event instanceof JobModelUpdateReconcilerEvent)) {
+            return Collections.emptyList();
+        }
+        JobModelUpdateReconcilerEvent modelUpdateEvent = (JobModelUpdateReconcilerEvent) event;
+        if (modelUpdateEvent.getModelActionHolder().getModel() != Model.Reference) {
+            return Collections.emptyList();
+        }
+        if (modelUpdateEvent.getChangedEntityHolder().getEntity() instanceof Job) {
+            // A special job event emitted when a task was removed from a job, and a replacement was not created.
+            // We have to emit for this case both task archived event followed by job update event.
+            if (modelUpdateEvent.getChangeAction().getTrigger() == Trigger.ReconcilerServiceTaskRemoved) {
+                Task archivedTask = modelUpdateEvent.getChangeAction().getTask().orElse(null);
+                if (archivedTask != null) {
+                    Job<?> job = modelUpdateEvent.getJob();
+                    TaskUpdateEvent archiveEvent = TaskUpdateEvent.taskArchived(job, archivedTask, modelUpdateEvent.getCallMetadata());
+                    List<JobManagerEvent<?>> events = new ArrayList<>();
+                    events.add(archiveEvent);
+                    events.addAll(toJobUpdateEvent(modelUpdateEvent, jobsPredicate));
+                    return events;
                 }
-                return Optional.empty();
             }
-            if (event instanceof JobNewModelReconcilerEvent) {
-                JobNewModelReconcilerEvent newModelEvent = (JobNewModelReconcilerEvent) event;
-                return toJobUpdateEvent(newModelEvent, jobsPredicate);
-            }
-            if (!(event instanceof JobModelUpdateReconcilerEvent)) {
-                return Optional.empty();
-            }
-            JobModelUpdateReconcilerEvent modelUpdateEvent = (JobModelUpdateReconcilerEvent) event;
-            if (modelUpdateEvent.getModelActionHolder().getModel() != Model.Reference) {
-                return Optional.empty();
-            }
-            if (modelUpdateEvent.getChangedEntityHolder().getEntity() instanceof Job) {
-                return toJobUpdateEvent(modelUpdateEvent, jobsPredicate);
-            }
-            return toTaskUpdateEvent(modelUpdateEvent, tasksPredicate);
-        };
+            return toJobUpdateEvent(modelUpdateEvent, jobsPredicate);
+        }
+        return toTaskUpdateEvent(modelUpdateEvent, tasksPredicate);
     }
 
-    private Optional<JobManagerEvent<?>> toJobUpdateEvent(JobNewModelReconcilerEvent newModelEvent,
-                                                          Predicate<Pair<Job<?>, List<Task>>> jobsPredicate) {
+    private List<JobManagerEvent<?>> toNewJobUpdateEvent(JobNewModelReconcilerEvent newModelEvent,
+                                                         Predicate<Pair<Job<?>, List<Task>>> jobsPredicate) {
         Job<?> job = newModelEvent.getNewRoot().getEntity();
         List<Task> tasks = newModelEvent.getNewRoot().getChildren()
                 .stream()
                 .map(EntityHolder::<Task>getEntity)
                 .collect(Collectors.toList());
         return jobsPredicate.test(Pair.of(job, tasks))
-                ? Optional.of(JobUpdateEvent.newJob(job, newModelEvent.getCallMetadata()))
-                : Optional.empty();
+                ? Collections.singletonList(JobUpdateEvent.newJob(job, newModelEvent.getCallMetadata()))
+                : Collections.emptyList();
     }
 
-    private Optional<JobManagerEvent<?>> toJobUpdateEvent(JobModelUpdateReconcilerEvent modelUpdateEvent,
-                                                          Predicate<Pair<Job<?>, List<Task>>> jobsPredicate) {
+    private List<JobManagerEvent<?>> toJobUpdateEvent(JobModelUpdateReconcilerEvent modelUpdateEvent,
+                                                      Predicate<Pair<Job<?>, List<Task>>> jobsPredicate) {
         Job<?> changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
         List<Task> tasks = modelUpdateEvent.getChangedEntityHolder().getChildren()
                 .stream()
                 .map(EntityHolder::<Task>getEntity)
                 .collect(Collectors.toList());
 
+        // Archived event is emitted as a very last one, so no need to check for anything extra.
+        if (modelUpdateEvent.isArchived()) {
+            return jobsPredicate.test(Pair.of(changed, tasks))
+                    ? Collections.singletonList(JobUpdateEvent.jobArchived(changed, modelUpdateEvent.getCallMetadata()))
+                    : Collections.emptyList();
+        }
+
         if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
             return jobsPredicate.test(Pair.of(changed, tasks))
-                    ? Optional.of(JobUpdateEvent.jobChange(changed, changed, modelUpdateEvent.getCallMetadata()))
-                    : Optional.empty();
+                    ? Collections.singletonList(JobUpdateEvent.jobChange(changed, changed, modelUpdateEvent.getCallMetadata()))
+                    : Collections.emptyList();
         }
         Job<?> previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
         if (changed.equals(previous)) {
-            return Optional.empty();
+            return Collections.emptyList();
         }
         return jobsPredicate.test(Pair.of(changed, tasks))
-                ? Optional.of(JobUpdateEvent.jobChange(changed, previous, modelUpdateEvent.getCallMetadata()))
-                : Optional.empty();
+                ? Collections.singletonList(JobUpdateEvent.jobChange(changed, previous, modelUpdateEvent.getCallMetadata()))
+                : Collections.emptyList();
     }
 
-    private Optional<JobManagerEvent<?>> toTaskUpdateEvent(JobModelUpdateReconcilerEvent modelUpdateEvent,
-                                                           Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+    private List<JobManagerEvent<?>> toTaskUpdateEvent(JobModelUpdateReconcilerEvent modelUpdateEvent,
+                                                       Predicate<Pair<Job<?>, Task>> tasksPredicate) {
         Job<?> job = modelUpdateEvent.getJob();
         Task changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
+
         if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
-            return tasksPredicate.test(Pair.of(job, changed))
-                    ? Optional.of(toNewTaskUpdateEvent(job, changed, modelUpdateEvent.getCallMetadata()))
-                    : Optional.empty();
+            if (!tasksPredicate.test(Pair.of(job, changed))) {
+                return Collections.emptyList();
+            }
+
+            // A task is archived at the same time as its replacement is created. We store the finished task which the
+            // new one replaces in the EntityHolder attribute `CreateOrReplaceBatchTaskActions.ATTR_REPLACEMENT_OF`.
+            Task archivedTask = (Task) modelUpdateEvent.getChangedEntityHolder().getAttributes().get(JobEntityHolders.ATTR_REPLACEMENT_OF);
+            if (archivedTask == null) {
+                return Collections.singletonList(toNewTaskUpdateEvent(job, changed, modelUpdateEvent.getCallMetadata()));
+            }
+            return Arrays.asList(
+                    TaskUpdateEvent.taskArchived(job, archivedTask, modelUpdateEvent.getCallMetadata()),
+                    toNewTaskUpdateEvent(job, changed, modelUpdateEvent.getCallMetadata())
+            );
         }
         Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
         if (changed.equals(previous)) {
-            return Optional.empty();
+            return Collections.emptyList();
         }
         return tasksPredicate.test(Pair.of(job, changed))
-                ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous, modelUpdateEvent.getCallMetadata()))
-                : Optional.empty();
+                ? Collections.singletonList(TaskUpdateEvent.taskChange(job, changed, previous, modelUpdateEvent.getCallMetadata()))
+                : Collections.emptyList();
     }
 
     /**

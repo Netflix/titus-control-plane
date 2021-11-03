@@ -19,21 +19,21 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 
 public class TaskUpdateEvent extends JobManagerEvent<Task> {
 
     private final Job<?> currentJob;
     private final boolean movedFromAnotherJob;
 
-    private TaskUpdateEvent(Job<?> currentJob, Task currentTask, CallMetadata callMetadata, Optional<Task> previousTask) {
-        this(currentJob, currentTask, previousTask, false, callMetadata);
+    private TaskUpdateEvent(Job<?> currentJob, Task currentTask, boolean archived, CallMetadata callMetadata, Optional<Task> previousTask) {
+        this(currentJob, currentTask, previousTask, archived, false, callMetadata);
     }
 
-    private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask, boolean moved, CallMetadata callMetadata) {
-        super(currentTask, previousTask, callMetadata);
+    private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask, boolean archived, boolean moved, CallMetadata callMetadata) {
+        super(currentTask, previousTask, archived, callMetadata);
         this.currentJob = currentJob;
         this.movedFromAnotherJob = moved;
     }
@@ -81,19 +81,24 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
                 "currentJob=" + currentJob +
                 ", currentTask=" + getCurrent() +
                 ", previousTask=" + getPrevious() +
+                ", archived=" + isArchived() +
                 ", movedFromAnotherJob=" + movedFromAnotherJob +
                 '}';
     }
 
     public static TaskUpdateEvent newTask(Job job, Task current, CallMetadata callMetadata) {
-        return new TaskUpdateEvent(job, current, callMetadata, Optional.empty());
+        return new TaskUpdateEvent(job, current, false, callMetadata, Optional.empty());
     }
 
     public static TaskUpdateEvent newTaskFromAnotherJob(Job job, Task current, CallMetadata callMetadata) {
-        return new TaskUpdateEvent(job, current, Optional.empty(), true, callMetadata);
+        return new TaskUpdateEvent(job, current, Optional.empty(), false, true, callMetadata);
     }
 
     public static TaskUpdateEvent taskChange(Job job, Task current, Task previous, CallMetadata callMetadata) {
-        return new TaskUpdateEvent(job, current, callMetadata, Optional.of(previous));
+        return new TaskUpdateEvent(job, current, false, callMetadata, Optional.of(previous));
+    }
+
+    public static TaskUpdateEvent taskArchived(Job job, Task current, CallMetadata callMetadata) {
+        return new TaskUpdateEvent(job, current, true, callMetadata, Optional.empty());
     }
 }

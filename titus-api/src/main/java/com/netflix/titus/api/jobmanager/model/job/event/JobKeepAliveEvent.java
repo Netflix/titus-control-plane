@@ -31,7 +31,7 @@ public class JobKeepAliveEvent extends JobManagerEvent<Job> {
     private final long timestamp;
 
     JobKeepAliveEvent(long timestamp) {
-        super(Job.newBuilder().build(), Optional.empty(), KEEP_ALIVE_CALL_METADATA);
+        super(Job.newBuilder().build(), Optional.empty(), false, KEEP_ALIVE_CALL_METADATA);
         this.timestamp = timestamp;
     }
 

@@ -45,7 +45,7 @@ public final class SampleTitusChangeActions {
     private static class SuccessfulChangeAction extends TitusChangeAction {
 
         private SuccessfulChangeAction(Trigger trigger, String id) {
-            super(trigger, id, "simulatedChangeAction", "Simulated successful action", TEST_CALLMETADATA);
+            super(trigger, id, null, "simulatedChangeAction", "Simulated successful action", TEST_CALLMETADATA);
         }
 
         @Override
@@ -59,7 +59,7 @@ public final class SampleTitusChangeActions {
         private final AtomicInteger failureCounter;
 
         protected FailingChangeAction(Trigger trigger, String id, int failureCount) {
-            super(trigger, id, "simulatedFailingAction", "Simulated initial failure repeated " + failureCount + " times", TEST_CALLMETADATA);
+            super(trigger, id, null, "simulatedFailingAction", "Simulated initial failure repeated " + failureCount + " times", TEST_CALLMETADATA);
             this.failureCounter = new AtomicInteger(failureCount);
         }
 

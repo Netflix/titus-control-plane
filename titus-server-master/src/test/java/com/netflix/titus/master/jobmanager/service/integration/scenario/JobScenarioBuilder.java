@@ -414,6 +414,16 @@ public class JobScenarioBuilder {
         return taskUpdateEvent;
     }
 
+    public JobScenarioBuilder expectArchivedTaskEvent(int taskIdx, int resubmit) {
+        JobManagerEvent<?> event = autoAdvance(() -> jobEventsSubscriber.takeNextTaskEvent(taskIdx, resubmit));
+        assertThat(event).isNotNull();
+        assertThat(event).isInstanceOf(TaskUpdateEvent.class);
+
+        TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+        assertThat(taskUpdateEvent.isArchived()).isTrue();
+        return this;
+    }
+
     public JobScenarioBuilder expectTaskEvent(int taskIdx, int resubmit, Consumer<TaskUpdateEvent> validator) {
         TaskUpdateEvent event = expectTaskEvent(taskIdx, resubmit);
         validator.accept(event);
@@ -674,6 +684,10 @@ public class JobScenarioBuilder {
             advance();
         }
         action.run();
+    }
+
+    Job getJob() {
+        return jobOperations.getJob(jobId).orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
     }
 
     /**

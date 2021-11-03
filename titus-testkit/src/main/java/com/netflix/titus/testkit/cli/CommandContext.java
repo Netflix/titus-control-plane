@@ -23,13 +23,16 @@ import java.util.List;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.ReactorJobManagementServiceStub;
 import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClientWithKeepAlive;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CommonCallMetadataUtils;
 import io.grpc.ManagedChannel;
@@ -110,6 +113,19 @@ public class CommandContext {
                 JobManagementServiceGrpc.getServiceDescriptor()
         );
         return new RemoteJobManagementClient("cli", reactorStub, titusRuntime);
+    }
+
+    public JobManagementClient getJobManagementClientWithKeepAlive(long keepAliveInternalMs) {
+        JobManagementServiceGrpc.JobManagementServiceStub stub = JobManagementServiceGrpc.newStub(createChannel());
+        ReactorJobManagementServiceStub reactorStub = getGrpcToReactorClientFactory().apply(
+                stub,
+                ReactorJobManagementServiceStub.class,
+                JobManagementServiceGrpc.getServiceDescriptor()
+        );
+        JobConnectorConfiguration configuration = Archaius2Ext.newConfiguration(JobConnectorConfiguration.class,
+                "titus.connector.jobService.keepAliveIntervalMs", "" + keepAliveInternalMs
+        );
+        return new RemoteJobManagementClientWithKeepAlive("cli", configuration, stub, reactorStub, titusRuntime);
     }
 
     public void shutdown() {

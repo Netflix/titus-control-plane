@@ -64,6 +64,7 @@ class ObserveJobsSubscription {
     private static final Logger logger = LoggerFactory.getLogger(ObserveJobsSubscription.class);
 
     private final ObserveJobsContext context;
+    private final boolean withArchived;
     private final DefaultJobManagementServiceGrpcMetrics metrics;
     private final TitusRuntime titusRuntime;
 
@@ -84,10 +85,11 @@ class ObserveJobsSubscription {
 
     private final AtomicLong wip = new AtomicLong();
 
-    ObserveJobsSubscription(ObserveJobsContext context) {
+    ObserveJobsSubscription(ObserveJobsContext context, boolean withArchived) {
         this.context = context;
         this.metrics = context.getMetrics();
         this.titusRuntime = context.getTitusRuntime();
+        this.withArchived = withArchived;
     }
 
     void observeJobs(ObserveJobsQuery query, StreamObserver<JobChangeNotification> responseObserver) {
@@ -203,7 +205,9 @@ class ObserveJobsSubscription {
         V3JobQueryCriteriaEvaluator jobsPredicate = new V3JobQueryCriteriaEvaluator(criteria, titusRuntime);
         V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
 
-        Observable<JobChangeNotification> eventStream = context.getJobOperations().observeJobs(jobsPredicate, tasksPredicate, true)
+        Observable<JobChangeNotification> eventStream = context.getJobOperations()
+                .observeJobs(jobsPredicate, tasksPredicate, true)
+                .filter(event -> withArchived || !event.isArchived())
                 // avoid clogging the computation scheduler
                 .observeOn(context.getObserveJobsScheduler())
                 .subscribeOn(context.getObserveJobsScheduler(), false)

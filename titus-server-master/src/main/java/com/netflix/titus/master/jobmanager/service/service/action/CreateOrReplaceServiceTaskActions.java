@@ -36,12 +36,14 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
+
+import static com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders.ATTR_REPLACEMENT_OF;
 
 /**
  * Create a new task or replace a completed task, and persist it into the store. Update reference/store models.
@@ -71,7 +73,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .id(newTask.getId())
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary(summary)
-                .changeWithModelUpdates(self -> jobStore.storeTask(newTask).andThen(Observable.just(createNewTaskModelAction(self, newTask, newRetryer))));
+                .changeWithModelUpdates(self -> jobStore.storeTask(newTask).andThen(Observable.just(createNewTaskModelAction(self, newTask, Optional.empty(), newRetryer))));
     }
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder,
@@ -103,14 +105,19 @@ public class CreateOrReplaceServiceTaskActions {
                 .changeWithModelUpdates(self -> jobStore.replaceTask(oldTask, newTask).andThen(Observable.just(createTaskResubmitModelActions(self, oldTask, newTask, nextTaskRetryer))));
     }
 
-    private static List<ModelActionHolder> createNewTaskModelAction(TitusChangeAction.Builder changeActionBuilder, ServiceJobTask newTask, Retryer newRetryer) {
+    private static List<ModelActionHolder> createNewTaskModelAction(TitusChangeAction.Builder changeActionBuilder,
+                                                                    ServiceJobTask newTask,
+                                                                    Optional<ServiceJobTask> replacementOf,
+                                                                    Retryer newRetryer) {
         List<ModelActionHolder> actions = new ArrayList<>();
         String summary = "Creating new task entity holder";
 
         TitusModelAction.Builder modelBuilder = TitusModelAction.newModelUpdate(changeActionBuilder).summary(summary);
-        actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
-                EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, newRetryer)
-        )));
+        EntityHolder taskHolder = EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, newRetryer);
+        if (replacementOf.isPresent()) {
+            taskHolder = taskHolder.addTag(ATTR_REPLACEMENT_OF, replacementOf.get());
+        }
+        actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(taskHolder)));
         actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask)));
 
         return actions;
@@ -123,7 +130,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .summary("Removing replaced task")
                 .removeTask(oldTask);
         actions.addAll(ModelActionHolder.allModels(removeTaskAction));
-        actions.addAll(createNewTaskModelAction(changeActionBuilder, newTask, nextTaskRetryer));
+        actions.addAll(createNewTaskModelAction(changeActionBuilder, newTask, Optional.of(oldTask), nextTaskRetryer));
 
         return actions;
     }
