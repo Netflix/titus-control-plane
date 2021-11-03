@@ -69,6 +69,7 @@ public class TaskRelocationDataInjectorTest {
 
     private final RelocationServiceClient relocationServiceClient = mock(RelocationServiceClient.class);
     private final RelocationDataReplicator relocationDataReplicator = mock(RelocationDataReplicator.class);
+    private final KubeApiConnector kubeApiConnector = mock(KubeApiConnector.class);
 
     private final TaskRelocationDataInjector taskRelocationDataInjector = new TaskRelocationDataInjector(
             grpcConfiguration,
@@ -76,6 +77,7 @@ public class TaskRelocationDataInjectorTest {
             featureActivationConfiguration,
             relocationServiceClient,
             relocationDataReplicator,
+            kubeApiConnector,
             testScheduler
     );
 

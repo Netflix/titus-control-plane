@@ -63,6 +63,7 @@ class TaskRelocationDataInjector {
     private final RelocationServiceClient relocationServiceClient;
     private final RelocationDataReplicator relocationDataReplicator;
     private final Scheduler scheduler;
+    private final KubeApiConnector kubeApiConnector;
 
     @Inject
     TaskRelocationDataInjector(
@@ -70,8 +71,9 @@ class TaskRelocationDataInjector {
             JobManagerConfiguration jobManagerConfiguration,
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
-            RelocationDataReplicator relocationDataReplicator) {
-        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator, Schedulers.computation());
+            RelocationDataReplicator relocationDataReplicator,
+            KubeApiConnector kubeApiConnector) {
+        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator, kubeApiConnector, Schedulers.computation());
     }
 
     @VisibleForTesting
@@ -81,12 +83,14 @@ class TaskRelocationDataInjector {
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
+            KubeApiConnector kubeApiConnector,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.featureActivationConfiguration = featureActivationConfiguration;
         this.relocationServiceClient = relocationServiceClient;
         this.relocationDataReplicator = relocationDataReplicator;
+        this.kubeApiConnector = kubeApiConnector;
         this.scheduler = scheduler;
     }
 

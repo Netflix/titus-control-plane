@@ -1296,8 +1296,7 @@ public final class GrpcJobManagementModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task
-                                                                          coreTask, LogStorageInfo<Task> logStorageInfo) {
+    public static com.netflix.titus.grpc.protogen.Task toGrpcTask(Task coreTask, LogStorageInfo<Task> logStorageInfo) {
         Map<String, String> taskContext = new HashMap<>(coreTask.getTaskContext());
         taskContext.put(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, coreTask.getOriginalId());
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
