@@ -26,7 +26,11 @@ import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
+import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
+import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
 import com.sampullara.cli.Args;
 import com.sampullara.cli.Argument;
 import org.slf4j.Logger;
@@ -47,6 +51,14 @@ public class TitusGateway {
         }
 
         try {
+            KubeApiConnector kubeApiConnector = new KubeApiConnector(Fabric8IOClients.createFabric8IOClient(), TitusRuntimes.internal());
+            kubeApiConnector.enterActiveMode();
+        } catch (Exception e) {
+            logger.error("Unexpected error: {}", e.getMessage(), e);
+            System.exit(2);
+        }
+
+        try {
             LifecycleInjector injector = InjectorBuilder.fromModules(
                     new TitusGatewayModule(true),
                     new Archaius2JettyModule(),
@@ -60,6 +72,7 @@ public class TitusGateway {
                     }).createInjector();
             injector.getInstance(ContainerEventBus.class).submitInOrder(new ContainerEventBus.ContainerStartedEvent());
             injector.awaitTermination();
+
         } catch (Exception e) {
             logger.error("Unexpected error: {}", e.getMessage(), e);
             System.exit(2);

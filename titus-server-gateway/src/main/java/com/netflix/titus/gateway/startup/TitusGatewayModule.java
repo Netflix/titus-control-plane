@@ -49,6 +49,7 @@ import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 import com.netflix.titus.gateway.endpoint.GatewayEndpointModule;
 import com.netflix.titus.gateway.kubernetes.KubeApiClient;
+import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.FeatureFlagModule;
@@ -100,6 +101,7 @@ public final class TitusGatewayModule extends AbstractModule {
         bind(Registry.class).toInstance(new DefaultRegistry());
         bind(SystemLogService.class).to(LoggingSystemLogService.class);
         bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
+        bind(KubeApiConnector.class).asEagerSingleton();
 
         install(new ContainerEventBusModule());
 

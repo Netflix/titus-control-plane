@@ -51,7 +51,6 @@ public class GatewayGrpcModule extends AbstractModule {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(DefaultSchedulerServiceGrpc.class);
         bind(TitusGatewayGrpcServer.class).asEagerSingleton();
-        bind(KubeApiConnector.class).asEagerSingleton();
     }
 
     @Provides
