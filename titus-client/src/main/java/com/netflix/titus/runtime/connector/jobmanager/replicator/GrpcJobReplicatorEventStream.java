@@ -20,10 +20,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,6 +35,7 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
@@ -71,6 +73,9 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     private final JobSnapshotFactory jobSnapshotFactory;
     private final JobConnectorConfiguration configuration;
 
+    // We read this property on startup as in some places it cannot be changed dynamically.
+    private final boolean keepAliveEnabled;
+
     private final ValueRangeCounter eventProcessingLatencies;
     private final AtomicInteger subscriptionCounter = new AtomicInteger();
 
@@ -95,6 +100,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         this.filteringCriteria = filteringCriteria;
         this.jobSnapshotFactory = jobSnapshotFactory;
         this.configuration = configuration;
+        this.keepAliveEnabled = configuration.isKeepAliveReplicatedStreamEnabled();
 
         PolledMeter.using(titusRuntime.getRegistry()).withName(METRICS_ROOT + "activeSubscriptions").monitorValue(subscriptionCounter);
         this.eventProcessingLatencies = SpectatorExt.newValueRangeCounter(
@@ -108,7 +114,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     protected Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnection() {
         return Flux
                 .<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>>create(sink -> {
-                    CacheUpdater cacheUpdater = new CacheUpdater(jobSnapshotFactory, titusRuntime);
+                    CacheUpdater cacheUpdater = new CacheUpdater(jobSnapshotFactory, keepAliveEnabled, titusRuntime);
                     logger.info("Connecting to the job event stream (filteringCriteria={})...", filteringCriteria);
 
                     ConnectableFlux<JobManagerEvent<?>> connectableStream = client.observeJobs(filteringCriteria).publish();
@@ -150,6 +156,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     static class CacheUpdater {
 
         private final JobSnapshotFactory jobSnapshotFactory;
+        private final boolean archiveMode;
         private final TitusRuntime titusRuntime;
 
         private final long startTime;
@@ -157,8 +164,9 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         private final AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
         private final AtomicLong lastKeepAliveTimestamp;
 
-        CacheUpdater(JobSnapshotFactory jobSnapshotFactory, TitusRuntime titusRuntime) {
+        CacheUpdater(JobSnapshotFactory jobSnapshotFactory, boolean archiveMode, TitusRuntime titusRuntime) {
             this.jobSnapshotFactory = jobSnapshotFactory;
+            this.archiveMode = archiveMode;
             this.titusRuntime = titusRuntime;
             this.startTime = titusRuntime.getClock().wallTime();
             this.lastKeepAliveTimestamp = new AtomicLong(startTime);
@@ -168,16 +176,16 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             if (logger.isDebugEnabled()) {
                 if (event instanceof JobUpdateEvent) {
                     Job job = ((JobUpdateEvent) event).getCurrent();
-                    logger.info("Received job update event: jobId={}, state={}, version={}", job.getId(), job.getStatus(), job.getVersion());
+                    logger.debug("Received job update event: jobId={}, state={}, version={}", job.getId(), job.getStatus(), job.getVersion());
                 } else if (event instanceof TaskUpdateEvent) {
                     Task task = ((TaskUpdateEvent) event).getCurrent();
-                    logger.info("Received task update event: taskId={}, state={}, version={}", task.getId(), task.getStatus(), task.getVersion());
+                    logger.debug("Received task update event: taskId={}, state={}, version={}", task.getId(), task.getStatus(), task.getVersion());
                 } else if (event.equals(JobManagerEvent.snapshotMarker())) {
-                    logger.info("Received snapshot marker");
+                    logger.debug("Received snapshot marker");
                 } else if (event instanceof JobKeepAliveEvent) {
-                    logger.info("Received job keep alive event: {}", event);
+                    logger.debug("Received job keep alive event: {}", event);
                 } else {
-                    logger.info("Received unrecognized event type: {}", event);
+                    logger.debug("Received unrecognized event type: {}", event);
                 }
             }
 
@@ -198,33 +206,50 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
         private ReplicatorEvent<JobSnapshot, JobManagerEvent<?>> buildInitialCache() {
             Map<String, Job<?>> jobs = new HashMap<>();
-            Map<String, Map<String, Task>> tasksByJobId = new HashMap<>();
+            Set<String> jobsToRemove = new HashSet<>();
+
             snapshotEvents.forEach(event -> {
                 if (event instanceof JobUpdateEvent) {
                     Job<?> job = ((JobUpdateEvent) event).getCurrent();
                     jobs.put(job.getId(), job);
-                } else if (event instanceof TaskUpdateEvent) {
-                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
-                    Task task = taskUpdateEvent.getCurrent();
-                    Job<?> taskJob = jobs.get(task.getJobId());
-                    if (taskJob != null) {
-                        tasksByJobId.computeIfAbsent(task.getJobId(), t -> new HashMap<>()).put(task.getId(), task);
-                    } else {
-                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                    if (job.getStatus().getState() == JobState.Finished) {
+                        // If archive mode is disabled, we always remove finished jobs immediately.
+                        if (!archiveMode || event.isArchived()) {
+                            jobsToRemove.add(job.getId());
+                        }
                     }
                 }
             });
 
             // Filter out completed jobs. We could not do it sooner, as the job/task finished state could be proceeded by
             // earlier events so we have to collapse all of it.
-            Iterator<Job<?>> jobIt = jobs.values().iterator();
-            while (jobIt.hasNext()) {
-                Job<?> job = jobIt.next();
-                if (job.getStatus().getState() == JobState.Finished) {
-                    jobIt.remove();
-                    tasksByJobId.remove(job.getId());
+            jobs.keySet().removeAll(jobsToRemove);
+
+            Map<String, Task> tasks = new HashMap<>();
+            Set<String> tasksToRemove = new HashSet<>();
+            snapshotEvents.forEach(event -> {
+                if (event instanceof TaskUpdateEvent) {
+                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+                    Task task = taskUpdateEvent.getCurrent();
+                    Job<?> taskJob = jobs.get(task.getJobId());
+
+                    if (taskJob != null) {
+                        tasks.put(task.getId(), task);
+                        if (task.getStatus().getState() == TaskState.Finished) {
+                            // If archive mode is disabled, we cannot make a good decision about a finished task so we have to keep it.
+                            if (archiveMode) {
+                                tasksToRemove.add(task.getId());
+                            }
+                        }
+                    } else {
+                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                    }
                 }
-            }
+            });
+            tasks.keySet().removeAll(tasksToRemove);
+
+            Map<String, Map<String, Task>> tasksByJobId = new HashMap<>();
+            tasks.forEach((taskId, task) -> tasksByJobId.computeIfAbsent(task.getJobId(), t -> new HashMap<>()).put(task.getId(), task));
 
             JobSnapshot initialSnapshot = jobSnapshotFactory.newSnapshot(jobs, tasksByJobId);
 
@@ -257,7 +282,11 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
                 logger.debug("Processing job snapshot update event: updatedJobId={}", job.getId());
 
-                newSnapshot = lastSnapshot.updateJob(job);
+                if (archiveMode && jobUpdateEvent.isArchived()) {
+                    newSnapshot = lastSnapshot.removeArchivedJob(job);
+                } else {
+                    newSnapshot = lastSnapshot.updateJob(job);
+                }
                 coreEvent = toJobCoreEvent(job);
             } else if (event instanceof TaskUpdateEvent) {
                 TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
@@ -268,7 +297,11 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                 Optional<Job<?>> taskJobOpt = lastSnapshot.findJob(task.getJobId());
                 if (taskJobOpt.isPresent()) {
                     Job<?> taskJob = taskJobOpt.get();
-                    newSnapshot = lastSnapshot.updateTask(task, taskUpdateEvent.isMovedFromAnotherJob());
+                    if (archiveMode && taskUpdateEvent.isArchived()) {
+                        newSnapshot = lastSnapshot.removeArchivedTask(task);
+                    } else {
+                        newSnapshot = lastSnapshot.updateTask(task, taskUpdateEvent.isMovedFromAnotherJob());
+                    }
                     coreEvent = toTaskCoreEvent(taskJob, task, taskUpdateEvent.isMovedFromAnotherJob());
                 } else {
                     titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());

@@ -61,9 +61,9 @@ abstract class CachedJob {
 
     public abstract Optional<JobSnapshot> removeTask(PCollectionJobSnapshot snapshot, Task task);
 
-    public static CachedJob newInstance(Job<?> job, PMap<String, Task> tasks, TitusRuntime titusRuntime) {
+    public static CachedJob newInstance(Job<?> job, PMap<String, Task> tasks, boolean archiveMode, TitusRuntime titusRuntime) {
         if (JobFunctions.isServiceJob(job)) {
-            return CachedServiceJob.newServiceInstance(job, tasks, titusRuntime);
+            return CachedServiceJob.newServiceInstance(job, tasks, archiveMode, titusRuntime);
         }
         int size = JobFunctions.getJobDesiredSize(job);
         if (size == 1) {

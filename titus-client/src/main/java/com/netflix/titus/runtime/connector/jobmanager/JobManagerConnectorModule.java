@@ -73,7 +73,12 @@ public class JobManagerConnectorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public JobSnapshotFactory getJobSnapshotFactory(TitusRuntime titusRuntime) {
-        return JobSnapshotFactories.newDefault(titusRuntime);
+    public JobSnapshotFactory getJobSnapshotFactory(JobConnectorConfiguration configuration,
+                                                    TitusRuntime titusRuntime) {
+        return JobSnapshotFactories.newDefault(false,
+                configuration.isKeepAliveReplicatedStreamEnabled(),
+                error -> titusRuntime.getCodeInvariants().inconsistent(error),
+                titusRuntime
+        );
     }
 }

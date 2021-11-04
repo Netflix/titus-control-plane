@@ -138,6 +138,7 @@ public class CachedBatchJobWithOneTaskTest {
                 Collections.singletonMap(job.getId(), job),
                 Collections.singletonMap(job.getId(), create ? Collections.singletonMap(task.getId(), task) : Collections.emptyMap()),
                 false,
+                false,
                 error -> {
                     throw new IllegalStateException(error);
                 },

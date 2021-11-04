@@ -74,5 +74,9 @@ public abstract class JobSnapshot extends ReplicatedSnapshot {
 
     public abstract Optional<JobSnapshot> updateJob(Job<?> job);
 
+    public abstract Optional<JobSnapshot> removeArchivedJob(Job<?> job);
+
     public abstract Optional<JobSnapshot> updateTask(Task task, boolean moved);
+
+    public abstract Optional<JobSnapshot> removeArchivedTask(Task task);
 }

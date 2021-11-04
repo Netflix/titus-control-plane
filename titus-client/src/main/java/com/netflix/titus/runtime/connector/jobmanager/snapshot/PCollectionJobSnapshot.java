@@ -42,14 +42,14 @@ import org.pcollections.PMap;
  */
 public class PCollectionJobSnapshot extends JobSnapshot {
 
-    private static TitusRuntime titusRuntime;
-
     final PMap<String, CachedJob> cachedJobsById;
     final PMap<String, Job<?>> jobsById;
     final PMap<String, Task> taskById;
 
     private final boolean autoFixInconsistencies;
+    private final boolean archiveMode;
     private final Consumer<String> inconsistentDataListener;
+    private final TitusRuntime titusRuntime;
 
     private final String signature;
 
@@ -67,10 +67,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                                                      Map<String, Job<?>> jobsById,
                                                      Map<String, Map<String, Task>> tasksByJobId,
                                                      boolean autoFixInconsistencies,
+                                                     boolean archiveMode,
                                                      Consumer<String> inconsistentDataListener,
                                                      TitusRuntime titusRuntime) {
-        PCollectionJobSnapshot.titusRuntime = titusRuntime;
-
         Map<String, Task> taskById = new HashMap<>();
         tasksByJobId.forEach((jobId, tasks) -> taskById.putAll(tasks));
 
@@ -78,7 +77,7 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         jobsById.forEach((jobId, job) -> {
             Map<String, Task> taskMap = tasksByJobId.get(jobId);
             PMap<String, Task> tasksPMap = CollectionsExt.isNullOrEmpty(taskMap) ? HashTreePMap.empty() : HashTreePMap.from(taskMap);
-            cachedJobsById.put(jobId, CachedJob.newInstance(job, tasksPMap, titusRuntime));
+            cachedJobsById.put(jobId, CachedJob.newInstance(job, tasksPMap, archiveMode, titusRuntime));
         });
 
         return new PCollectionJobSnapshot(
@@ -87,7 +86,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 HashTreePMap.from(jobsById),
                 HashTreePMap.from(taskById),
                 autoFixInconsistencies,
-                inconsistentDataListener
+                archiveMode,
+                inconsistentDataListener,
+                titusRuntime
         );
     }
 
@@ -96,13 +97,17 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                                    PMap<String, Job<?>> jobsById,
                                    PMap<String, Task> taskById,
                                    boolean autoFixInconsistencies,
-                                   Consumer<String> inconsistentDataListener) {
+                                   boolean archiveMode,
+                                   Consumer<String> inconsistentDataListener,
+                                   TitusRuntime titusRuntime) {
         super(snapshotId);
         this.cachedJobsById = cachedJobsById;
         this.jobsById = jobsById;
         this.taskById = taskById;
         this.autoFixInconsistencies = autoFixInconsistencies;
+        this.archiveMode = archiveMode;
         this.inconsistentDataListener = inconsistentDataListener;
+        this.titusRuntime = titusRuntime;
         this.signature = computeSignature();
     }
 
@@ -188,29 +193,40 @@ public class PCollectionJobSnapshot extends JobSnapshot {
         return Optional.of(Pair.of(job, task));
     }
 
+    @Override
     public Optional<JobSnapshot> updateJob(Job<?> job) {
         Job<?> previous = jobsById.get(job.getId());
         CachedJob cachedJob = cachedJobsById.get(job.getId());
 
         // First time seen
         if (previous == null) {
-            if (job.getStatus().getState() == JobState.Finished) {
+            if (!archiveMode && job.getStatus().getState() == JobState.Finished) {
                 return Optional.empty();
             }
             return Optional.of(newSnapshot(
-                    cachedJobsById.plus(job.getId(), CachedJob.newInstance(job, HashTreePMap.empty(), titusRuntime)),
+                    cachedJobsById.plus(job.getId(), CachedJob.newInstance(job, HashTreePMap.empty(), archiveMode, titusRuntime)),
                     jobsById.plus(job.getId(), job),
                     taskById
             ));
         }
 
         // Update
-        if (job.getStatus().getState() == JobState.Finished) {
+        if (!archiveMode && job.getStatus().getState() == JobState.Finished) {
             return cachedJob.removeJob(this, job);
         }
         return cachedJob.updateJob(this, job);
     }
 
+    @Override
+    public Optional<JobSnapshot> removeArchivedJob(Job<?> job) {
+        CachedJob cachedJob = cachedJobsById.get(job.getId());
+        if (cachedJob == null) {
+            return Optional.empty();
+        }
+        return cachedJob.removeJob(this, job);
+    }
+
+    @Override
     public Optional<JobSnapshot> updateTask(Task task, boolean moved) {
         String jobId = task.getJobId();
         CachedJob cachedJob = cachedJobsById.get(jobId);
@@ -237,6 +253,17 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 : Optional.of(cachedJob.updateTask(currentSnapshot, task).orElse(currentSnapshot));
     }
 
+    @Override
+    public Optional<JobSnapshot> removeArchivedTask(Task task) {
+        String jobId = task.getJobId();
+        CachedJob cachedJob = cachedJobsById.get(jobId);
+        if (cachedJob == null) { // Inconsistent data
+            inconsistentData("job %s not found for task %s", jobId, task.getId());
+            return Optional.empty();
+        }
+        return cachedJob.removeTask(this, task);
+    }
+
     JobSnapshot newSnapshot(PMap<String, CachedJob> cachedJobsById,
                             PMap<String, Job<?>> jobsById,
                             PMap<String, Task> taskById) {
@@ -246,7 +273,9 @@ public class PCollectionJobSnapshot extends JobSnapshot {
                 jobsById,
                 taskById,
                 autoFixInconsistencies,
-                inconsistentDataListener
+                archiveMode,
+                inconsistentDataListener,
+                titusRuntime
         );
     }
 

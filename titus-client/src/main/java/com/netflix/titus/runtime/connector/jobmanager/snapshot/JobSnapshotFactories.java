@@ -29,10 +29,11 @@ public final class JobSnapshotFactories {
 
     /**
      * Default {@link JobSnapshotFactory} throws an exception if inconsistent state is detected.
-     * Use {@link #newDefault(boolean, Consumer, TitusRuntime)} to change this behavior.
+     * Use {@link #newDefault(boolean, boolean, Consumer, TitusRuntime)} to change this behavior.
      */
     public static JobSnapshotFactory newDefault(TitusRuntime titusRuntime) {
         return new PCollectionJobSnapshotFactory(
+                false,
                 false,
                 message -> {
                 },
@@ -48,21 +49,25 @@ public final class JobSnapshotFactories {
     }
 
     public static JobSnapshotFactory newDefault(boolean autoFixInconsistencies,
+                                                boolean archiveMode,
                                                 Consumer<String> inconsistentDataListener,
                                                 TitusRuntime titusRuntime) {
-        return new PCollectionJobSnapshotFactory(autoFixInconsistencies, inconsistentDataListener, titusRuntime);
+        return new PCollectionJobSnapshotFactory(autoFixInconsistencies, archiveMode, inconsistentDataListener, titusRuntime);
     }
 
     private static class PCollectionJobSnapshotFactory implements JobSnapshotFactory {
 
         private final boolean autoFixInconsistencies;
+        private final boolean archiveMode;
         private final Consumer<String> inconsistentDataListener;
         private final TitusRuntime titusRuntime;
 
         private PCollectionJobSnapshotFactory(boolean autoFixInconsistencies,
+                                              boolean archiveMode,
                                               Consumer<String> inconsistentDataListener,
                                               TitusRuntime titusRuntime) {
             this.autoFixInconsistencies = autoFixInconsistencies;
+            this.archiveMode = archiveMode;
             this.inconsistentDataListener = inconsistentDataListener;
             this.titusRuntime = titusRuntime;
         }
@@ -74,6 +79,7 @@ public final class JobSnapshotFactories {
                     jobsById,
                     tasksByJobId,
                     autoFixInconsistencies,
+                    archiveMode,
                     inconsistentDataListener,
                     titusRuntime
             );
