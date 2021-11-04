@@ -106,9 +106,9 @@ io.grpc:grpc-protobuf:1.39.0
 io.grpc:grpc-services:1.39.0
 io.grpc:grpc-stub:1.39.0
 io.gsonfire:gson-fire:1.8.5
-io.kubernetes:client-java-api:12.0.1
-io.kubernetes:client-java-proto:12.0.1
-io.kubernetes:client-java:12.0.1
+io.kubernetes:client-java-api:12.0.2
+io.kubernetes:client-java-proto:12.0.2
+io.kubernetes:client-java:12.0.2
 io.micrometer:micrometer-core:1.5.7
 io.netty:netty-buffer:4.1.54.Final
 io.netty:netty-codec-http2:4.1.54.Final
@@ -157,9 +157,10 @@ org.apache.tomcat.embed:tomcat-embed-core:9.0.39
 org.apache.tomcat.embed:tomcat-embed-websocket:9.0.39
 org.bitbucket.b_c:jose4j:0.7.6
 org.bouncycastle:bcmail-jdk15on:1.52
-org.bouncycastle:bcpkix-jdk15on:1.68
-org.bouncycastle:bcprov-ext-jdk15on:1.68
-org.bouncycastle:bcprov-jdk15on:1.68
+org.bouncycastle:bcpkix-jdk15on:1.69
+org.bouncycastle:bcprov-ext-jdk15on:1.69
+org.bouncycastle:bcprov-jdk15on:1.69
+org.bouncycastle:bcutil-jdk15on:1.69
 org.checkerframework:checker-qual:3.7.0
 org.codehaus.mojo:animal-sniffer-annotations:1.14
 org.eclipse.jetty:jetty-http:9.4.34.v20201102
