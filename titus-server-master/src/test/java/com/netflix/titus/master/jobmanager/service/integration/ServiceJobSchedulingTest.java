@@ -234,6 +234,7 @@ public class ServiceJobSchedulingTest {
                 .expectTaskStateChangeEvent(0, 0, TaskState.Finished, TaskStatus.REASON_TASK_KILLED)
                 .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished))
                 .expectedTaskArchivedInStore(0, 0)
+                .expectArchivedTaskEvent(0, 0)
                 .advance()
                 .advance()
                 .expectNoTaskStateChangeEvent()

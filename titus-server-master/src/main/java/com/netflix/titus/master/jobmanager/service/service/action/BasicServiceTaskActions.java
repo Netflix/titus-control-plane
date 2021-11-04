@@ -32,7 +32,7 @@ public final class BasicServiceTaskActions {
     public static TitusChangeAction removeFinishedServiceTaskAction(JobStore jobStore, ServiceJobTask task) {
         return TitusChangeAction.newAction("removeFinishedServiceTaskAction")
                 .task(task)
-                .trigger(Trigger.Reconciler)
+                .trigger(Trigger.ReconcilerServiceTaskRemoved)
                 .summary("Removing completed task from reconciler")
                 .changeWithModelUpdates(self ->
                         jobStore.deleteTask(task).andThen(

@@ -24,6 +24,7 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -159,13 +160,22 @@ public class ScenarioTemplates {
                     assertThat(task.getStatus().getReasonCode()).isEqualTo(reasonCode);
                 })
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Finished, reasonCode)
+                .andThen(() -> {
+                    if (JobFunctions.isServiceJob(jobScenario.getJob())) {
+                        jobScenario.expectArchivedTaskEvent(taskIdx, resubmit);
+                    }
+                })
                 .advance()
                 .advance()
                 .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
                 .expectJobUpdatedInStore(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
                 .advance()
                 .expectedTaskArchivedInStore(taskIdx, resubmit)
-                .expectJobArchivedInStore();
+                .expectJobArchivedInStore()
+                .expectJobUpdateEventObject(event -> {
+                    assertThat(event.getCurrent().getId()).isEqualTo(jobScenario.getJobId());
+                    assertThat(event.isArchived()).isTrue();
+                });
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder, JobScenarioBuilder> failRetryableTask(int taskIdx, int resubmit) {

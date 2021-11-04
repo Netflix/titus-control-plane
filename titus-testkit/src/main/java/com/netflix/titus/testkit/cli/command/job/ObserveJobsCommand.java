@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -59,13 +60,18 @@ public class ObserveJobsCommand implements CliCommand {
     public Options getOptions() {
         Options options = new Options();
         options.addOption(Option.builder("i").longOpt("job_id").hasArg().desc("Job id").build());
+        options.addOption(Option.builder("l").longOpt("latency").desc("If set, print the propagation latency").build());
+        options.addOption(Option.builder("k").longOpt("keepalive").hasArg().desc("If set, use the keep alive enabled client with the configured interval").build());
         return options;
     }
 
     @Override
     public void execute(CommandContext context) throws Exception {
-        JobManagementClient service = context.getJobManagementClient();
+        long keepAliveMs = context.getCLI().hasOption('k') ? Long.parseLong(context.getCLI().getOptionValue('k')) : -1;
+        JobManagementClient service = keepAliveMs > 0 ? context.getJobManagementClientWithKeepAlive(keepAliveMs) : context.getJobManagementClient();
         Flux<JobManagerEvent<?>> events;
+
+        boolean printLatency = context.getCLI().hasOption('l');
 
         if (context.getCLI().hasOption('i')) {
             String jobId = context.getCLI().getOptionValue('i');
@@ -78,11 +84,11 @@ public class ObserveJobsCommand implements CliCommand {
 
         while (true) {
             logger.info("Establishing a new connection to the job event stream endpoint...");
-            executeOne(events, metrics);
+            executeOnce(events, metrics, printLatency);
         }
     }
 
-    private void executeOne(Flux<JobManagerEvent<?>> events, JobEventPropagationMetrics metrics) throws InterruptedException {
+    private void executeOnce(Flux<JobManagerEvent<?>> events, JobEventPropagationMetrics metrics, boolean printLatency) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean snapshotRead = new AtomicBoolean();
         events.subscribe(
@@ -92,20 +98,26 @@ public class ObserveJobsCommand implements CliCommand {
                         snapshotRead.set(true);
                     } else if (next instanceof JobUpdateEvent) {
                         Job<?> job = ((JobUpdateEvent) next).getCurrent();
-                        logger.info("Emitted job update: jobId={}, jobState={}, version={}",
-                                job.getId(), job.getStatus(), job.getVersion()
+                        logger.info("Emitted job update: jobId={}({}), jobState={}, version={}",
+                                job.getId(), next.isArchived() ? "archived" : job.getStatus().getState(), job.getStatus(), job.getVersion()
                         );
                         Optional<EventPropagationTrace> trace = metrics.recordJob(((JobUpdateEvent) next).getCurrent(), !snapshotRead.get());
-                        trace.ifPresent(t -> {
-                            logger.info("Event propagation data: stages={}", t);
-                        });
+                        if (printLatency) {
+                            trace.ifPresent(t -> {
+                                logger.info("Event propagation data: stages={}", t);
+                            });
+                        }
                     } else if (next instanceof TaskUpdateEvent) {
                         Task task = ((TaskUpdateEvent) next).getCurrent();
-                        logger.info("Emitted task update: jobId={}, taskId={}, taskState={}, version={}",
-                                task.getJobId(), task.getId(), task.getStatus(), task.getVersion()
+                        logger.info("Emitted task update: jobId={}({}), taskId={}, taskState={}, version={}",
+                                task.getJobId(), next.isArchived() ? "archived" : task.getStatus().getState(), task.getId(), task.getStatus(), task.getVersion()
                         );
                         Optional<EventPropagationTrace> trace = metrics.recordTask(((TaskUpdateEvent) next).getCurrent(), !snapshotRead.get());
-                        trace.ifPresent(t -> logger.info("Event propagation data: {}", t));
+                        if (printLatency) {
+                            trace.ifPresent(t -> logger.info("Event propagation data: {}", t));
+                        }
+                    } else if (next instanceof JobKeepAliveEvent) {
+                        logger.info("Keep alive response: " + next);
                     } else {
                         logger.info("Unrecognized event type: {}", next);
                     }

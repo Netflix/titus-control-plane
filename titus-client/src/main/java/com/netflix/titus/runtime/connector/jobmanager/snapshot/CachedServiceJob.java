@@ -28,13 +28,16 @@ import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 
 /**
- * TODO {@link CachedServiceJob} stores only non-finished service tasks, as we cannot distinguish now finished/not-replaced
- * from finished/scaled down. To fix this we would have to add task archived event to explicitly remove it from the cache.
+ * In non-archive mode, {@link CachedServiceJob} stores only not-finished tasks, as we cannot distinguish
+ * finished/not-replaced from finished/scaled down.
  */
 class CachedServiceJob extends CachedJob {
 
-    CachedServiceJob(Job<?> job, PMap<String, Task> tasks, TitusRuntime titusRuntime) {
+    private final boolean archiveMode;
+
+    CachedServiceJob(Job<?> job, PMap<String, Task> tasks, boolean archiveMode, TitusRuntime titusRuntime) {
         super(job, tasks, titusRuntime);
+        this.archiveMode = archiveMode;
     }
 
     @Override
@@ -42,7 +45,7 @@ class CachedServiceJob extends CachedJob {
         if (updatedJob == job) {
             return Optional.empty();
         }
-        CachedServiceJob update = new CachedServiceJob(updatedJob, tasks, titusRuntime);
+        CachedServiceJob update = new CachedServiceJob(updatedJob, tasks, archiveMode, titusRuntime);
         return Optional.ofNullable(snapshot.newSnapshot(
                 snapshot.cachedJobsById.plus(job.getId(), update),
                 snapshot.jobsById.plus(job.getId(), updatedJob),
@@ -55,8 +58,7 @@ class CachedServiceJob extends CachedJob {
         String taskId = updatedTask.getId();
         Task currentTaskVersion = tasks.get(taskId);
 
-        // TODO See above.
-        if (updatedTask.getStatus().getState() == TaskState.Finished) {
+        if (!archiveMode && updatedTask.getStatus().getState() == TaskState.Finished) {
             if (currentTaskVersion == null) {
                 return Optional.empty();
             }
@@ -64,7 +66,7 @@ class CachedServiceJob extends CachedJob {
         }
 
         if (currentTaskVersion == null) {
-            CachedServiceJob update = new CachedServiceJob(job, tasks.plus(taskId, updatedTask), titusRuntime);
+            CachedServiceJob update = new CachedServiceJob(job, tasks.plus(taskId, updatedTask), archiveMode, titusRuntime);
             return Optional.ofNullable(snapshot.newSnapshot(
                     snapshot.cachedJobsById.plus(job.getId(), update),
                     snapshot.jobsById,
@@ -85,7 +87,7 @@ class CachedServiceJob extends CachedJob {
         CachedServiceJob update = new CachedServiceJob(
                 job,
                 tasks.plus(taskId, updatedTask),
-                titusRuntime
+                archiveMode, titusRuntime
         );
         return Optional.ofNullable(snapshot.newSnapshot(
                 snapshot.cachedJobsById.plus(job.getId(), update),
@@ -108,7 +110,7 @@ class CachedServiceJob extends CachedJob {
         if (!tasks.containsKey(task.getId())) {
             return Optional.empty();
         }
-        CachedServiceJob update = new CachedServiceJob(job, tasks.minus(task.getId()), titusRuntime);
+        CachedServiceJob update = new CachedServiceJob(job, tasks.minus(task.getId()), archiveMode, titusRuntime);
         return Optional.ofNullable(snapshot.newSnapshot(
                 snapshot.cachedJobsById.plus(job.getId(), update),
                 snapshot.jobsById,
@@ -116,15 +118,20 @@ class CachedServiceJob extends CachedJob {
         ));
     }
 
-    public static CachedJob newServiceInstance(Job<?> job, PMap<String, Task> tasks, TitusRuntime titusRuntime) {
-        // Filter out finished tasks.
-        Map<String, Task> filtered = new HashMap<>();
-        tasks.forEach((taskId, task) -> {
-            if (task.getStatus().getState() != TaskState.Finished) {
-                filtered.put(taskId, task);
-            }
-        });
+    public static CachedJob newServiceInstance(Job<?> job, PMap<String, Task> tasks, boolean archiveMode, TitusRuntime titusRuntime) {
+        // Filter out finished tasks if the archive mode is not enabled.
+        Map<String, Task> filtered;
+        if (archiveMode) {
+            filtered = tasks;
+        } else {
+            filtered = new HashMap<>();
+            tasks.forEach((taskId, task) -> {
+                if (task.getStatus().getState() != TaskState.Finished) {
+                    filtered.put(taskId, task);
+                }
+            });
+        }
 
-        return new CachedServiceJob(job, HashTreePMap.from(filtered), titusRuntime);
+        return new CachedServiceJob(job, HashTreePMap.from(filtered), archiveMode, titusRuntime);
     }
 }

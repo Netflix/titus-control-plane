@@ -68,6 +68,6 @@ public class PCollectionJobSnapshotTest {
     }
 
     private JobSnapshotFactory newFactory(boolean autoFix) {
-        return JobSnapshotFactories.newDefault(autoFix, inconsistenciesReports::add, titusRuntime);
+        return JobSnapshotFactories.newDefault(autoFix, false, inconsistenciesReports::add, titusRuntime);
     }
 }

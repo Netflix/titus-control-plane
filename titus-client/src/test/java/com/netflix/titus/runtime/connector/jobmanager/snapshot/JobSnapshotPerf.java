@@ -74,7 +74,7 @@ public class JobSnapshotPerf {
             jobAndTasks = jobAndTasks.plus(Pair.of(job, HashTreePMap.from(tasks)));
         }
         this.snapshot = PCollectionJobSnapshot.newInstance(
-                "test", jobs, taskByJobId, false, message -> {
+                "test", jobs, taskByJobId, false, false, message -> {
                 },
                 titusRuntime
         );

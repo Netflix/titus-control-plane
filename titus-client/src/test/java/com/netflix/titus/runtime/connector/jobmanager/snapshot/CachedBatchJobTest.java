@@ -138,9 +138,10 @@ public class CachedBatchJobTest {
             }
         }
 
-        PCollectionJobSnapshot snapshot = (PCollectionJobSnapshot) PCollectionJobSnapshot.newInstance("test",
+        PCollectionJobSnapshot snapshot = PCollectionJobSnapshot.newInstance("test",
                 Collections.singletonMap(job.getId(), job),
                 Collections.singletonMap(job.getId(), tasks),
+                false,
                 false,
                 error -> {
                     throw new IllegalStateException(error);

@@ -25,6 +25,8 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 
+import static com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions.ATTR_JOB_CLOSED;
+
 public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent {
 
     protected JobModelReconcilerEvent(Job<?> job, String transactionId, CallMetadata callMetadata) {
@@ -50,6 +52,7 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
         private final ModelActionHolder modelActionHolder;
         private final EntityHolder changedEntityHolder;
         private final Optional<EntityHolder> previousEntityHolder;
+        private final boolean archived;
 
         public JobModelUpdateReconcilerEvent(Job<?> job,
                                              TitusChangeAction changeAction,
@@ -62,6 +65,13 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
             this.modelActionHolder = modelActionHolder;
             this.changedEntityHolder = changedEntityHolder;
             this.previousEntityHolder = previousEntityHolder;
+
+            if (changedEntityHolder.getEntity() instanceof Job) {
+                Boolean closed = (Boolean) changedEntityHolder.getAttributes().get(ATTR_JOB_CLOSED);
+                this.archived = closed != null && closed;
+            } else {
+                this.archived = false;
+            }
         }
 
         public TitusChangeAction getChangeAction() {
@@ -78,6 +88,10 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
 
         public Optional<EntityHolder> getPreviousEntityHolder() {
             return previousEntityHolder;
+        }
+
+        public boolean isArchived() {
+            return archived;
         }
     }
 

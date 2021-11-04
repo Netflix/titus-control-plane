@@ -203,6 +203,11 @@ public class RemoteJobManagementClient implements JobManagementClient {
 
                                 Job oldJob = jobMap.get(newJob.getId());
                                 jobMap.put(newJob.getId(), newJob);
+
+                                if (event.getJobUpdate().getArchived()) {
+                                    return JobUpdateEvent.jobArchived(newJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
+                                }
+
                                 return oldJob == null
                                         ? JobUpdateEvent.newJob(newJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA)
                                         : JobUpdateEvent.jobChange(newJob, oldJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
@@ -222,6 +227,9 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 // Check if task moved
                                 if (isTaskMoved(newTask, oldTask)) {
                                     return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
+                                }
+                                if (event.getTaskUpdate().getArchived()) {
+                                    return TaskUpdateEvent.taskArchived(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
                                 }
 
                                 return oldTask == null

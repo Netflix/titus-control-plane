@@ -70,8 +70,8 @@ public class JobSchedulingCommonTest {
     }
 
     /**
-     * This test covers the case where a task is created in store, but not added to Fenzo yet, and the job while in this
-     * state is terminated.
+     * This test covers the case where a task is created in store, but not added to the compute provider yet, and
+     * the job while in this state is terminated.
      */
     private void testJobWithTaskInAcceptedStateNotScheduledYet(JobDescriptor<?> oneTaskJobDescriptor) {
         jobsScenarioBuilder.scheduleJob(oneTaskJobDescriptor, jobScenario -> jobScenario

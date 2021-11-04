@@ -601,12 +601,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void observeJobs(ObserveJobsQuery query, StreamObserver<JobChangeNotification> responseObserver) {
-        new ObserveJobsSubscription(eventProcessingContext).observeJobs(query, responseObserver);
+        new ObserveJobsSubscription(eventProcessingContext, false).observeJobs(query, responseObserver);
     }
 
     @Override
     public StreamObserver<ObserveJobsWithKeepAliveRequest> observeJobsWithKeepAlive(StreamObserver<JobChangeNotification> responseObserver) {
-        return new ObserveJobsSubscription(eventProcessingContext).observeJobsWithKeepAlive(responseObserver);
+        return new ObserveJobsSubscription(eventProcessingContext, true).observeJobsWithKeepAlive(responseObserver);
     }
 
     @Override

@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -1379,6 +1378,7 @@ public final class GrpcJobManagementModelConverters {
             return JobChangeNotification.newBuilder()
                     .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder()
                             .setJob(grpcObjectsCache.getJob(jobUpdateEvent.getCurrent()))
+                            .setArchived(event.isArchived())
                     )
                     .setTimestamp(now)
                     .build();
@@ -1389,6 +1389,7 @@ public final class GrpcJobManagementModelConverters {
                     .setTaskUpdate(
                             JobChangeNotification.TaskUpdate.newBuilder()
                                     .setTask(grpcObjectsCache.getTask(taskUpdateEvent.getCurrent()))
+                                    .setArchived(event.isArchived())
                                     .setMovedFromAnotherJob(taskUpdateEvent.isMovedFromAnotherJob())
                     )
                     .setTimestamp(now)

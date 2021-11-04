@@ -37,7 +37,7 @@ public interface JobConnectorConfiguration {
     /**
      * Enable {@link JobDataReplicator} with the server side keep alive mechanism. Use only in TitusGateway.
      */
-    @DefaultValue("true")
+    @DefaultValue("false")
     boolean isKeepAliveReplicatedStreamEnabled();
 
     /**

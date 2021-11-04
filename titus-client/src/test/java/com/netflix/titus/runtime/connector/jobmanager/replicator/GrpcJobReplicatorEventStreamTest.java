@@ -258,7 +258,7 @@ public class GrpcJobReplicatorEventStreamTest {
         Job<?> finishedJob = JobFunctions.changeJobStatus(acceptedJob, JobStatus.newBuilder().withState(JobState.Finished).build());
         Task finishedTask = JobFunctions.changeTaskStatus(acceptedTask, TaskStatus.newBuilder().withState(TaskState.Finished).build());
 
-        CacheUpdater cacheUpdater = new CacheUpdater(JobSnapshotFactories.newDefault(titusRuntime), titusRuntime);
+        CacheUpdater cacheUpdater = new CacheUpdater(JobSnapshotFactories.newDefault(titusRuntime), false, titusRuntime);
         assertThat(cacheUpdater.onEvent(JobUpdateEvent.newJob(acceptedJob, CallMetadataConstants.UNDEFINED_CALL_METADATA))).isEmpty();
         assertThat(cacheUpdater.onEvent(TaskUpdateEvent.newTask(acceptedJob, acceptedTask, CallMetadataConstants.UNDEFINED_CALL_METADATA))).isEmpty();
         assertThat(cacheUpdater.onEvent(TaskUpdateEvent.taskChange(acceptedJob, finishedTask, acceptedTask, CallMetadataConstants.UNDEFINED_CALL_METADATA))).isEmpty();

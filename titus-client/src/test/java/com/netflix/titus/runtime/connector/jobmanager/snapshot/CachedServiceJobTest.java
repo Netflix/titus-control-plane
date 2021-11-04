@@ -49,14 +49,14 @@ public class CachedServiceJobTest {
         Job<ServiceJobExt> job = jobAndTasks.getLeft();
         PMap<String, Task> tasks = jobAndTasks.getRight();
 
-        CachedJob cached1 = CachedServiceJob.newServiceInstance(job, tasks, titusRuntime);
+        CachedJob cached1 = CachedServiceJob.newServiceInstance(job, tasks, false, titusRuntime);
         assertThat(cached1.getJob()).isEqualTo(job);
         assertThat(cached1.getTasks()).containsAllEntriesOf(tasks);
     }
 
     @Test
     public void testUpdateJob() {
-        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2);
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2, false);
         CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
 
         Job<?> updatedJob = JobFunctions.changeJobStatus(cached1.getJob(), JobStatus.newBuilder().withState(JobState.KillInitiated).build());
@@ -67,7 +67,7 @@ public class CachedServiceJobTest {
 
     @Test
     public void testRemoveJob() {
-        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2);
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2, false);
         CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
 
         Job<?> updatedJob = JobFunctions.changeJobStatus(cached1.getJob(), JobStatus.newBuilder().withState(JobState.Finished).build());
@@ -79,7 +79,7 @@ public class CachedServiceJobTest {
 
     @Test
     public void testAddTask() {
-        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2);
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2, false);
 
         // Empty
         CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
@@ -95,7 +95,7 @@ public class CachedServiceJobTest {
 
     @Test
     public void testUpdateTask() {
-        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2);
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2, false);
         CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
 
         Task someTask = CollectionsExt.first(cached1.getTasks().values());
@@ -108,19 +108,27 @@ public class CachedServiceJobTest {
 
     @Test
     public void testUpdateFinishedTask() {
-        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2);
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2, true);
         CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
 
         Task someTask = CollectionsExt.first(cached1.getTasks().values());
         Task updatedTask = someTask.toBuilder().withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build()).build();
+
+        // In archive mode we do not remove finished tasks immediately
         PCollectionJobSnapshot snapshot2 = (PCollectionJobSnapshot) cached1.updateTask(initialSnapshot, updatedTask).orElse(null);
         CachedJob cached2 = CollectionsExt.first(snapshot2.cachedJobsById.values());
-        assertThat(cached2.getTasks()).hasSize(1);
+        assertThat(cached2.getTasks()).hasSize(2);
+        assertThat(cached2.getTasks().get(updatedTask.getId()).getStatus().getState()).isEqualTo(TaskState.Finished);
+
+        // Now remove it explicitly
+        PCollectionJobSnapshot snapshot3 = (PCollectionJobSnapshot) cached1.removeTask(initialSnapshot, updatedTask).orElse(null);
+        CachedJob cached3 = CollectionsExt.first(snapshot3.cachedJobsById.values());
+        assertThat(cached3.getTasks()).hasSize(1);
     }
 
     @Test
     public void testRemoveTask() {
-        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2);
+        PCollectionJobSnapshot initialSnapshot = initialSnapshot(2, false);
         CachedJob cached1 = CollectionsExt.first(initialSnapshot.cachedJobsById.values());
 
         Task someTask = CollectionsExt.first(cached1.getTasks().values());
@@ -129,7 +137,7 @@ public class CachedServiceJobTest {
         assertThat(cached2.getTasks()).hasSize(1);
     }
 
-    private PCollectionJobSnapshot initialSnapshot(int taskCount) {
+    private PCollectionJobSnapshot initialSnapshot(int taskCount, boolean archiveMode) {
         Pair<Job<ServiceJobExt>, PMap<String, Task>> jobAndTasks = newServiceJobWithTasks(0, taskCount, 1_000);
         Job<ServiceJobExt> job = jobAndTasks.getLeft();
         Map<String, Task> tasks = new HashMap<>(jobAndTasks.getRight());
@@ -139,6 +147,7 @@ public class CachedServiceJobTest {
                 Collections.singletonMap(job.getId(), job),
                 Collections.singletonMap(job.getId(), tasks),
                 false,
+                archiveMode,
                 error -> {
                     throw new IllegalStateException(error);
                 },

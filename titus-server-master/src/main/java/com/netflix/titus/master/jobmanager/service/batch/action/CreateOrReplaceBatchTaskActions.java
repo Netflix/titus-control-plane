@@ -19,6 +19,7 @@ package com.netflix.titus.master.jobmanager.service.batch.action;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -35,8 +36,9 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.JobServiceRuntime;
+import com.netflix.titus.master.jobmanager.service.VersionSupplier;
+import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -75,7 +77,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .summary(
                         String.format("Creating new task at index %d in DB store: %s", newTask.getIndex(), newTask.getId())
                 )
-                .changeWithModelUpdates(self -> jobStore.storeTask(newTask).andThen(Observable.just(createNewTaskModelAction(self, newTask, newRetryer))));
+                .changeWithModelUpdates(self -> jobStore.storeTask(newTask).andThen(Observable.just(createNewTaskModelAction(self, newTask, Optional.empty(), newRetryer))));
     }
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder,
@@ -107,13 +109,18 @@ public class CreateOrReplaceBatchTaskActions {
                 .changeWithModelUpdates(self -> jobStore.replaceTask(oldTask, newTask).andThen(Observable.just(createTaskResubmitModelActions(self, oldTask, newTask, nextTaskRetryer))));
     }
 
-    private static List<ModelActionHolder> createNewTaskModelAction(TitusChangeAction.Builder changeActionBuilder, BatchJobTask newTask, Retryer nextTaskRetryer) {
+    private static List<ModelActionHolder> createNewTaskModelAction(TitusChangeAction.Builder changeActionBuilder,
+                                                                    BatchJobTask newTask,
+                                                                    Optional<BatchJobTask> replacementOf,
+                                                                    Retryer nextTaskRetryer) {
         List<ModelActionHolder> actions = new ArrayList<>();
 
         TitusModelAction.Builder modelBuilder = TitusModelAction.newModelUpdate(changeActionBuilder).summary("Creating new task entity holder");
-        actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
-                EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, nextTaskRetryer)
-        )));
+        EntityHolder taskHolder = EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, nextTaskRetryer);
+        if (replacementOf.isPresent()) {
+            taskHolder = taskHolder.addTag(JobEntityHolders.ATTR_REPLACEMENT_OF, replacementOf.get());
+        }
+        actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(taskHolder)));
         actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask)));
 
         return actions;
@@ -129,7 +136,7 @@ public class CreateOrReplaceBatchTaskActions {
 
         boolean shouldRetry = !TaskStatus.REASON_NORMAL.equals(oldTask.getStatus().getReasonCode());
         if (shouldRetry) {
-            actions.addAll(createNewTaskModelAction(changeActionBuilder, newTask, nextTaskRetryer));
+            actions.addAll(createNewTaskModelAction(changeActionBuilder, newTask, Optional.of(oldTask), nextTaskRetryer));
         }
         return actions;
     }

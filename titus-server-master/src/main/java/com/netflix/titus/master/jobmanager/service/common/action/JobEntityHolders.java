@@ -32,6 +32,8 @@ import rx.Observable;
  */
 public final class JobEntityHolders {
 
+    public static final String ATTR_REPLACEMENT_OF = "replacementOf";
+
     public static Optional<EntityHolder> expectTaskHolder(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId, TitusRuntime titusRuntime) {
         Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
         if (taskHolder.isPresent()) {
