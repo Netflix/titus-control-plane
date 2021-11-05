@@ -10,6 +10,8 @@ dependencies {
 
     // Misc dependencies
     compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
+    compile "io.fabric8:kubernetes-client:${fabric8ioKubeClient}"
+
 
     testCompile project(':titus-testkit')
     testCompile "com.netflix.governator:governator-test-junit:${governatorVersion}"

@@ -16,6 +16,10 @@ import javax.naming.Name;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.ExecutorsExt;
@@ -24,6 +28,8 @@ import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.tuple.Either;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import io.fabric8.kubernetes.api.model.Node;
@@ -40,6 +46,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
+import rx.Completable;
 
 import static com.netflix.titus.gateway.kubernetes.F8KubeObjectFormatter.formatPodEssentials;
 
@@ -52,15 +59,22 @@ public class KubeApiConnector {
     private volatile SharedInformerFactory sharedInformerFactory;
     private volatile SharedIndexInformer<Pod> podInformer;
     private volatile SharedIndexInformer<Node> nodeInformer;
+    private final ReadOnlyJobOperations jobService;
 
     private ExecutorService notificationHandlerExecutor;
     private Scheduler scheduler;
     private Disposable subscription;
 
     @Inject
-    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime) {
+    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime, ReadOnlyJobOperations jobService) {
         this.kubernetesClient = kubernetesClient;
         this.titusRuntime = titusRuntime;
+        this.jobService = jobService;
+        enterActiveMode();
+        try {
+            Thread.sleep(3600_1000);
+        } catch (InterruptedException ignore) {
+        }
     }
 
     private final Object activationLock = new Object();
@@ -74,6 +88,12 @@ public class KubeApiConnector {
     private SharedIndexInformer<Pod> createPodInformer(SharedInformerFactory sharedInformerFactory) {
         return sharedInformerFactory.sharedIndexInformerFor(
                 Pod.class,
+                3000);
+    }
+
+    private SharedIndexInformer<Node> createNodeInformer(SharedInformerFactory sharedInformerFactory) {
+        return sharedInformerFactory.sharedIndexInformerFor(
+                Node.class,
                 3000);
     }
 
@@ -112,6 +132,7 @@ public class KubeApiConnector {
             try {
                 this.sharedInformerFactory = kubernetesClient.informers();
                 this.podInformer = createPodInformer(sharedInformerFactory);
+                this.nodeInformer = createNodeInformer(sharedInformerFactory);
                 sharedInformerFactory.startAllRegisteredInformers();
                 logger.info("Kube pod informer activated");
             } catch (Exception e) {
@@ -212,7 +233,6 @@ public class KubeApiConnector {
         });
     }
 
-    @Activator
     public void enterActiveMode() {
         this.scheduler = initializeNotificationScheduler();
         AtomicLong pendingCounter = new AtomicLong();
@@ -248,7 +268,21 @@ public class KubeApiConnector {
                         () -> logger.info("Event stream completed")
                 );
     }
+
     private Mono<Void> processEvent(PodEvent event) {
+        Pair<Job<?>, Task> jobAndTask = jobService.findTaskById(event.getTaskId()).orElse(null);
+        if (jobAndTask == null) {
+            logger.warn("Got Kube notification about unknown task: {}", event.getTaskId());
+            return Mono.empty();
+        }
+
+        Task task = jobAndTask.getRight();
+        // This is basic sanity check. If it fails, we have a major problem with pod state.
+        if (event.getPod() == null || event.getPod().getStatus() == null || event.getPod().getStatus().getPhase() == null) {
+            logger.warn("Pod notification with pod without status or phase set: taskId={}, pod={}", task.getId(), event.getPod());
+            return Mono.empty();
+        }
+
         return Mono.empty();
     }
 
