@@ -238,7 +238,7 @@ public class V1SpecPodFactoryTest {
         assertThat(v1NFSVolume.getName()).isEqualTo("1-2-3-4-relative--vol");
         assertThat(v1NFSVolume.getNfs().getServer()).isEqualTo("1.2.3.4");
         assertThat(v1NFSVolume.getNfs().getPath()).isEqualTo("/relative/");
-        assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(true);
+        assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(false);
 
         // Part 2: the volume mount section needs to applied to the first container in the podspec
         List<V1VolumeMount> vms = pod.getSpec().getContainers().get(0).getVolumeMounts();
@@ -246,6 +246,8 @@ public class V1SpecPodFactoryTest {
         V1VolumeMount v1NFSvm = vms.get(0);
         assertThat(v1NFSvm.getName()).isEqualTo("1-2-3-4-relative--vol");
         assertThat(v1NFSvm.getMountPath()).isEqualTo("/mountpoint");
+        assertThat(v1NFSvm.getReadOnly()).isEqualTo(true);
+
     }
 
     @Test
@@ -255,11 +257,12 @@ public class V1SpecPodFactoryTest {
 
         EfsMount newEfsMount = new EfsMount("1.2.3.4", "/mountpoint", EfsMount.MountPerm.RO, "/relative");
         EfsMount newEfsMount2 = new EfsMount("1.2.3.4", "/mountpoint2", EfsMount.MountPerm.RO, "/relative");
+        EfsMount newEfsMount3 = new EfsMount("1.2.3.4", "/mountpoint3", EfsMount.MountPerm.RW, "/relative");
 
         Container newContainer = job.getJobDescriptor().getContainer();
         ContainerResources newContainerResources = newContainer.getContainerResources();
         Container newContainerWithEFS = newContainer.toBuilder().withContainerResources(newContainerResources.newBuilder()
-                .withEfsMounts(Arrays.asList(newEfsMount, newEfsMount2))
+                .withEfsMounts(Arrays.asList(newEfsMount, newEfsMount2, newEfsMount3))
                 .build()).build();
 
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
@@ -275,17 +278,25 @@ public class V1SpecPodFactoryTest {
         assertThat(v1NFSVolume.getName()).isEqualTo("1-2-3-4-relative-vol");
         assertThat(v1NFSVolume.getNfs().getServer()).isEqualTo("1.2.3.4");
         assertThat(v1NFSVolume.getNfs().getPath()).isEqualTo("/relative");
-        assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(true);
+        // All NFS volumes that are generated like this should be RW, and
+        // delegating the actual RO/RW state to the volume *mount*.
+        assertThat(v1NFSVolume.getNfs().getReadOnly()).isEqualTo(false);
 
-        // Part 2: there should be *two* volume mounts, both sharing the volume
+        // Part 2: there should be *3* volume mounts, all sharing the volume
         List<V1VolumeMount> vms = pod.getSpec().getContainers().get(0).getVolumeMounts();
-        assertThat(vms.size()).isEqualTo(3); // 2 for nfs, one for shm
-        V1VolumeMount v1NFSvm = vms.get(0);
-        assertThat(v1NFSvm.getName()).isEqualTo("1-2-3-4-relative-vol");
-        assertThat(v1NFSvm.getMountPath()).isEqualTo("/mountpoint");
+        assertThat(vms.size()).isEqualTo(4); // 3 for nfs, one for shm
+        V1VolumeMount v1NFSvm1 = vms.get(0);
+        assertThat(v1NFSvm1.getName()).isEqualTo("1-2-3-4-relative-vol");
+        assertThat(v1NFSvm1.getMountPath()).isEqualTo("/mountpoint");
+        assertThat(v1NFSvm1.getReadOnly()).isTrue();
         V1VolumeMount v1NFSvm2 = vms.get(1);
         assertThat(v1NFSvm2.getName()).isEqualTo("1-2-3-4-relative-vol");
         assertThat(v1NFSvm2.getMountPath()).isEqualTo("/mountpoint2");
+        assertThat(v1NFSvm2.getReadOnly()).isTrue();
+        V1VolumeMount v1NFSvm3 = vms.get(2);
+        assertThat(v1NFSvm3.getName()).isEqualTo("1-2-3-4-relative-vol");
+        assertThat(v1NFSvm3.getMountPath()).isEqualTo("/mountpoint3");
+        assertThat(v1NFSvm3.getReadOnly()).isFalse();
     }
 
 }
