@@ -539,7 +539,8 @@ public class V1SpecPodFactory implements PodFactory {
 
             V1VolumeMount volumeMount = new V1VolumeMount()
                     .name(name)
-                    .mountPath(efsMountPoint);
+                    .mountPath(efsMountPoint)
+                    .readOnly(readOnly);
             container.addVolumeMountsItem(volumeMount);
 
             // We can't have duplicate volumes in here. In theory there should be a many:one mapping between
@@ -549,7 +550,7 @@ public class V1SpecPodFactory implements PodFactory {
             if (!allNames.contains(name)) {
                 V1NFSVolumeSource nfsVolumeSource = new V1NFSVolumeSource()
                         .server(efsIdToNFSServer(efsId))
-                        .readOnly(readOnly);
+                        .readOnly(false);
                 // "path" here represents the server-side relative mount path, sometimes called
                 // the "exported directory", and goes into the v1 Volume
                 nfsVolumeSource.setPath(efsRelativeMountPoint);
