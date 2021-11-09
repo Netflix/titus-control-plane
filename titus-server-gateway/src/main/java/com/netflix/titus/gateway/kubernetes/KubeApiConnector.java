@@ -12,26 +12,20 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.naming.Name;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
-import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
@@ -71,10 +65,6 @@ public class KubeApiConnector {
         this.titusRuntime = titusRuntime;
         this.jobService = jobService;
         enterActiveMode();
-        try {
-            Thread.sleep(3600_1000);
-        } catch (InterruptedException ignore) {
-        }
     }
 
     private final Object activationLock = new Object();
@@ -233,7 +223,9 @@ public class KubeApiConnector {
         });
     }
 
+    @Activator
     public void enterActiveMode() {
+        logger.info("Kube api connector entering active mode");
         this.scheduler = initializeNotificationScheduler();
         AtomicLong pendingCounter = new AtomicLong();
         this.subscription = this.events().subscribeOn(scheduler)
