@@ -19,8 +19,10 @@ package com.netflix.titus.testkit.cli.command.job;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
@@ -37,6 +39,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 /**
@@ -60,7 +63,9 @@ public class ObserveJobsCommand implements CliCommand {
     public Options getOptions() {
         Options options = new Options();
         options.addOption(Option.builder("i").longOpt("job_id").hasArg().desc("Job id").build());
+        options.addOption(Option.builder("s").longOpt("snapshot").desc("Fetch snapshot end exit").build());
         options.addOption(Option.builder("l").longOpt("latency").desc("If set, print the propagation latency").build());
+        options.addOption(Option.builder("n").longOpt("no-event").desc("If set, do not print the events").build());
         options.addOption(Option.builder("k").longOpt("keepalive").hasArg().desc("If set, use the keep alive enabled client with the configured interval").build());
         return options;
     }
@@ -72,6 +77,8 @@ public class ObserveJobsCommand implements CliCommand {
         Flux<JobManagerEvent<?>> events;
 
         boolean printLatency = context.getCLI().hasOption('l');
+        boolean printEvents = !context.getCLI().hasOption('n');
+        boolean snapshotOnly = context.getCLI().hasOption('s');
 
         if (context.getCLI().hasOption('i')) {
             String jobId = context.getCLI().getOptionValue('i');
@@ -84,23 +91,32 @@ public class ObserveJobsCommand implements CliCommand {
 
         while (true) {
             logger.info("Establishing a new connection to the job event stream endpoint...");
-            executeOnce(events, metrics, printLatency);
+            executeOnce(events, metrics, printLatency, printEvents, snapshotOnly);
+            if (snapshotOnly) {
+                return;
+            }
         }
     }
 
-    private void executeOnce(Flux<JobManagerEvent<?>> events, JobEventPropagationMetrics metrics, boolean printLatency) throws InterruptedException {
+    private void executeOnce(Flux<JobManagerEvent<?>> events, JobEventPropagationMetrics metrics, boolean printLatency, boolean printEvents, boolean snapshotOnly) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean snapshotRead = new AtomicBoolean();
-        events.subscribe(
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        Disposable disposable = events.subscribe(
                 next -> {
                     if (next == JobManagerEvent.snapshotMarker()) {
-                        logger.info("Emitted: snapshot marker");
+                        logger.info("Emitted: snapshot marker in {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
                         snapshotRead.set(true);
+                        if (snapshotOnly) {
+                            latch.countDown();
+                        }
                     } else if (next instanceof JobUpdateEvent) {
                         Job<?> job = ((JobUpdateEvent) next).getCurrent();
-                        logger.info("Emitted job update: jobId={}({}), jobState={}, version={}",
-                                job.getId(), next.isArchived() ? "archived" : job.getStatus().getState(), job.getStatus(), job.getVersion()
-                        );
+                        if (printEvents) {
+                            logger.info("Emitted job update: jobId={}({}), jobState={}, version={}",
+                                    job.getId(), next.isArchived() ? "archived" : job.getStatus().getState(), job.getStatus(), job.getVersion()
+                            );
+                        }
                         Optional<EventPropagationTrace> trace = metrics.recordJob(((JobUpdateEvent) next).getCurrent(), !snapshotRead.get());
                         if (printLatency) {
                             trace.ifPresent(t -> {
@@ -109,15 +125,19 @@ public class ObserveJobsCommand implements CliCommand {
                         }
                     } else if (next instanceof TaskUpdateEvent) {
                         Task task = ((TaskUpdateEvent) next).getCurrent();
-                        logger.info("Emitted task update: jobId={}({}), taskId={}, taskState={}, version={}",
-                                task.getJobId(), next.isArchived() ? "archived" : task.getStatus().getState(), task.getId(), task.getStatus(), task.getVersion()
-                        );
+                        if (printEvents) {
+                            logger.info("Emitted task update: jobId={}({}), taskId={}, taskState={}, version={}",
+                                    task.getJobId(), next.isArchived() ? "archived" : task.getStatus().getState(), task.getId(), task.getStatus(), task.getVersion()
+                            );
+                        }
                         Optional<EventPropagationTrace> trace = metrics.recordTask(((TaskUpdateEvent) next).getCurrent(), !snapshotRead.get());
                         if (printLatency) {
                             trace.ifPresent(t -> logger.info("Event propagation data: {}", t));
                         }
                     } else if (next instanceof JobKeepAliveEvent) {
-                        logger.info("Keep alive response: " + next);
+                        if (printEvents) {
+                            logger.info("Keep alive response: " + next);
+                        }
                     } else {
                         logger.info("Unrecognized event type: {}", next);
                     }
@@ -132,5 +152,6 @@ public class ObserveJobsCommand implements CliCommand {
                 }
         );
         latch.await();
+        disposable.dispose();
     }
 }
