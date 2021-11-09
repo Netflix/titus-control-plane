@@ -16,8 +16,7 @@
 
 package com.netflix.titus.testkit.cli.command.job;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -64,7 +63,6 @@ public class ObserveJobsCommand implements CliCommand {
     public Options getOptions() {
         Options options = new Options();
         options.addOption(Option.builder("i").longOpt("job_id").hasArg().desc("Job id").build());
-        options.addOption(Option.builder("f").longOpt("fields").hasArg().desc("Fields filter").build());
         options.addOption(Option.builder("s").longOpt("snapshot").desc("Fetch snapshot end exit").build());
         options.addOption(Option.builder("l").longOpt("latency").desc("If set, print the propagation latency").build());
         options.addOption(Option.builder("n").longOpt("no-event").desc("If set, do not print the events").build());
@@ -78,7 +76,6 @@ public class ObserveJobsCommand implements CliCommand {
         JobManagementClient service = keepAliveMs > 0 ? context.getJobManagementClientWithKeepAlive(keepAliveMs) : context.getJobManagementClient();
         Flux<JobManagerEvent<?>> events;
 
-        String fieldsFilter = context.getCLI().getOptionValue('f');
         boolean printLatency = context.getCLI().hasOption('l');
         boolean printEvents = !context.getCLI().hasOption('n');
         boolean snapshotOnly = context.getCLI().hasOption('s');
@@ -87,11 +84,7 @@ public class ObserveJobsCommand implements CliCommand {
             String jobId = context.getCLI().getOptionValue('i');
             events = service.observeJob(jobId);
         } else {
-            Map<String, String> query = new HashMap<>();
-            if(fieldsFilter != null) {
-                query.put("fields", fieldsFilter);
-            }
-            events = service.observeJobs(query);
+            events = service.observeJobs(Collections.emptyMap());
         }
 
         JobEventPropagationMetrics metrics = JobEventPropagationMetrics.newExternalClientMetrics("cli", context.getTitusRuntime());
