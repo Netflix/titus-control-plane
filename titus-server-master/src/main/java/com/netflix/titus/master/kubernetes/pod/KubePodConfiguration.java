@@ -130,13 +130,6 @@ public interface KubePodConfiguration {
     String getDefaultS3WriterRole();
 
     /**
-     * Set to true to enable setting pod resources in byte units as defined in
-     * https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/.
-     */
-    @DefaultValue("true")
-    boolean isBytePodResourceEnabled();
-
-    /**
      * A regular expression pattern for capacity groups for which job spreading should be disabled.
      */
     @DefaultValue("NONE")

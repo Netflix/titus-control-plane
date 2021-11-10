@@ -67,9 +67,7 @@ public final class KubeConstants {
     /*
      * Titus pod labels and annotations.
      */
-
-    public static final String POD_LABEL_BYTE_UNITS = TITUS_POD_DOMAIN + "byteUnits";
-
+    
     public static final String POD_LABEL_ACCOUNT_ID = TITUS_POD_DOMAIN + "accountId";
 
     public static final String POD_LABEL_SUBNETS = TITUS_POD_DOMAIN + "subnets";
