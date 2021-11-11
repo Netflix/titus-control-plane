@@ -56,6 +56,7 @@ class TaskRelocationDataInjector {
      * itself runs on 30sec plan refresh interval.
      */
     private static final long MAX_RELOCATION_DATA_STALENESS_MS = 30_000;
+    private static KubeApiConnector kubeApiConnector;
 
     private final GrpcClientConfiguration configuration;
     private final JobManagerConfiguration jobManagerConfiguration;
@@ -63,7 +64,6 @@ class TaskRelocationDataInjector {
     private final RelocationServiceClient relocationServiceClient;
     private final RelocationDataReplicator relocationDataReplicator;
     private final Scheduler scheduler;
-    private final KubeApiConnector kubeApiConnector;
 
     @Inject
     TaskRelocationDataInjector(
@@ -162,6 +162,10 @@ class TaskRelocationDataInjector {
         return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
     }
 
+    static Task newTaskWithContainerState(Task task) {
+        return task.toBuilder().setStatus(TaskStatus.newBuilder()
+                                                .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+    }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
         if(relocationPlan == null) {

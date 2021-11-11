@@ -1,7 +1,11 @@
 package com.netflix.titus.gateway.kubernetes;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,12 +30,16 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.TaskStatus;
+import io.fabric8.kubernetes.api.model.ContainerState;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
+import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -40,7 +48,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
-import rx.Completable;
 
 import static com.netflix.titus.gateway.kubernetes.F8KubeObjectFormatter.formatPodEssentials;
 
@@ -70,9 +77,34 @@ public class KubeApiConnector {
     private final Object activationLock = new Object();
     private volatile boolean deactivated;
 
-
-    public Map<String, Pod> getPods() {
-        return new HashMap<>(pods);
+    public List<TaskStatus.ContainerState> getContainerState(String taskId) {
+        if(pods.get(taskId) == null) {
+            return Collections.emptyList();
+        }
+        List<ContainerStatus> containerStatuses = pods.get(taskId).getStatus().getContainerStatuses();
+        ArrayList<TaskStatus.ContainerState> containerStates = new ArrayList();
+        if (containerStates == null) {
+            return Collections.emptyList();
+        }
+        if (containerStatuses.isEmpty() || containerStatuses.size() == 0) {
+            // we have pod status but no container status just yet
+            return Collections.emptyList();
+        } else {
+            ListIterator<ContainerStatus> iterator = containerStatuses.listIterator();
+            while (iterator.hasNext()) {
+                ContainerStatus containerStatus = iterator.next();
+                ContainerState status = containerStatus.getState();
+                TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
+                if(status.toString().equals("running")) {
+                    containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
+                } else if (status.toString().equals("waiting")) {
+                    containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
+                }
+                containerStates.add(TaskStatus.ContainerState.newBuilder().setContainerName(containerStatus.getName())
+                        .setContainerHealth(containerHealth).build());
+            }
+            return containerStates;
+        }
     }
 
     private SharedIndexInformer<Pod> createPodInformer(SharedInformerFactory sharedInformerFactory) {
