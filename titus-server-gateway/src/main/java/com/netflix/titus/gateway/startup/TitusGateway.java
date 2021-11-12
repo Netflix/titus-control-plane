@@ -26,14 +26,9 @@ import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
-import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
-import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
 import com.sampullara.cli.Args;
 import com.sampullara.cli.Argument;
-import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
