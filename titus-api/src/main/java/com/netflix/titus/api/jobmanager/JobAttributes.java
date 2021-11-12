@@ -35,6 +35,13 @@ public final class JobAttributes {
      */
     public static final String JOB_ATTRIBUTES_CREATED_BY = TITUS_ATTRIBUTE_PREFIX + "createdBy";
 
+
+    /**
+     * Job call reason
+     */
+
+    public static final String JOB_ATTRIBUTES_CALL_REASON = TITUS_ATTRIBUTE_PREFIX + "callReason";
+
     /**
      * Federated stack name. All cells under the same federated stack must share the same value.
      */
