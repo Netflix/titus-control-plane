@@ -28,7 +28,6 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.fabric8.kubernetes.api.model.ContainerState;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
@@ -59,7 +58,6 @@ public class KubeApiConnector {
     private volatile SharedIndexInformer<Pod> podInformer;
     private volatile SharedIndexInformer<Node> nodeInformer;
     private final ReadOnlyJobOperations jobService;
-    private final TitusGatewayConfiguration gatewayConfiguration;
 
     private ExecutorService notificationHandlerExecutor;
     private Scheduler scheduler;
@@ -67,14 +65,11 @@ public class KubeApiConnector {
 
     @Inject
     public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime,
-                            ReadOnlyJobOperations jobService, TitusGatewayConfiguration gatewayConfiguration) {
+                            ReadOnlyJobOperations jobService) {
         this.kubernetesClient = kubernetesClient;
         this.titusRuntime = titusRuntime;
         this.jobService = jobService;
-        this.gatewayConfiguration = gatewayConfiguration;
-        if(gatewayConfiguration.isKubeSharedInformerEnabled()) {
-            enterActiveMode();
-        }
+        enterActiveMode();
     }
 
     private final Object activationLock = new Object();
@@ -269,10 +264,6 @@ public class KubeApiConnector {
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)))
                 .subscribe(
                         event -> {
-                            if(!gatewayConfiguration.isKubeSharedInformerEnabled()){
-                                deactivate();
-                                shutdown();
-                            }
                             Stopwatch stopwatch = Stopwatch.createStarted();
                             pendingCounter.getAndIncrement();
                             logger.info("New event [pending={}, lag={}]: {}", pendingCounter.get(), PodEvent.nextSequence() - event.getSequenceNumber(), event);
