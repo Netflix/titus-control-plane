@@ -41,8 +41,6 @@ import com.netflix.titus.common.network.http.internal.okhttp.PassthroughIntercep
 import com.netflix.titus.common.network.http.internal.okhttp.RxOkHttpClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
@@ -131,12 +129,6 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     SupervisorServiceGrpc.SupervisorServiceStub supervisorClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return SupervisorServiceGrpc.newStub(channel);
-    }
-
-    @Provides
-    @Singleton
-    AgentManagementServiceStub managementClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
-        return AgentManagementServiceGrpc.newStub(channel);
     }
 
     @Provides

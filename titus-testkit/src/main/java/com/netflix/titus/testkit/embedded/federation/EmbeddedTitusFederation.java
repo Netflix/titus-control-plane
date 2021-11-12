@@ -30,15 +30,12 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
 import com.netflix.titus.federation.startup.TitusFederationModule;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -178,16 +175,6 @@ public class EmbeddedTitusFederation {
         return attachCallHeaders(client);
     }
 
-    public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
-        AgentManagementServiceGrpc.AgentManagementServiceStub client = AgentManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
-    }
-
-    public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
-        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub client = AgentManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
-    }
-
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
         return attachCallHeaders(client);
@@ -200,14 +187,6 @@ public class EmbeddedTitusFederation {
 
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-    }
-
-    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
-        return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-    }
-
-    JobActivityHistoryServiceGrpc.JobActivityHistoryServiceStub getJobActivityHistoryGrpcClient() {
-        return JobActivityHistoryServiceGrpc.newStub(getOrCreateGrpcChannel());
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {
