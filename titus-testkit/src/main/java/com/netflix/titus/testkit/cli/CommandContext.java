@@ -29,7 +29,6 @@ import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuil
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.ReactorJobManagementServiceStub;
 import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClientWithKeepAlive;
@@ -106,17 +105,25 @@ public class CommandContext {
         };
     }
 
-    public JobManagementClient getJobManagementClient() {
+    public JobManagementServiceGrpc.JobManagementServiceStub getJobManagementGrpcStub() {
+        return JobManagementServiceGrpc.newStub(createChannel());
+    }
+
+    public JobManagementServiceGrpc.JobManagementServiceBlockingStub getJobManagementGrpcBlockingStub() {
+        return JobManagementServiceGrpc.newBlockingStub(createChannel());
+    }
+
+    public RemoteJobManagementClient getJobManagementClient() {
         ReactorJobManagementServiceStub reactorStub = getGrpcToReactorClientFactory().apply(
-                JobManagementServiceGrpc.newStub(createChannel()),
+                getJobManagementGrpcStub(),
                 ReactorJobManagementServiceStub.class,
                 JobManagementServiceGrpc.getServiceDescriptor()
         );
         return new RemoteJobManagementClient("cli", reactorStub, titusRuntime);
     }
 
-    public JobManagementClient getJobManagementClientWithKeepAlive(long keepAliveInternalMs) {
-        JobManagementServiceGrpc.JobManagementServiceStub stub = JobManagementServiceGrpc.newStub(createChannel());
+    public RemoteJobManagementClient getJobManagementClientWithKeepAlive(long keepAliveInternalMs) {
+        JobManagementServiceGrpc.JobManagementServiceStub stub = getJobManagementGrpcStub();
         ReactorJobManagementServiceStub reactorStub = getGrpcToReactorClientFactory().apply(
                 stub,
                 ReactorJobManagementServiceStub.class,

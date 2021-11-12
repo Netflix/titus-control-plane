@@ -242,7 +242,9 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                             }
                         }
                     } else {
-                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                        if (!jobsToRemove.contains(task.getJobId())) {
+                            titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                        }
                     }
                 }
             });

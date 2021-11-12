@@ -17,7 +17,9 @@
 package com.netflix.titus.testkit.cli.command.job;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,9 +31,13 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobKeepAliveEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.event.EventPropagationTrace;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationMetrics;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClient;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
 import com.netflix.titus.testkit.cli.command.ErrorReports;
@@ -62,7 +68,9 @@ public class ObserveJobsCommand implements CliCommand {
     @Override
     public Options getOptions() {
         Options options = new Options();
-        options.addOption(Option.builder("i").longOpt("job_id").hasArg().desc("Job id").build());
+        options.addOption(Option.builder("i").longOpt("job-id").hasArg().desc("Job id").build());
+        options.addOption(Option.builder("j").longOpt("job-fields").hasArg().desc("Job fields").build());
+        options.addOption(Option.builder("t").longOpt("task-fields").hasArg().desc("Task fields").build());
         options.addOption(Option.builder("s").longOpt("snapshot").desc("Fetch snapshot end exit").build());
         options.addOption(Option.builder("l").longOpt("latency").desc("If set, print the propagation latency").build());
         options.addOption(Option.builder("n").longOpt("no-event").desc("If set, do not print the events").build());
@@ -73,21 +81,29 @@ public class ObserveJobsCommand implements CliCommand {
     @Override
     public void execute(CommandContext context) throws Exception {
         long keepAliveMs = context.getCLI().hasOption('k') ? Long.parseLong(context.getCLI().getOptionValue('k')) : -1;
-        JobManagementClient service = keepAliveMs > 0 ? context.getJobManagementClientWithKeepAlive(keepAliveMs) : context.getJobManagementClient();
+        RemoteJobManagementClient service = keepAliveMs > 0 ? context.getJobManagementClientWithKeepAlive(keepAliveMs) : context.getJobManagementClient();
         Flux<JobManagerEvent<?>> events;
 
+        Set<String> jobFields = StringExt.splitByCommaIntoSet(context.getCLI().getOptionValue('j'));
+        Set<String> taskFields = StringExt.splitByCommaIntoSet(context.getCLI().getOptionValue('t'));
         boolean printLatency = context.getCLI().hasOption('l');
         boolean printEvents = !context.getCLI().hasOption('n');
         boolean snapshotOnly = context.getCLI().hasOption('s');
 
+        JobEventPropagationMetrics metrics = JobEventPropagationMetrics.newExternalClientMetrics("cli", context.getTitusRuntime());
+
         if (context.getCLI().hasOption('i')) {
             String jobId = context.getCLI().getOptionValue('i');
             events = service.observeJob(jobId);
-        } else {
+        } else if (jobFields.isEmpty() && taskFields.isEmpty()) {
             events = service.observeJobs(Collections.emptyMap());
+        } else {
+            // Special case. Fields filtering cannot be used with RemoteJobManagementClient which converts data to
+            // the core model. We have to use GRPC directly.
+            executeWithFiltering(context, jobFields, taskFields, printEvents, snapshotOnly);
+            return;
         }
 
-        JobEventPropagationMetrics metrics = JobEventPropagationMetrics.newExternalClientMetrics("cli", context.getTitusRuntime());
 
         while (true) {
             logger.info("Establishing a new connection to the job event stream endpoint...");
@@ -153,5 +169,37 @@ public class ObserveJobsCommand implements CliCommand {
         );
         latch.await();
         disposable.dispose();
+    }
+
+    private void executeWithFiltering(CommandContext context, Set<String> jobFields, Set<String> taskFields, boolean printEvents, boolean snapshotOnly) {
+        JobManagementServiceBlockingStub stub = context.getJobManagementGrpcBlockingStub();
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        ObserveJobsQuery query = ObserveJobsQuery.newBuilder().addAllJobFields(jobFields).addAllTaskFields(taskFields).build();
+        Iterator<JobChangeNotification> eventIt = stub.observeJobs(query);
+        while (eventIt.hasNext()) {
+            JobChangeNotification next = eventIt.next();
+            if (next.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+                logger.info("Emitted: snapshot marker in {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                if (snapshotOnly) {
+                    return;
+                }
+            } else if (next.getNotificationCase() == JobChangeNotification.NotificationCase.JOBUPDATE) {
+                com.netflix.titus.grpc.protogen.Job job = next.getJobUpdate().getJob();
+                if (printEvents) {
+                    logger.info("Emitted job update: jobId={}({}), jobState={}, version={}",
+                            job.getId(), next.getJobUpdate().getArchived() ? "archived" : job.getStatus().getState(), job.getStatus(), job.getVersion()
+                    );
+                }
+            } else if (next.getNotificationCase() == JobChangeNotification.NotificationCase.TASKUPDATE) {
+                com.netflix.titus.grpc.protogen.Task task = next.getTaskUpdate().getTask();
+                if (printEvents) {
+                    logger.info("Emitted task update: jobId={}({}), taskId={}, taskState={}, version={}",
+                            task.getJobId(), next.getTaskUpdate().getArchived() ? "archived" : task.getStatus().getState(), task.getId(), task.getStatus(), task.getVersion()
+                    );
+                }
+            } else {
+                logger.info("Unrecognized event type: {}", next);
+            }
+        }
     }
 }
