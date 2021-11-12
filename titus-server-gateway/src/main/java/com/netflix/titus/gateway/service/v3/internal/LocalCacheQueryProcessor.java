@@ -270,6 +270,9 @@ public class LocalCacheQueryProcessor {
         V3JobQueryCriteriaEvaluator jobsPredicate = new V3JobQueryCriteriaEvaluator(criteria, titusRuntime);
         V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
 
+        Set<String> jobFields = newFieldsFilter(query.getJobFieldsList(), JOB_MINIMUM_FIELD_SET);
+        Set<String> taskFields = newFieldsFilter(query.getTaskFieldsList(), TASK_MINIMUM_FIELD_SET);
+
         Flux<JobChangeNotification> eventStream = Flux.defer(() -> {
             AtomicBoolean first = new AtomicBoolean(true);
             return jobDataReplicator.events()
@@ -280,11 +283,11 @@ public class LocalCacheQueryProcessor {
 
                         long now = titusRuntime.getClock().wallTime();
                         JobSnapshot snapshot = event.getLeft();
-                        Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(snapshot, jobManagerEvent, now, jobsPredicate, tasksPredicate);
+                        Optional<JobChangeNotification> grpcEvent = toObserveJobsEvent(snapshot, jobManagerEvent, now, jobsPredicate, tasksPredicate, jobFields, taskFields);
 
                         // On first event emit full snapshot first
                         if (first.getAndSet(false)) {
-                            List<JobChangeNotification> snapshotEvents = buildSnapshot(snapshot, now, jobsPredicate, tasksPredicate);
+                            List<JobChangeNotification> snapshotEvents = buildSnapshot(snapshot, now, jobsPredicate, tasksPredicate, jobFields, taskFields);
                             grpcEvent.ifPresent(snapshotEvents::add);
                             return Flux.fromIterable(snapshotEvents);
                         }
@@ -389,21 +392,23 @@ public class LocalCacheQueryProcessor {
     private List<JobChangeNotification> buildSnapshot(JobSnapshot snapshot,
                                                       long now,
                                                       V3JobQueryCriteriaEvaluator jobsPredicate,
-                                                      V3TaskQueryCriteriaEvaluator tasksPredicate) {
+                                                      V3TaskQueryCriteriaEvaluator tasksPredicate,
+                                                      Set<String> jobFields,
+                                                      Set<String> taskFields) {
         List<JobChangeNotification> result = new ArrayList<>();
         Map<String, Job<?>> allJobsMap = snapshot.getJobMap();
 
         allJobsMap.forEach((jobId, job) -> {
             List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = new ArrayList<>(snapshot.getTasks(jobId).values());
             if (jobsPredicate.test(Pair.of(job, tasks))) {
-                result.add(toGrpcJobEvent(job, now));
+                result.add(toGrpcJobEvent(job, now, jobFields));
             }
         });
 
         snapshot.getTaskMap().forEach((taskId, task) -> {
             Job<?> job = allJobsMap.get(task.getJobId());
             if (job != null && tasksPredicate.test(Pair.of(job, task))) {
-                result.add(toGrpcTaskEvent(task, false, now));
+                result.add(toGrpcTaskEvent(task, false, now, taskFields));
             }
         });
 
@@ -416,12 +421,14 @@ public class LocalCacheQueryProcessor {
                                                                JobManagerEvent<?> event,
                                                                long now,
                                                                V3JobQueryCriteriaEvaluator jobsPredicate,
-                                                               V3TaskQueryCriteriaEvaluator tasksPredicate) {
+                                                               V3TaskQueryCriteriaEvaluator tasksPredicate,
+                                                               Set<String> jobFields,
+                                                               Set<String> taskFields) {
         if (event instanceof JobUpdateEvent) {
             JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
             Job<?> job = jobUpdateEvent.getCurrent();
             List<com.netflix.titus.api.jobmanager.model.job.Task> tasks = new ArrayList<>(snapshot.getTasks(job.getId()).values());
-            return jobsPredicate.test(Pair.of(job, tasks)) ? Optional.of(toGrpcJobEvent(job, now)) : Optional.empty();
+            return jobsPredicate.test(Pair.of(job, tasks)) ? Optional.of(toGrpcJobEvent(job, now, jobFields)) : Optional.empty();
         }
 
         if (event instanceof TaskUpdateEvent) {
@@ -429,30 +436,33 @@ public class LocalCacheQueryProcessor {
             Job<?> job = taskUpdateEvent.getCurrentJob();
             com.netflix.titus.api.jobmanager.model.job.Task task = taskUpdateEvent.getCurrentTask();
             return tasksPredicate.test(Pair.of(job, task))
-                    ? Optional.of(toGrpcTaskEvent(task, taskUpdateEvent.isMovedFromAnotherJob(), now))
+                    ? Optional.of(toGrpcTaskEvent(task, taskUpdateEvent.isMovedFromAnotherJob(), now, taskFields))
                     : Optional.empty();
         }
         return Optional.empty();
     }
 
-    private JobChangeNotification toGrpcJobEvent(Job<?> job, long now) {
+    private JobChangeNotification toGrpcJobEvent(Job<?> job, long now, Set<String> jobFields) {
+        com.netflix.titus.grpc.protogen.Job grpcJob = GrpcJobManagementModelConverters.toGrpcJob(job);
+        if (!jobFields.isEmpty()) {
+            grpcJob = ProtobufExt.copy(grpcJob, jobFields);
+        }
         return JobChangeNotification.newBuilder()
-                .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder()
-                        .setJob(GrpcJobManagementModelConverters.toGrpcJob(job))
-                )
+                .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder().setJob(grpcJob))
                 .setTimestamp(now)
                 .build();
     }
 
     private JobChangeNotification toGrpcTaskEvent(com.netflix.titus.api.jobmanager.model.job.Task task,
                                                   boolean movedFromAnotherJob,
-                                                  long now) {
+                                                  long now,
+                                                  Set<String> taskFields) {
+        Task grpcTask = GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo);
+        if (!taskFields.isEmpty()) {
+            grpcTask = ProtobufExt.copy(grpcTask, taskFields);
+        }
         return JobChangeNotification.newBuilder()
-                .setTaskUpdate(
-                        JobChangeNotification.TaskUpdate.newBuilder()
-                                .setTask(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo))
-                                .setMovedFromAnotherJob(movedFromAnotherJob)
-                )
+                .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(grpcTask).setMovedFromAnotherJob(movedFromAnotherJob))
                 .setTimestamp(now)
                 .build();
     }
