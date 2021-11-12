@@ -28,7 +28,6 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.gateway.service.v3.internal.GatewayConfiguration;
 import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.fabric8.kubernetes.api.model.ContainerState;
@@ -270,7 +269,7 @@ public class KubeApiConnector {
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)))
                 .subscribe(
                         event -> {
-                            if(!gatewayConfiguration.isSharedInformerEnabled()){
+                            if(!gatewayConfiguration.isKubeSharedInformerEnabled()){
                                 deactivate();
                                 shutdown();
                             }
