@@ -3,10 +3,8 @@ package com.netflix.titus.gateway.kubernetes;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -30,6 +28,8 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.gateway.service.v3.internal.GatewayConfiguration;
+import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.fabric8.kubernetes.api.model.ContainerState;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
@@ -39,7 +39,6 @@ import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
-import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -53,7 +52,7 @@ import static com.netflix.titus.gateway.kubernetes.F8KubeObjectFormatter.formatP
 
 @Singleton
 public class KubeApiConnector {
-    private static final Logger logger = LoggerFactory.getLogger(KubeApiConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger("KubeSharedInformerLogger");
     private final NamespacedKubernetesClient kubernetesClient;
     private final TitusRuntime titusRuntime;
     private final ConcurrentMap<String, Pod> pods = new ConcurrentHashMap<>();
@@ -61,17 +60,22 @@ public class KubeApiConnector {
     private volatile SharedIndexInformer<Pod> podInformer;
     private volatile SharedIndexInformer<Node> nodeInformer;
     private final ReadOnlyJobOperations jobService;
+    private final TitusGatewayConfiguration gatewayConfiguration;
 
     private ExecutorService notificationHandlerExecutor;
     private Scheduler scheduler;
     private Disposable subscription;
 
     @Inject
-    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime, ReadOnlyJobOperations jobService) {
+    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime,
+                            ReadOnlyJobOperations jobService, TitusGatewayConfiguration gatewayConfiguration) {
         this.kubernetesClient = kubernetesClient;
         this.titusRuntime = titusRuntime;
         this.jobService = jobService;
-        enterActiveMode();
+        this.gatewayConfiguration = gatewayConfiguration;
+        if(gatewayConfiguration.isKubeSharedInformerEnabled()) {
+            enterActiveMode();
+        }
     }
 
     private final Object activationLock = new Object();
@@ -266,6 +270,10 @@ public class KubeApiConnector {
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)))
                 .subscribe(
                         event -> {
+                            if(!gatewayConfiguration.isSharedInformerEnabled()){
+                                deactivate();
+                                shutdown();
+                            }
                             Stopwatch stopwatch = Stopwatch.createStarted();
                             pendingCounter.getAndIncrement();
                             logger.info("New event [pending={}, lag={}]: {}", pendingCounter.get(), PodEvent.nextSequence() - event.getSequenceNumber(), event);
