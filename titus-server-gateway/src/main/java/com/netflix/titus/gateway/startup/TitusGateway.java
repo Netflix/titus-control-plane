@@ -64,6 +64,7 @@ public class TitusGateway {
             logger.error("Unexpected error: {}", e.getMessage(), e);
             System.exit(2);
         }
+
     }
 
     private static MapConfig loadPropertiesFile(String propertiesFile) {
