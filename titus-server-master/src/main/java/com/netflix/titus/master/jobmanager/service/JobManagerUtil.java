@@ -134,7 +134,8 @@ public final class JobManagerUtil {
                     // a unique IP for that pod, but a shared one. This should not be consumed
                     // as a normal ip by normal tools, and deserves a special attribute
                     contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, ipv4);
-                } else {
+                } else if (!networkConfiguration.getNetworkMode().equals(NetworkMode.Ipv6Only.toString())) {
+                    // Only in the case of non IPv6-only mode do we want to set this attribute
                     contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, ipv4);
                 }
                 contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, primaryIP);
