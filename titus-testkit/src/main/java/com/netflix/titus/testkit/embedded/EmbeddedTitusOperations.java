@@ -16,7 +16,6 @@
 
 package com.netflix.titus.testkit.embedded;
 
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -36,10 +35,6 @@ public interface EmbeddedTitusOperations {
     JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient();
 
     JobManagementServiceGrpc.JobManagementServiceBlockingStub getV3BlockingGrpcClient();
-
-    AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient();
-
-    AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient();
 
     LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient();
 

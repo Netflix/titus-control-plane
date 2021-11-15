@@ -39,7 +39,6 @@ import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
@@ -211,16 +210,6 @@ public class EmbeddedTitusGateway {
         return attachCallHeaders(client);
     }
 
-    public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
-        AgentManagementServiceGrpc.AgentManagementServiceStub client = AgentManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
-    }
-
-    public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
-        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub client = AgentManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
-    }
-
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
         return attachCallHeaders(client);
@@ -233,10 +222,6 @@ public class EmbeddedTitusGateway {
 
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-    }
-
-    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
-        return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
     public <I> I getInstance(Class<I> instanceType) {

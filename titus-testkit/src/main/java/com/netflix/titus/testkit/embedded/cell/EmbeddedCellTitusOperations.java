@@ -18,7 +18,6 @@ package com.netflix.titus.testkit.embedded.cell;
 
 import java.util.Optional;
 
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -68,16 +67,6 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     @Override
     public JobManagementServiceGrpc.JobManagementServiceBlockingStub getV3BlockingGrpcClient() {
         return gateway.map(EmbeddedTitusGateway::getV3BlockingGrpcClient).orElse(master.getV3BlockingGrpcClient());
-    }
-
-    @Override
-    public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
-        return gateway.map(EmbeddedTitusGateway::getV3GrpcAgentClient).orElse(master.getV3GrpcAgentClient());
-    }
-
-    @Override
-    public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
-        return gateway.map(EmbeddedTitusGateway::getV3BlockingGrpcAgentClient).orElse(master.getV3BlockingGrpcAgentClient());
     }
 
     @Override

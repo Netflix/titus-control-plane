@@ -16,7 +16,6 @@
 
 package com.netflix.titus.testkit.embedded.federation;
 
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -60,22 +59,6 @@ class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
     @Override
     public JobManagementServiceGrpc.JobManagementServiceBlockingStub getV3BlockingGrpcClient() {
         return federation.getV3BlockingGrpcClient();
-    }
-
-    /**
-     * FIXME Agent management is at cell level. This API must be changed for multi-cell support.
-     */
-    @Override
-    public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
-        return federation.getCells().get(0).getTitusOperations().getV3GrpcAgentClient();
-    }
-
-    /**
-     * FIXME Agent management is at cell level. This API must be changed for multi-cell support.
-     */
-    @Override
-    public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
-        return federation.getCells().get(0).getTitusOperations().getV3BlockingGrpcAgentClient();
     }
 
     @Override
