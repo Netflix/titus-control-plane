@@ -70,7 +70,7 @@ public interface JobConfiguration {
      * An upper bound on memory (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("750000")
+    @DefaultValue("1152000")
     int getMemoryMegabytesMax();
 
     @DefaultValue("10000")
@@ -90,7 +90,7 @@ public interface JobConfiguration {
      * An upper bound on network (megabits per second) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("40000")
+    @DefaultValue("400000")
     int getNetworkMbpsMax();
 
     /**
