@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.eviction;
+package com.netflix.titus.cli.command.eviction;
 
 import java.util.Iterator;
 
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.ObserverEventRequest;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

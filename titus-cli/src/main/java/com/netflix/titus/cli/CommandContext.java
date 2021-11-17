@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli;
+package com.netflix.titus.cli;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.Caller;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
@@ -87,6 +89,13 @@ public class CommandContext {
 
         channels.add(channel);
         return channel;
+    }
+
+    public CallMetadata getCallMetadata(String reason) {
+        return CallMetadata.newBuilder()
+                .withCallers(Collections.singletonList(Caller.newBuilder().withId("cli").build()))
+                .withCallReason(reason)
+                .build();
     }
 
     public GrpcToReactorClientFactory getGrpcToReactorClientFactory() {

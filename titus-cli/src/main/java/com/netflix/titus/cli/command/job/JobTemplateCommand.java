@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -34,8 +34,8 @@ import com.netflix.titus.grpc.protogen.Owner;
 import com.netflix.titus.grpc.protogen.RetryPolicy;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;

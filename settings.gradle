@@ -9,6 +9,7 @@ include 'titus-common',\
         'titus-api',\
         'titus-grpc-api',\
         'titus-client',\
+        'titus-cli', \
         'titus-server-gateway',\
         'titus-server-master',\
         'titus-server-federation',\

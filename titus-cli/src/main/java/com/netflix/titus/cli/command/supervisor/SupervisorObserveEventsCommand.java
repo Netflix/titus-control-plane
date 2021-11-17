@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.supervisor;
+package com.netflix.titus.cli.command.supervisor;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.GrpcClientErrorUtils;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBlockingStub;
 import com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
  */
 public class SupervisorObserveEventsCommand implements CliCommand {
 
@@ -51,7 +52,7 @@ public class SupervisorObserveEventsCommand implements CliCommand {
 
     @Override
     public void execute(CommandContext context) {
-        SupervisorServiceBlockingStub stub = TestKitGrpcClientErrorUtils.attachCallHeaders(SupervisorServiceGrpc.newBlockingStub(context.createChannel()));
+        SupervisorServiceBlockingStub stub = GrpcClientErrorUtils.attachCallHeaders(SupervisorServiceGrpc.newBlockingStub(context.createChannel()));
         stub.observeEvents(Empty.getDefaultInstance())
                 .forEachRemaining(event -> {
                             switch (event.getEventCase()) {

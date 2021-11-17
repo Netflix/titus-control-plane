@@ -1,0 +1,6 @@
+dependencies {
+    compile "commons-cli:commons-cli:${apacheCommonsCliVersion}"
+
+    compile project(':titus-client')
+    compile project(':titus-server-master')
+}

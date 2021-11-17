@@ -14,27 +14,26 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
 
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.command.ErrorReports;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JobKillCommand implements CliCommand {
+public class KillTaskCommand implements CliCommand {
 
-    private static final Logger logger = LoggerFactory.getLogger(JobKillCommand.class);
+    private static final Logger logger = LoggerFactory.getLogger(KillTaskCommand.class);
 
     @Override
     public String getDescription() {
-        return "Kill job";
+        return "Kill a task";
     }
 
     @Override
@@ -45,8 +44,8 @@ public class JobKillCommand implements CliCommand {
     @Override
     public Options getOptions() {
         Options options = new Options();
-        options.addOption(Option.builder("i").longOpt("job_id").hasArg().required()
-                .desc("Job id").build());
+        options.addOption(Option.builder("i").longOpt("task_id").hasArg().required().desc("Task id").build());
+        options.addOption(Option.builder("s").longOpt("shrink").desc("Shrink job").build());
         return options;
     }
 
@@ -54,15 +53,14 @@ public class JobKillCommand implements CliCommand {
     public void execute(CommandContext context) throws Exception {
         CommandLine cli = context.getCLI();
         String id = cli.getOptionValue('i');
+        boolean shrink = cli.hasOption('s');
 
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .killJob(id)
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        result -> logger.info("Killed job {}", id),
-                        e -> ErrorReports.handleReplyError("Command execution error", e)
-                );
-        latch.await();
+        try {
+            context.getJobManagementClient().killTask(id, shrink, context.getCallMetadata("Kill task command"))
+                    .block(Duration.ofMinutes(1));
+            logger.info("Killed task {}", id);
+        } catch (Exception e) {
+            ErrorReports.handleReplyError("Command execution error", e);
+        }
     }
 }

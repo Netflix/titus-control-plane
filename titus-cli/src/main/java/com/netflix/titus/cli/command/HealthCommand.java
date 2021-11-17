@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command;
+package com.netflix.titus.cli.command;
 
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.PrettyPrinters;
 import com.netflix.titus.grpc.protogen.HealthCheckRequest;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.util.PrettyPrinters;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

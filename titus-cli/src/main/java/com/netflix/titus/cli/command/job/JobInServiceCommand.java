@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
 
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.command.ErrorReports;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -57,17 +56,12 @@ public class JobInServiceCommand implements CliCommand {
         CommandLine cli = context.getCLI();
         String id = cli.getOptionValue('i');
         boolean enable = "true".equalsIgnoreCase(cli.getOptionValue('e'));
-
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .updateInServiceStatus(id, enable)
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        never -> {
-                        },
-                        e -> ErrorReports.handleReplyError("Command execution error", e),
-                        () -> logger.info("Service status changed to {}", enable)
-                );
-        latch.await();
+        try {
+            context.getJobManagementClient()
+                    .updateJobStatus(id, enable, context.getCallMetadata("Change job status"))
+                    .block(Duration.ofMinutes(1));
+        } catch (Exception e) {
+            ErrorReports.handleReplyError("Command execution error", e);
+        }
     }
 }

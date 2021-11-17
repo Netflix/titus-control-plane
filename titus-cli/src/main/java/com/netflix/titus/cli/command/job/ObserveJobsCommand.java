@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -38,9 +38,9 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementSer
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationMetrics;
 import com.netflix.titus.runtime.connector.jobmanager.RemoteJobManagementClient;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.command.ErrorReports;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
