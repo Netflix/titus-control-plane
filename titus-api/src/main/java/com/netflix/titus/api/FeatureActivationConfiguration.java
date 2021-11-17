@@ -54,4 +54,10 @@ public interface FeatureActivationConfiguration {
      */
     @DefaultValue("true")
     boolean isRelocationBinpackingEnabled();
+
+    /**
+     * Enable shared informer on Titus gateway
+     */
+    @DefaultValue("false")
+    boolean isKubeSharedInformerEnabled();
 }

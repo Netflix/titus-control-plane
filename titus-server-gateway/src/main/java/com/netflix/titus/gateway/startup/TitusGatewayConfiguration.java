@@ -23,10 +23,4 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface TitusGatewayConfiguration {
     @DefaultValue("true")
     boolean isProxyErrorLoggingEnabled();
-
-    /**
-     * Enable shared informer on Titus gateway
-     */
-    @DefaultValue("true")
-    boolean isKubeSharedInformerEnabled();
 }

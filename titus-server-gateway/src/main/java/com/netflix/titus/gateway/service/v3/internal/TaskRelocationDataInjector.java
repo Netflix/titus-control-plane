@@ -32,6 +32,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
+import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
@@ -72,8 +73,9 @@ class TaskRelocationDataInjector {
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
-            KubeApiConnector kubeApiConnector) {
-        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator, kubeApiConnector, Schedulers.computation());
+            KubeApiConnector kubeApiConnector, TitusGatewayConfiguration titusGatewayConfiguration) {
+        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient,
+                relocationDataReplicator, kubeApiConnector, Schedulers.computation());
     }
 
     @VisibleForTesting
@@ -95,12 +97,18 @@ class TaskRelocationDataInjector {
     }
 
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {
+        Observable<Task> taskObservableWithContainerState = taskObservable;
+
+        if(featureActivationConfiguration.isKubeSharedInformerEnabled()) {
+            taskObservableWithContainerState = taskObservable.map(this::newTaskWithContainerState);
+        }
+
         if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
-            return taskObservable;
+            return taskObservableWithContainerState;
         }
 
         if (shouldUseRelocationCache()) {
-            return taskObservable.map(task -> newTaskWithRelocationPlan(task, relocationDataReplicator.getCurrent().getPlans().get(taskId)));
+            return taskObservableWithContainerState.map(task -> newTaskWithRelocationPlan(task, relocationDataReplicator.getCurrent().getPlans().get(taskId)));
         }
 
         Observable<Optional<TaskRelocationPlan>> relocationPlanResolver = ReactorExt.toObservable(relocationServiceClient.findTaskRelocationPlan(taskId))
@@ -109,7 +117,7 @@ class TaskRelocationDataInjector {
                 .onErrorReturn(e -> Optional.empty());
 
         return Observable.zip(
-                taskObservable,
+                taskObservableWithContainerState,
                 relocationPlanResolver,
                 (task, planOpt) -> planOpt.map(plan -> newTaskWithRelocationPlan(task, plan)).orElse(task)
         );
@@ -162,9 +170,9 @@ class TaskRelocationDataInjector {
         return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
     }
 
-    static Task newTaskWithContainerState(Task task) {
+    private Task newTaskWithContainerState(Task task) {
         return task.toBuilder().setStatus(TaskStatus.newBuilder()
-                                                .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
