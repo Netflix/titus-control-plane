@@ -52,7 +52,6 @@ import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
-import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -75,6 +74,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeI
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
 
 @Singleton
 public class V0SpecPodFactory implements PodFactory {
@@ -168,39 +168,6 @@ public class V0SpecPodFactory implements PodFactory {
         }
 
         return new V1Pod().metadata(metadata).spec(spec);
-    }
-
-    private List<V1Volume> buildV1Volumes(List<Volume> volumes) {
-        if (volumes == null) {
-            return Collections.emptyList();
-        }
-        List<V1Volume> v1Volumes = new ArrayList<>();
-        for (Volume v : volumes) {
-            buildV1Volume(v).ifPresent(v1Volumes::add);
-        }
-        return v1Volumes;
-    }
-
-    private Optional<V1Volume> buildV1Volume(Volume volume) {
-        if (volume.getVolumeSource() instanceof SharedContainerVolumeSource) {
-            V1FlexVolumeSource flexVolume = getV1FlexVolumeForSharedContainerVolumeSource(volume);
-            return Optional.ofNullable(new V1Volume()
-                    .name(volume.getName())
-                    .flexVolume(flexVolume));
-        } else {
-            // SharedVolumeSource is currently the only supported volume type
-            return Optional.empty();
-        }
-    }
-
-    private V1FlexVolumeSource getV1FlexVolumeForSharedContainerVolumeSource(Volume volume) {
-        SharedContainerVolumeSource sharedContainerVolumeSource = (SharedContainerVolumeSource) volume.getVolumeSource();
-        Map<String, String> options = new HashMap<>();
-        options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
-        options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());
-        return new V1FlexVolumeSource()
-                .driver("SharedContainerVolumeSource")
-                .options(options);
     }
 
     @VisibleForTesting

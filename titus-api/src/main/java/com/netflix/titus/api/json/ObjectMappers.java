@@ -85,6 +85,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.volume.SaaSVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
@@ -125,6 +126,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.RatePerIntervalDisruptionBud
 import com.netflix.titus.api.jobmanager.store.mixin.RatePercentagePerIntervalDisruptionBudgetRateMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RelocationLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RetryPolicyMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.SaaSVolumeSourceMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SecurityProfileMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SelfManagedDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.SelfManagedMigrationPolicyMixin;
@@ -268,6 +270,7 @@ public class ObjectMappers {
         objectMapper.addMixIn(VolumeMount.class, VolumeMountMixin.class);
         objectMapper.addMixIn(VolumeSource.class, VolumeSourceMixin.class);
         objectMapper.addMixIn(SharedContainerVolumeSource.class, SharedContainerVolumeSourceMixin.class);
+        objectMapper.addMixIn(SaaSVolumeSource.class, SaaSVolumeSourceMixin.class);
         objectMapper.addMixIn(PlatformSidecar.class, PlatformSidecarMixin.class);
 
         objectMapper.addMixIn(IpAddressLocation.class, IpAddressLocationMixin.class);
