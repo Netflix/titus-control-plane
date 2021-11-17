@@ -59,5 +59,5 @@ public interface FeatureActivationConfiguration {
      * Enable shared informer on Titus gateway
      */
     @DefaultValue("false")
-    boolean isKubeSharedInformerEnabled();
+    boolean isInjectingContainerStatesEnabled();
 }

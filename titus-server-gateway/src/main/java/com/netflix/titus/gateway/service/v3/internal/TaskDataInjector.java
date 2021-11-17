@@ -32,7 +32,6 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
-import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
@@ -73,7 +72,7 @@ class TaskRelocationDataInjector {
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
-            KubeApiConnector kubeApiConnector, TitusGatewayConfiguration titusGatewayConfiguration) {
+            KubeApiConnector kubeApiConnector) {
         this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient,
                 relocationDataReplicator, kubeApiConnector, Schedulers.computation());
     }
@@ -99,7 +98,7 @@ class TaskRelocationDataInjector {
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {
         Observable<Task> taskObservableWithContainerState = taskObservable;
 
-        if(featureActivationConfiguration.isKubeSharedInformerEnabled()) {
+        if(featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
             taskObservableWithContainerState = taskObservable.map(this::newTaskWithContainerState);
         }
 
@@ -126,7 +125,7 @@ class TaskRelocationDataInjector {
     Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
         Observable<TaskQueryResult> tasksObservableWithContainerState = tasksObservable;
 
-        if(featureActivationConfiguration.isKubeSharedInformerEnabled()) {
+        if(featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
             tasksObservableWithContainerState.flatMap(queryResult -> {
                 List<Task> newTaskList = queryResult.getItemsList().stream()
                         .map(task -> newTaskWithContainerState(task))
