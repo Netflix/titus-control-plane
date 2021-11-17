@@ -124,11 +124,22 @@ class TaskRelocationDataInjector {
     }
 
     Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
-        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
-            return tasksObservable;
+        Observable<TaskQueryResult> tasksObservableWithContainerState = tasksObservable;
+
+        if(featureActivationConfiguration.isKubeSharedInformerEnabled()) {
+            tasksObservableWithContainerState.flatMap(queryResult -> {
+                List<Task> newTaskList = queryResult.getItemsList().stream()
+                        .map(task -> newTaskWithContainerState(task))
+                        .collect(Collectors.toList());
+                return Observable.just(queryResult.toBuilder().clearItems().addAllItems(newTaskList).build());
+            });
         }
 
-        return tasksObservable.flatMap(queryResult -> {
+        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
+            return tasksObservableWithContainerState;
+        }
+
+        return tasksObservableWithContainerState.flatMap(queryResult -> {
             Set<String> taskIds = queryResult.getItemsList().stream().map(Task::getId).collect(Collectors.toSet());
 
             if (shouldUseRelocationCache()) {
