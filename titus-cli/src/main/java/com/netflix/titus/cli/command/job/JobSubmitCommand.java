@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
 
 import com.google.protobuf.util.JsonFormat;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.PrettyPrinters;
+import com.netflix.titus.cli.command.ErrorReports;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
+import com.netflix.titus.grpc.protogen.JobId;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
  */
 public class JobSubmitCommand implements CliCommand {
 
@@ -63,15 +63,12 @@ public class JobSubmitCommand implements CliCommand {
     public void execute(CommandContext context) throws Exception {
         JobDescriptor jobDescriptor = loadTemplate(context);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .createJob(jobDescriptor)
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        result -> logger.info("Job submit succeeded: " + PrettyPrinters.print(result)),
-                        e -> ErrorReports.handleReplyError("Job submit error", e)
-                );
-        latch.await();
+        try {
+            JobId result = context.getJobManagementGrpcBlockingStub().createJob(jobDescriptor);
+            logger.info("Job submit succeeded: " + PrettyPrinters.print(result));
+        } catch (Exception e) {
+            ErrorReports.handleReplyError("Job submit error", e);
+        }
     }
 
     private JobDescriptor loadTemplate(CommandContext context) throws IOException {

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command;
+package com.netflix.titus.cli.command;
 
-import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
+import com.netflix.titus.cli.GrpcClientErrorUtils;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ public final class ErrorReports {
     public static void handleReplyError(String message, Throwable e) {
         logger.error(message + ": " + e.getMessage());
         if (e instanceof StatusRuntimeException) {
-            TestKitGrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
+            GrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
         }
         logger.info("stack trace", e);
     }

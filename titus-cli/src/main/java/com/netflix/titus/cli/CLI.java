@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli;
+package com.netflix.titus.cli;
 
 import java.io.PrintWriter;
 import java.util.Arrays;
@@ -25,23 +25,22 @@ import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import com.netflix.titus.testkit.cli.command.HealthCommand;
-import com.netflix.titus.testkit.cli.command.eviction.EvictionEventsCommand;
-import com.netflix.titus.testkit.cli.command.job.JobGetCommand;
-import com.netflix.titus.testkit.cli.command.job.JobInServiceCommand;
-import com.netflix.titus.testkit.cli.command.job.JobKillCommand;
-import com.netflix.titus.testkit.cli.command.job.JobProcessesCommand;
-import com.netflix.titus.testkit.cli.command.job.JobResizeCommand;
-import com.netflix.titus.testkit.cli.command.job.JobSubmitCommand;
-import com.netflix.titus.testkit.cli.command.job.JobTemplateCommand;
-import com.netflix.titus.testkit.cli.command.job.JobsGetCommand;
-import com.netflix.titus.testkit.cli.command.job.KillTaskCommand;
-import com.netflix.titus.testkit.cli.command.job.ObserveJobsCommand;
-import com.netflix.titus.testkit.cli.command.job.TaskGetCommand;
-import com.netflix.titus.testkit.cli.command.job.TasksGetCommand;
-import com.netflix.titus.testkit.cli.command.scheduler.ObserveSchedulingResultCommand;
-import com.netflix.titus.testkit.cli.command.supervisor.SupervisorObserveEventsCommand;
-import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
+import com.netflix.titus.cli.command.HealthCommand;
+import com.netflix.titus.cli.command.eviction.EvictionEventsCommand;
+import com.netflix.titus.cli.command.job.JobGetCommand;
+import com.netflix.titus.cli.command.job.JobInServiceCommand;
+import com.netflix.titus.cli.command.job.JobKillCommand;
+import com.netflix.titus.cli.command.job.JobProcessesCommand;
+import com.netflix.titus.cli.command.job.JobResizeCommand;
+import com.netflix.titus.cli.command.job.JobSubmitCommand;
+import com.netflix.titus.cli.command.job.JobTemplateCommand;
+import com.netflix.titus.cli.command.job.JobsGetCommand;
+import com.netflix.titus.cli.command.job.KillTaskCommand;
+import com.netflix.titus.cli.command.job.ObserveJobsCommand;
+import com.netflix.titus.cli.command.job.TaskGetCommand;
+import com.netflix.titus.cli.command.job.TasksGetCommand;
+import com.netflix.titus.cli.command.scheduler.ObserveSchedulingResultCommand;
+import com.netflix.titus.cli.command.supervisor.SupervisorObserveEventsCommand;
 import io.grpc.StatusRuntimeException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -122,7 +121,7 @@ public class CLI {
             context.shutdown();
             logger.error("Command execution failure", e);
             if (e instanceof StatusRuntimeException) {
-                TestKitGrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
+                GrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
             }
         }
     }

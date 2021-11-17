@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
 
-import com.netflix.titus.grpc.protogen.TaskId;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.command.ErrorReports;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -57,14 +55,11 @@ public class TaskGetCommand implements CliCommand {
         CommandLine cli = context.getCLI();
         String id = cli.getOptionValue('i');
 
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .findTask(TaskId.newBuilder().setId(id).build())
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        result -> logger.info("Found task: " + PrettyPrinters.print(result)),
-                        e -> ErrorReports.handleReplyError("Command execution error", e)
-                );
-        latch.await();
+        try {
+            Task task = context.getJobManagementClient().findTask(id).block(Duration.ofMinutes(1));
+            logger.info("Found task: " + task);
+        } catch (Exception e) {
+            ErrorReports.handleReplyError("Command execution error", e);
+        }
     }
 }

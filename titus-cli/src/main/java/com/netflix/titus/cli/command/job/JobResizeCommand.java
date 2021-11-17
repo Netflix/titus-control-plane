@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
 
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.command.ErrorReports;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -64,16 +64,17 @@ public class JobResizeCommand implements CliCommand {
         int desired = (int) (long) cli.getParsedOptionValue("desired");
         int max = (int) (long) cli.getParsedOptionValue("max");
 
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .updateJobSize(id, min, desired, max)
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        never -> {
-                        },
-                        e -> ErrorReports.handleReplyError("Command execution error", e),
-                        () -> logger.info("Job size changed")
-                );
-        latch.await();
+        try {
+            context.getJobManagementClient().updateJobCapacity(id,
+                    Capacity.newBuilder()
+                            .withMin(min)
+                            .withDesired(desired)
+                            .withMax(max)
+                            .build(),
+                    context.getCallMetadata("Job resize command")
+            ).block(Duration.ofMinutes(1));
+        } catch (Exception e) {
+            ErrorReports.handleReplyError("Error status", e);
+        }
     }
 }

@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 
-import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -66,25 +65,17 @@ public class JobGetCommand implements CliCommand {
         }
     }
 
-    private void getOneJob(CommandContext context, String id) throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .findJob(JobId.newBuilder().setId(id).build())
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        result -> logger.info("Found job: " + PrettyPrinters.print(result)),
-                        e -> logger.error("Command execution error", e)
-                );
-        latch.await();
+    private void getOneJob(CommandContext context, String id) {
+        Job<?> job = context.getJobManagementClient().findJob(id).block(Duration.ofSeconds(60));
+        logger.info("Found job: {}", job);
     }
 
     private void subscribeToJobUpdateStream(CommandContext context, String id) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .observeJob(JobId.newBuilder().setId(id).build())
-                .doOnUnsubscribe(latch::countDown)
+        context.getJobManagementClient().observeJob(id)
+                .doFinally(signal -> latch.countDown())
                 .subscribe(
-                        result -> logger.info("Job notification: " + PrettyPrinters.print(result)),
+                        job -> logger.info("Job notification: {}", job),
                         e -> logger.error("Command execution error", e)
                 );
         latch.await();

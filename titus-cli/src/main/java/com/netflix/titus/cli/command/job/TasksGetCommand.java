@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.cli.command.job;
+package com.netflix.titus.cli.command.job;
 
-import java.util.concurrent.CountDownLatch;
-
+import com.netflix.titus.cli.CliCommand;
+import com.netflix.titus.cli.CommandContext;
+import com.netflix.titus.cli.PrettyPrinters;
+import com.netflix.titus.cli.command.ErrorReports;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.TaskQuery;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
+import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -33,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
  */
 public class TasksGetCommand implements CliCommand {
 
@@ -83,14 +82,11 @@ public class TasksGetCommand implements CliCommand {
             queryBuilder.addAllFields(StringExt.splitByComma(cli.getOptionValue('f')));
         }
 
-        CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcJobManagementService(context.createChannel())
-                .findTasks(queryBuilder.build())
-                .doOnUnsubscribe(latch::countDown)
-                .subscribe(
-                        result -> logger.info("Found tasks: " + PrettyPrinters.print(result)),
-                        e -> ErrorReports.handleReplyError("Command execution error", e)
-                );
-        latch.await();
+        try {
+            TaskQueryResult result = context.getJobManagementGrpcBlockingStub().findTasks(queryBuilder.build());
+            logger.info("Found tasks: " + PrettyPrinters.print(result));
+        } catch (Exception e) {
+            ErrorReports.handleReplyError("Command execution error", e);
+        }
     }
 }
