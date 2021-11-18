@@ -93,10 +93,12 @@ public class KubeApiConnector {
                 ContainerStatus containerStatus = iterator.next();
                 ContainerState status = containerStatus.getState();
                 TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
-                if(status.toString().equals("running")) {
+                if(status.toString().equalsIgnoreCase("running")) {
                     containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
-                } else if (status.toString().equals("waiting")) {
+                } else if (status.toString().equalsIgnoreCase("waiting")) {
                     containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
+                } else if (status.toString().equalsIgnoreCase("terminated")) {
+                    containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
                 }
                 containerStates.add(TaskStatus.ContainerState.newBuilder().setContainerName(containerStatus.getName())
                         .setContainerHealth(containerHealth).build());
