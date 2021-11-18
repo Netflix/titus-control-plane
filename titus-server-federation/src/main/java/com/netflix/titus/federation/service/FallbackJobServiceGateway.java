@@ -145,17 +145,21 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
-        // TODO: Direct stream APIs to the remote (primary) JobServiceGateway.
-        // A failure in a stream which is in progress on the primary falling back to the secondary
-        // is not the right behavior.
+        // Fallback is not applicable to streaming APIs.
+        if (federationConfiguration.isRemoteFederationEnabled()) {
+            return primary.observeJob(jobId, callMetadata);
+        }
+
         return secondary.observeJob(jobId, callMetadata);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
-        // TODO: Direct stream APIs to the remote (primary) JobServiceGateway.
-        // A failure in a stream which is in progress on the primary falling back to the secondary
-        // is not the right behavior.
+        // Fallback is not applicable to streaming APIs.
+        if (federationConfiguration.isRemoteFederationEnabled()) {
+            return primary.observeJobs(query, callMetadata);
+        }
+
         return secondary.observeJobs(query, callMetadata);
     }
 
