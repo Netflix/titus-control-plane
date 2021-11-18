@@ -73,7 +73,8 @@ class TaskRelocationDataInjector {
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
             KubeApiConnector kubeApiConnector) {
-        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient, relocationDataReplicator, kubeApiConnector, Schedulers.computation());
+        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient,
+                relocationDataReplicator, kubeApiConnector, Schedulers.computation());
     }
 
     @VisibleForTesting
@@ -95,12 +96,18 @@ class TaskRelocationDataInjector {
     }
 
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {
+        Observable<Task> taskObservableWithContainerState = taskObservable;
+
+        if(featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
+            taskObservableWithContainerState = taskObservable.map(this::newTaskWithContainerState);
+        }
+
         if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
-            return taskObservable;
+            return taskObservableWithContainerState;
         }
 
         if (shouldUseRelocationCache()) {
-            return taskObservable.map(task -> newTaskWithRelocationPlan(task, relocationDataReplicator.getCurrent().getPlans().get(taskId)));
+            return taskObservableWithContainerState.map(task -> newTaskWithRelocationPlan(task, relocationDataReplicator.getCurrent().getPlans().get(taskId)));
         }
 
         Observable<Optional<TaskRelocationPlan>> relocationPlanResolver = ReactorExt.toObservable(relocationServiceClient.findTaskRelocationPlan(taskId))
@@ -109,18 +116,29 @@ class TaskRelocationDataInjector {
                 .onErrorReturn(e -> Optional.empty());
 
         return Observable.zip(
-                taskObservable,
+                taskObservableWithContainerState,
                 relocationPlanResolver,
                 (task, planOpt) -> planOpt.map(plan -> newTaskWithRelocationPlan(task, plan)).orElse(task)
         );
     }
 
     Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
-        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
-            return tasksObservable;
+        Observable<TaskQueryResult> tasksObservableWithContainerState = tasksObservable;
+
+        if(featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
+            tasksObservableWithContainerState.flatMap(queryResult -> {
+                List<Task> newTaskList = queryResult.getItemsList().stream()
+                        .map(task -> newTaskWithContainerState(task))
+                        .collect(Collectors.toList());
+                return Observable.just(queryResult.toBuilder().clearItems().addAllItems(newTaskList).build());
+            });
         }
 
-        return tasksObservable.flatMap(queryResult -> {
+        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
+            return tasksObservableWithContainerState;
+        }
+
+        return tasksObservableWithContainerState.flatMap(queryResult -> {
             Set<String> taskIds = queryResult.getItemsList().stream().map(Task::getId).collect(Collectors.toSet());
 
             if (shouldUseRelocationCache()) {
@@ -162,9 +180,9 @@ class TaskRelocationDataInjector {
         return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
     }
 
-    static Task newTaskWithContainerState(Task task) {
+    private Task newTaskWithContainerState(Task task) {
         return task.toBuilder().setStatus(TaskStatus.newBuilder()
-                                                .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {

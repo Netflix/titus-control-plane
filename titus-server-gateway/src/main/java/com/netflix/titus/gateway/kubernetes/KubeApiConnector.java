@@ -1,20 +1,5 @@
 package com.netflix.titus.gateway.kubernetes;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -45,6 +30,21 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
+
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.netflix.titus.gateway.kubernetes.F8KubeObjectFormatter.formatPodEssentials;
 
@@ -93,13 +93,14 @@ public class KubeApiConnector {
                 ContainerStatus containerStatus = iterator.next();
                 ContainerState status = containerStatus.getState();
                 TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
-                if(status.toString().equals("running")) {
+                if(status.getRunning() != null) {
                     containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
-                } else if (status.toString().equals("waiting")) {
+                } else if (status.getTerminated() != null) {
                     containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
                 }
-                containerStates.add(TaskStatus.ContainerState.newBuilder().setContainerName(containerStatus.getName())
-                        .setContainerHealth(containerHealth).build());
+                containerStates.add(TaskStatus.ContainerState.newBuilder()
+                                        .setContainerName(containerStatus.getName())
+                                        .setContainerHealth(containerHealth).build());
             }
             return containerStates;
         }
