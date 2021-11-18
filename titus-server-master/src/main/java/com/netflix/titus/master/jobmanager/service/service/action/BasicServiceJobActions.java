@@ -16,8 +16,11 @@
 
 package com.netflix.titus.master.jobmanager.service.service.action;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -94,6 +97,15 @@ public class BasicServiceJobActions {
                         return Observable.error(JobManagerException.invalidDesiredCapacity(serviceJob.getId(), newCapacity.getDesired(),
                                 serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
                     }
+
+                    // Add call metadata as job attribute
+                    Map<String, String> callMetadataAttribute = new HashMap<>();
+                    String callerId = callMetadata.getCallers().isEmpty()
+                            ? "unknown"
+                            : callMetadata.getCallers().get(0).getId();
+                    callMetadataAttribute.put(JobAttributes.JOB_ATTRIBUTES_CREATED_BY, callerId);
+                    callMetadataAttribute.put(JobAttributes.JOB_ATTRIBUTES_CALL_REASON, callMetadata.getCallReason());
+                    JobFunctions.appendJobDescriptorAttributes(serviceJob.getJobDescriptor(), callMetadataAttribute);
 
                     // ready to update job capacity
                     Job<ServiceJobExt> updatedJob = VersionSuppliers.nextVersion(

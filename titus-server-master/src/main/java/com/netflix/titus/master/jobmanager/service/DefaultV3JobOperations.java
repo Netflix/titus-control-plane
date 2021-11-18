@@ -417,11 +417,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
     @Override
     public Observable<Void> updateJobCapacityAttributes(String jobId, CapacityAttributes capacityAttributes, CallMetadata callMetadata) {
         logger.info("UpdateJobCapacityAttributes for job {} - {}", jobId, capacityAttributes);
-        String callerId = callMetadata.getCallers().isEmpty()
-                ? "unknown"
-                : callMetadata.getCallers().get(0).getId();
-        updateJobAttributes(jobId, ImmutableMap.of(JobAttributes.JOB_ATTRIBUTES_CREATED_BY, callerId,
-                JobAttributes.JOB_ATTRIBUTES_CALL_REASON, callMetadata.getCallReason()), callMetadata);
         return inServiceJob(jobId).flatMap(engine -> engine.changeReferenceModel(
                 BasicServiceJobActions.updateJobCapacityAction(engine, capacityAttributes, store, versionSupplier, callMetadata, entitySanitizer)
         ));
