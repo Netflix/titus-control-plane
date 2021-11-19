@@ -136,8 +136,8 @@ public interface KubePodConfiguration {
     String getDisabledJobSpreadingPattern();
 
     /**
-     * Job spreading skew adjustment factor, with the skew computed as job_size/alpha. Setting value >= 1 effectively
-     * disables the spreading (max skew == job size).
+     * Job spreading skew adjustment factor, with the skew computed as job_size/alpha. Setting value <= 1 effectively
+     * disables the spreading (max skew >= job size).
      */
     @DefaultValue("3")
     double getJobSpreadingSkewAlpha();

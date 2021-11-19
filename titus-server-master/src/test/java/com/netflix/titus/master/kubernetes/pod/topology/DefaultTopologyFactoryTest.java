@@ -121,6 +121,7 @@ public class DefaultTopologyFactoryTest {
     @Test
     public void testJobSpreadingDisabledConfiguration() {
         Job<ServiceJobExt> job = JobGenerator.serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
+        job = JobFunctions.changeServiceJobCapacity(job, Capacity.newBuilder().withDesired(100).withMax(100).build());
         job = JobFunctions.changeDisruptionBudget(job, PERCENTAGE_OF_HEALTH_POLICY);
         assertThat(topologyFactory.buildTopologySpreadConstraints(job)).hasSize(1);
 

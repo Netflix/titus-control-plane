@@ -155,7 +155,7 @@ public class DefaultTopologyFactory implements TopologyFactory {
         }
         int jobSize = getJobDesiredSize(job);
         if (jobSize <= 1) {
-            return 1;
+            return -1;
         }
         double alpha = configuration.getJobSpreadingSkewAlpha();
         if (alpha <= 0) {
