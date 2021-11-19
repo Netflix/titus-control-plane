@@ -98,6 +98,9 @@ public class DefaultTopologyFactory implements TopologyFactory {
             return Optional.empty();
         }
         int maxSkew = getJobMaxSkew(job);
+        if (maxSkew <= 0) {
+            return Optional.empty();
+        }
 
         V1TopologySpreadConstraint nodeConstraint = new V1TopologySpreadConstraint()
                 .topologyKey(KubeConstants.NODE_LABEL_MACHINE_ID)
@@ -133,7 +136,7 @@ public class DefaultTopologyFactory implements TopologyFactory {
      *
      * @return -1 if max skew not set or is invalid
      */
-    private static int getJobMaxSkew(Job<?> job) {
+    private int getJobMaxSkew(Job<?> job) {
         String maxSkewAttr = job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SPREADING_MAX_SKEW);
         if (maxSkewAttr != null) {
             try {
@@ -146,15 +149,20 @@ public class DefaultTopologyFactory implements TopologyFactory {
         }
 
         DisruptionBudgetPolicy policy = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+        // Job spreading is only relevant for jobs that care about the availability.
         if (!(policy instanceof AvailabilityPercentageLimitDisruptionBudgetPolicy)) {
-            return 1;
+            return -1;
         }
         int jobSize = getJobDesiredSize(job);
         if (jobSize <= 1) {
             return 1;
         }
-        AvailabilityPercentageLimitDisruptionBudgetPolicy availabilityPolicy = (AvailabilityPercentageLimitDisruptionBudgetPolicy) policy;
-        int maxSkew = (int) (jobSize * (100 - availabilityPolicy.getPercentageOfHealthyContainers()) / 100);
-        return Math.max(maxSkew, 1);
+        double alpha = configuration.getJobSpreadingSkewAlpha();
+        if (alpha <= 0) {
+            return -1;
+        }
+        int skew = (int) (Math.floor(jobSize / alpha));
+        // The skew must be between 1 and the configured max skew.
+        return Math.max(1, Math.min(skew, configuration.getJobSpreadingMaxSkew()));
     }
 }

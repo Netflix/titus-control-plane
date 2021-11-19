@@ -136,6 +136,19 @@ public interface KubePodConfiguration {
     String getDisabledJobSpreadingPattern();
 
     /**
+     * Job spreading skew adjustment factor, with the skew computed as job_size/alpha. Setting value >= 1 effectively
+     * disables the spreading (max skew == job size).
+     */
+    @DefaultValue("3")
+    double getJobSpreadingSkewAlpha();
+
+    /**
+     * The maximum allowed skew. This is how many tasks from a job can land on the same node.
+     */
+    @DefaultValue("48")
+    int getJobSpreadingMaxSkew();
+
+    /**
      * @return the pod spec target region to use
      */
     String getTargetRegion();
