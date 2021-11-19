@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
@@ -31,7 +33,8 @@ import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
 public class BasicContainer {
 
-    @Valid
+    @NotNull
+    @Pattern(regexp = "[a-z0-9]([-a-z0-9]*[a-z0-9])?", message = "container name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String name;
 
     @Valid

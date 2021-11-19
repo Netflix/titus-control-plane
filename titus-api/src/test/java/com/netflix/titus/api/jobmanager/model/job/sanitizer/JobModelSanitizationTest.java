@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -35,11 +36,15 @@ import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
+import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.volume.SaaSVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
+import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -51,6 +56,7 @@ import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeDisruptionBudget;
 import static com.netflix.titus.common.util.CollectionsExt.first;
+import static com.netflix.titus.common.util.CollectionsExt.last;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.percentageOfHealthyPolicy;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
@@ -347,6 +353,25 @@ public class JobModelSanitizationTest {
         Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);
         assertThat(first(violations).getDescription()).isEqualTo("'startHour'(16) must be < 'endHour'(8)");
+    }
+
+    @Test
+    public void testJobWithInvalidPlatformSidecar() {
+        PlatformSidecar badPS = PlatformSidecar.newBuilder().withName("BAD_NAME").withChannel("BAD_CHANNEL").build();
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.toBuilder().withPlatformSidecars(Collections.singletonList(badPS)).build());
+
+        Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(2);
+    }
+
+    @Test
+    public void testJobWithInvalidVolume() {
+        VolumeSource vs = new SaaSVolumeSource("BAD_SAAS_NAME");
+        Volume badVolume = Volume.newBuilder().withName("BAD_NAME").withVolumeSource(vs).build();
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.toBuilder().withVolumes(Collections.singletonList(badVolume)).build());
+
+        Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(2);
     }
 
     private JobDescriptor<BatchJobExt> newJobWithContainerHealthProvider(String healthProviderName) {

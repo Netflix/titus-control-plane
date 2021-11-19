@@ -18,10 +18,13 @@ package com.netflix.titus.api.jobmanager.model.job.volume;
 
 import java.util.Objects;
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 public class SaaSVolumeSource extends VolumeSource {
 
-    @Valid
+    @NotNull
+    @Pattern(regexp = "[a-z0-9]([-a-z0-9]*[a-z0-9])?", message = "SaaS Volume ID must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String saaSVolumeID;
 
     public SaaSVolumeSource(String saaSVolumeID) {

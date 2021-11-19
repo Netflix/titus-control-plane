@@ -421,7 +421,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testSearchByPlatformSidecarV3() {
-        List<PlatformSidecar> ps = Collections.singletonList(PlatformSidecar.newBuilder().withName("testPlatformSidecar").withChannel("testPSChannel").build());
+        List<PlatformSidecar> ps = Collections.singletonList(PlatformSidecar.newBuilder().withName("test-platform-sidecar").withChannel("test-channel").build());
         JobDescriptor<BatchJobExt> jobDescriptorWithTestSidecar = BATCH_JOB_TEMPLATE.toBuilder()
                 .withApplicationName("testAppThatDoesHavePlatformSidecar")
                 .withPlatformSidecars(ps)
@@ -431,8 +431,8 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         );
 
         List<Job> foundJobs = client.findJobs(JobQuery.newBuilder()
-                .putFilteringCriteria("platformSidecar", "testPlatformSidecar")
-                .putFilteringCriteria("platformSidecarChannel", "testPSChannel")
+                .putFilteringCriteria("platformSidecar", "test-platform-sidecar")
+                .putFilteringCriteria("platformSidecarChannel", "test-channel")
                 .setPage(PAGE)
                 .build()
         ).getItemsList();
@@ -440,7 +440,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(foundJobs.get(0).getId()).isNotEmpty(); // Always present
         com.netflix.titus.grpc.protogen.JobDescriptor foundJobDescriptor = foundJobs.get(0).getJobDescriptor();
         assertThat(foundJobDescriptor.getPlatformSidecarsList()).isNotEmpty();
-        assertThat(foundJobDescriptor.getPlatformSidecarsList().get(0).getName()).isEqualTo("testPlatformSidecar");
+        assertThat(foundJobDescriptor.getPlatformSidecarsList().get(0).getName()).isEqualTo("test-platform-sidecar");
     }
 
     private void testBatchSearchBy(String queryKey, String queryValue) {

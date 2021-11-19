@@ -2,17 +2,20 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.Objects;
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 
 public class PlatformSidecar {
 
-    @Valid
+    @NotNull
+    @Pattern(regexp = "^[a-z0-9]([\\-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([\\-a-z0-9]*[a-z0-9])?)*$", message = "platform sidecar names must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String name;
 
-    @Valid
+    @NotNull
+    @Pattern(regexp = "^[a-z0-9]([\\-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([\\-a-z0-9]*[a-z0-9])?)*$", message = "channel names must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String channel;
 
-    @Valid
     public final String arguments;
 
     public PlatformSidecar(String name, String channel, String arguments) {
