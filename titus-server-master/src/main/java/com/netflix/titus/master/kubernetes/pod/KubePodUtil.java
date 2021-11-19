@@ -37,6 +37,9 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
+import com.netflix.titus.api.jobmanager.model.job.volume.SaaSVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
+import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.Evaluators;
@@ -48,7 +51,9 @@ import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
+import io.kubernetes.client.openapi.models.V1CephFSVolumeSource;
 import io.kubernetes.client.openapi.models.V1EnvVar;
+import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
@@ -247,6 +252,55 @@ public class KubePodUtil {
         }
     }
 
+    public static List<V1Volume> buildV1Volumes(List<Volume> volumes) {
+        if (volumes == null) {
+            return Collections.emptyList();
+        }
+        List<V1Volume> v1Volumes = new ArrayList<>();
+        for (Volume v : volumes) {
+            buildV1Volume(v).ifPresent(v1Volumes::add);
+        }
+        return v1Volumes;
+    }
+
+    private static Optional<V1Volume> buildV1Volume(Volume volume) {
+        if (volume.getVolumeSource() instanceof SharedContainerVolumeSource) {
+            V1FlexVolumeSource flexVolume = getV1FlexVolumeForSharedContainerVolumeSource(volume);
+            return Optional.ofNullable(new V1Volume()
+                    .name(volume.getName())
+                    .flexVolume(flexVolume));
+        } else if (volume.getVolumeSource() instanceof SaaSVolumeSource) {
+            V1CephFSVolumeSource cephVolume = getV1CephVolumeSource(volume);
+            return Optional.ofNullable(new V1Volume()
+                    .name(volume.getName())
+                    .cephfs(cephVolume));
+        } else {
+            return Optional.empty();
+        }
+
+    }
+
+    private static V1FlexVolumeSource getV1FlexVolumeForSharedContainerVolumeSource(Volume volume) {
+        SharedContainerVolumeSource sharedContainerVolumeSource = (SharedContainerVolumeSource) volume.getVolumeSource();
+        Map<String, String> options = new HashMap<>();
+        options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
+        options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());
+        return new V1FlexVolumeSource()
+                .driver("SharedContainerVolumeSource")
+                .options(options);
+    }
+
+    private static V1CephFSVolumeSource getV1CephVolumeSource(Volume volume) {
+        SaaSVolumeSource saaSVolumeSource = (SaaSVolumeSource) volume.getVolumeSource();
+        // This Ceph volume source is not "truly" representative of all the data we will
+        // need to mount a SaaS volume. The actual connection string is built just-in-time
+        // by the executor.
+        // `monitors` must be set, however, to pass KubeAPI validation.
+        // The "path" is what we use to store the actual SaaS volume ID.
+        return new V1CephFSVolumeSource()
+                .monitors(Collections.singletonList(""))
+                .path(saaSVolumeSource.getSaaSVolumeID());
+    }
 
     /**
      * Builds the image string for Kubernetes pod spec

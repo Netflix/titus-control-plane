@@ -43,8 +43,6 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
-import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -68,7 +66,6 @@ import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EmptyDirVolumeSource;
 import io.kubernetes.client.openapi.models.V1EnvVar;
-import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
 import io.kubernetes.client.openapi.models.V1NFSVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
@@ -155,6 +152,8 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatform
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.sanitizeVolumeName;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
+
 
 @Singleton
 public class V1SpecPodFactory implements PodFactory {
@@ -286,39 +285,6 @@ public class V1SpecPodFactory implements PodFactory {
                 .volumeMounts(KubePodUtil.buildV1VolumeMounts(extraContainer.getVolumeMounts()));
     }
 
-
-    private List<V1Volume> buildV1Volumes(List<Volume> volumes) {
-        if (volumes == null) {
-            return Collections.emptyList();
-        }
-        List<V1Volume> v1Volumes = new ArrayList<>();
-        for (Volume v : volumes) {
-            buildV1Volume(v).ifPresent(v1Volumes::add);
-        }
-        return v1Volumes;
-    }
-
-    private Optional<V1Volume> buildV1Volume(Volume volume) {
-        if (volume.getVolumeSource() instanceof SharedContainerVolumeSource) {
-            V1FlexVolumeSource flexVolume = getV1FlexVolumeForSharedContainerVolumeSource(volume);
-            return Optional.ofNullable(new V1Volume()
-                    .name(volume.getName())
-                    .flexVolume(flexVolume));
-        } else {
-            // SharedVolumeSource is currently the only supported volume type
-            return Optional.empty();
-        }
-    }
-
-    private V1FlexVolumeSource getV1FlexVolumeForSharedContainerVolumeSource(Volume volume) {
-        SharedContainerVolumeSource sharedContainerVolumeSource = (SharedContainerVolumeSource) volume.getVolumeSource();
-        Map<String, String> options = new HashMap<>();
-        options.put("sourceContainer", sharedContainerVolumeSource.getSourceContainer());
-        options.put("sourcePath", sharedContainerVolumeSource.getSourcePath());
-        return new V1FlexVolumeSource()
-                .driver("SharedContainerVolumeSource")
-                .options(options);
-    }
 
     @VisibleForTesting
     V1ResourceRequirements buildV1ResourceRequirements(ContainerResources containerResources) {

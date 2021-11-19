@@ -84,6 +84,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.volume.SaaSVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.jobmanager.model.job.volume.VolumeSource;
@@ -441,8 +442,19 @@ public final class GrpcJobManagementModelConverters {
                 return Volume.newBuilder()
                         .withName(grpcVolume.getName())
                         .withVolumeSource(source).build();
+            case SAASVOLUMESOURCE:
+                VolumeSource saaSSource = toCoreSaaSVolumeSource(grpcVolume.getSaaSVolumeSource());
+                return Volume.newBuilder()
+                        .withName(grpcVolume.getName())
+                        .withVolumeSource(saaSSource).build();
         }
         return null;
+    }
+
+    private static VolumeSource toCoreSaaSVolumeSource(com.netflix.titus.grpc.protogen.SaaSVolumeSource saaSVolumeSource) {
+        return SaaSVolumeSource.newBuilder()
+                .withSaaSVolumeID(saaSVolumeSource.getSaaSVolumeID())
+                .build();
     }
 
     private static SharedContainerVolumeSource toCoreSharedVolumeSource(com.netflix.titus.grpc.protogen.SharedContainerVolumeSource sharedContainerVolumeSource) {
@@ -1157,12 +1169,22 @@ public final class GrpcJobManagementModelConverters {
         if (source instanceof SharedContainerVolumeSource) {
             return com.netflix.titus.grpc.protogen.Volume.newBuilder()
                     .setName(volume.getName())
-                    .mergeSharedContainerVolumeSource(toGrpcSharedVolumeSource((SharedContainerVolumeSource) source))
+                    .setSharedContainerVolumeSource(toGrpcSharedVolumeSource((SharedContainerVolumeSource) source))
+                    .build();
+        } else if (source instanceof SaaSVolumeSource) {
+            return com.netflix.titus.grpc.protogen.Volume.newBuilder()
+                    .setName(volume.getName())
+                    .setSaaSVolumeSource(toGrpcSaaSVolumeSource((SaaSVolumeSource) source))
                     .build();
         } else {
-            // SharedContainerVolume is currently the only supported volume type
             return null;
         }
+    }
+
+    private static com.netflix.titus.grpc.protogen.SaaSVolumeSource toGrpcSaaSVolumeSource(SaaSVolumeSource source) {
+        return com.netflix.titus.grpc.protogen.SaaSVolumeSource.newBuilder()
+                .setSaaSVolumeID(source.getSaaSVolumeID())
+                .build();
     }
 
     private static com.netflix.titus.grpc.protogen.SharedContainerVolumeSource toGrpcSharedVolumeSource
