@@ -61,6 +61,8 @@ public class DefaultTopologyFactoryTest {
     public void setUp() throws Exception {
         topologyFactory = new DefaultTopologyFactory(configuration, features);
         when(configuration.getDisabledJobSpreadingPattern()).thenReturn("NONE");
+        when(configuration.getJobSpreadingSkewAlpha()).thenReturn(3.0);
+        when(configuration.getJobSpreadingMaxSkew()).thenReturn(48);
         when(features.isRelocationBinpackingEnabled()).thenReturn(true);
     }
 
@@ -96,13 +98,12 @@ public class DefaultTopologyFactoryTest {
 
     @Test
     public void testServiceJobSpreadingWithAvailabilityPercentageDisruptionBudget() {
-        // By default no job spreading
         Job<ServiceJobExt> job = JobGenerator.serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
         job = JobFunctions.changeServiceJobCapacity(job, Capacity.newBuilder().withDesired(100).withMax(100).build());
         job = JobFunctions.changeDisruptionBudget(job, PERCENTAGE_OF_HEALTH_POLICY);
         List<V1TopologySpreadConstraint> constraints = topologyFactory.buildTopologySpreadConstraints(job);
         assertThat(constraints).hasSize(1);
-        assertThat(constraints.get(0).getMaxSkew()).isEqualTo(5);
+        assertThat(constraints.get(0).getMaxSkew()).isEqualTo(33);
 
         // And now add zone constraint
         job = JobFunctions.appendSoftConstraint(job, JobConstraints.ZONE_BALANCE, "true");
@@ -120,6 +121,8 @@ public class DefaultTopologyFactoryTest {
     @Test
     public void testJobSpreadingDisabledConfiguration() {
         Job<ServiceJobExt> job = JobGenerator.serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
+        job = JobFunctions.changeServiceJobCapacity(job, Capacity.newBuilder().withDesired(100).withMax(100).build());
+        job = JobFunctions.changeDisruptionBudget(job, PERCENTAGE_OF_HEALTH_POLICY);
         assertThat(topologyFactory.buildTopologySpreadConstraints(job)).hasSize(1);
 
         when(configuration.getDisabledJobSpreadingPattern()).thenReturn(".*");
