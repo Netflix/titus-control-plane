@@ -41,7 +41,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.appendJobDescriptorAttribute;
 import static com.netflix.titus.master.integration.v3.scenario.JobAsserts.podWithEfsMounts;
 import static com.netflix.titus.master.integration.v3.scenario.JobAsserts.podWithResources;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicKubeCell;
@@ -81,13 +80,12 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
      */
     @Test(timeout = 30_000)
     public void testSubmitSimpleBatchJobWhichEndsOk() {
-        JobDescriptor<BatchJobExt> tmpJob =
-                appendJobDescriptorAttribute(ONE_TASK_BATCH_JOB, JobAttributes.JOB_ATTRIBUTES_CREATED_BY, "embeddedFederationClient");
-        tmpJob = appendJobDescriptorAttribute(tmpJob, JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL, "embeddedCell");
-        final JobDescriptor<BatchJobExt> expectedJob = tmpJob;
-
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
-                .inStrippedJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(expectedJob))
+                .inJob(job -> {
+                    assertThat(job.getJobDescriptor().getAttributes().containsKey(JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL));
+                    assertThat(job.getJobDescriptor().getAttributes().containsKey(JobAttributes.JOB_ATTRIBUTES_CREATED_BY));
+                })
+                .inStrippedJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(ONE_TASK_BATCH_JOB))
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachPod(
                         podWithResources(ONE_TASK_BATCH_JOB.getContainer().getContainerResources(), jobConfiguration.getMinDiskSizeMB()),
