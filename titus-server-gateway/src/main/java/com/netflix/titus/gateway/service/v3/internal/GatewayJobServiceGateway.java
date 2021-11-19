@@ -66,7 +66,6 @@ import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
@@ -294,17 +293,21 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "observeJob", callMetadata)) {
-            return localCacheQueryProcessor.syncCache("observeJob", JobChangeNotification.class).concatWith(localCacheQueryProcessor.observeJob(jobId));
+            return localCacheQueryProcessor.syncCache("observeJob", JobChangeNotification.class)
+                    .concatWith(localCacheQueryProcessor.observeJob(jobId))
+                    .map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
         }
-        return super.observeJob(jobId, callMetadata);
+        return super.observeJob(jobId, callMetadata).map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(query.getFilteringCriteriaMap(), "observeJobs", callMetadata)) {
-            return localCacheQueryProcessor.syncCache("observeJobs", JobChangeNotification.class).concatWith(localCacheQueryProcessor.observeJobs(query));
+            return localCacheQueryProcessor.syncCache("observeJobs", JobChangeNotification.class)
+                    .concatWith(localCacheQueryProcessor.observeJobs(query))
+                    .map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
         }
-        return super.observeJobs(query, callMetadata);
+        return super.observeJobs(query, callMetadata).map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {

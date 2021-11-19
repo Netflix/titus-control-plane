@@ -32,6 +32,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
@@ -95,10 +96,32 @@ class TaskRelocationDataInjector {
         this.scheduler = scheduler;
     }
 
+    JobChangeNotification injectIntoTaskUpdateEvent(JobChangeNotification event) {
+        if (event.getNotificationCase() != JobChangeNotification.NotificationCase.TASKUPDATE) {
+            return event;
+        }
+
+        Task updatedTask = event.getTaskUpdate().getTask();
+        if (featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
+            updatedTask = newTaskWithContainerState(updatedTask);
+        }
+        if (featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
+            updatedTask = newTaskWithRelocationPlan(updatedTask, relocationDataReplicator.getCurrent().getPlans().get(updatedTask.getId()));
+        }
+
+        // Nothing changed so return the input event.
+        if (updatedTask == event.getTaskUpdate().getTask()) {
+            return event;
+        }
+        return event.toBuilder().setTaskUpdate(
+                event.getTaskUpdate().toBuilder().setTask(updatedTask).build()
+        ).build();
+    }
+
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {
         Observable<Task> taskObservableWithContainerState = taskObservable;
 
-        if(featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
+        if (featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
             taskObservableWithContainerState = taskObservable.map(this::newTaskWithContainerState);
         }
 
@@ -125,7 +148,7 @@ class TaskRelocationDataInjector {
     Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
         Observable<TaskQueryResult> tasksObservableWithContainerState = tasksObservable;
 
-        if(featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
+        if (featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
             tasksObservableWithContainerState.flatMap(queryResult -> {
                 List<Task> newTaskList = queryResult.getItemsList().stream()
                         .map(task -> newTaskWithContainerState(task))
@@ -182,11 +205,11 @@ class TaskRelocationDataInjector {
 
     private Task newTaskWithContainerState(Task task) {
         return task.toBuilder().setStatus(TaskStatus.newBuilder()
-                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+                .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
-        if(relocationPlan == null) {
+        if (relocationPlan == null) {
             return task;
         }
 
