@@ -37,6 +37,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.protobuf.Empty;
 import com.google.protobuf.UInt32Value;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -551,7 +552,9 @@ public class JobScenarioBuilder {
         // Remove diagnostic data added by the job replicator.
         Map<String, String> filteredAttributes = new HashMap<>();
         job.getJobDescriptor().getAttributes().forEach((key, value) -> {
-            if (!key.startsWith("event.propagation")) {
+            if (!key.startsWith("event.propagation")
+                    && !key.equals(JobAttributes.JOB_ATTRIBUTES_CREATED_BY)
+                    && !key.equals(JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL)) {
                 filteredAttributes.put(key, value);
             }
         });
