@@ -39,6 +39,8 @@ import com.netflix.titus.cli.command.job.KillTaskCommand;
 import com.netflix.titus.cli.command.job.ObserveJobsCommand;
 import com.netflix.titus.cli.command.job.TaskGetCommand;
 import com.netflix.titus.cli.command.job.TasksGetCommand;
+import com.netflix.titus.cli.command.job.unschedulable.PrintUnschedulableJobsCommand;
+import com.netflix.titus.cli.command.job.unschedulable.RemoveUnschedulableJobsCommand;
 import com.netflix.titus.cli.command.scheduler.ObserveSchedulingResultCommand;
 import com.netflix.titus.cli.command.supervisor.SupervisorObserveEventsCommand;
 import io.grpc.StatusRuntimeException;
@@ -89,6 +91,9 @@ public class CLI {
             .put("schedulingResults", new ObserveSchedulingResultCommand())
             // Supervisor
             .put("supervisorEvents", new SupervisorObserveEventsCommand())
+            // Unschedulable jobs
+            .put("printUnschedulableJobs", new PrintUnschedulableJobsCommand())
+            .put("removeUnschedulableJobs", new RemoveUnschedulableJobsCommand())
             .build();
 
     private final boolean helpRequested;
