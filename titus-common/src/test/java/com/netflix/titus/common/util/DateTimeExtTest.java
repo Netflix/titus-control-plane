@@ -68,6 +68,39 @@ public class DateTimeExtTest {
     }
 
     @Test
+    public void testRoundedTime() {
+        long msDuration = 123;
+        assertThat(toTimeUnitString(msDuration, 2)).isEqualTo("123ms");
+
+        long secDuration = 3 * 1000 + 123;
+        assertThat(toTimeUnitString(secDuration, 1)).isEqualTo("3s");
+        assertThat(toTimeUnitString(secDuration, 2)).isEqualTo("3s 123ms");
+
+        long minDuration = (2 * 60 + 3) * 1000 + 123;
+        assertThat(toTimeUnitString(minDuration, 1)).isEqualTo("2min");
+        assertThat(toTimeUnitString(minDuration, 2)).isEqualTo("2min 3s");
+        assertThat(toTimeUnitString(minDuration, 3)).isEqualTo("2min 3s 123ms");
+
+        long hourDuration = ((1 * 60 + 2) * 60 + 3) * 1000 + 123;
+        assertThat(toTimeUnitString(hourDuration, 1)).isEqualTo("1h");
+        assertThat(toTimeUnitString(hourDuration, 2)).isEqualTo("1h 2min");
+        assertThat(toTimeUnitString(hourDuration, 3)).isEqualTo("1h 2min 3s");
+        assertThat(toTimeUnitString(hourDuration, 4)).isEqualTo("1h 2min 3s 123ms");
+
+        long oneSecond = 1 * 1000;
+        assertThat(toTimeUnitString(oneSecond, 2)).isEqualTo("1s");
+
+        long oneMillis = 1;
+        assertThat(toTimeUnitString(oneMillis, 2)).isEqualTo("1ms");
+
+        long zeroMillis = 0;
+        assertThat(toTimeUnitString(zeroMillis, 2)).isEqualTo("0ms");
+
+        long twoDays = TimeUnit.DAYS.toMillis(2);
+        assertThat(toTimeUnitString(twoDays, 2)).isEqualTo("2d");
+    }
+
+    @Test
     public void testToRateString() {
         assertThat(toRateString(1, 1, TimeUnit.MILLISECONDS, "action")).isEqualTo("1.00 action/ms");
         assertThat(toRateString(60, 5, TimeUnit.SECONDS, "action")).isEqualTo("5.00 action/min");

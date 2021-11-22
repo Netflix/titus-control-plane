@@ -23,6 +23,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Preconditions;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 
@@ -120,6 +121,60 @@ public final class DateTimeExt {
         }
         if (timeMs % 1000 > 0) {
             sb.append(' ').append(timeMs % 1000).append("ms");
+        }
+        if (sb.length() == 0) {
+            return "0ms";
+        } else if (sb.charAt(0) == ' ') {
+            return sb.substring(1);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Given a duration in milliseconds, format it using time units rounded to the given number of parts.
+     */
+    public static String toTimeUnitString(long timeMs, int parts) {
+        Preconditions.checkArgument(parts > 0, "At least one unit must be requested");
+        StringBuilder sb = new StringBuilder();
+
+        long sec = timeMs / 1000;
+        long min = sec / 60;
+        long hour = min / 60;
+        long day = hour / 24;
+        long addedParts = 0;
+
+        if (day > 0) {
+            sb.append(' ').append(day).append("d");
+            addedParts++;
+        }
+        if (addedParts < parts) {
+            if (hour % 24 > 0) {
+                sb.append(' ').append(hour % 24).append("h");
+                addedParts++;
+            } else if (addedParts > 0) {
+                addedParts++;
+            }
+            if (addedParts < parts) {
+                if (min % 60 > 0) {
+                    sb.append(' ').append(min % 60).append("min");
+                    addedParts++;
+                } else if (addedParts > 0) {
+                    addedParts++;
+                }
+                if (addedParts < parts) {
+                    if (sec % 60 > 0) {
+                        sb.append(' ').append(sec % 60).append("s");
+                        addedParts++;
+                    } else if (addedParts > 0) {
+                        addedParts++;
+                    }
+                    if (addedParts < parts) {
+                        if (timeMs % 1000 > 0) {
+                            sb.append(' ').append(timeMs % 1000).append("ms");
+                        }
+                    }
+                }
+            }
         }
         if (sb.length() == 0) {
             return "0ms";

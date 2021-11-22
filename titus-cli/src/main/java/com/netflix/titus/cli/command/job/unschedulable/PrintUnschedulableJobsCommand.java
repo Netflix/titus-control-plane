@@ -59,8 +59,11 @@ public class PrintUnschedulableJobsCommand implements CliCommand {
                 .orElseThrow(() -> new IllegalArgumentException("Wrong expiry threshold"));
 
         Pair<Map<String, Job>, Map<String, Map<String, Task>>> all = loadActiveJobsAndTasks(context);
-        Map<String, UnschedulableJob> unschedulable = UnschedulableFinder.findUnschedulableJobs(all.getLeft(), all.getRight(), stuckInAcceptedThresholdMs);
+        Map<String, UnschedulableJob> unschedulable = UnschedulableFinder.findUnschedulableJobs(context, all.getLeft(), all.getRight(), stuckInAcceptedThresholdMs);
         logger.info("Found {} unschedulable jobs", unschedulable.size());
-        unschedulable.forEach((jobId, info) -> logger.info("    {}: {}", jobId, info.getReason()));
+        unschedulable.forEach((jobId, info) -> {
+            logger.info("    {}: reason={}", jobId, info.getReason());
+            logger.info("        failures={}", info.getFailures());
+        });
     }
 }

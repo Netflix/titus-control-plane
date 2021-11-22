@@ -73,7 +73,7 @@ public class RemoveUnschedulableJobsCommand implements CliCommand {
         Pair<Map<String, Job>, Map<String, Map<String, Task>>> all = loadActiveJobsAndTasks(context);
         Map<String, Job> jobs = all.getLeft();
 
-        Map<String, UnschedulableJob> unschedulable = UnschedulableFinder.findUnschedulableJobs(all.getLeft(), all.getRight(), stuckInAcceptedThresholdMs);
+        Map<String, UnschedulableJob> unschedulable = UnschedulableFinder.findUnschedulableJobs(context, all.getLeft(), all.getRight(), stuckInAcceptedThresholdMs);
         logger.info("Found {} unschedulable jobs", unschedulable.size());
         logger.info("Removing the oldest {}...", limit);
 

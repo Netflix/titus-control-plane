@@ -20,10 +20,12 @@ class UnschedulableJob {
 
     private final String jobId;
     private final String reason;
+    private final String failures;
 
-    public UnschedulableJob(String jobId, String reason) {
+    public UnschedulableJob(String jobId, String reason, String failures) {
         this.jobId = jobId;
         this.reason = reason;
+        this.failures = failures;
     }
 
     public String getJobId() {
@@ -34,11 +36,16 @@ class UnschedulableJob {
         return reason;
     }
 
+    public String getFailures() {
+        return failures;
+    }
+
     @Override
     public String toString() {
         return "UnschedulableJob{" +
                 "jobId='" + jobId + '\'' +
                 ", reason='" + reason + '\'' +
+                ", failures='" + failures + '\'' +
                 '}';
     }
 }

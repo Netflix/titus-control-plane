@@ -29,6 +29,7 @@ import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobConnectorConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.ReactorJobManagementServiceStub;
@@ -142,6 +143,10 @@ public class CommandContext {
                 "titus.connector.jobService.keepAliveIntervalMs", "" + keepAliveInternalMs
         );
         return new RemoteJobManagementClientWithKeepAlive("cli", configuration, stub, reactorStub, titusRuntime);
+    }
+
+    public SchedulerServiceGrpc.SchedulerServiceBlockingStub getSchedulerServiceBlockingStub() {
+        return SchedulerServiceGrpc.newBlockingStub(createChannel());
     }
 
     public void shutdown() {
