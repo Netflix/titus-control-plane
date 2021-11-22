@@ -28,15 +28,17 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationR
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
-import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
-import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
+import com.netflix.titus.runtime.connector.relocation.TaskRelocationSnapshot;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
@@ -86,6 +88,37 @@ public class TaskRelocationDataInjectorTest {
         when(grpcConfiguration.getRequestTimeout()).thenReturn(REQUEST_TIMEOUT_MS);
         when(jobManagerConfiguration.getRelocationTimeoutCoefficient()).thenReturn(0.5);
         when(featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()).thenReturn(true);
+    }
+
+    @Test
+    public void testTaskUpdateEventWithRelocationDeadline() {
+        long deadlineTimestamp = titusRuntime.getClock().wallTime() + 1_000;
+
+        when(relocationDataReplicator.getCurrent()).thenReturn(
+                newRelocationSnapshot(newRelocationPlan(TASK1, deadlineTimestamp))
+        );
+
+        JobChangeNotification event = JobChangeNotification.newBuilder()
+                .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(TASK1).build())
+                .build();
+        JobChangeNotification updatedEvent = taskRelocationDataInjector.injectIntoTaskUpdateEvent(event);
+        Task merged = updatedEvent.getTaskUpdate().getTask();
+        assertThat(merged.getMigrationDetails().getNeedsMigration()).isTrue();
+        assertThat(merged.getMigrationDetails().getDeadline()).isEqualTo(deadlineTimestamp);
+    }
+
+    @Test
+    public void testTaskUpdateEventWithoutRelocationDeadline() {
+        when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.empty());
+        JobChangeNotification event = JobChangeNotification.newBuilder()
+                .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(TASK1).build())
+                .build();
+        JobChangeNotification updatedEvent = taskRelocationDataInjector.injectIntoTaskUpdateEvent(event);
+        assertThat(updatedEvent).isEqualTo(event);
+    }
+
+    private TaskRelocationSnapshot newRelocationSnapshot(TaskRelocationPlan plan) {
+        return TaskRelocationSnapshot.newBuilder().addPlan(plan).build();
     }
 
     @Test
