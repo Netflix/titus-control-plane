@@ -22,10 +22,12 @@ import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.FunctionExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -47,6 +49,7 @@ import org.junit.Test;
 import reactor.core.Disposable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 public class RemoteJobManagementClientWithKeepAliveTest {
@@ -126,28 +129,44 @@ public class RemoteJobManagementClientWithKeepAliveTest {
 
     @Test
     public void testClientCancel() throws InterruptedException {
-        Disposable disposable = client.connectObserveJobs(Collections.emptyMap()).subscribe();
+        AtomicBoolean keepAliveCompleted = new AtomicBoolean();
+        Disposable disposable = client.connectObserveJobs(Collections.emptyMap(), () -> keepAliveCompleted.set(true)).subscribe();
         // Read and discard the query message
         receivedFromClient.poll(30, TimeUnit.SECONDS);
         disposable.dispose();
         Object value = receivedFromClient.poll(30, TimeUnit.SECONDS);
         assertThat(value).isInstanceOf(StatusRuntimeException.class);
         assertThat(((StatusRuntimeException) value).getStatus().getCode()).isEqualTo(Status.Code.CANCELLED);
+        assertThat(keepAliveCompleted).isTrue();
         assertThat(clientCancelled).isTrue();
     }
 
     @Test
     public void testServerError() throws InterruptedException {
-        Iterator<JobChangeNotification> it = newClientConnection();
+        AtomicBoolean keepAliveCompleted = new AtomicBoolean();
+        Iterator<JobChangeNotification> it = newClientConnection(() -> keepAliveCompleted.set(true));
         // Read and discard the query message
         receivedFromClient.poll(30, TimeUnit.SECONDS);
 
         responseObserver.onError(new StatusRuntimeException(Status.ABORTED.augmentDescription("simulated error")));
         try {
             it.next();
+            fail("expected an exception");
         } catch (StatusRuntimeException e) {
             assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.ABORTED);
+            assertThat(keepAliveCompleted).isTrue();
         }
+    }
+
+    @Test
+    public void testServerCompleted() throws InterruptedException {
+        AtomicBoolean keepAliveCompleted = new AtomicBoolean();
+        Iterator<JobChangeNotification> it = newClientConnection(() -> keepAliveCompleted.set(true));
+        waitForClientKeepAliveRequest();
+
+        responseObserver.onCompleted();
+        assertThat(it.hasNext()).isFalse();
+        assertThat(keepAliveCompleted).isTrue();
     }
 
     private Server newServerConnection() {
@@ -162,13 +181,17 @@ public class RemoteJobManagementClientWithKeepAliveTest {
         }
     }
 
-    private Iterator<JobChangeNotification> newClientConnection() throws InterruptedException {
-        Iterator<JobChangeNotification> it = client.connectObserveJobs(Collections.emptyMap()).toIterable().iterator();
+    private Iterator<JobChangeNotification> newClientConnection(Runnable keepAliveCompleted) throws InterruptedException {
+        Iterator<JobChangeNotification> it = client.connectObserveJobs(Collections.emptyMap(), keepAliveCompleted).toIterable().iterator();
 
         Object clientRequestEvent = receivedFromClient.poll(30, TimeUnit.SECONDS);
         assertThat(clientRequestEvent).isNotNull().isInstanceOf(ObserveJobsWithKeepAliveRequest.class);
         assertThat(((ObserveJobsWithKeepAliveRequest) clientRequestEvent).getKindCase()).isEqualTo(ObserveJobsWithKeepAliveRequest.KindCase.QUERY);
         return it;
+    }
+
+    private Iterator<JobChangeNotification> newClientConnection() throws InterruptedException {
+        return newClientConnection(FunctionExt.noop());
     }
 
     private JobChangeNotification expectJobChangeNotification(Iterator<JobChangeNotification> it, JobChangeNotification.NotificationCase eventCase) {
