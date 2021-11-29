@@ -135,6 +135,7 @@ public final class KubePodConstants {
     public static final String POD_SCHED_POLICY = "pod.netflix.com/sched-policy";
     public static final String POD_SECCOMP_AGENT_NET_ENABLED = "pod.netflix.com/seccomp-agent-net-enabled";
     public static final String POD_SECCOMP_AGENT_PERF_ENABLED = "pod.netflix.com/seccomp-agent-perf-enabled";
+    public static final String POD_IMAGE_TAG_PREFIX = "pod.titus.netflix.com/image-tag-";
 
     // Container Logging Config
     public static final String LOG_KEEP_LOCAL_FILE = "log.netflix.com/keep-local-file-after-upload";

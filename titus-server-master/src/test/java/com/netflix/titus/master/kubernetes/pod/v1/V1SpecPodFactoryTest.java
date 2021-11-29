@@ -99,6 +99,21 @@ public class V1SpecPodFactoryTest {
     }
 
     @Test
+    public void basicMainContainerTranslation() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().build()).build();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+
+        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Container mainContainer = pod.getSpec().getContainers().get(0);
+
+        String mainContainerImageTag = pod.getMetadata().getAnnotations().get("pod.titus.netflix.com/image-tag-main");
+        assertThat(mainContainerImageTag).isEqualTo("latest");
+        assertThat(mainContainer.getImage()).contains("titusops/alpine@");
+    }
+
+    @Test
     public void multipleContainers() {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
         BatchJobTask task = JobGenerator.oneBatchTask();

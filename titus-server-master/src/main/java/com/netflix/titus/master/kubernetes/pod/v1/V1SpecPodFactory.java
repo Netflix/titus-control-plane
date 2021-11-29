@@ -129,6 +129,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NEVER_RES
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_CPU_BURSTING_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_FUSE_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_HOSTNAME_STYLE;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_IMAGE_TAG_PREFIX;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHED_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHEMA_VERSION;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SECCOMP_AGENT_NET_ENABLED;
@@ -206,6 +207,10 @@ public class V1SpecPodFactory implements PodFactory {
         Map<String, String> labels = new HashMap<>();
         labels.put("v3.job.titus.netflix.com/job-id", job.getId());
         labels.put("v3.job.titus.netflix.com/task-id", taskId);
+
+        // A V1Container has no room to store the original tag that the Image came from, so we store it as an
+        // annotation. Only saving the 'main' one for now.
+        annotations.put(POD_IMAGE_TAG_PREFIX + "main", job.getJobDescriptor().getContainer().getImage().getTag());
 
         JobDescriptor<?> jobDescriptor = job.getJobDescriptor();
         String capacityGroup = JobManagerUtil.getCapacityGroupDescriptorName(job.getJobDescriptor(), capacityGroupManagement).toLowerCase();
