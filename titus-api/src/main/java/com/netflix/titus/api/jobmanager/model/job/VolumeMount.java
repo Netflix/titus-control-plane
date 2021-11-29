@@ -18,25 +18,23 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.Objects;
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
 public class VolumeMount {
 
-    @Valid
+    @NotNull
     @Pattern(regexp = "[a-z0-9]([-a-z0-9]*[a-z0-9])?", message = "volume name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String volumeName;
 
-    @Valid
+    @NotNull
     @Pattern(regexp = "^/.*", message = "path must start with a leading slash")
     private final String mountPath;
 
-    @Valid
     private final String mountPropagation;
 
-    @Valid
     private final Boolean readOnly;
 
-    @Valid
     private final String subPath;
 
     public VolumeMount(String volumeName, String mountPath, String mountPropagation, Boolean readOnly, String subPath) {

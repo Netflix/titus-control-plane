@@ -17,13 +17,17 @@
 package com.netflix.titus.api.jobmanager.model.job.volume;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 public class SharedContainerVolumeSource extends VolumeSource {
 
-    @Valid
+    @NotNull
+    @Pattern(regexp = "[a-z0-9]([-a-z0-9]*[a-z0-9])?", message = "source container must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character")
     private final String sourceContainer;
 
-    @Valid
+    @NotNull
+    @Pattern(regexp = "^/.*", message = "sourcePath must start with a leading slash")
     private final String sourcePath;
 
     public SharedContainerVolumeSource(
