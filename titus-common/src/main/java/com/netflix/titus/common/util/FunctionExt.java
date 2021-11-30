@@ -25,6 +25,8 @@ import java.util.function.UnaryOperator;
 public final class FunctionExt {
     private static final Predicate TRUE_PREDICATE = ignored -> true;
     private static final Predicate FALSE_PREDICATE = ignored -> false;
+    private static final Runnable NOOP = () -> {
+    };
 
     public static <T> Predicate<T> alwaysTrue() {
         return TRUE_PREDICATE;
@@ -32,6 +34,10 @@ public final class FunctionExt {
 
     public static <T> Predicate<T> alwaysFalse() {
         return FALSE_PREDICATE;
+    }
+
+    public static Runnable noop() {
+        return NOOP;
     }
 
     public static <T> Optional<T> ifNotPresent(Optional<T> opt, Runnable what) {

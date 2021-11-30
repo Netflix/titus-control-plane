@@ -21,7 +21,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.FunctionExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.KeepAliveRequest;
@@ -30,6 +33,8 @@ import com.netflix.titus.grpc.protogen.ObserveJobsWithKeepAliveRequest;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
@@ -38,6 +43,7 @@ import reactor.core.publisher.Flux;
  * Its usage is limited now to communication between TitusGateway and TJC.
  */
 public class RemoteJobManagementClientWithKeepAlive extends RemoteJobManagementClient {
+    private static final Logger logger = LoggerFactory.getLogger(RemoteJobManagementClientWithKeepAlive.class);
 
     private final JobConnectorConfiguration configuration;
 
@@ -61,8 +67,12 @@ public class RemoteJobManagementClientWithKeepAlive extends RemoteJobManagementC
         this.titusRuntime = titusRuntime;
     }
 
-    @Override
-    protected Flux<JobChangeNotification> connectObserveJobs(Map<String, String> filteringCriteria) {
+    /**
+     * Only used for unit testing to ensure internal subscriptions are not leaked.
+     * The <t>keepAliveCompleted</t> callback runs when the keep alive (interval) subscription is disposed
+     */
+    @VisibleForTesting
+    Flux<JobChangeNotification> connectObserveJobs(Map<String, String> filteringCriteria, Runnable keepAliveCompleted) {
         return Flux.create(sink -> {
             AtomicReference<ClientCallStreamObserver> requestStreamRef = new AtomicReference<>();
             StreamObserver<JobChangeNotification> grpcStreamObserver = new ClientResponseObserver<JobChangeNotification, JobChangeNotification>() {
@@ -94,31 +104,44 @@ public class RemoteJobManagementClientWithKeepAlive extends RemoteJobManagementC
             );
 
             // Now emit keep alive requests periodically
-            Disposable keepAliveSubscription = Flux.interval(Duration.ofMillis(configuration.getKeepAliveIntervalMs())).subscribe(
-                    next -> {
-                        try {
-                            clientStreamObserver.onNext(ObserveJobsWithKeepAliveRequest.newBuilder()
-                                    .setKeepAliveRequest(KeepAliveRequest.newBuilder()
-                                            .setRequestId(keepAliveIdGen.getAndIncrement())
-                                            .setTimestamp(titusRuntime.getClock().wallTime())
+            Disposable keepAliveSubscription = Flux.interval(Duration.ofMillis(configuration.getKeepAliveIntervalMs()))
+                    // doOnCancel is confusing: it's called when the subscription is disposed
+                    // It should be named doOnDispose. See: https://github.com/reactor/reactor-core/issues/1240
+                    .doOnCancel(
+                            () -> ExceptionExt.doCatch(keepAliveCompleted)
+                                    .ifPresent(t -> logger.warn("Error running the keepAliveCompleted callback", t))
+                    )
+                    .subscribe(
+                            next -> {
+                                try {
+                                    clientStreamObserver.onNext(ObserveJobsWithKeepAliveRequest.newBuilder()
+                                            .setKeepAliveRequest(KeepAliveRequest.newBuilder()
+                                                    .setRequestId(keepAliveIdGen.getAndIncrement())
+                                                    .setTimestamp(titusRuntime.getClock().wallTime())
+                                                    .build()
+                                            )
                                             .build()
-                                    )
-                                    .build()
-                            );
-                        } catch (Exception error) {
-                            clientStreamObserver.onError(error);
-                        }
-                    },
-                    sink::error,
-                    () -> sink.error(new IllegalArgumentException("Keep alive stream terminated. Closing the event stream"))
-            );
+                                    );
+                                } catch (Exception error) {
+                                    clientStreamObserver.onError(error);
+                                }
+                            },
+                            sink::error,
+                            () -> sink.error(new IllegalArgumentException("Keep alive stream terminated. Closing the event stream"))
+                    );
 
-            sink.onCancel(() -> {
+            sink.onDispose(() -> {
                 keepAliveSubscription.dispose();
                 if (requestStreamRef.get() != null) {
                     requestStreamRef.get().cancel("ObserveJobs stream cancelled by the client", null);
                 }
             });
         });
+
+    }
+
+    @Override
+    protected Flux<JobChangeNotification> connectObserveJobs(Map<String, String> filteringCriteria) {
+        return connectObserveJobs(filteringCriteria, FunctionExt.noop());
     }
 }
