@@ -554,7 +554,8 @@ public class JobScenarioBuilder {
         job.getJobDescriptor().getAttributes().forEach((key, value) -> {
             if (!key.startsWith("event.propagation")
                     && !key.equals(JobAttributes.JOB_ATTRIBUTES_CREATED_BY)
-                    && !key.equals(JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL)) {
+                    && !key.equals(JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL)
+                    && !key.equals(JobAttributes.JOB_ATTRIBUTES_CALL_REASON)) {
                 filteredAttributes.put(key, value);
             }
         });
