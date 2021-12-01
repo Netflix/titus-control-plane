@@ -108,7 +108,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final LocalCacheQueryProcessor localCacheQueryProcessor;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
-    private final TaskRelocationDataInjector taskRelocationDataInjector;
+    private final TaskDataInjector taskDataInjector;
     private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
     private final Clock clock;
 
@@ -119,7 +119,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     JobManagementServiceStub client,
                                     JobStore store,
                                     LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
-                                    TaskRelocationDataInjector taskRelocationDataInjector,
+                                    TaskDataInjector taskDataInjector,
                                     NeedsMigrationQueryHandler needsMigrationQueryHandler,
                                     LocalCacheQueryProcessor localCacheQueryProcessor,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
@@ -148,7 +148,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.localCacheQueryProcessor = localCacheQueryProcessor;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
-        this.taskRelocationDataInjector = taskRelocationDataInjector;
+        this.taskDataInjector = taskDataInjector;
         this.needsMigrationQueryHandler = needsMigrationQueryHandler;
         this.clock = titusRuntime.getClock();
     }
@@ -227,7 +227,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 },
                 tunablesConfiguration.getRequestTimeoutMs()
         );
-        observable = taskRelocationDataInjector.injectIntoTask(taskId, observable);
+        observable = taskDataInjector.injectIntoTask(taskId, observable);
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -287,7 +287,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             }
         }
 
-        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
+        return taskDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
     }
 
     @Override
@@ -295,9 +295,9 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "observeJob", callMetadata)) {
             return localCacheQueryProcessor.syncCache("observeJob", JobChangeNotification.class)
                     .concatWith(localCacheQueryProcessor.observeJob(jobId))
-                    .map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
+                    .map(taskDataInjector::injectIntoTaskUpdateEvent);
         }
-        return super.observeJob(jobId, callMetadata).map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
+        return super.observeJob(jobId, callMetadata).map(taskDataInjector::injectIntoTaskUpdateEvent);
     }
 
     @Override
@@ -305,9 +305,9 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         if (localCacheQueryProcessor.canUseCache(query.getFilteringCriteriaMap(), "observeJobs", callMetadata)) {
             return localCacheQueryProcessor.syncCache("observeJobs", JobChangeNotification.class)
                     .concatWith(localCacheQueryProcessor.observeJobs(query))
-                    .map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
+                    .map(taskDataInjector::injectIntoTaskUpdateEvent);
         }
-        return super.observeJobs(query, callMetadata).map(taskRelocationDataInjector::injectIntoTaskUpdateEvent);
+        return super.observeJobs(query, callMetadata).map(taskDataInjector::injectIntoTaskUpdateEvent);
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {

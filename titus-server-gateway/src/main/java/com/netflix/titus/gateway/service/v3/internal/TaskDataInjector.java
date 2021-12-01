@@ -48,9 +48,9 @@ import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 @Singleton
-class TaskRelocationDataInjector {
+class TaskDataInjector {
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskRelocationDataInjector.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskDataInjector.class);
 
     /**
      * We can tolerate task relocation cache staleness up to 60sec. This should be ok, as the relocation service
@@ -67,7 +67,7 @@ class TaskRelocationDataInjector {
     private final Scheduler scheduler;
 
     @Inject
-    TaskRelocationDataInjector(
+    TaskDataInjector(
             GrpcClientConfiguration configuration,
             JobManagerConfiguration jobManagerConfiguration,
             FeatureActivationConfiguration featureActivationConfiguration,
@@ -79,7 +79,7 @@ class TaskRelocationDataInjector {
     }
 
     @VisibleForTesting
-    TaskRelocationDataInjector(
+    TaskDataInjector(
             GrpcClientConfiguration configuration,
             JobManagerConfiguration jobManagerConfiguration,
             FeatureActivationConfiguration featureActivationConfiguration,
@@ -204,8 +204,12 @@ class TaskRelocationDataInjector {
     }
 
     private Task newTaskWithContainerState(Task task) {
+        if(task.hasStatus()){
+            return task.toBuilder().setStatus(task.getStatus().toBuilder()
+                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+        }
         return task.toBuilder().setStatus(TaskStatus.newBuilder()
-                .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {

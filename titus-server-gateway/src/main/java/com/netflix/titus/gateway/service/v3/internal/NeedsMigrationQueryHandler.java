@@ -46,7 +46,7 @@ import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverte
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 
-import static com.netflix.titus.gateway.service.v3.internal.TaskRelocationDataInjector.newTaskWithRelocationPlan;
+import static com.netflix.titus.gateway.service.v3.internal.TaskDataInjector.newTaskWithRelocationPlan;
 
 @Singleton
 class NeedsMigrationQueryHandler {
