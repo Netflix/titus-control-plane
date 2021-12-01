@@ -84,6 +84,7 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
                 .inJob(job -> {
                     assertThat(job.getJobDescriptor().getAttributes().containsKey(JobAttributes.JOB_ATTRIBUTE_ROUTING_CELL));
                     assertThat(job.getJobDescriptor().getAttributes().containsKey(JobAttributes.JOB_ATTRIBUTES_CREATED_BY));
+                    assertThat(job.getJobDescriptor().getAttributes().containsKey(JobAttributes.JOB_ATTRIBUTES_CALL_REASON));
                 })
                 .inStrippedJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(ONE_TASK_BATCH_JOB))
                 .template(ScenarioTemplates.startTasksInNewJob())

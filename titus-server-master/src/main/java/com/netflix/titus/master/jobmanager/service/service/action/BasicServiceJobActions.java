@@ -16,11 +16,15 @@
 
 package com.netflix.titus.master.jobmanager.service.service.action;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -95,9 +99,12 @@ public class BasicServiceJobActions {
                                 serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
                     }
 
+                    // append callmetadata job attributes
+                    Job<ServiceJobExt> serviceJobExtCallMetadata = JobFunctions.appendCallMetadataJobAttributes(serviceJob, callMetadata);
+
                     // ready to update job capacity
                     Job<ServiceJobExt> updatedJob = VersionSuppliers.nextVersion(
-                            JobFunctions.changeServiceJobCapacity(serviceJob, newCapacity), versionSupplier
+                            JobFunctions.changeServiceJobCapacity(serviceJobExtCallMetadata, newCapacity), versionSupplier
                     );
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
 
