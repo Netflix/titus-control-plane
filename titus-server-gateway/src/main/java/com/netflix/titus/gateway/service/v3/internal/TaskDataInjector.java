@@ -204,8 +204,12 @@ class TaskDataInjector {
     }
 
     private Task newTaskWithContainerState(Task task) {
-        return task.toBuilder().setStatus(task.getStatus().toBuilder()
-                .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+        if(task.hasStatus()){
+            return task.toBuilder().setStatus(task.getStatus().toBuilder()
+                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+        }
+        return task.toBuilder().setStatus(TaskStatus.newBuilder()
+                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
