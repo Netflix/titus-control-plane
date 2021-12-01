@@ -45,6 +45,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.retry.Retryer;
@@ -509,6 +510,19 @@ public final class JobFunctions {
 
     public static <E extends JobDescriptorExt> Job<E> changeDisruptionBudget(Job<E> input, DisruptionBudget disruptionBudget) {
         return input.toBuilder().withJobDescriptor(changeDisruptionBudget(input.getJobDescriptor(), disruptionBudget)).build();
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> appendCallMetadataJobAttributes(Job<E> input, CallMetadata callMetadata) {
+        // Add call metadata as job attribute
+        Map<String, String> callMetadataAttribute = new HashMap<>();
+        String callerId = callMetadata.getCallers().isEmpty()
+                ? "unknown"
+                : callMetadata.getCallers().get(0).getId();
+        callMetadataAttribute.put(JobAttributes.JOB_ATTRIBUTES_CREATED_BY, callerId);
+        callMetadataAttribute.put(JobAttributes.JOB_ATTRIBUTES_CALL_REASON, callMetadata.getCallReason());
+        JobDescriptor<E> jobDescriptor = input.getJobDescriptor();
+        Map<String, String> updatedAttributes = CollectionsExt.merge(jobDescriptor.getAttributes(), callMetadataAttribute);
+        return input.toBuilder().withJobDescriptor(jobDescriptor.toBuilder().withAttributes(updatedAttributes).build()).build();
     }
 
     public static <E extends JobDescriptorExt> Job<E> updateJobAttributes(Job<E> input, Map<String, String> attributes) {

@@ -24,6 +24,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -98,18 +99,12 @@ public class BasicServiceJobActions {
                                 serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
                     }
 
-                    // Add call metadata as job attribute
-                    Map<String, String> callMetadataAttribute = new HashMap<>();
-                    String callerId = callMetadata.getCallers().isEmpty()
-                            ? "unknown"
-                            : callMetadata.getCallers().get(0).getId();
-                    callMetadataAttribute.put(JobAttributes.JOB_ATTRIBUTES_CREATED_BY, callerId);
-                    callMetadataAttribute.put(JobAttributes.JOB_ATTRIBUTES_CALL_REASON, callMetadata.getCallReason());
-                    JobFunctions.appendJobDescriptorAttributes(serviceJob.getJobDescriptor(), callMetadataAttribute);
+                    // append callmetadata job attributes
+                    Job<ServiceJobExt> serviceJobExtCallMetadata = JobFunctions.appendCallMetadataJobAttributes(serviceJob, callMetadata);
 
                     // ready to update job capacity
                     Job<ServiceJobExt> updatedJob = VersionSuppliers.nextVersion(
-                            JobFunctions.changeServiceJobCapacity(serviceJob, newCapacity), versionSupplier
+                            JobFunctions.changeServiceJobCapacity(serviceJobExtCallMetadata, newCapacity), versionSupplier
                     );
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
 
