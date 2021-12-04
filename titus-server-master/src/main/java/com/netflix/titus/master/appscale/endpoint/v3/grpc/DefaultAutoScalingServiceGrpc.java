@@ -29,6 +29,7 @@ import com.netflix.titus.api.appscale.service.AppScaleManager;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.grpc.protogen.AlarmConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;

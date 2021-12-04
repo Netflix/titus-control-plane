@@ -16,6 +16,8 @@
 
 package com.netflix.titus.api.appscale.model;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -32,10 +34,11 @@ public class AlarmConfiguration {
     private final String metricNamespace;
     private final String metricName;
     private final Statistic statistic;
+    private final List<MetricDimension> dimensions;
 
     public AlarmConfiguration(String name, String region, Optional<Boolean> actionsEnabled, ComparisonOperator comparisonOperator,
                               int evaluationPeriods, int periodSec, double threshold, String metricNamespace, String metricName,
-                              Statistic statistic) {
+                              Statistic statistic, List<MetricDimension> dimensions) {
         this.name = name;
         this.region = region;
         this.actionsEnabled = actionsEnabled;
@@ -47,6 +50,7 @@ public class AlarmConfiguration {
         this.metricNamespace = metricNamespace;
         this.metricName = metricName;
         this.statistic = statistic;
+        this.dimensions = dimensions;
     }
 
     @JsonProperty
@@ -99,6 +103,11 @@ public class AlarmConfiguration {
         return statistic;
     }
 
+    @JsonProperty
+    public List<MetricDimension> getDimensions() {
+        return dimensions;
+    }
+
     @Override
     public String toString() {
         return "AlarmConfiguration{" +
@@ -111,7 +120,8 @@ public class AlarmConfiguration {
                 ", threshold=" + threshold +
                 ", metricNamespace='" + metricNamespace + '\'' +
                 ", metricName='" + metricName + '\'' +
-                ", statistic=" + statistic +
+                ", statistic=" + statistic + '\n' +
+                ", dimensions=" + dimensions +
                 '}';
     }
 
@@ -131,6 +141,7 @@ public class AlarmConfiguration {
         private String metricNamespace;
         private String metricName;
         private Statistic statistic;
+        private List<MetricDimension> dimensions = Collections.emptyList();
 
         private Builder() {
 
@@ -191,9 +202,14 @@ public class AlarmConfiguration {
             return this;
         }
 
+        public Builder withDimensions(List<MetricDimension> dimensions) {
+            this.dimensions = dimensions;
+            return this;
+        }
+
         public AlarmConfiguration build() {
             return new AlarmConfiguration(name, region, actionsEnabled, comparisonOperator,
-                    evaluationPeriods, periodSec, threshold, metricNamespace, metricName, statistic);
+                    evaluationPeriods, periodSec, threshold, metricNamespace, metricName, statistic, dimensions);
         }
 
     }

@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.aws.cloudwatch;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.inject.Inject;
@@ -34,6 +35,7 @@ import com.amazonaws.services.cloudwatch.model.ResourceNotFoundException;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AlarmConfiguration;
+import com.netflix.titus.api.appscale.model.MetricDimension;
 import com.netflix.titus.api.appscale.service.AutoScalePolicyException;
 import com.netflix.titus.api.connector.cloud.CloudAlarmClient;
 import com.netflix.titus.ext.aws.AwsConfiguration;
@@ -84,9 +86,21 @@ public class CloudWatchClient implements CloudAlarmClient {
                                                   AlarmConfiguration alarmConfiguration,
                                                   String autoScalingGroup,
                                                   List<String> actions) {
-        Dimension dimension = new Dimension();
-        dimension.setName(AUTO_SCALING_GROUP_NAME);
-        dimension.setValue(autoScalingGroup);
+
+        List<Dimension> metricDimensions = new ArrayList<>(1);
+        if (alarmConfiguration.getDimensions() != null && ! alarmConfiguration.getDimensions().isEmpty()) {
+            for (MetricDimension customMetricDimension : alarmConfiguration.getDimensions()) {
+                Dimension dimension = new Dimension();
+                dimension.setName(customMetricDimension.getName());
+                dimension.setValue(customMetricDimension.getValue());
+                metricDimensions.add(dimension);
+            }
+        } else {
+            Dimension dimension = new Dimension();
+            dimension.setName(AUTO_SCALING_GROUP_NAME);
+            dimension.setValue(autoScalingGroup);
+            metricDimensions.add(dimension);
+        }
 
         String cloudWatchName = buildCloudWatchName(policyRefId, jobId);
 
@@ -96,7 +110,7 @@ public class CloudWatchClient implements CloudAlarmClient {
         }
         putMetricAlarmRequest.setAlarmActions(actions);
         putMetricAlarmRequest.setAlarmName(cloudWatchName);
-        putMetricAlarmRequest.setDimensions(Arrays.asList(dimension));
+        putMetricAlarmRequest.setDimensions(metricDimensions);
         putMetricAlarmRequest.setNamespace(alarmConfiguration.getMetricNamespace());
         putMetricAlarmRequest.setComparisonOperator(alarmConfiguration.getComparisonOperator().name());
         putMetricAlarmRequest.setStatistic(alarmConfiguration.getStatistic().name());

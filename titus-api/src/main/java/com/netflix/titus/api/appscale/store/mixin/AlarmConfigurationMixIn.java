@@ -17,12 +17,14 @@
 package com.netflix.titus.api.appscale.store.mixin;
 
 
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.appscale.model.ComparisonOperator;
+import com.netflix.titus.api.appscale.model.MetricDimension;
 import com.netflix.titus.api.appscale.model.Statistic;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -38,7 +40,8 @@ public abstract class AlarmConfigurationMixIn {
             @JsonProperty("threshold") double threshold,
             @JsonProperty("metricNamespace") String metricNamespace,
             @JsonProperty("metricName") String metricName,
-            @JsonProperty("statistic") Statistic statistic) {
+            @JsonProperty("statistic") Statistic statistic,
+            @JsonProperty("dimensions") List<MetricDimension> dimensions ) {
     }
 
 }
