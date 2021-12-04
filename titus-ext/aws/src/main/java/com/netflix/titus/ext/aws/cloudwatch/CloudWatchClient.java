@@ -32,6 +32,7 @@ import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.PutMetricAlarmRequest;
 import com.amazonaws.services.cloudwatch.model.PutMetricAlarmResult;
 import com.amazonaws.services.cloudwatch.model.ResourceNotFoundException;
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AlarmConfiguration;
@@ -87,21 +88,7 @@ public class CloudWatchClient implements CloudAlarmClient {
                                                   String autoScalingGroup,
                                                   List<String> actions) {
 
-        List<Dimension> metricDimensions = new ArrayList<>(1);
-        if (alarmConfiguration.getDimensions() != null && ! alarmConfiguration.getDimensions().isEmpty()) {
-            for (MetricDimension customMetricDimension : alarmConfiguration.getDimensions()) {
-                Dimension dimension = new Dimension();
-                dimension.setName(customMetricDimension.getName());
-                dimension.setValue(customMetricDimension.getValue());
-                metricDimensions.add(dimension);
-            }
-        } else {
-            Dimension dimension = new Dimension();
-            dimension.setName(AUTO_SCALING_GROUP_NAME);
-            dimension.setValue(autoScalingGroup);
-            metricDimensions.add(dimension);
-        }
-
+        List<Dimension> metricDimensions =  buildMetricDimensions(alarmConfiguration, autoScalingGroup);
         String cloudWatchName = buildCloudWatchName(policyRefId, jobId);
 
         PutMetricAlarmRequest putMetricAlarmRequest = new PutMetricAlarmRequest();
@@ -173,5 +160,22 @@ public class CloudWatchClient implements CloudAlarmClient {
         return String.format("%s/%s", jobId, policyRefId);
     }
 
-
+    @VisibleForTesting
+    static List<Dimension> buildMetricDimensions(AlarmConfiguration alarmConfiguration, String autoScalingGroup) {
+        List<Dimension> metricDimensions = new ArrayList<>(1);
+        if (alarmConfiguration.getDimensions() != null && ! alarmConfiguration.getDimensions().isEmpty()) {
+            for (MetricDimension customMetricDimension : alarmConfiguration.getDimensions()) {
+                Dimension dimension = new Dimension();
+                dimension.setName(customMetricDimension.getName());
+                dimension.setValue(customMetricDimension.getValue());
+                metricDimensions.add(dimension);
+            }
+        } else {
+            Dimension dimension = new Dimension();
+            dimension.setName(AUTO_SCALING_GROUP_NAME);
+            dimension.setValue(autoScalingGroup);
+            metricDimensions.add(dimension);
+        }
+        return metricDimensions;
+    }
 }
