@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.netflix.titus.api.jobmanager.model.job.volume.SaaSVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 
 
@@ -26,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSo
         include = JsonTypeInfo.As.PROPERTY,
         property = "type")
 @JsonSubTypes({
+        @JsonSubTypes.Type(value = SaaSVolumeSource.class, name = "saaSVolumeSource"),
         @JsonSubTypes.Type(value = SharedContainerVolumeSource.class, name = "sharedContainerVolumeSource"),
 })
 public abstract class VolumeSourceMixin {
