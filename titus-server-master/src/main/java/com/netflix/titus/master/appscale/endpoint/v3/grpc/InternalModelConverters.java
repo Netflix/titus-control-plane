@@ -201,6 +201,7 @@ public class InternalModelConverters {
         if (alarmConfigGrpc.getStatisticOneofCase() != com.netflix.titus.grpc.protogen.AlarmConfiguration.StatisticOneofCase.STATISTICONEOF_NOT_SET) {
             alarmConfigBuilder.withStatistic(toStatistic(alarmConfigGrpc.getStatistic()));
         }
+        alarmConfigBuilder.withDimensions(toMetricDimensionList(alarmConfigGrpc.getMetricDimensionsList()));
 
         // TODO(Andrew L): Do we want to just always set empty string, if unset?
         alarmConfigBuilder.withMetricNamespace(alarmConfigGrpc.getMetricNamespace());
