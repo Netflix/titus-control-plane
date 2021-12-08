@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Ignore
 public class ClusterMembershipGrpcServerTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
