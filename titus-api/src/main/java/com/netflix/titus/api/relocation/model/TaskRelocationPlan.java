@@ -21,7 +21,9 @@ import java.util.Objects;
 public class TaskRelocationPlan {
 
     public enum TaskRelocationReason {
-        TaskMigration
+        AgentEvacuation,
+        SelfManagedMigration,
+        TaskMigration,
     }
 
     private final String taskId;

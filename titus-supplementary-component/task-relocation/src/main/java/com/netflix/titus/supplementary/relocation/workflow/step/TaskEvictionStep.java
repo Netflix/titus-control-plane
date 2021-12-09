@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Stopwatch;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -31,9 +34,6 @@ import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -90,9 +90,20 @@ public class TaskEvictionStep {
                 .collect(Collectors.toMap(
                         TaskRelocationPlan::getTaskId,
                         p -> {
-                            String message = String.format("%s: reasonCode=%s, plannedRelocationTime=%s",
-                                    p.getReasonMessage(), p.getReason(), DateTimeExt.toUtcDateTimeString(p.getRelocationTime())
-                            );
+                            String message;
+                            switch (p.getReason()) {
+                                case AgentEvacuation:
+                                    message = String.format("Agent evacuation: %s", p.getReasonMessage());
+                                    break;
+                                case SelfManagedMigration:
+                                    message = String.format("Self managed migration requested on %s: %s", DateTimeExt.toUtcDateTimeString(p.getDecisionTime()), p.getReasonMessage());
+                                    break;
+                                case TaskMigration:
+                                    message = p.getReasonMessage();
+                                    break;
+                                default:
+                                    message = String.format("[unrecognized relocation reason %s]: %s" + p.getReason(), p.getReasonMessage());
+                            }
                             return evictionServiceClient.terminateTask(p.getTaskId(), message).timeout(EVICTION_TIMEOUT);
                         }));
 
