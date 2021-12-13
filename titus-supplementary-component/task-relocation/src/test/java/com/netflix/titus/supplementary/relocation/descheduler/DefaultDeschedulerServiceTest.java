@@ -113,7 +113,11 @@ public class DefaultDeschedulerServiceTest {
                 assertThat(result.getAgentInstance().getServerGroupId()).isEqualTo("removable1");
             }
             TaskRelocationPlan plan = result.getTaskRelocationPlan();
-            assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
+            if (plan.getTaskId().startsWith("jobImmediate")) {
+                assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
+            } else {
+                assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.AgentEvacuation);
+            }
             if (isImmediateJobMigration) {
                 assertThat(plan.getReasonMessage()).containsSequence("Job marked for immediate eviction");
             } else {
@@ -143,9 +147,9 @@ public class DefaultDeschedulerServiceTest {
         );
 
         Job<ServiceJobExt> job = JobGenerator.serviceJobs(
-                        oneTaskServiceJobDescriptor()
-                                .but(ofServiceSize(2),
-                                        withDisruptionBudget(budget(selfManagedPolicy(relocationDelay), unlimitedRate(), Collections.emptyList()))))
+                oneTaskServiceJobDescriptor()
+                        .but(ofServiceSize(2),
+                                withDisruptionBudget(budget(selfManagedPolicy(relocationDelay), unlimitedRate(), Collections.emptyList()))))
                 .getValue();
 
         ServiceJobTask task = JobGenerator.serviceTasks(job).getValue();

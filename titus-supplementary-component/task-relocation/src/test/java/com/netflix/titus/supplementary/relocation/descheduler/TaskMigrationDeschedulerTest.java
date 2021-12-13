@@ -43,6 +43,7 @@ import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.model.job.JobTestFunctions;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
@@ -82,6 +83,11 @@ public class TaskMigrationDeschedulerTest {
 
     private final NodeDataResolver nodeDataResolver = relocationConnectorStubs.getNodeDataResolver();
 
+    @Before
+    public void setUp() {
+        // So it does not start at 0.
+        clock.advanceTime(Duration.ofDays(1));
+    }
 
     @Test
     public void testImmediateMigrations() {

@@ -86,7 +86,7 @@ public class TaskRelocationIntegrationTest {
         // Get the plan
         TaskRelocationPlan plan = doTry(() -> findRelocationPlan(task.getId()));
         assertThat(plan.getTaskId()).isEqualTo(task.getId());
-        assertThat(plan.getReasonCode()).isEqualTo(TaskRelocationReason.TaskMigration.name());
+        assertThat(plan.getReasonCode()).isEqualTo(TaskRelocationReason.SelfManagedMigration.name());
         assertThat(plan.getRelocationTime()).isLessThanOrEqualTo(clock.wallTime() + RELOCATION_TIME_MS);
 
         // Wait for the relocation

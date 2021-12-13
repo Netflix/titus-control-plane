@@ -135,7 +135,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
 
         TaskRelocationPlan relocationPlan = TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
-                .withReason(TaskRelocationReason.TaskMigration)
+                .withReason(TaskRelocationReason.SelfManagedMigration)
                 .withReasonMessage(reason)
                 .withDecisionTime(now)
                 .withRelocationTime(now + selfManaged.getRelocationTimeMs())

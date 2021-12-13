@@ -155,7 +155,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 : "Not enough quota to migrate the task (but no migration delay configured)";
         return TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
-                .withReason(TaskRelocationReason.TaskMigration)
+                .withReason(TaskRelocationReason.AgentEvacuation)
                 .withReasonMessage(reasonMessage)
                 .withDecisionTime(now)
                 .withRelocationTime(now)
