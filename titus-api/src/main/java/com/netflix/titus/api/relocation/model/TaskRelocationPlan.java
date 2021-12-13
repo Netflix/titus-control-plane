@@ -18,12 +18,15 @@ package com.netflix.titus.api.relocation.model;
 
 import java.util.Objects;
 
+import com.netflix.titus.common.util.Evaluators;
+
 public class TaskRelocationPlan {
 
     public enum TaskRelocationReason {
         AgentEvacuation,
         SelfManagedMigration,
         TaskMigration,
+        Unknown,
     }
 
     private final String taskId;
@@ -34,7 +37,7 @@ public class TaskRelocationPlan {
 
     public TaskRelocationPlan(String taskId, TaskRelocationReason reason, String reasonMessage, long decisionTime, long relocationTime) {
         this.taskId = taskId;
-        this.reason = reason;
+        this.reason = Evaluators.getOrDefault(reason, TaskRelocationReason.Unknown);
         this.reasonMessage = reasonMessage;
         this.decisionTime = decisionTime;
         this.relocationTime = relocationTime;
