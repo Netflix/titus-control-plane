@@ -46,7 +46,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
@@ -159,7 +158,6 @@ public class V0SpecPodFactoryTest {
                 .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName2)
                 .build();
 
-        String pvcName = KubeModelConverters.toPvcName(volName2, task.getId());
         assertThat(KubePodUtil.buildV1VolumeInfo(job, task))
                 .isPresent()
                 .hasValueSatisfying(pair -> {
@@ -167,7 +165,6 @@ public class V0SpecPodFactoryTest {
                     V1VolumeMount v1VolumeMount = pair.getRight();
 
                     assertThat(v1Volume.getName()).isEqualTo(volName2);
-                    assertThat(v1Volume.getPersistentVolumeClaim().getClaimName()).isEqualTo(pvcName);
 
                     assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
                     assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);
@@ -193,7 +190,7 @@ public class V0SpecPodFactoryTest {
         when(jobCoordinatorConfiguration.isContainerInfoEnvEnabled()).thenReturn(false);
         when(podAffinityFactory.buildV1Affinity(job, batchJobTask)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod v1Pod = podFactory.buildV1Pod(job, batchJobTask, true, false);
+        V1Pod v1Pod = podFactory.buildV1Pod(job, batchJobTask, true);
         String encodedContainerInfo = v1Pod.getMetadata().getAnnotations().get("containerInfo");
         ContainerInfo containerInfo = ContainerInfo.parseFrom(Base64.getDecoder().decode(encodedContainerInfo.getBytes()));
         assertThat(containerInfo.getUserProvidedEnvMap()).isEmpty();
@@ -217,7 +214,7 @@ public class V0SpecPodFactoryTest {
         );
 
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
 
         assertThat(pod.getMetadata().getLabels()).containsEntry(
                 KubeConstants.LABEL_CAPACITY_GROUP, "mygroup"
@@ -240,7 +237,7 @@ public class V0SpecPodFactoryTest {
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withNetworkConfiguration(networkConfiguration).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
         String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
         assertThat(networkModeAnnotationValue).isEqualTo("Ipv6AndIpv4Fallback");
     }
@@ -252,7 +249,7 @@ public class V0SpecPodFactoryTest {
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
         String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
         assertThat(networkModeAnnotationValue).isEqualTo("UnknownNetworkMode");
     }
@@ -267,9 +264,9 @@ public class V0SpecPodFactoryTest {
         ServiceJobTask task = JobGenerator.oneServiceTask();
         when(podAffinityFactory.buildV1Affinity(any(), eq(task))).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
         assertThat(pod.getMetadata().getLabels()).doesNotContainKey(KubeConstants.POD_LABEL_RELOCATION_BINPACK);
-        V1Pod selfManagedPod = podFactory.buildV1Pod(selfManagedJob, task, true, false);
+        V1Pod selfManagedPod = podFactory.buildV1Pod(selfManagedJob, task, true);
         assertThat(selfManagedPod.getMetadata().getLabels()).containsEntry(KubeConstants.POD_LABEL_RELOCATION_BINPACK, "SelfManaged");
     }
 
@@ -284,7 +281,7 @@ public class V0SpecPodFactoryTest {
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withExtraContainers(extraContainers).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
 
         List<V1Container> containers = pod.getSpec().getContainers();
         // 3 containers here, 1 from the main container, 2 from the extras
@@ -304,7 +301,7 @@ public class V0SpecPodFactoryTest {
                 job.getJobDescriptor().toBuilder().withContainer(container).build()
         ).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
 
         V1Container mainContainer = pod.getSpec().getContainers().get(0);
         List<V1VolumeMount> mounts = mainContainer.getVolumeMounts();
@@ -324,7 +321,7 @@ public class V0SpecPodFactoryTest {
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withVolumes(volumes).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true, false);
+        V1Pod pod = podFactory.buildV1Pod(job, task, true);
 
         List<V1Volume> podVolumes = Objects.requireNonNull(pod.getSpec()).getVolumes();
         assertThat(podVolumes.size()).isEqualTo(2);

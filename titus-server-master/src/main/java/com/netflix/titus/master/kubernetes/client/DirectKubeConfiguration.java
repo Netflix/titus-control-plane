@@ -58,10 +58,4 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      */
     @DefaultValue("200")
     int getPodCreateConcurrencyLimit();
-
-    /**
-     * Set to true to enable EBS PV and PVC management.
-     */
-    @DefaultValue("false")
-    boolean isEbsVolumePvEnabled();
 }

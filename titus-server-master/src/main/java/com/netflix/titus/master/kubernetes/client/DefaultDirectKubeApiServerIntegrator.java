@@ -151,10 +151,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Override
     public Mono<Void> launchTask(Job job, Task task) {
-        boolean isEbsVolumePvEnabled = configuration.isEbsVolumePvEnabled();
         return Mono.fromCallable(() -> {
             try {
-                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true, isEbsVolumePvEnabled);
+                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
                 logger.info("creating pod: {}", formatPodEssentials(v1Pod));
                 logger.debug("complete pod data: {}", v1Pod);
                 return v1Pod;
@@ -163,9 +162,6 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
             }
         })
-                .flatMap(v1Pod -> isEbsVolumePvEnabled
-                        ? launchEbsVolume(job, task, v1Pod).then(Mono.just(v1Pod))
-                        : Mono.just(v1Pod))
                 .flatMap(v1Pod -> launchPod(task, v1Pod))
                 .subscribeOn(apiClientScheduler)
                 .timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()))
@@ -217,89 +213,6 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public String resolveReasonCode(Throwable cause) {
         return podCreateErrorToReasonCodeResolver.resolveReasonCode(cause);
-    }
-
-    /**
-     * Launches/creates any EBS persistent volumes or claims associated with the task/pod.
-     */
-    private Mono<Void> launchEbsVolume(Job<?> job, Task task, V1Pod v1Pod) {
-        // We currently only handle a single volume per-pod
-        Optional<V1Volume> optionalV1Volume = CollectionsExt.nonNull(v1Pod.getSpec().getVolumes())
-                .stream()
-                .filter(v1Volume -> null != v1Volume.getPersistentVolumeClaim())
-                .findFirst();
-        if (!optionalV1Volume.isPresent()) {
-            logger.info("No v1 volume claim found for job {} task {}", job.getId(), task.getId());
-            return Mono.empty();
-        }
-        V1Volume v1Volume = optionalV1Volume.get();
-
-        // Expect to find an EBS volume from the job/task that matches the pod's volume
-        Optional<EbsVolume> optionalEbsVolume = EbsVolumeUtils.getEbsVolumeForTask(job, task);
-        if (!optionalEbsVolume.isPresent()) {
-            throw new IllegalStateException(String.format("Expected EBS volume for job %s and task %s", job, task));
-        }
-        EbsVolume ebsVolume = optionalEbsVolume.get();
-        if (!ebsVolume.getVolumeId().equals(v1Volume.getName())) {
-            throw new IllegalStateException(String.format("Pod %s volume name %s does not match task %s volume id %s", v1Pod, v1Volume.getName(), task, ebsVolume.getVolumeId()));
-        }
-
-        // Create a persistent volume followed by a claim for that volume
-        // If the attempt to create the PVC fails, the PV will be subsequently garbage collected
-        return launchEbsPersistentVolume(ebsVolume)
-                .flatMap(v1PersistentVolume -> launchPersistentVolumeClaim(v1PersistentVolume, v1Pod))
-                .then();
-    }
-
-    private Mono<V1PersistentVolume> launchEbsPersistentVolume(EbsVolume ebsVolume) {
-        return Mono.defer(() -> {
-            Stopwatch timer = Stopwatch.createStarted();
-
-            V1PersistentVolume v1PersistentVolume = KubeModelConverters.toEbsV1PersistentVolume(ebsVolume);
-            logger.info("Creating persistent volume {}", v1PersistentVolume);
-
-            try {
-                kubeApiFacade.createPersistentVolume(v1PersistentVolume);
-                logger.info("Created persistent volume {} in {}ms", v1PersistentVolume, timer.elapsed(TimeUnit.MILLISECONDS));
-                metrics.persistentVolumeCreateSuccess(timer.elapsed(TimeUnit.MILLISECONDS));
-            } catch (KubeApiException apiException) {
-                if (isEbsVolumeConflictException(apiException)) {
-                    logger.info("Persistent volume already exists {}", v1PersistentVolume);
-                } else {
-                    logger.error("Unable to create persistent volume {}, error: {}", v1PersistentVolume, apiException);
-                    metrics.persistentVolumeCreateError(apiException, timer.elapsed(TimeUnit.MILLISECONDS));
-                    return Mono.error(new IllegalStateException("Unable to create a persistent volume " + v1PersistentVolume, apiException));
-                }
-            }
-
-            return Mono.just(v1PersistentVolume);
-        });
-    }
-
-    private Mono<V1PersistentVolumeClaim> launchPersistentVolumeClaim(V1PersistentVolume v1PersistentVolume, V1Pod v1Pod) {
-        return Mono.defer(() -> {
-            Stopwatch timer = Stopwatch.createStarted();
-
-            V1PersistentVolumeClaim v1PersistentVolumeClaim = KubeModelConverters.toV1PersistentVolumeClaim(v1PersistentVolume, v1Pod);
-            logger.info("Creating persistent volume claim {}", v1PersistentVolumeClaim);
-
-            try {
-                kubeApiFacade.createNamespacedPersistentVolumeClaim(KUBERNETES_NAMESPACE, v1PersistentVolumeClaim);
-                long latencyMs = timer.elapsed(TimeUnit.MILLISECONDS);
-                logger.info("Created persistent volume claim {} in {}ms", v1PersistentVolumeClaim, latencyMs);
-                metrics.persistentVolumeClaimCreateSuccess(latencyMs);
-            } catch (KubeApiException apiException) {
-                if (isEbsVolumeConflictException(apiException)) {
-                    logger.info("Persistent volume claim already exists {}", v1PersistentVolumeClaim);
-                } else {
-                    logger.error("Unable to create persistent volume claim {}, {}, error: {}", v1PersistentVolumeClaim, apiException.getCause(), apiException);
-                    metrics.persistentVolumeClaimCreateError(apiException, timer.elapsed(TimeUnit.MILLISECONDS));
-                    return Mono.error(new IllegalStateException("Unable to create a persistent volume claim " + v1PersistentVolumeClaim, apiException));
-                }
-            }
-
-            return Mono.just(v1PersistentVolumeClaim);
-        });
     }
 
     private Mono<V1Pod> launchPod(Task task, V1Pod v1Pod) {

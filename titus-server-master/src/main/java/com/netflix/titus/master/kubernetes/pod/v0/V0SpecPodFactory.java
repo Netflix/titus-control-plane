@@ -109,7 +109,7 @@ public class V0SpecPodFactory implements PodFactory {
     }
 
     @Override
-    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler, boolean useKubePv) {
+    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler) {
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = podContainerInfoFactory.buildContainerInfo(job, task, true);
         Map<String, String> annotations = KubePodUtil.createPodAnnotations(job, task, containerInfo.toByteArray(),
@@ -162,7 +162,7 @@ public class V0SpecPodFactory implements PodFactory {
             spec.setNodeName(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
         }
         Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
-        if (useKubePv && optionalEbsVolumeInfo.isPresent()) {
+        if (optionalEbsVolumeInfo.isPresent()) {
             spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
             container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
         }
