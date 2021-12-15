@@ -190,7 +190,7 @@ public class V1SpecPodFactory implements PodFactory {
     }
 
     @Override
-    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler, boolean useKubePv) {
+    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler) {
 
         String taskId = task.getId();
         Map<String, String> annotations = createPodAnnotations(job, task);
@@ -260,7 +260,7 @@ public class V1SpecPodFactory implements PodFactory {
 
         // volumes need to be correctly added to pod spec
         Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
-        if (useKubePv && optionalEbsVolumeInfo.isPresent()) {
+        if (optionalEbsVolumeInfo.isPresent()) {
             spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
             container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
         }

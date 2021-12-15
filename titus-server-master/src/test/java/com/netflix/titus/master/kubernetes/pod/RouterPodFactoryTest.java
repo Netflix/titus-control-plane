@@ -52,7 +52,7 @@ public class RouterPodFactoryTest {
 
         Job<BatchJobExt> job = createBatchJob("testApp3", "testCG3");
         BatchJobTask task = JobGenerator.oneBatchTask();
-        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task, true, false);
+        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task, true);
         assertThat(v1Pod.getMetadata().getAnnotations().get(POD_SCHEMA_VERSION)).isEqualTo("0");
     }
 
@@ -64,7 +64,7 @@ public class RouterPodFactoryTest {
 
         Job<BatchJobExt> job = createBatchJob("testApp1", "testCG1");
         BatchJobTask task = JobGenerator.oneBatchTask();
-        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task, true, false);
+        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task, true);
         assertThat(v1Pod.getMetadata().getAnnotations().get(POD_SCHEMA_VERSION)).isEqualTo("1");
     }
 
@@ -106,7 +106,7 @@ public class RouterPodFactoryTest {
 
         for (Pair<String, String> versionMapping : versionMappings) {
             PodFactory podFactory = mock(PodFactory.class);
-            when(podFactory.buildV1Pod(any(), any(), anyBoolean(), anyBoolean())).thenReturn(createPodWithVersion(versionMapping.getRight()));
+            when(podFactory.buildV1Pod(any(), any(), anyBoolean())).thenReturn(createPodWithVersion(versionMapping.getRight()));
             versionedPodFactories.put(versionMapping.getLeft(), podFactory);
         }
 
