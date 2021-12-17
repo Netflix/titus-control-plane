@@ -42,7 +42,6 @@ import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
@@ -67,24 +66,15 @@ import static org.mockito.Mockito.when;
 
 public class V1SpecPodFactoryTest {
 
-    String NONE_MOUNT_PROPAGATION = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationNone.toString();
-
     private final KubePodConfiguration configuration = mock(KubePodConfiguration.class);
-
     private final SchedulerConfiguration schedulerConfiguration = mock(SchedulerConfiguration.class);
-
     private final ApplicationSlaManagementService capacityGroupManagement = mock(ApplicationSlaManagementService.class);
-
     private final PodAffinityFactory podAffinityFactory = mock(PodAffinityFactory.class);
-
     private final TaintTolerationFactory taintTolerationFactory = mock(TaintTolerationFactory.class);
-
     private final PodEnvFactory podEnvFactory = new DefaultPodEnvFactory();
-
     private final TopologyFactory topologyFactory = mock(TopologyFactory.class);
-
     private final LogStorageInfo<Task> logStorageInfo = mock(LogStorageInfo.class);
-
+    String NONE_MOUNT_PROPAGATION = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationNone.toString();
     private V1SpecPodFactory podFactory;
 
     @Before
@@ -244,7 +234,7 @@ public class V1SpecPodFactoryTest {
                 .build()).build();
 
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
-                .withContainer(newContainerWithEFS).build())
+                        .withContainer(newContainerWithEFS).build())
                 .build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
         V1Pod pod = podFactory.buildV1Pod(job, task, true);
@@ -284,7 +274,7 @@ public class V1SpecPodFactoryTest {
                 .build()).build();
 
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
-                .withContainer(newContainerWithEFS).build())
+                        .withContainer(newContainerWithEFS).build())
                 .build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
         V1Pod pod = podFactory.buildV1Pod(job, task, true);
@@ -318,7 +308,7 @@ public class V1SpecPodFactoryTest {
     }
 
     @Test
-    public void testEbsVolumeInfo() {
+    public void testPodWithEbsVolume() {
         String volName1 = "vol-1";
         String volName2 = "vol-2";
         String fsType = "xfs";
@@ -351,23 +341,21 @@ public class V1SpecPodFactoryTest {
                                 .build())
                         .build())
                 .build();
-        Task task = JobGenerator.batchTasks(job).getValue();
+       Task task = JobGenerator.batchTasks(job).getValue();
         task = task.toBuilder()
                 .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName2)
                 .build();
 
-        assertThat(KubePodUtil.buildV1VolumeInfo(job, task))
-                .isPresent()
-                .hasValueSatisfying(pair -> {
-                    V1Volume v1Volume = pair.getLeft();
-                    V1VolumeMount v1VolumeMount = pair.getRight();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
 
-                    assertThat(v1Volume.getName()).isEqualTo(volName2);
+        V1Volume v1Volume = v1Pod.getSpec().getVolumes().get(0);
+        assertThat(v1Volume.getName()).isEqualTo(volName2);
 
-                    assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
-                    assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);
-                    assertThat(v1VolumeMount.getReadOnly()).isFalse();
-                });
+        V1VolumeMount v1VolumeMount = v1Pod.getSpec().getContainers().get(0).getVolumeMounts().get(0);
+        assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
+        assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);
+        assertThat(v1VolumeMount.getReadOnly()).isFalse();
     }
 
 }

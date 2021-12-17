@@ -120,7 +120,7 @@ public class V0SpecPodFactoryTest {
     }
 
     @Test
-    public void testEbsVolumeInfo() {
+    public void testPodWithEBSVolume() {
         String volName1 = "vol-1";
         String volName2 = "vol-2";
         String fsType = "xfs";
@@ -155,21 +155,13 @@ public class V0SpecPodFactoryTest {
                 .build();
         Task task = JobGenerator.batchTasks(job).getValue();
         task = task.toBuilder()
-                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName2)
+                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName1)
                 .build();
 
-        assertThat(KubePodUtil.buildV1VolumeInfo(job, task))
-                .isPresent()
-                .hasValueSatisfying(pair -> {
-                    V1Volume v1Volume = pair.getLeft();
-                    V1VolumeMount v1VolumeMount = pair.getRight();
-
-                    assertThat(v1Volume.getName()).isEqualTo(volName2);
-
-                    assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
-                    assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);
-                    assertThat(v1VolumeMount.getReadOnly()).isFalse();
-                });
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
+        String expected = v1Pod.getMetadata().getAnnotations().get("ebs.volume.netflix.com/volume-id");
+        assertThat(volName1).isEqualTo(expected);
     }
 
     @Test

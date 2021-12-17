@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.kubernetes.pod.v0;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
-import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -57,7 +54,6 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1Volume;
-import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.titanframework.messages.TitanProtos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +66,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_GPU;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_MEMORY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_NETWORK;
-import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
@@ -161,11 +157,9 @@ public class V0SpecPodFactory implements PodFactory {
         if (!useKubeScheduler) {
             spec.setNodeName(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
         }
-        Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
-        if (optionalEbsVolumeInfo.isPresent()) {
-            spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
-            container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
-        }
+
+        // V0 Pods use annotations to set EBS stuff. V1 pods use real volume/volumeMounts
+        annotations.putAll(createEbsPodAnnotations(job, task));
 
         return new V1Pod().metadata(metadata).spec(spec);
     }

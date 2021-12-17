@@ -103,8 +103,6 @@ public class KubePodUtil {
                 modeName -> annotations.put(KubeConstants.NETWORK_MODE, modeName)
         );
 
-        annotations.putAll(createEbsPodAnnotations(job, task));
-
         if (includeJobDescriptor) {
             annotations.put("jobDescriptor", createEncodedJobDescriptor(job));
         }
@@ -195,9 +193,9 @@ public class KubePodUtil {
     }
 
     /**
-     * Builds the various objects needed to for PersistentVolume and Pod objects to use an volume.
+     * Build EBS Volume + VolumeMounts if needed
      */
-    public static Optional<Pair<V1Volume, V1VolumeMount>> buildV1VolumeInfo(Job<?> job, Task task) {
+    public static Optional<Pair<V1Volume, V1VolumeMount>> buildEBSV1VolumeInfo(Job<?> job, Task task) {
         return EbsVolumeUtils.getEbsVolumeForTask(job, task)
                 .map(ebsVolume -> {
                     boolean readOnly = ebsVolume.getMountPermissions().equals(EbsVolume.MountPerm.RO);
