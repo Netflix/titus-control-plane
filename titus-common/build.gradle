@@ -3,6 +3,8 @@ dependencies {
     compile "io.reactivex:rxjava:${rxJava}"
     compile "org.hdrhistogram:HdrHistogram:${hdrhistogramVersion}"
 
+    compile "org.pcollections:pcollections:${pcollectionsVersion}"
+
     // Spring
     compile "io.projectreactor:reactor-core:${springReactor}"
     compile "io.projectreactor.addons:reactor-adapter:${springReactorAdapter}"

@@ -115,6 +115,7 @@ subprojects {
         fabric8ioKubeClient = '5.8.+' // Check compatibility at: https://github.com/fabric8io/kubernetes-client#kubernetes-compatibility-matrix
         commonsMath3Version = '3.6.1'
         friggaVersion = '0.+'
+        pcollectionsVersion = '3.1.4'
 
         // Test
         junitVersion = '4.+'
