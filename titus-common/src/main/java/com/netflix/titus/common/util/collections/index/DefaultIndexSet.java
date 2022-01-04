@@ -21,30 +21,30 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-class DefaultIndexSet<PRIMARY_KEY, INPUT, OUTPUT> implements IndexSet<PRIMARY_KEY, INPUT, OUTPUT> {
+class DefaultIndexSet<PRIMARY_KEY, INPUT> implements IndexSet<PRIMARY_KEY, INPUT> {
 
-    private final Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, OUTPUT>> groups;
-    private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, OUTPUT>> indexes;
+    private final Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> groups;
+    private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes;
 
-    DefaultIndexSet(Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, OUTPUT>> groups,
-                    Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, OUTPUT>> indexes) {
+    DefaultIndexSet(Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> groups,
+                    Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes) {
         this.groups = groups;
         this.indexes = indexes;
     }
 
     @Override
-    public <INDEX_KEY> Group<INDEX_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId) {
+    public <INDEX_KEY, OUTPUT> Group<INDEX_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId) {
         return (Group<INDEX_KEY, PRIMARY_KEY, OUTPUT>) groups.get(groupId);
     }
 
     @Override
-    public Index<OUTPUT> getIndex(String indexId) {
-        return indexes.get(indexId);
+    public <OUTPUT> Index<OUTPUT> getIndex(String indexId) {
+        return (Index<OUTPUT>) indexes.get(indexId);
     }
 
     @Override
-    public IndexSet<PRIMARY_KEY, INPUT, OUTPUT> add(Collection<INPUT> values) {
-        Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, OUTPUT>> newGroups;
+    public IndexSet<PRIMARY_KEY, INPUT> add(Collection<INPUT> values) {
+        Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> newGroups;
         if (groups.isEmpty()) {
             newGroups = Collections.emptyMap();
         } else {
@@ -52,7 +52,7 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT, OUTPUT> implements IndexSet<PRIMARY_KE
             groups.forEach((groupId, group) -> newGroups.put(groupId, group.add(values)));
         }
 
-        Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, OUTPUT>> newIndexes;
+        Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> newIndexes;
         if (indexes.isEmpty()) {
             newIndexes = Collections.emptyMap();
         } else {
@@ -64,8 +64,8 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT, OUTPUT> implements IndexSet<PRIMARY_KE
     }
 
     @Override
-    public IndexSet<PRIMARY_KEY, INPUT, OUTPUT> remove(Collection<PRIMARY_KEY> primaryKeys) {
-        Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, OUTPUT>> newGroups;
+    public IndexSet<PRIMARY_KEY, INPUT> remove(Collection<PRIMARY_KEY> primaryKeys) {
+        Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> newGroups;
         if (groups.isEmpty()) {
             newGroups = Collections.emptyMap();
         } else {
@@ -73,7 +73,7 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT, OUTPUT> implements IndexSet<PRIMARY_KE
             groups.forEach((groupId, group) -> newGroups.put(groupId, group.remove(primaryKeys)));
         }
 
-        Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, OUTPUT>> newIndexes;
+        Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> newIndexes;
         if (indexes.isEmpty()) {
             newIndexes = Collections.emptyMap();
         } else {

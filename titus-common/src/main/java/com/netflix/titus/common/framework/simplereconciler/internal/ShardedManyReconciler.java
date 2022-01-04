@@ -30,6 +30,8 @@ import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent
 import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.closeable.CloseableReference;
+import com.netflix.titus.common.util.collections.index.IndexSet;
+import com.netflix.titus.common.util.collections.index.IndexSetHolder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -44,15 +46,18 @@ public class ShardedManyReconciler<DATA> implements ManyReconciler<DATA> {
 
     private final Function<String, Integer> shardIndexSupplier;
     private final CloseableReference<Scheduler> notificationSchedulerRef;
+    private final IndexSetHolder<String, DATA> indexSetHolder;
     private final List<ManyReconciler<DATA>> shards;
     private final AtomicReference<ReconcilerState> stateRef = new AtomicReference<>(ReconcilerState.Running);
 
     public ShardedManyReconciler(int shardCount,
                                  Function<String, Integer> shardIndexSupplier,
                                  Function<Integer, ManyReconciler<DATA>> reconcilerShardFactory,
-                                 CloseableReference<Scheduler> notificationSchedulerRef) {
+                                 CloseableReference<Scheduler> notificationSchedulerRef,
+                                 IndexSetHolder<String, DATA> indexSetHolder) {
         this.shardIndexSupplier = shardIndexSupplier;
         this.notificationSchedulerRef = notificationSchedulerRef;
+        this.indexSetHolder = indexSetHolder;
         List<ManyReconciler<DATA>> shards = new ArrayList<>();
         for (int i = 0; i < shardCount; i++) {
             shards.add(reconcilerShardFactory.apply(i));
@@ -107,6 +112,11 @@ public class ShardedManyReconciler<DATA> implements ManyReconciler<DATA> {
     }
 
     @Override
+    public IndexSet<String, DATA> getIndexSet() {
+        return indexSetHolder.getIndexSet();
+    }
+
+    @Override
     public Optional<DATA> findById(String id) {
         return getShard(id).findById(id);
     }
@@ -158,6 +168,7 @@ public class ShardedManyReconciler<DATA> implements ManyReconciler<DATA> {
                                                                              ActionProviderSelectorFactory<DATA> selectorFactory,
                                                                              Function<Integer, CloseableReference<Scheduler>> reconcilerSchedulerSupplier,
                                                                              CloseableReference<Scheduler> notificationSchedulerRef,
+                                                                             IndexSetHolder<String, DATA> indexSetHolder,
                                                                              TitusRuntime titusRuntime) {
         return new ShardedManyReconciler<>(
                 shardCount,
@@ -169,9 +180,11 @@ public class ShardedManyReconciler<DATA> implements ManyReconciler<DATA> {
                         selectorFactory,
                         reconcilerSchedulerSupplier.apply(shardIndex),
                         notificationSchedulerRef,
+                        indexSetHolder,
                         titusRuntime
                 ),
-                notificationSchedulerRef
+                notificationSchedulerRef,
+                indexSetHolder
         );
     }
 }

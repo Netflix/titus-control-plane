@@ -36,6 +36,9 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.closeable.CloseableReference;
+import com.netflix.titus.common.util.collections.index.IndexSetHolderBasic;
+import com.netflix.titus.common.util.collections.index.IndexSpec;
+import com.netflix.titus.common.util.collections.index.Indexes;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
@@ -52,6 +55,8 @@ import static org.assertj.core.api.Assertions.fail;
 public class DefaultManyReconcilerTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
+
+    private static final String INDEX_ID = "reversed";
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
@@ -265,6 +270,24 @@ public class DefaultManyReconcilerTest {
         await().timeout(com.jayway.awaitility.Duration.FOREVER).until(() -> reconciler.getAll().get("a").contains("i2"));
     }
 
+    @Test
+    public void testIndex() throws InterruptedException {
+        newReconcilerWithRegistrations(data -> Collections.emptyList(), "i1", "i1_v1", "i2", "i2_v2");
+        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(2).containsSequence("i1_v1", "i2_v2");
+
+        // Register
+        reconciler.add("i3", "i3_v3").block();
+        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(3).containsSequence("i1_v1", "i2_v2", "i3_v3");
+
+        // Make changes
+        reconciler.apply("i3", current -> Mono.just("i3_v3a")).block();
+        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(3).containsSequence("i1_v1", "i2_v2", "i3_v3a");
+
+        // Close
+        reconciler.remove("i3").block();
+        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(2).containsSequence("i1_v1", "i2_v2");
+    }
+
     private void newReconcilerWithRegistrations(Function<String, List<Mono<Function<String, String>>>> reconcilerActionsProvider,
                                                 String... idAndInitialValuePairs) throws InterruptedException {
         ActionProviderSelectorFactory<String> selectorFactory = new ActionProviderSelectorFactory<>("test", Arrays.asList(
@@ -283,7 +306,7 @@ public class DefaultManyReconcilerTest {
         CloseableReference<Scheduler> reconcilerSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("reconciler"), Scheduler::dispose);
         CloseableReference<Scheduler> notificationSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("notification"), Scheduler::dispose);
 
-
+        Function<String, String> keyExtractor = s -> s.substring(0, Math.min(s.length(), 2));
         reconciler = new DefaultManyReconciler<>(
                 "junit",
                 Duration.ofMillis(1),
@@ -291,6 +314,17 @@ public class DefaultManyReconcilerTest {
                 selectorFactory,
                 reconcilerSchedulerRef,
                 notificationSchedulerRef,
+                new IndexSetHolderBasic<>(Indexes.<String, String>newBuilder()
+                        .withIndex(INDEX_ID, IndexSpec.<String, String, String, String>newBuilder()
+                                .withPrimaryKeyComparator(String::compareTo)
+                                .withIndexKeyComparator(String::compareTo)
+                                .withPrimaryKeyExtractor(keyExtractor)
+                                .withIndexKeyExtractor(keyExtractor)
+                                .withTransformer(Function.identity())
+                                .build()
+                        )
+                        .build()
+                ),
                 titusRuntime
         );
 

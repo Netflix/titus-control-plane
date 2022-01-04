@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,16 @@
 
 package com.netflix.titus.common.util.collections.index;
 
-import java.util.List;
+import java.util.Collection;
 
 /**
- * Ordered list of values. The ordering is set by a pair of an arbitrary index key and the primary key.
- * {@link Index} object is immutable. Changes to an index produce new copies of it.
+ * {@link IndexSet} is immutable. {@link IndexSetHolder} provides a wrapper that keep the last version of the index.
  */
-public interface Index<VALUE> {
+public interface IndexSetHolder<PRIMARY_KEY, INPUT> {
 
-    /**
-     * @return immutable ordered set of values.
-     */
-    List<VALUE> orderedList();
+    IndexSet<PRIMARY_KEY, INPUT> getIndexSet();
+
+    void add(Collection<INPUT> values);
+
+    void remove(Collection<PRIMARY_KEY> values);
 }

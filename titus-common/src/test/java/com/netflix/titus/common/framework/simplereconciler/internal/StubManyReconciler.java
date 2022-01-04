@@ -31,6 +31,8 @@ import java.util.function.Function;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.simplereconciler.ManyReconciler;
 import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent;
+import com.netflix.titus.common.util.collections.index.IndexSet;
+import com.netflix.titus.common.util.collections.index.Indexes;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -70,6 +72,11 @@ class StubManyReconciler<DATA> implements ManyReconciler<DATA> {
     @Override
     public Map<String, DATA> getAll() {
         return new HashMap<>(state);
+    }
+
+    @Override
+    public IndexSet<String, DATA> getIndexSet() {
+        return Indexes.empty();
     }
 
     @Override

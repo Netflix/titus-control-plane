@@ -22,6 +22,8 @@ import java.util.List;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent;
 import com.netflix.titus.common.util.closeable.CloseableReference;
+import com.netflix.titus.common.util.collections.index.IndexSetHolderConcurrent;
+import com.netflix.titus.common.util.collections.index.Indexes;
 import org.junit.After;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
@@ -47,7 +49,8 @@ public class ShardedManyReconcilerTest {
                 Preconditions.checkArgument(shardIdx < 2);
                 return shardIdx == 0 ? shard1 : shard2;
             },
-            notificationSchedulerRef
+            notificationSchedulerRef,
+            new IndexSetHolderConcurrent<>(Indexes.empty())
     );
 
     @After
