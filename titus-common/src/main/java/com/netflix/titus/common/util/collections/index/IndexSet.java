@@ -17,10 +17,15 @@
 package com.netflix.titus.common.util.collections.index;
 
 import java.util.Collection;
+import java.util.Map;
 
 public interface IndexSet<PRIMARY_KEY, INPUT> {
 
+    Map<String, Group<?, PRIMARY_KEY, ?>> getGroups();
+
     <GROUP_KEY, OUTPUT> Group<GROUP_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId);
+
+    Map<String, Index<?>> getIndexes();
 
     <OUTPUT> Index<OUTPUT> getIndex(String indexId);
 

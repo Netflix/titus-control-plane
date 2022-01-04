@@ -33,8 +33,18 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT> implements IndexSet<PRIMARY_KEY, INPUT
     }
 
     @Override
+    public Map<String, Group<?, PRIMARY_KEY, ?>> getGroups() {
+        return (Map) groups;
+    }
+
+    @Override
     public <INDEX_KEY, OUTPUT> Group<INDEX_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId) {
         return (Group<INDEX_KEY, PRIMARY_KEY, OUTPUT>) groups.get(groupId);
+    }
+
+    @Override
+    public Map<String, Index<?>> getIndexes() {
+        return (Map) indexes;
     }
 
     @Override

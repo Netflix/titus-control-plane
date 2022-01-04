@@ -16,8 +16,12 @@
 
 package com.netflix.titus.common.util.collections.index;
 
+import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
 
 public final class Indexes {
 
@@ -30,6 +34,10 @@ public final class Indexes {
 
     public static <PRIMARY_KEY, INPUT> IndexSet<PRIMARY_KEY, INPUT> empty() {
         return new Builder<PRIMARY_KEY, INPUT>().build();
+    }
+
+    public static Closeable monitor(Id id, IndexSetHolder<?, ?> indexSetHolder, Registry registry) {
+        return new IndexSetMetrics(id, indexSetHolder, registry);
     }
 
     public static class Builder<PRIMARY_KEY, INPUT> {
