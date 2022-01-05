@@ -607,6 +607,9 @@ public final class JobFunctions {
     }
 
     public static Optional<JobStatus> findJobStatus(Job<?> job, JobState checkedState) {
+        if (job.getStatus() == null) {
+            return Optional.empty();
+        }
         if (job.getStatus().getState() == checkedState) {
             return Optional.of(job.getStatus());
         }

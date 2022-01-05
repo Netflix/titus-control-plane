@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.kubernetes.pod.v0;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
-import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -70,7 +67,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_GPU;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_MEMORY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_NETWORK;
-import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1EBSObjects;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
@@ -161,10 +158,10 @@ public class V0SpecPodFactory implements PodFactory {
         if (!useKubeScheduler) {
             spec.setNodeName(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
         }
-        Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
-        if (optionalEbsVolumeInfo.isPresent()) {
-            spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
-            container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
+        Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeObjects = buildV1EBSObjects(job, task);
+        if (optionalEbsVolumeObjects.isPresent()) {
+            spec.addVolumesItem(optionalEbsVolumeObjects.get().getLeft());
+            container.addVolumeMountsItem(optionalEbsVolumeObjects.get().getRight());
         }
 
         return new V1Pod().metadata(metadata).spec(spec);

@@ -146,7 +146,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_OWNER_EMAIL;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_SEQUENCE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_STACK;
-import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1VolumeInfo;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1EBSObjects;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.sanitizeVolumeName;
@@ -259,7 +259,7 @@ public class V1SpecPodFactory implements PodFactory {
                 .topologySpreadConstraints(topologyFactory.buildTopologySpreadConstraints(job));
 
         // volumes need to be correctly added to pod spec
-        Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
+        Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1EBSObjects(job, task);
         if (optionalEbsVolumeInfo.isPresent()) {
             spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
             container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
