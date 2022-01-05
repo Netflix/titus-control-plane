@@ -17,14 +17,19 @@
 package com.netflix.titus.common.util.collections.index;
 
 import java.util.Collection;
+import java.util.Map;
 
-public interface IndexSet<PRIMARY_KEY, INPUT, OUTPUT> {
+public interface IndexSet<PRIMARY_KEY, INPUT> {
 
-    <GROUP_KEY> Group<GROUP_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId);
+    Map<String, Group<?, PRIMARY_KEY, ?>> getGroups();
 
-    Index<OUTPUT> getIndex(String indexId);
+    <GROUP_KEY, OUTPUT> Group<GROUP_KEY, PRIMARY_KEY, OUTPUT> getGroup(String groupId);
 
-    IndexSet<PRIMARY_KEY, INPUT, OUTPUT> add(Collection<INPUT> values);
+    Map<String, Index<?>> getIndexes();
 
-    IndexSet<PRIMARY_KEY, INPUT, OUTPUT> remove(Collection<PRIMARY_KEY> values);
+    <OUTPUT> Index<OUTPUT> getIndex(String indexId);
+
+    IndexSet<PRIMARY_KEY, INPUT> add(Collection<INPUT> values);
+
+    IndexSet<PRIMARY_KEY, INPUT> remove(Collection<PRIMARY_KEY> values);
 }

@@ -16,36 +16,48 @@
 
 package com.netflix.titus.common.util.collections.index;
 
+import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
 
 public final class Indexes {
 
     private Indexes() {
     }
 
-    public static <PRIMARY_KEY, INPUT, OUTPUT> Builder<PRIMARY_KEY, INPUT, OUTPUT> newBuilder() {
+    public static <PRIMARY_KEY, INPUT> Builder<PRIMARY_KEY, INPUT> newBuilder() {
         return new Builder<>();
     }
 
-    public static class Builder<PRIMARY_KEY, INPUT, OUTPUT> {
+    public static <PRIMARY_KEY, INPUT> IndexSet<PRIMARY_KEY, INPUT> empty() {
+        return new Builder<PRIMARY_KEY, INPUT>().build();
+    }
 
-        private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, OUTPUT>> indexes = new HashMap<>();
-        private final Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, OUTPUT>> groups = new HashMap<>();
+    public static Closeable monitor(Id id, IndexSetHolder<?, ?> indexSetHolder, Registry registry) {
+        return new IndexSetMetrics(id, indexSetHolder, registry);
+    }
 
-        public <INDEX_KEY> Builder<PRIMARY_KEY, INPUT, OUTPUT> withIndex(String indexId,
+    public static class Builder<PRIMARY_KEY, INPUT> {
+
+        private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes = new HashMap<>();
+        private final Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> groups = new HashMap<>();
+
+        public <INDEX_KEY, OUTPUT> Builder<PRIMARY_KEY, INPUT> withIndex(String indexId,
                                                                          IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> indexSpec) {
             indexes.put(indexId, DefaultIndex.newEmpty(indexSpec));
             return this;
         }
 
-        public <INDEX_KEY> Builder<PRIMARY_KEY, INPUT, OUTPUT> withGroup(String indexId,
+        public <INDEX_KEY, OUTPUT> Builder<PRIMARY_KEY, INPUT> withGroup(String indexId,
                                                                          IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> indexSpec) {
             groups.put(indexId, DefaultGroup.newEmpty(indexSpec));
             return this;
         }
 
-        public IndexSet<PRIMARY_KEY, INPUT, OUTPUT> build() {
+        public IndexSet<PRIMARY_KEY, INPUT> build() {
             return new DefaultIndexSet<>(groups, indexes);
         }
     }

@@ -33,7 +33,7 @@ public class IndexPerf {
     private static final String GROUP_BY_SLOT = "groupBySlot";
 
     public static void main(String[] args) {
-        IndexSet<String, SamplePerfItem, SamplePerfItem> indexSet = Indexes.<String, SamplePerfItem, SamplePerfItem>newBuilder()
+        IndexSet<String, SamplePerfItem> indexSet = Indexes.<String, SamplePerfItem>newBuilder()
                 .withIndex(BY_PRIMARY_KEY, IndexSpec.<String, String, SamplePerfItem, SamplePerfItem>newBuilder()
                         .withIndexKeyExtractor(SamplePerfItem::getPrimaryKey)
                         .withPrimaryKeyExtractor(SamplePerfItem::getPrimaryKey)
@@ -66,13 +66,13 @@ public class IndexPerf {
         printStats("Initialization", indexSet, stopwatch);
 
         stopwatch.reset().start();
-        List<SamplePerfItem> all = indexSet.getIndex(BY_PRIMARY_KEY).orderedList();
+        List<SamplePerfItem> all = indexSet.<SamplePerfItem>getIndex(BY_PRIMARY_KEY).orderedList();
         for (SamplePerfItem sampleValue : all) {
             indexSet = indexSet.add(Collections.singletonList(sampleValue.nextVersion()));
         }
         printStats("Update", indexSet, stopwatch);
 
-        List<SamplePerfItem> all2 = indexSet.getIndex(BY_PRIMARY_KEY).orderedList();
+        List<SamplePerfItem> all2 = indexSet.<SamplePerfItem>getIndex(BY_PRIMARY_KEY).orderedList();
         for (int i = 0; i < all.size(); i++) {
             SamplePerfItem before = all.get(i);
             SamplePerfItem after = all2.get(i);
@@ -81,7 +81,7 @@ public class IndexPerf {
         }
     }
 
-    private static void printStats(String header, IndexSet<String, SamplePerfItem, SamplePerfItem> indexSet, Stopwatch stopwatch) {
+    private static void printStats(String header, IndexSet<String, SamplePerfItem> indexSet, Stopwatch stopwatch) {
         System.out.println(header);
         System.out.printf("Elapsed          : %dms\n", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         System.out.println("byPrimaryKey size: " + indexSet.getIndex(BY_PRIMARY_KEY).orderedList().size());

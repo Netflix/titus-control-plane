@@ -132,12 +132,13 @@ class ReconcilerEngine<DATA> {
         Evaluators.acceptNotNull(pendingTransaction, Transaction::cancel);
     }
 
-    void processDataUpdates() {
+    boolean processDataUpdates() {
         if (pendingTransaction != null) {
             if (pendingTransaction.getStatus().getState() == TransactionStatus.State.ResultReady) {
                 pendingTransaction.readyToClose(current);
                 if (pendingTransaction.getStatus().getState() == TransactionStatus.State.Completed) {
                     this.current = pendingTransaction.getStatus().getResult();
+                    return true;
                 } else {
                     Throwable error = pendingTransaction.getStatus().getError();
                     logger.warn("Reconciliation action failure during data merging: status={}, error={}", pendingTransaction.getStatus(), error.getMessage());
@@ -145,6 +146,7 @@ class ReconcilerEngine<DATA> {
                 }
             }
         }
+        return false;
     }
 
     /**

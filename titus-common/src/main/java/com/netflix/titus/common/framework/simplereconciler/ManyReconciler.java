@@ -32,6 +32,9 @@ import com.netflix.titus.common.framework.simplereconciler.internal.ShardedManyR
 import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.closeable.CloseableReference;
+import com.netflix.titus.common.util.collections.index.IndexSet;
+import com.netflix.titus.common.util.collections.index.IndexSetHolderBasic;
+import com.netflix.titus.common.util.collections.index.IndexSetHolderConcurrent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -53,6 +56,8 @@ public interface ManyReconciler<DATA> {
     Mono<Void> close();
 
     Map<String, DATA> getAll();
+
+    IndexSet<String, DATA> getIndexSet();
 
     Optional<DATA> findById(String id);
 
@@ -81,6 +86,7 @@ public interface ManyReconciler<DATA> {
         private Scheduler notificationScheduler;
         private TitusRuntime titusRuntime;
         private int shardCount;
+        private IndexSet<String, DATA> indexes;
 
         private Builder() {
         }
@@ -148,6 +154,11 @@ public interface ManyReconciler<DATA> {
             return this;
         }
 
+        public Builder<DATA> withIndexes(IndexSet<String, DATA> indexes) {
+            this.indexes = indexes;
+            return this;
+        }
+
         public Builder<DATA> withTitusRuntime(TitusRuntime titusRuntime) {
             this.titusRuntime = titusRuntime;
             return this;
@@ -175,6 +186,7 @@ public interface ManyReconciler<DATA> {
                     buildActionProviderSelectorFactory(),
                     reconcilerSchedulerRef,
                     notificationSchedulerRef,
+                    new IndexSetHolderBasic<>(indexes),
                     titusRuntime
             );
         }
@@ -201,6 +213,7 @@ public interface ManyReconciler<DATA> {
                     buildActionProviderSelectorFactory(),
                     reconcilerSchedulerSupplier,
                     notificationSchedulerRef,
+                    new IndexSetHolderConcurrent<>(indexes),
                     titusRuntime
             );
         }

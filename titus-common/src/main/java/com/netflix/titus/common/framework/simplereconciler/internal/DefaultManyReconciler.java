@@ -40,6 +40,8 @@ import com.netflix.titus.common.framework.simplereconciler.internal.transaction.
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.closeable.CloseableReference;
+import com.netflix.titus.common.util.collections.index.IndexSet;
+import com.netflix.titus.common.util.collections.index.IndexSetHolder;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -62,6 +64,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     private final long longCycleMs;
     private final CloseableReference<Scheduler> reconcilerSchedulerRef;
     private final CloseableReference<Scheduler> notificationSchedulerRef;
+    private final IndexSetHolder<String, DATA> indexSetHolder;
     private final EventDistributor<DATA> eventDistributor;
     private final Clock clock;
     private final TitusRuntime titusRuntime;
@@ -87,12 +90,14 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             ActionProviderSelectorFactory<DATA> selectorFactory,
             CloseableReference<Scheduler> reconcilerSchedulerRef,
             CloseableReference<Scheduler> notificationSchedulerRef,
+            IndexSetHolder<String, DATA> indexSetHolder,
             TitusRuntime titusRuntime) {
         this.quickCycleMs = quickCycle.toMillis();
         this.longCycleMs = longCycle.toMillis();
         this.selectorFactory = selectorFactory;
         this.reconcilerSchedulerRef = reconcilerSchedulerRef;
         this.notificationSchedulerRef = notificationSchedulerRef;
+        this.indexSetHolder = indexSetHolder;
         this.eventDistributor = new EventDistributor<>(this::buildSnapshot, titusRuntime.getRegistry());
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
@@ -159,6 +164,11 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         Map<String, DATA> all = new HashMap<>();
         executors.forEach((id, executor) -> all.put(id, executor.getCurrent()));
         return all;
+    }
+
+    @Override
+    public IndexSet<String, DATA> getIndexSet() {
+        return indexSetHolder.getIndexSet();
     }
 
     @Override
@@ -293,7 +303,11 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
     private void doProcess(boolean fullReconciliationCycle) {
         // Data update
-        executors.forEach((id, executor) -> executor.processDataUpdates());
+        executors.forEach((id, executor) -> {
+            if (executor.processDataUpdates()) {
+                indexSetHolder.add(Collections.singletonList(executor.getCurrent()));
+            }
+        });
 
         // Complete subscribers
         Set<String> justChanged = new HashSet<>();
@@ -328,6 +342,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                 Optional<Runnable> runnable = executor.tryToClose();
                 if (executor.getState() == ReconcilerState.Closed) {
                     it.remove();
+                    indexSetHolder.remove(Collections.singletonList(executor.getId()));
                     metrics.remove(executor.getId());
 
                     // This is the very last action, so we can take safely the next transaction id without progressing it.
@@ -344,6 +359,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         for (AddHolder holder; (holder = addHolders.poll()) != null; ) {
             ReconcilerEngine<DATA> executor = holder.getExecutor();
             executors.put(holder.getId(), executor);
+            indexSetHolder.add(Collections.singletonList(executor.getCurrent()));
 
             // We set transaction id "0" for the newly added executors.
             eventDistributor.addEvents(Collections.singletonList(

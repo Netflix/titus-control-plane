@@ -20,6 +20,7 @@ import java.util.Map;
 
 /**
  * Grouping of a collection values by an arbitrary grouping key.
+ * {@link Group} object is immutable. Changes to a group produce new copies of it.
  */
 public interface Group<GROUP_KEY, PRIMARY_KEY, VALUE> {
 
