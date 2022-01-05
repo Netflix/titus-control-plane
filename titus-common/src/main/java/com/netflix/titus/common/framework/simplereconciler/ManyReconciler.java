@@ -35,6 +35,7 @@ import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.collections.index.IndexSet;
 import com.netflix.titus.common.util.collections.index.IndexSetHolderBasic;
 import com.netflix.titus.common.util.collections.index.IndexSetHolderConcurrent;
+import com.netflix.titus.common.util.collections.index.Indexes;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -167,6 +168,12 @@ public interface ManyReconciler<DATA> {
         public ManyReconciler<DATA> build() {
             Preconditions.checkNotNull(name, "Name is null");
             Preconditions.checkNotNull(titusRuntime, "TitusRuntime is null");
+
+            // Indexes are optional. If not set, provide the default value.
+            if (indexes == null) {
+                indexes = Indexes.empty();
+            }
+
             return shardCount <= 1 ? buildDefaultManyReconciler() : buildShardedManyReconciler();
         }
 
