@@ -54,7 +54,7 @@ import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1CephFSVolumeSource;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
+import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 import org.slf4j.Logger;
@@ -195,17 +195,20 @@ public class KubePodUtil {
     }
 
     /**
-     * Builds the various objects needed to for PersistentVolume and Pod objects to use an volume.
+     * Builds the various objects needed to for Pod objects to use a volume.
      */
-    public static Optional<Pair<V1Volume, V1VolumeMount>> buildV1VolumeInfo(Job<?> job, Task task) {
+    public static Optional<Pair<V1Volume, V1VolumeMount>> buildV1EBSObjects(Job<?> job, Task task) {
         return EbsVolumeUtils.getEbsVolumeForTask(job, task)
                 .map(ebsVolume -> {
                     boolean readOnly = ebsVolume.getMountPermissions().equals(EbsVolume.MountPerm.RO);
+                    V1AWSElasticBlockStoreVolumeSource ebsVolumeSource = new V1AWSElasticBlockStoreVolumeSource()
+                            .volumeID(ebsVolume.getVolumeId())
+                            .fsType(ebsVolume.getFsType())
+                            .readOnly(false);
                     V1Volume v1Volume = new V1Volume()
                             // The resource name matches the volume ID so that the resource is independent of the job.
                             .name(ebsVolume.getVolumeId())
-                            .persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource()
-                                    .claimName(KubeModelConverters.toPvcName(ebsVolume.getVolumeId(), task.getId())));
+                            .awsElasticBlockStore(ebsVolumeSource);
 
                     V1VolumeMount v1VolumeMount = new V1VolumeMount()
                             // The mount refers to the V1Volume being mounted

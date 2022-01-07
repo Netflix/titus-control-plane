@@ -42,7 +42,6 @@ import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
@@ -52,6 +51,7 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
+import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
@@ -356,18 +356,17 @@ public class V1SpecPodFactoryTest {
                 .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName2)
                 .build();
 
-        assertThat(KubePodUtil.buildV1VolumeInfo(job, task))
-                .isPresent()
-                .hasValueSatisfying(pair -> {
-                    V1Volume v1Volume = pair.getLeft();
-                    V1VolumeMount v1VolumeMount = pair.getRight();
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
 
-                    assertThat(v1Volume.getName()).isEqualTo(volName2);
+        V1Volume v1Volume = v1Pod.getSpec().getVolumes().get(0);
+        assertThat(v1Volume.getName()).isEqualTo(volName2);
+        V1AWSElasticBlockStoreVolumeSource ebsVolumeSource = v1Volume.getAwsElasticBlockStore();
+        assertThat(ebsVolumeSource.getFsType()).isEqualTo(fsType);
 
-                    assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
-                    assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);
-                    assertThat(v1VolumeMount.getReadOnly()).isFalse();
-                });
+        V1VolumeMount v1VolumeMount = v1Pod.getSpec().getContainers().get(0).getVolumeMounts().get(0);
+        assertThat(v1VolumeMount.getName()).isEqualTo(volName2);
+        assertThat(v1VolumeMount.getMountPath()).isEqualTo(mountPath);
+        assertThat(v1VolumeMount.getReadOnly()).isFalse();
     }
-
 }

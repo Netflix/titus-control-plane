@@ -158,7 +158,7 @@ public class V0SpecPodFactoryTest {
                 .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID, volName2)
                 .build();
 
-        assertThat(KubePodUtil.buildV1VolumeInfo(job, task))
+        assertThat(KubePodUtil.buildV1EBSObjects(job, task))
                 .isPresent()
                 .hasValueSatisfying(pair -> {
                     V1Volume v1Volume = pair.getLeft();
