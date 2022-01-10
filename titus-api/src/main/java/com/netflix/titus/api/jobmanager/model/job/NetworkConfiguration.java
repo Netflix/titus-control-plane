@@ -95,6 +95,8 @@ public class NetworkConfiguration {
                 return "Ipv6AndIpv4Fallback";
             case 4:
                 return "Ipv6Only";
+            case 5:
+                return "HighScale";
             default:
                 return "";
         }
