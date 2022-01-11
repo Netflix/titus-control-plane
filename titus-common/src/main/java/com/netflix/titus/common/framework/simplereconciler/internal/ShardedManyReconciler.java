@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -169,6 +170,7 @@ public class ShardedManyReconciler<DATA> implements ManyReconciler<DATA> {
                                                                              Function<Integer, CloseableReference<Scheduler>> reconcilerSchedulerSupplier,
                                                                              CloseableReference<Scheduler> notificationSchedulerRef,
                                                                              IndexSetHolder<String, DATA> indexSetHolder,
+                                                                             Closeable indexMetricsCloseable,
                                                                              TitusRuntime titusRuntime) {
         return new ShardedManyReconciler<>(
                 shardCount,
@@ -181,6 +183,7 @@ public class ShardedManyReconciler<DATA> implements ManyReconciler<DATA> {
                         reconcilerSchedulerSupplier.apply(shardIndex),
                         notificationSchedulerRef,
                         indexSetHolder,
+                        indexMetricsCloseable,
                         titusRuntime
                 ),
                 notificationSchedulerRef,
