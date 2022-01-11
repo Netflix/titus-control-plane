@@ -307,6 +307,17 @@ public class DefaultManyReconcilerTest {
         CloseableReference<Scheduler> notificationSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("notification"), Scheduler::dispose);
 
         Function<String, String> keyExtractor = s -> s.substring(0, Math.min(s.length(), 2));
+        IndexSetHolderBasic<String, String> indexSetHolder = new IndexSetHolderBasic<>(Indexes.<String, String>newBuilder()
+                .withIndex(INDEX_ID, IndexSpec.<String, String, String, String>newBuilder()
+                        .withPrimaryKeyComparator(String::compareTo)
+                        .withIndexKeyComparator(String::compareTo)
+                        .withPrimaryKeyExtractor(keyExtractor)
+                        .withIndexKeyExtractor(keyExtractor)
+                        .withTransformer(Function.identity())
+                        .build()
+                )
+                .build()
+        );
         reconciler = new DefaultManyReconciler<>(
                 "junit",
                 Duration.ofMillis(1),
@@ -314,16 +325,11 @@ public class DefaultManyReconcilerTest {
                 selectorFactory,
                 reconcilerSchedulerRef,
                 notificationSchedulerRef,
-                new IndexSetHolderBasic<>(Indexes.<String, String>newBuilder()
-                        .withIndex(INDEX_ID, IndexSpec.<String, String, String, String>newBuilder()
-                                .withPrimaryKeyComparator(String::compareTo)
-                                .withIndexKeyComparator(String::compareTo)
-                                .withPrimaryKeyExtractor(keyExtractor)
-                                .withIndexKeyExtractor(keyExtractor)
-                                .withTransformer(Function.identity())
-                                .build()
-                        )
-                        .build()
+                indexSetHolder,
+                Indexes.monitor(
+                        titusRuntime.getRegistry().createId(ReconcilerExecutorMetrics.ROOT_NAME + "indexes"),
+                        indexSetHolder,
+                        titusRuntime.getRegistry()
                 ),
                 titusRuntime
         );

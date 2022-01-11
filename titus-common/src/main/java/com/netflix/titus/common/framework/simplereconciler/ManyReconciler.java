@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.framework.simplereconciler;
 
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,11 +29,13 @@ import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.simplereconciler.internal.DefaultManyReconciler;
+import com.netflix.titus.common.framework.simplereconciler.internal.ReconcilerExecutorMetrics;
 import com.netflix.titus.common.framework.simplereconciler.internal.ShardedManyReconciler;
 import com.netflix.titus.common.framework.simplereconciler.internal.provider.ActionProviderSelectorFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.collections.index.IndexSet;
+import com.netflix.titus.common.util.collections.index.IndexSetHolder;
 import com.netflix.titus.common.util.collections.index.IndexSetHolderBasic;
 import com.netflix.titus.common.util.collections.index.IndexSetHolderConcurrent;
 import com.netflix.titus.common.util.collections.index.Indexes;
@@ -186,6 +189,7 @@ public interface ManyReconciler<DATA> {
                     ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-notification-" + name, true), Scheduler::dispose)
                     : CloseableReference.referenceOf(notificationScheduler);
 
+            IndexSetHolderBasic<String, DATA> indexSetHolder = new IndexSetHolderBasic<>(indexes);
             return new DefaultManyReconciler<>(
                     name,
                     quickCycle,
@@ -193,7 +197,8 @@ public interface ManyReconciler<DATA> {
                     buildActionProviderSelectorFactory(),
                     reconcilerSchedulerRef,
                     notificationSchedulerRef,
-                    new IndexSetHolderBasic<>(indexes),
+                    indexSetHolder,
+                    buildIndexSetHolderMonitor(indexSetHolder),
                     titusRuntime
             );
         }
@@ -211,6 +216,7 @@ public interface ManyReconciler<DATA> {
 
             Function<String, Integer> shardIndexSupplier = id -> Math.abs(id.hashCode()) % shardCount;
 
+            IndexSetHolderConcurrent<String, DATA> indexSetHolder = new IndexSetHolderConcurrent<>(indexes);
             return ShardedManyReconciler.newSharedDefaultManyReconciler(
                     name,
                     shardCount,
@@ -220,8 +226,17 @@ public interface ManyReconciler<DATA> {
                     buildActionProviderSelectorFactory(),
                     reconcilerSchedulerSupplier,
                     notificationSchedulerRef,
-                    new IndexSetHolderConcurrent<>(indexes),
+                    indexSetHolder,
+                    buildIndexSetHolderMonitor(indexSetHolder),
                     titusRuntime
+            );
+        }
+
+        private Closeable buildIndexSetHolderMonitor(IndexSetHolder<String, DATA> indexSetHolder) {
+            return Indexes.monitor(
+                    titusRuntime.getRegistry().createId(ReconcilerExecutorMetrics.ROOT_NAME + "indexes"),
+                    indexSetHolder,
+                    titusRuntime.getRegistry()
             );
         }
 

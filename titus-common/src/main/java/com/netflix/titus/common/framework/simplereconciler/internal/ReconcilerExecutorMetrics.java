@@ -30,7 +30,7 @@ import com.netflix.titus.common.util.time.Clock;
 
 public class ReconcilerExecutorMetrics {
 
-    private static final String ROOT_NAME = "titus.simpleReconciliation.engine.";
+    public static final String ROOT_NAME = "titus.simpleReconciliation.engine.";
     private static final String EVALUATIONS = ROOT_NAME + "evaluations";
     private static final String EXTERNAL_ACTIONS_QUEUE_SIZE = ROOT_NAME + "externalActionQueueSize";
     private static final String SINCE_LAST_EVALUATION = ROOT_NAME + "sinceLastEvaluation";

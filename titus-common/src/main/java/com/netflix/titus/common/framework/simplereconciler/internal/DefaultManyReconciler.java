@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +40,7 @@ import com.netflix.titus.common.framework.simplereconciler.internal.provider.Act
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.Transaction;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.collections.index.IndexSet;
 import com.netflix.titus.common.util.collections.index.IndexSetHolder;
@@ -65,6 +67,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     private final CloseableReference<Scheduler> reconcilerSchedulerRef;
     private final CloseableReference<Scheduler> notificationSchedulerRef;
     private final IndexSetHolder<String, DATA> indexSetHolder;
+    private final Closeable indexMetricsCloseable;
     private final EventDistributor<DATA> eventDistributor;
     private final Clock clock;
     private final TitusRuntime titusRuntime;
@@ -91,6 +94,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             CloseableReference<Scheduler> reconcilerSchedulerRef,
             CloseableReference<Scheduler> notificationSchedulerRef,
             IndexSetHolder<String, DATA> indexSetHolder,
+            Closeable indexMetricsCloseable,
             TitusRuntime titusRuntime) {
         this.quickCycleMs = quickCycle.toMillis();
         this.longCycleMs = longCycle.toMillis();
@@ -98,6 +102,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         this.reconcilerSchedulerRef = reconcilerSchedulerRef;
         this.notificationSchedulerRef = notificationSchedulerRef;
         this.indexSetHolder = indexSetHolder;
+        this.indexMetricsCloseable = indexMetricsCloseable;
         this.eventDistributor = new EventDistributor<>(this::buildSnapshot, titusRuntime.getRegistry());
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
@@ -155,6 +160,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                 reconcilerSchedulerRef.close();
                 // TODO There may be pending notifications, so we have to delay the actual close. There must be a better solution than timer.
                 notificationSchedulerRef.get().createWorker().schedule(notificationSchedulerRef::close, 5_000, TimeUnit.MILLISECONDS);
+                ExceptionExt.silent(indexMetricsCloseable::close);
             });
         });
     }
