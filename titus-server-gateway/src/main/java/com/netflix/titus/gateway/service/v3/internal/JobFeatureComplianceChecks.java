@@ -36,6 +36,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.feature.FeatureCompliance;
 import com.netflix.titus.common.util.feature.FeatureCompliance.NonComplianceList;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.CONTAINER_ACCOUNT_ID_AND_SUBNETS_REQUIRED_FEATURE;
@@ -102,6 +103,12 @@ class JobFeatureComplianceChecks {
             if (!jobDescriptor.getContainer().getSecurityProfile().getSecurityGroups().isEmpty()) {
                 return Optional.empty();
             }
+            // On the HighScale network mode, it is important that the security group *not* be set,
+            // as the purpose of the HighScale network mode is to enforce unified security groups
+            // on the backend. Security groups are not configurable by the user with this mode.
+            if (jobDescriptor.getNetworkConfiguration().getNetworkMode() == NetworkConfiguration.NetworkMode.HighScale.getNumber() ) {
+                return Optional.empty();
+            }
             return Optional.of(NonComplianceList.of(
                     SECURITY_GROUPS_REQUIRED_FEATURE,
                     jobDescriptor,
@@ -125,6 +132,11 @@ class JobFeatureComplianceChecks {
             // Ignore this compliance check unless both default accountId and subnet configuration properties are set implying our
             // intent to aid the job descriptor sanitization
             if (StringExt.isEmpty(defaultAccountId) || StringExt.isEmpty(defaultSubnets)) {
+                return Optional.empty();
+            }
+            // On the HighScale network mode, it is important that the account/subents *not* be set.
+            // Subnets/Accounts are not configurable by the user with this mode.
+            if (jobDescriptor.getNetworkConfiguration().getNetworkMode() == NetworkConfiguration.NetworkMode.HighScale.getNumber() ) {
                 return Optional.empty();
             }
 
