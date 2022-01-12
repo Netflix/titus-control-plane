@@ -86,24 +86,28 @@ public class TaskEventsGeneratorTest {
                 mockTitusClient(numTasks),
                 Collections.emptyMap());
 
-        EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(),
-                mockEsPublisherConfiguration(), new DefaultRegistry());
-        esPublisher.activate();
-
-        final CountDownLatch latch = new CountDownLatch(1);
-        Flux.interval(Duration.ofSeconds(1), Schedulers.elastic())
-                .take(1)
-                .doOnNext(i -> {
-                    final int numTasksUpdated = esPublisher.getNumTasksPublished();
-                    final int numErrors = esPublisher.getNumErrorsInPublishing();
-                    assertThat(numErrors).isEqualTo(0);
-                    assertThat(numTasksUpdated).isGreaterThanOrEqualTo(numTasks);
-                    latch.countDown();
-                }).subscribe();
         try {
-            latch.await(2, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            fail("Timeout in checkPublisherState ", e);
+            EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(),
+                    mockEsPublisherConfiguration(), new DefaultRegistry());
+            esPublisher.activate();
+
+            final CountDownLatch latch = new CountDownLatch(1);
+            Flux.interval(Duration.ofSeconds(1), Schedulers.elastic())
+                    .take(1)
+                    .doOnNext(i -> {
+                        final int numTasksUpdated = esPublisher.getNumTasksPublished();
+                        final int numErrors = esPublisher.getNumErrorsInPublishing();
+                        assertThat(numErrors).isEqualTo(0);
+                        assertThat(numTasksUpdated).isGreaterThanOrEqualTo(numTasks);
+                        latch.countDown();
+                    }).subscribe();
+            try {
+                latch.await(2, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                fail("Timeout in checkPublisherState ", e);
+            }
+        } finally {
+            taskEventsGenerator.shutdown();
         }
     }
 }
