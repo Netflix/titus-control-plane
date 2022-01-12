@@ -24,22 +24,35 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.supplementary.taskspublisher.es.ElasticSearchUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 public class TaskEventsGenerator {
 
+    private static final int THREAD_POOL_LIMIT = 500;
+
+    private final Logger logger = LoggerFactory.getLogger(TaskEventsGenerator.class);
+
     private final Map<String, String> taskDocumentBaseContext;
-    private TitusClient titusClient;
+    private final TitusClient titusClient;
+    private final Scheduler scheduler;
     private ConnectableFlux<TaskDocument> taskEvents;
 
     public TaskEventsGenerator(TitusClient titusClient,
                                Map<String, String> taskDocumentBaseContext) {
         this.titusClient = titusClient;
         this.taskDocumentBaseContext = taskDocumentBaseContext;
+        this.scheduler = Schedulers.newBoundedElastic(THREAD_POOL_LIMIT, Integer.MAX_VALUE, "taskEventsGenerator", 60, true);
         buildEventStream();
+    }
+
+    public void shutdown() {
+        scheduler.dispose();
     }
 
     public ConnectableFlux<TaskDocument> getTaskEvents() {
@@ -48,7 +61,7 @@ public class TaskEventsGenerator {
 
     private void buildEventStream() {
         taskEvents = titusClient.getJobAndTaskUpdates()
-                .publishOn(Schedulers.elastic())
+                .publishOn(scheduler)
                 .flatMap(jobOrTaskUpdate -> jobOrTaskUpdate.hasTask() ? Flux.just(jobOrTaskUpdate.getTask()) : Flux.empty())
                 .map(task -> {
                     final Mono<Job> jobById = titusClient.getJobById(task.getJobId());
@@ -63,6 +76,7 @@ public class TaskEventsGenerator {
                                 return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task));
                             }).flux();
                 })
+                .doOnError(error -> logger.error("TitusClient event stream error", error))
                 .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
                         TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, -1))
                 .publish();
