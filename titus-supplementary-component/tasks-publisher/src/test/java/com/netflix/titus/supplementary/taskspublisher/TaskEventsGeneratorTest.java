@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.ext.elasticsearch.EsClient;
 import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexResp;
 import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexRespItem;
@@ -48,6 +50,8 @@ import static org.mockito.Mockito.when;
 
 
 public class TaskEventsGeneratorTest {
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     private TitusClient mockTitusClient(int numTasks) {
         TitusClient titusClient = mock(TitusClient.class);
@@ -84,7 +88,7 @@ public class TaskEventsGeneratorTest {
         int numTasks = 5;
         final TaskEventsGenerator taskEventsGenerator = new TaskEventsGenerator(
                 mockTitusClient(numTasks),
-                Collections.emptyMap());
+                Collections.emptyMap(), titusRuntime);
 
         try {
             EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(),

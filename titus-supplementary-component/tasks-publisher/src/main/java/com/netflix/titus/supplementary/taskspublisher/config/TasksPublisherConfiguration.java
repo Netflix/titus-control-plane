@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.ext.elasticsearch.DefaultEsClient;
 import com.netflix.titus.ext.elasticsearch.DefaultEsWebClientFactory;
 import com.netflix.titus.ext.elasticsearch.EsClient;
@@ -97,14 +98,14 @@ public class TasksPublisherConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public TaskEventsGenerator getTaskEventsGenerator() {
-        return new TaskEventsGenerator(getTitusClient(), Collections.emptyMap());
+    public TaskEventsGenerator getTaskEventsGenerator(TitusRuntime titusRuntime) {
+        return new TaskEventsGenerator(getTitusClient(), Collections.emptyMap(), titusRuntime);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public EsPublisher getEsPublisher() {
-        return new EsPublisher(getTaskEventsGenerator(), getEsClient(), esPublisherConfiguration, new DefaultRegistry());
+    public EsPublisher getEsPublisher(TitusRuntime titusRuntime) {
+        return new EsPublisher(getTaskEventsGenerator(titusRuntime), getEsClient(), esPublisherConfiguration, titusRuntime.getRegistry());
     }
 
 

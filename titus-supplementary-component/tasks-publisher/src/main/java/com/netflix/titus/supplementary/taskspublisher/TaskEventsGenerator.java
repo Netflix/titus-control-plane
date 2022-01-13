@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
@@ -39,14 +40,17 @@ public class TaskEventsGenerator {
     private final Logger logger = LoggerFactory.getLogger(TaskEventsGenerator.class);
 
     private final Map<String, String> taskDocumentBaseContext;
+    private final TitusRuntime titusRuntime;
     private final TitusClient titusClient;
     private final Scheduler scheduler;
     private ConnectableFlux<TaskDocument> taskEvents;
 
     public TaskEventsGenerator(TitusClient titusClient,
-                               Map<String, String> taskDocumentBaseContext) {
+                               Map<String, String> taskDocumentBaseContext,
+                               TitusRuntime titusRuntime) {
         this.titusClient = titusClient;
         this.taskDocumentBaseContext = taskDocumentBaseContext;
+        this.titusRuntime = titusRuntime;
         this.scheduler = Schedulers.newBoundedElastic(THREAD_POOL_LIMIT, Integer.MAX_VALUE, "taskEventsGenerator", 60, true);
         buildEventStream();
     }
@@ -70,10 +74,21 @@ public class TaskEventsGenerator {
                 .flatMap(taskMonoPair -> {
                     final Task task = taskMonoPair.getLeft();
                     return taskMonoPair.getRight()
-                            .map(job -> {
-                                final com.netflix.titus.api.jobmanager.model.job.Job coreJob = GrpcJobManagementModelConverters.toCoreJob(job);
-                                final com.netflix.titus.api.jobmanager.model.job.Task coreTask = GrpcJobManagementModelConverters.toCoreTask(coreJob, task);
-                                return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task));
+                            .flatMap(job -> {
+                                try {
+                                    final com.netflix.titus.api.jobmanager.model.job.Job coreJob = GrpcJobManagementModelConverters.toCoreJob(job);
+                                    final com.netflix.titus.api.jobmanager.model.job.Task coreTask = GrpcJobManagementModelConverters.toCoreTask(coreJob, task);
+                                    return Mono.just(TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task)));
+                                } catch (Exception e) {
+                                    // If the mapping fails, we do not want to break the pipeline, and possible cause an infinite number
+                                    // of retries, each failing on the same bad job/task record. Instead, we log the error.
+                                    titusRuntime.getCodeInvariants().unexpectedError(
+                                            String.format("Cannot map Titus job/task to ES TaskDocument: job=%s, task=%s", job, task),
+                                            e
+                                    );
+                                    logger.warn("Cannot map Titus job/task to ES TaskDocument", e);
+                                    return Mono.empty();
+                                }
                             }).flux();
                 })
                 .doOnError(error -> logger.error("TitusClient event stream error", error))
