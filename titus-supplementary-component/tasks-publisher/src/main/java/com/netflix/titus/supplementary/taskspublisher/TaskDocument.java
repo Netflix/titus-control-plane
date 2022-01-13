@@ -503,28 +503,28 @@ public class TaskDocument implements EsDoc {
         long completedAt = findTaskStatus(task, TaskState.Finished).map(ExecutableStatus::getTimestamp).orElse(0L);
 
         if (acceptedAt > 0) {
-            taskDocument.submittedAt = dateFormat.format(new Date(acceptedAt));
+            taskDocument.submittedAt = doSafeDateFormat(dateFormat, new Date(acceptedAt));
         }
 
         if (launchedAt > 0) {
-            taskDocument.launchedAt = dateFormat.format(new Date(launchedAt));
+            taskDocument.launchedAt = doSafeDateFormat(dateFormat, new Date(launchedAt));
             taskDocument.computedFields.msFromSubmittedToLaunched = launchedAt - acceptedAt;
         }
 
         if (startingAt > 0) {
-            taskDocument.startingAt = dateFormat.format(new Date(startingAt));
+            taskDocument.startingAt = doSafeDateFormat(dateFormat, new Date(startingAt));
             taskDocument.computedFields.msFromLaunchedToStarting = startingAt - launchedAt;
             taskDocument.computedFields.msToStarting = startingAt - acceptedAt;
         }
 
         if (startedAt > 0) {
-            taskDocument.startedAt = dateFormat.format(new Date(startedAt));
+            taskDocument.startedAt = doSafeDateFormat(dateFormat, new Date(startedAt));
             taskDocument.computedFields.msFromStartingToStarted = startedAt - startingAt;
             taskDocument.computedFields.msToStarted = startedAt - acceptedAt;
         }
 
         if (completedAt > 0) {
-            taskDocument.finishedAt = dateFormat.format(new Date(completedAt));
+            taskDocument.finishedAt = doSafeDateFormat(dateFormat, new Date(completedAt));
             taskDocument.computedFields.msFromStartedToFinished = completedAt - startedAt;
             taskDocument.computedFields.msToFinished = completedAt - acceptedAt;
         }
@@ -533,6 +533,18 @@ public class TaskDocument implements EsDoc {
         taskDocument.titusContext = context;
 
         return taskDocument;
+    }
+
+    /**
+     * Formatting may fail for some date values. We do not want to break everything, so for such cases we pass
+     * the unformatted value.
+     */
+    private static String doSafeDateFormat(SimpleDateFormat dateFormat, Date date) {
+        try {
+            return dateFormat.format(date);
+        } catch (Exception e) {
+            return "wrong_value_" + date.getTime();
+        }
     }
 
     private static Optional<TaskStatus> findTaskStatus(Task task, TaskState taskState) {
