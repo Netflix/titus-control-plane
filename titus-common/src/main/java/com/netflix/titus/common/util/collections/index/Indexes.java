@@ -42,8 +42,15 @@ public final class Indexes {
 
     public static class Builder<PRIMARY_KEY, INPUT> {
 
-        private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes = new HashMap<>();
         private final Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> groups = new HashMap<>();
+        private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes = new HashMap<>();
+        private final Map<String, DefaultOrder<?, PRIMARY_KEY, INPUT, ?>> orders = new HashMap<>();
+
+        public <INDEX_KEY, OUTPUT> Builder<PRIMARY_KEY, INPUT> withGroup(String groupId,
+                                                                         IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> indexSpec) {
+            groups.put(groupId, DefaultGroup.newEmpty(indexSpec));
+            return this;
+        }
 
         public <INDEX_KEY, OUTPUT> Builder<PRIMARY_KEY, INPUT> withIndex(String indexId,
                                                                          IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> indexSpec) {
@@ -51,14 +58,14 @@ public final class Indexes {
             return this;
         }
 
-        public <INDEX_KEY, OUTPUT> Builder<PRIMARY_KEY, INPUT> withGroup(String indexId,
+        public <INDEX_KEY, OUTPUT> Builder<PRIMARY_KEY, INPUT> withOrder(String orderId,
                                                                          IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> indexSpec) {
-            groups.put(indexId, DefaultGroup.newEmpty(indexSpec));
+            orders.put(orderId, DefaultOrder.newEmpty(indexSpec));
             return this;
         }
 
         public IndexSet<PRIMARY_KEY, INPUT> build() {
-            return new DefaultIndexSet<>(groups, indexes);
+            return new DefaultIndexSet<>(groups, indexes, orders);
         }
     }
 }

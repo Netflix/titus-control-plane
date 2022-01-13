@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,53 +16,74 @@
 
 package com.netflix.titus.common.util.collections.index;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 
 import org.junit.Test;
 
-import static com.netflix.titus.common.util.collections.index.SampleItem.newItems;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DefaultIndexTest {
 
-    private static final IndexSpec<Character, String, SampleItem, String> SPEC = IndexSpec.<Character, String, SampleItem, String>newBuilder()
-            .withIndexKeyExtractor(item -> item.getKey().charAt(0))
-            .withPrimaryKeyExtractor(SampleItem::getKey)
-            .withIndexKeyComparator(Character::compareTo)
+    private static final IndexSpec<String, String, SampleNestedItem, String> SPEC = IndexSpec.<String, String, SampleNestedItem, String>newBuilder()
+            .withIndexKeysExtractor(item -> new HashSet<>(item.getChildren().keySet()))
+            .withPrimaryKeyExtractor(SampleNestedItem::getRootId)
+            .withIndexKeyComparator(String::compareTo)
             .withPrimaryKeyComparator(String::compareTo)
-            .withTransformer(SampleItem::getValue)
+            .withTransformer((key, value) -> value.getChildren().get(key))
             .build();
 
-    private static final DefaultIndex<Character, String, SampleItem, String> EMPTY_INDEX = DefaultIndex.newEmpty(SPEC);
+    private static final DefaultIndex<String, String, SampleNestedItem, String> EMPTY_INDEX = DefaultIndex.newEmpty(SPEC);
 
     @Test
     public void testAdd() {
         // Initial
-        DefaultIndex<Character, String, SampleItem, String> index = EMPTY_INDEX.add(newItems("a1", "#a1", "a2", "#a2", "b1", "#b1"));
-        assertThat(index.orderedList()).contains("#a1", "#a2", "#b1");
+        DefaultIndex<String, String, SampleNestedItem, String> index = EMPTY_INDEX.add(Arrays.asList(
+                SampleNestedItem.newItem("r1", "r1c1", "v1", "r1c2", "v2"),
+                SampleNestedItem.newItem("r2", "r2c1", "v1", "r2c2", "v2")
+        ));
+        assertThat(index.get()).hasSize(4);
+        assertThat(index.get()).containsKeys("r1c1", "r1c2", "r2c1", "r2c2");
 
-        // Add
-        index = index.add(newItems("b2", "#b2", "a3", "#a3"));
-        assertThat(index.orderedList()).contains("#a1", "#a2", "#a3", "#b1", "#b2");
+        // Change existing child.
+        index = index.add(SampleNestedItem.newItemList("r1", "r1c1", "v1b", "r1c2", "v2"));
+        assertThat(index.get()).hasSize(4);
+        assertThat(index.get().get("r1c1")).isEqualTo("v1b");
+        assertThat(index.get().get("r1c2")).isEqualTo("v2");
+
+        // Update by removing one of the existing children.
+        index = index.add(SampleNestedItem.newItemList("r1", "r1c1", "v1b"));
+        assertThat(index.get()).hasSize(3);
+        assertThat(index.get().get("r1c1")).isEqualTo("v1b");
+        assertThat(index.get().get("r1c2")).isNull();
+
+        // Update by adding empty children set
+        index = index.add(SampleNestedItem.newItemList("r1"));
+        assertThat(index.get()).hasSize(2);
+
+        // Add empty
+        index = index.add(SampleNestedItem.newItemList("r3"));
+        assertThat(index.get()).hasSize(2);
+
+        // Add to empty
+        index = index.add(SampleNestedItem.newItemList("r3", "r3v1", "v1"));
+        assertThat(index.get()).hasSize(3);
+        assertThat(index.get()).containsEntry("r3v1", "v1");
+
     }
 
     @Test
     public void testRemove() {
-        DefaultIndex<Character, String, SampleItem, String> index = EMPTY_INDEX.add(
-                newItems("a1", "#a1", "a2", "#a2", "b1", "#b1", "b2", "#b2")
-        );
-        assertThat(index.orderedList()).containsExactly("#a1", "#a2", "#b1", "#b2");
+        // Initial
+        DefaultIndex<String, String, SampleNestedItem, String> index = EMPTY_INDEX.add(Arrays.asList(
+                SampleNestedItem.newItem("r1", "r1c1", "v1", "r1c2", "v2"),
+                SampleNestedItem.newItem("r2", "r2c1", "v1", "r2c2", "v2")
+        ));
 
-        index = index.remove(Collections.singleton("a1"));
-        assertThat(index.orderedList()).containsExactly("#a2", "#b1", "#b2");
-
-        index = index.remove(Collections.singleton("a2"));
-        assertThat(index.orderedList()).containsExactly("#b1", "#b2");
-
-        index = index.remove(Collections.singleton("b2"));
-        assertThat(index.orderedList()).containsExactly("#b1");
-
-        index = index.remove(Collections.singleton("b1"));
-        assertThat(index.orderedList()).isEmpty();
+        // Remove
+        index = index.remove(Collections.singleton("r1"));
+        assertThat(index.get()).hasSize(2);
+        assertThat(index.get()).containsKeys("r2c1", "r2c2");
     }
 }

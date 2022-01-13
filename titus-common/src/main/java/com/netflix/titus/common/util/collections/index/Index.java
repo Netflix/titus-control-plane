@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,13 @@
 
 package com.netflix.titus.common.util.collections.index;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- * Ordered list of values. The ordering is set by a pair of an arbitrary index key and the primary key.
- * {@link Index} object is immutable. Changes to an index produce new copies of it.
+ * A map from some unique index key to a value. A given input value may be split into several values with unique ids
+ * within the index. This is the opposite of {@link Group} which aggregates input values by some key.
+ * For example, a JobWithTasks input value could be mapped to collection of tasks, with the UNIQUE_INDEX_KEY being the task id.
  */
-public interface Index<VALUE> {
-
-    /**
-     * @return immutable ordered set of values.
-     */
-    List<VALUE> orderedList();
+public interface Index<UNIQUE_INDEX_KEY, VALUE> {
+    Map<UNIQUE_INDEX_KEY, VALUE> get();
 }

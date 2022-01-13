@@ -273,19 +273,19 @@ public class DefaultManyReconcilerTest {
     @Test
     public void testIndex() throws InterruptedException {
         newReconcilerWithRegistrations(data -> Collections.emptyList(), "i1", "i1_v1", "i2", "i2_v2");
-        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(2).containsSequence("i1_v1", "i2_v2");
+        assertThat(reconciler.getIndexSet().getOrder(INDEX_ID).orderedList()).hasSize(2).containsSequence("i1_v1", "i2_v2");
 
         // Register
         reconciler.add("i3", "i3_v3").block();
-        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(3).containsSequence("i1_v1", "i2_v2", "i3_v3");
+        assertThat(reconciler.getIndexSet().getOrder(INDEX_ID).orderedList()).hasSize(3).containsSequence("i1_v1", "i2_v2", "i3_v3");
 
         // Make changes
         reconciler.apply("i3", current -> Mono.just("i3_v3a")).block();
-        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(3).containsSequence("i1_v1", "i2_v2", "i3_v3a");
+        assertThat(reconciler.getIndexSet().getOrder(INDEX_ID).orderedList()).hasSize(3).containsSequence("i1_v1", "i2_v2", "i3_v3a");
 
         // Close
         reconciler.remove("i3").block();
-        assertThat(reconciler.getIndexSet().getIndex(INDEX_ID).orderedList()).hasSize(2).containsSequence("i1_v1", "i2_v2");
+        assertThat(reconciler.getIndexSet().getOrder(INDEX_ID).orderedList()).hasSize(2).containsSequence("i1_v1", "i2_v2");
     }
 
     private void newReconcilerWithRegistrations(Function<String, List<Mono<Function<String, String>>>> reconcilerActionsProvider,
@@ -308,12 +308,11 @@ public class DefaultManyReconcilerTest {
 
         Function<String, String> keyExtractor = s -> s.substring(0, Math.min(s.length(), 2));
         IndexSetHolderBasic<String, String> indexSetHolder = new IndexSetHolderBasic<>(Indexes.<String, String>newBuilder()
-                .withIndex(INDEX_ID, IndexSpec.<String, String, String, String>newBuilder()
+                .withOrder(INDEX_ID, IndexSpec.<String, String, String, String>newBuilder()
                         .withPrimaryKeyComparator(String::compareTo)
                         .withIndexKeyComparator(String::compareTo)
                         .withPrimaryKeyExtractor(keyExtractor)
                         .withIndexKeyExtractor(keyExtractor)
-                        .withTransformer(Function.identity())
                         .build()
                 )
                 .build()

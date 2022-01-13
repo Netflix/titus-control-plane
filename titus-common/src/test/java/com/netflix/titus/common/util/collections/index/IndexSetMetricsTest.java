@@ -32,7 +32,7 @@ public class IndexSetMetricsTest {
             .withPrimaryKeyExtractor(SampleItem::getKey)
             .withIndexKeyComparator(Character::compareTo)
             .withPrimaryKeyComparator(String::compareTo)
-            .withTransformer(SampleItem::getValue)
+            .withTransformer((key, value) -> value.getValue())
             .build();
 
     @Test
@@ -40,7 +40,7 @@ public class IndexSetMetricsTest {
         IndexSetHolder<String, SampleItem> indexSetHolder = new IndexSetHolderBasic<>(
                 Indexes.<String, SampleItem>newBuilder()
                         .withGroup("testGroup", SPEC)
-                        .withIndex("testIndex", SPEC)
+                        .withOrder("testIndex", SPEC)
                         .build()
         );
         Closeable closeable = Indexes.monitor(registry.createId("test"), indexSetHolder, registry);

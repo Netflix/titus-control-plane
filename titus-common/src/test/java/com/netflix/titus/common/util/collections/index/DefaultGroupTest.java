@@ -29,7 +29,7 @@ public class DefaultGroupTest {
             .withPrimaryKeyExtractor(SampleItem::getKey)
             .withIndexKeyComparator(Character::compareTo)
             .withPrimaryKeyComparator(String::compareTo)
-            .withTransformer(SampleItem::getValue)
+            .withTransformer((key, value) -> value.getValue())
             .build();
 
     private static final DefaultGroup<Character, String, SampleItem, String> EMPTY_GROUP = DefaultGroup.newEmpty(SPEC);

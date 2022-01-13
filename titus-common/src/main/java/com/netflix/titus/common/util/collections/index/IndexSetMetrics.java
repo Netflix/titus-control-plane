@@ -48,11 +48,11 @@ class IndexSetMetrics implements Closeable {
         });
 
         // Indexes
-        indexSetHolder.getIndexSet().getIndexes().forEach((id, index) -> {
+        indexSetHolder.getIndexSet().getOrders().forEach((id, index) -> {
             Id metricId = root.withTags("kind", "index", "indexId", id);
             ids.add(metricId);
             PolledMeter.using(registry).withId(metricId).monitorValue(indexSetHolder, h -> {
-                Index<Object> i = h.getIndexSet().getIndex(id);
+                Order<Object> i = h.getIndexSet().getOrder(id);
                 return i != null ? i.orderedList().size() : 0;
             });
         });
