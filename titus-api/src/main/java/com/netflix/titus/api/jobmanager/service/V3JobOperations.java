@@ -21,12 +21,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.publisher.Mono;
 import rx.Completable;
@@ -111,12 +111,4 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
      * the update may be lost.
      */
     Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason, CallMetadata callMetadata);
-
-    /**
-     * Called by scheduler when a task is assigned to an agent. The new task state is written to store first, and next
-     * internal models are updated.
-     * <p>
-     * TODO 'Launched' state means two things today. Task placement by Fenzo, and Mesos 'Launched'. It makes sense to separate the two.
-     */
-    Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction, CallMetadata callMetadata);
 }

@@ -35,28 +35,22 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
-import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.master.kubernetes.client.model.PodDeletedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
-import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1PersistentVolume;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1Volume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
@@ -152,16 +146,16 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public Mono<Void> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
-            try {
-                V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
-                logger.info("creating pod: {}", formatPodEssentials(v1Pod));
-                logger.debug("complete pod data: {}", v1Pod);
-                return v1Pod;
-            } catch (Exception e) {
-                logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
-                throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
-            }
-        })
+                    try {
+                        V1Pod v1Pod = podFactory.buildV1Pod(job, task);
+                        logger.info("creating pod: {}", formatPodEssentials(v1Pod));
+                        logger.debug("complete pod data: {}", v1Pod);
+                        return v1Pod;
+                    } catch (Exception e) {
+                        logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
+                        throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
+                    }
+                })
                 .flatMap(v1Pod -> launchPod(task, v1Pod))
                 .subscribeOn(apiClientScheduler)
                 .timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()))

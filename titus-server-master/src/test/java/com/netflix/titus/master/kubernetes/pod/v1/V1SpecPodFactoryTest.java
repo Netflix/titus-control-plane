@@ -108,7 +108,7 @@ public class V1SpecPodFactoryTest {
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
         V1Container mainContainer = pod.getSpec().getContainers().get(0);
 
         String mainContainerImageTag = pod.getMetadata().getAnnotations().get("pod.titus.netflix.com/image-tag-main");
@@ -127,7 +127,7 @@ public class V1SpecPodFactoryTest {
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withExtraContainers(extraContainers).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
 
         List<V1Container> containers = Objects.requireNonNull(pod.getSpec()).getContainers();
         // 3 containers here, 1 from the main container, 2 from the extras
@@ -147,7 +147,7 @@ public class V1SpecPodFactoryTest {
                 job.getJobDescriptor().toBuilder().withContainer(container).build()
         ).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
 
         V1Container mainContainer = pod.getSpec().getContainers().get(0);
         List<V1VolumeMount> mounts = mainContainer.getVolumeMounts();
@@ -168,7 +168,7 @@ public class V1SpecPodFactoryTest {
         );
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withVolumes(volumes).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
 
         List<V1Volume> podVolumes = Objects.requireNonNull(pod.getSpec()).getVolumes();
         // dev-shm is third volume
@@ -193,7 +193,7 @@ public class V1SpecPodFactoryTest {
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withPlatformSidecars(platformSidecars).build()).build();
 
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
 
         Map<String, String> annotations = pod.getMetadata().getAnnotations();
         String expectedSidecarAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
@@ -214,7 +214,7 @@ public class V1SpecPodFactoryTest {
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withNetworkConfiguration(networkConfiguration).build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
         String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
         assertThat(networkModeAnnotationValue).isEqualTo("Ipv6AndIpv4Fallback");
     }
@@ -226,7 +226,7 @@ public class V1SpecPodFactoryTest {
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().build()).build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
 
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
         String networkModeAnnotationValue = pod.getMetadata().getAnnotations().get("network.netflix.com/network-mode");
         assertThat(networkModeAnnotationValue).isEqualTo("UnknownNetworkMode");
     }
@@ -244,10 +244,10 @@ public class V1SpecPodFactoryTest {
                 .build()).build();
 
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
-                .withContainer(newContainerWithEFS).build())
+                        .withContainer(newContainerWithEFS).build())
                 .build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
 
         // Part 1: the volume section needs to be well-formed
         List<V1Volume> volumes = pod.getSpec().getVolumes();
@@ -284,10 +284,10 @@ public class V1SpecPodFactoryTest {
                 .build()).build();
 
         job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder()
-                .withContainer(newContainerWithEFS).build())
+                        .withContainer(newContainerWithEFS).build())
                 .build();
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod pod = podFactory.buildV1Pod(job, task);
 
         // Part 1: There should only be *one* EFS volume to share
         List<V1Volume> volumes = pod.getSpec().getVolumes();
@@ -357,7 +357,7 @@ public class V1SpecPodFactoryTest {
                 .build();
 
         when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
-        V1Pod v1Pod = podFactory.buildV1Pod(job, task, true);
+        V1Pod v1Pod = podFactory.buildV1Pod(job, task);
 
         V1Volume v1Volume = v1Pod.getSpec().getVolumes().get(0);
         assertThat(v1Volume.getName()).isEqualTo(volName2);

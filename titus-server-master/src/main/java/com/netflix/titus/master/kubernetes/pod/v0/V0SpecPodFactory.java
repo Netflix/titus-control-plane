@@ -27,7 +27,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BasicContainer;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -68,10 +67,10 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_MEMORY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_NETWORK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1EBSObjects;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
-import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
 
 @Singleton
 public class V0SpecPodFactory implements PodFactory {
@@ -106,7 +105,7 @@ public class V0SpecPodFactory implements PodFactory {
     }
 
     @Override
-    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler) {
+    public V1Pod buildV1Pod(Job<?> job, Task task) {
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = podContainerInfoFactory.buildContainerInfo(job, task, true);
         Map<String, String> annotations = KubePodUtil.createPodAnnotations(job, task, containerInfo.toByteArray(),
@@ -151,13 +150,9 @@ public class V0SpecPodFactory implements PodFactory {
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
                 .affinity(affinityWithMetadata.getLeft())
-                .tolerations(taintTolerationFactory.buildV1Toleration(job, task, useKubeScheduler))
+                .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
                 .topologySpreadConstraints(topologyFactory.buildTopologySpreadConstraints(job));
 
-        //  If kube scheduler is not enabled then the node name needs to be explicitly set
-        if (!useKubeScheduler) {
-            spec.setNodeName(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
-        }
         Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeObjects = buildV1EBSObjects(job, task);
         if (optionalEbsVolumeObjects.isPresent()) {
             spec.addVolumesItem(optionalEbsVolumeObjects.get().getLeft());

@@ -36,7 +36,6 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
@@ -86,9 +85,7 @@ import static org.mockito.Mockito.when;
 public class KubeNotificationProcessorTest {
 
     private static final Job<BatchJobExt> JOB = JobGenerator.oneBatchJob();
-    private static final BatchJobTask TASK = JobGenerator.oneBatchTask().toBuilder()
-            .withTaskContext(CollectionsExt.asMap(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true"))
-            .build();
+    private static final BatchJobTask TASK = JobGenerator.oneBatchTask();
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 

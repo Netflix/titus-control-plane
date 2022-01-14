@@ -20,9 +20,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * TODO Add 'Scheduled' state in between 'Accepted' and 'Launched' states to denote Fenzo task placement decision.
- */
 public enum TaskState {
     /**
      * A task was passed to scheduler, but has no resources allocated yet.

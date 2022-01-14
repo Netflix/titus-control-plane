@@ -222,11 +222,6 @@ class StubbedJobOperations implements V3JobOperations {
         return deferCompletable(() -> stubbedJobData.changeTask(taskId, task -> changeFunction.apply(task).orElse(task)));
     }
 
-    @Override
-    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction, CallMetadata callMetadata) {
-        return deferCompletable(() -> stubbedJobData.changeTask(taskId, changeFunction::apply));
-    }
-
     private <T> Observable<T> defer(Supplier<T> action) {
         return Observable.defer(() -> Observable.just(action.get()));
     }

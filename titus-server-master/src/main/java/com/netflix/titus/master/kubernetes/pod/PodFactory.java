@@ -21,5 +21,5 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 public interface PodFactory {
-    V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler);
+    V1Pod buildV1Pod(Job<?> job, Task task);
 }

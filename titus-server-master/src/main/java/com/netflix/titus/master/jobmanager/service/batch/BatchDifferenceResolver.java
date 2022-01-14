@@ -226,7 +226,6 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
         String resourcePool = capacityGroupDescriptor.getResourcePool();
         taskContext = CollectionsExt.copyAndAdd(taskContext, ImmutableMap.of(
-                TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true",
                 TaskAttributes.TASK_ATTRIBUTES_RESOURCE_POOL, resourcePool,
                 TaskAttributes.TASK_ATTRIBUTES_TIER, capacityGroupDescriptor.getTier().name()));
 

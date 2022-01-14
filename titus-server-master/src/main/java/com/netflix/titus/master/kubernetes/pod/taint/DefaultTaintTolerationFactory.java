@@ -49,13 +49,12 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
     }
 
     @Override
-    public List<V1Toleration> buildV1Toleration(Job<?> job, Task task, boolean useKubeScheduler) {
+    public List<V1Toleration> buildV1Toleration(Job<?> job, Task task) {
         List<V1Toleration> tolerations = new ArrayList<>();
 
         // Default taints.
         tolerations.add(Tolerations.TOLERATION_VIRTUAL_KUBLET);
-        V1Toleration schedulerToleration = useKubeScheduler ? Tolerations.TOLERATION_KUBE_SCHEDULER : Tolerations.TOLERATION_FENZO_SCHEDULER;
-        tolerations.add(schedulerToleration);
+        tolerations.add(Tolerations.TOLERATION_KUBE_SCHEDULER);
         resolveDecommissioningToleration(job).ifPresent(tolerations::add);
         tolerations.add(resolveTierToleration(job));
         resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);

@@ -67,7 +67,7 @@ public final class KubeConstants {
     /*
      * Titus pod labels and annotations.
      */
-    
+
     public static final String POD_LABEL_ACCOUNT_ID = TITUS_POD_DOMAIN + "accountId";
 
     public static final String POD_LABEL_SUBNETS = TITUS_POD_DOMAIN + "subnets";
@@ -109,8 +109,6 @@ public final class KubeConstants {
      * Set value to 'fenzo' to assign a machine to Fenzo scheduler. By default all machines belong to the Kube scheduler.
      */
     public static final String TAINT_SCHEDULER = TITUS_NODE_DOMAIN + "scheduler";
-
-    public static final String TAINT_SCHEDULER_VALUE_FENZO = "fenzo";
 
     public static final String TAINT_SCHEDULER_VALUE_KUBE = "kubeScheduler";
 

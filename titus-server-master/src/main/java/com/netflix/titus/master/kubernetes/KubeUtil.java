@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.base.Strings;
@@ -51,7 +49,6 @@ import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,52 +206,6 @@ public class KubeUtil {
                 .filter(a -> a.getType().equalsIgnoreCase(TYPE_INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
                 .findFirst()
                 .map(V1NodeAddress::getAddress);
-    }
-
-    /**
-     * A node is owned by Fenzo if:
-     * <ul>
-     *     <li>There is no taint with {@link KubeConstants#TAINT_SCHEDULER} key and it is not a farzone node</li>
-     *     <li>There is one taint with {@link KubeConstants#TAINT_SCHEDULER} key and 'fenzo' value</li>
-     * </ul>
-     */
-    public static boolean isNodeOwnedByFenzo(List<String> farzones, V1Node node) {
-        if (isFarzoneNode(farzones, node)) {
-            logger.debug("Not owned by fenzo (farzone node): {}", node.getMetadata().getName());
-            return false;
-        }
-
-        if (!hasFenzoSchedulerTaint(node)) {
-            logger.debug("Not owned by fenzo (non Fenzo scheduler taint): {}", node.getMetadata().getName());
-            return false;
-        }
-
-        logger.debug("Owned by fenzo");
-        return true;
-    }
-
-    /**
-     * Returns true if there is {@link KubeConstants#TAINT_SCHEDULER} taint with {@link KubeConstants#TAINT_SCHEDULER_VALUE_FENZO} value
-     * or this taint is missing (no explicit scheduler taint == Fenzo).
-     */
-    public static boolean hasFenzoSchedulerTaint(V1Node node) {
-        List<V1Taint> taints = node.getSpec().getTaints();
-
-        // Ignore nodes with no taints or an 'uninitialized' taint
-        if (CollectionsExt.isNullOrEmpty(taints) || hasUninitializedTaint(node)) {
-            return false;
-        }
-
-        Set<String> schedulerTaintValues = taints.stream()
-                .filter(t -> KubeConstants.TAINT_SCHEDULER.equals(t.getKey()))
-                .map(t -> StringExt.safeTrim(t.getValue()))
-                .collect(Collectors.toSet());
-
-        if (schedulerTaintValues.isEmpty()) {
-            return true;
-        }
-
-        return schedulerTaintValues.size() == 1 && KubeConstants.TAINT_SCHEDULER_VALUE_FENZO.equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
     }
 
     public static boolean isFarzoneNode(List<String> farzones, V1Node node) {
