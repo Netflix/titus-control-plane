@@ -74,7 +74,7 @@ public class RouterPodFactory implements PodFactory {
      * route to the default version. e.g. v1=(app1,app2,cg1,cg3);v2=(app4)
      */
     @Override
-    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler) {
+    public V1Pod buildV1Pod(Job<?> job, Task task) {
         Map<String, Pattern> versionPatterns = patternsByVersion.apply(podSpecVersionRoutingRules.get());
 
         for (Map.Entry<String, Pattern> versionPattern : versionPatterns.entrySet()) {
@@ -84,15 +84,15 @@ public class RouterPodFactory implements PodFactory {
             String applicationName = job.getJobDescriptor().getApplicationName();
             String capacityGroup = job.getJobDescriptor().getCapacityGroup();
             if (pattern.matcher(applicationName).matches() || pattern.matcher(capacityGroup).matches()) {
-                return buildV1PodByVersion(version, job, task, useKubeScheduler);
+                return buildV1PodByVersion(version, job, task);
             }
         }
-        return buildV1PodByVersion(configuration.getDefaultPodSpecVersion(), job, task, useKubeScheduler);
+        return buildV1PodByVersion(configuration.getDefaultPodSpecVersion(), job, task);
     }
 
-    private V1Pod buildV1PodByVersion(String version, Job<?> job, Task task, boolean useKubeScheduler) {
+    private V1Pod buildV1PodByVersion(String version, Job<?> job, Task task) {
         if (versionedPodFactories.containsKey(version)) {
-            return versionedPodFactories.get(version).buildV1Pod(job, task, useKubeScheduler);
+            return versionedPodFactories.get(version).buildV1Pod(job, task);
         } else {
             throw new RuntimeException("Unable to create pod spec with invalid version: " + version);
         }

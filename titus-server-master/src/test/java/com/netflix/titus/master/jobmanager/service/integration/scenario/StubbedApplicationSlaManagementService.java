@@ -22,11 +22,10 @@ import java.util.Optional;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.api.model.SchedulerConstants;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Observable;
-
-import static com.netflix.titus.api.model.SchedulerConstants.SCHEDULER_NAME_FENZO;
 
 class StubbedApplicationSlaManagementService implements ApplicationSlaManagementService {
 
@@ -35,7 +34,7 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
             Tier.Flex,
             ResourceDimension.newBuilder().withCpus(16).withMemoryMB(32 * 1024).withNetworkMbs(4096).withDiskMB(100 * 1024).build(),
             10,
-            SCHEDULER_NAME_FENZO,
+            SchedulerConstants.SCHEDULER_NAME_KUBE_SCHEDULER,
             ""
     );
 
@@ -56,7 +55,7 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
 
     @Override
     public Collection<ApplicationSLA> getApplicationSLAsForScheduler(String schedulerName) {
-        return schedulerName.equals("fenzo") ? Collections.singletonList(DEFAULT) : Collections.emptyList();
+        return Collections.singletonList(DEFAULT);
     }
 
     @Override

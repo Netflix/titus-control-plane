@@ -82,7 +82,6 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
@@ -380,37 +379,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
         TitusChangeAction changeAction = BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, versionSupplier, titusRuntime, callMetadata);
-        return engine.changeReferenceModel(changeAction, taskId).toCompletable();
-    }
-
-    @Override
-    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction, CallMetadata callMetadata) {
-        Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
-        if (!engineOpt.isPresent()) {
-            return Completable.error(JobManagerException.taskNotFound(taskId));
-        }
-        ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-
-        TitusChangeAction changeAction = TitusChangeAction.newAction("recordTaskPlacement")
-                .id(taskId)
-                .trigger(Trigger.Scheduler)
-                .summary("Scheduler assigned task to an agent")
-                .callMetadata(callMetadata)
-                .changeWithModelUpdates(self ->
-                        JobEntityHolders.expectTask(engine, taskId, titusRuntime)
-                                .map(task -> {
-                                    Task newTask;
-                                    try {
-                                        newTask = VersionSuppliers.nextVersion(changeFunction.apply(task), versionSupplier);
-                                    } catch (Exception e) {
-                                        return Observable.<List<ModelActionHolder>>error(e);
-                                    }
-
-                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
-                                    return store.updateTask(newTask).andThen(Observable.just(ModelActionHolder.allModels(modelUpdate)));
-                                })
-                                .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
-                );
         return engine.changeReferenceModel(changeAction, taskId).toCompletable();
     }
 

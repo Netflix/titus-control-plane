@@ -47,23 +47,23 @@ public class DefaultTaintTolerationFactoryTest {
 
     @Test
     public void decommissioningNodesAreTolerated() {
-        List<V1Toleration> tolerations = factory.buildV1Toleration(JobGenerator.oneBatchJob(), JobGenerator.oneBatchTask(), true);
+        List<V1Toleration> tolerations = factory.buildV1Toleration(JobGenerator.oneBatchJob(), JobGenerator.oneBatchTask());
         assertThat(tolerations).contains(Tolerations.TOLERATION_DECOMMISSIONING);
 
-        List<V1Toleration> withConstraints = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.ACTIVE_HOST, "true"), JobGenerator.oneBatchTask(), true);
+        List<V1Toleration> withConstraints = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.ACTIVE_HOST, "true"), JobGenerator.oneBatchTask());
         assertThat(withConstraints).doesNotContain(Tolerations.TOLERATION_DECOMMISSIONING);
     }
 
     @Test
     public void testGpuInstanceAssignment() {
-        List<V1Toleration> tolerations = factory.buildV1Toleration(newGpuJob(), JobGenerator.oneBatchTask(), true);
+        List<V1Toleration> tolerations = factory.buildV1Toleration(newGpuJob(), JobGenerator.oneBatchTask());
         V1Toleration gpuToleration = tolerations.stream().filter(t -> t.getKey().equals(KubeConstants.TAINT_GPU_INSTANCE)).findFirst().orElse(null);
         assertThat(gpuToleration).isEqualTo(Tolerations.TOLERATION_GPU_INSTANCE);
     }
 
     @Test
     public void testKubeBackendToleration() {
-        List<V1Toleration> tolerations = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.KUBE_BACKEND, "kublet"), JobGenerator.oneBatchTask(), true);
+        List<V1Toleration> tolerations = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.KUBE_BACKEND, "kublet"), JobGenerator.oneBatchTask());
         V1Toleration gpuToleration = tolerations.stream().filter(t -> t.getKey().equals(KubeConstants.TAINT_KUBE_BACKEND)).findFirst().orElse(null);
         assertThat(gpuToleration.getKey()).isEqualTo(KubeConstants.TAINT_KUBE_BACKEND);
         assertThat(gpuToleration.getValue()).isEqualTo("kublet");

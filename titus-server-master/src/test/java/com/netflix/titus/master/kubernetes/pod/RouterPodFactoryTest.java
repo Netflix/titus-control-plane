@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHEMA_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,7 +51,7 @@ public class RouterPodFactoryTest {
 
         Job<BatchJobExt> job = createBatchJob("testApp3", "testCG3");
         BatchJobTask task = JobGenerator.oneBatchTask();
-        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task, true);
+        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task);
         assertThat(v1Pod.getMetadata().getAnnotations().get(POD_SCHEMA_VERSION)).isEqualTo("0");
     }
 
@@ -64,7 +63,7 @@ public class RouterPodFactoryTest {
 
         Job<BatchJobExt> job = createBatchJob("testApp1", "testCG1");
         BatchJobTask task = JobGenerator.oneBatchTask();
-        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task, true);
+        V1Pod v1Pod = routerPodFactory.buildV1Pod(job, task);
         assertThat(v1Pod.getMetadata().getAnnotations().get(POD_SCHEMA_VERSION)).isEqualTo("1");
     }
 
@@ -106,7 +105,7 @@ public class RouterPodFactoryTest {
 
         for (Pair<String, String> versionMapping : versionMappings) {
             PodFactory podFactory = mock(PodFactory.class);
-            when(podFactory.buildV1Pod(any(), any(), anyBoolean())).thenReturn(createPodWithVersion(versionMapping.getRight()));
+            when(podFactory.buildV1Pod(any(), any())).thenReturn(createPodWithVersion(versionMapping.getRight()));
             versionedPodFactories.put(versionMapping.getLeft(), podFactory);
         }
 

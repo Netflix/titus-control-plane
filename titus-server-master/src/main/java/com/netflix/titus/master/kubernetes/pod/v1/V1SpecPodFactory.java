@@ -49,6 +49,7 @@ import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
@@ -56,7 +57,6 @@ import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
-import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
@@ -147,12 +147,12 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_SEQUENCE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_STACK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1EBSObjects;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.sanitizeVolumeName;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
-import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
 
 
 @Singleton
@@ -190,7 +190,7 @@ public class V1SpecPodFactory implements PodFactory {
     }
 
     @Override
-    public V1Pod buildV1Pod(Job<?> job, Task task, boolean useKubeScheduler) {
+    public V1Pod buildV1Pod(Job<?> job, Task task) {
 
         String taskId = task.getId();
         Map<String, String> annotations = createPodAnnotations(job, task);
@@ -255,7 +255,7 @@ public class V1SpecPodFactory implements PodFactory {
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
                 .affinity(affinityWithMetadata.getLeft())
-                .tolerations(taintTolerationFactory.buildV1Toleration(job, task, useKubeScheduler))
+                .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
                 .topologySpreadConstraints(topologyFactory.buildTopologySpreadConstraints(job));
 
         // volumes need to be correctly added to pod spec

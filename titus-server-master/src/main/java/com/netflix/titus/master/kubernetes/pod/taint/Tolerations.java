@@ -29,12 +29,6 @@ public final class Tolerations {
             .operator("Equal")
             .effect("NoSchedule");
 
-    public static final V1Toleration TOLERATION_FENZO_SCHEDULER = new V1Toleration()
-            .key(KubeConstants.TAINT_SCHEDULER)
-            .value(KubeConstants.TAINT_SCHEDULER_VALUE_FENZO)
-            .operator("Equal")
-            .effect("NoSchedule");
-
     public static final V1Toleration TOLERATION_KUBE_SCHEDULER = new V1Toleration()
             .key(KubeConstants.TAINT_SCHEDULER)
             .value(KubeConstants.TAINT_SCHEDULER_VALUE_KUBE)
