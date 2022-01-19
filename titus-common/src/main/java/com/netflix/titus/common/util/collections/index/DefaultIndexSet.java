@@ -25,11 +25,14 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT> implements IndexSet<PRIMARY_KEY, INPUT
 
     private final Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> groups;
     private final Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes;
+    private final Map<String, DefaultOrder<?, PRIMARY_KEY, INPUT, ?>> orders;
 
     DefaultIndexSet(Map<String, DefaultGroup<?, PRIMARY_KEY, INPUT, ?>> groups,
-                    Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes) {
+                    Map<String, DefaultIndex<?, PRIMARY_KEY, INPUT, ?>> indexes,
+                    Map<String, DefaultOrder<?, PRIMARY_KEY, INPUT, ?>> orders) {
         this.groups = groups;
         this.indexes = indexes;
+        this.orders = orders;
     }
 
     @Override
@@ -43,13 +46,23 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT> implements IndexSet<PRIMARY_KEY, INPUT
     }
 
     @Override
-    public Map<String, Index<?>> getIndexes() {
+    public Map<String, Index<?, ?>> getIndexes() {
         return (Map) indexes;
     }
 
     @Override
-    public <OUTPUT> Index<OUTPUT> getIndex(String indexId) {
-        return (Index<OUTPUT>) indexes.get(indexId);
+    public <UNIQUE_INDEX_KEY, OUTPUT> Index<UNIQUE_INDEX_KEY, OUTPUT> getIndex(String indexId) {
+        return (Index<UNIQUE_INDEX_KEY, OUTPUT>) indexes.get(indexId);
+    }
+
+    @Override
+    public Map<String, Order<?>> getOrders() {
+        return (Map) orders;
+    }
+
+    @Override
+    public <OUTPUT> Order<OUTPUT> getOrder(String orderId) {
+        return (Order<OUTPUT>) orders.get(orderId);
     }
 
     @Override
@@ -70,7 +83,15 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT> implements IndexSet<PRIMARY_KEY, INPUT
             indexes.forEach((indexId, index) -> newIndexes.put(indexId, index.add(values)));
         }
 
-        return new DefaultIndexSet<>(newGroups, newIndexes);
+        Map<String, DefaultOrder<?, PRIMARY_KEY, INPUT, ?>> newOrders;
+        if (orders.isEmpty()) {
+            newOrders = Collections.emptyMap();
+        } else {
+            newOrders = new HashMap<>();
+            orders.forEach((indexId, index) -> newOrders.put(indexId, index.add(values)));
+        }
+
+        return new DefaultIndexSet<>(newGroups, newIndexes, newOrders);
     }
 
     @Override
@@ -91,6 +112,14 @@ class DefaultIndexSet<PRIMARY_KEY, INPUT> implements IndexSet<PRIMARY_KEY, INPUT
             indexes.forEach((indexId, index) -> newIndexes.put(indexId, index.remove(primaryKeys)));
         }
 
-        return new DefaultIndexSet<>(newGroups, newIndexes);
+        Map<String, DefaultOrder<?, PRIMARY_KEY, INPUT, ?>> newOrders;
+        if (orders.isEmpty()) {
+            newOrders = Collections.emptyMap();
+        } else {
+            newOrders = new HashMap<>();
+            orders.forEach((indexId, index) -> newOrders.put(indexId, index.remove(primaryKeys)));
+        }
+
+        return new DefaultIndexSet<>(newGroups, newIndexes, newOrders);
     }
 }

@@ -17,6 +17,8 @@
 package com.netflix.titus.common.util.collections.index;
 
 import java.util.Comparator;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -24,37 +26,44 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.FunctionExt;
 
 /**
- * A descriptor for a single {@link Group} or {@link Index} instance.
+ * A descriptor for a single {@link Group} or {@link Order} instance.
  */
 public class IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> {
 
-    private final Function<INPUT, OUTPUT> transformer;
+    private final BiFunction<INDEX_KEY, INPUT, OUTPUT> transformer;
     private final Function<INPUT, INDEX_KEY> indexKeyExtractor;
+    private final Function<INPUT, Set<INDEX_KEY>> indexKeysExtractor;
     private final Function<INPUT, PRIMARY_KEY> primaryKeyExtractor;
     private final Comparator<INDEX_KEY> indexKeyComparator;
     private final Comparator<PRIMARY_KEY> primaryKeyComparator;
     private final Predicate<INPUT> filter;
 
-    IndexSpec(Function<INPUT, OUTPUT> transformer,
+    IndexSpec(BiFunction<INDEX_KEY, INPUT, OUTPUT> transformer,
               Function<INPUT, INDEX_KEY> indexKeyExtractor,
+              Function<INPUT, Set<INDEX_KEY>> indexKeysExtractor,
               Function<INPUT, PRIMARY_KEY> primaryKeyExtractor,
               Comparator<INDEX_KEY> indexKeyComparator,
               Comparator<PRIMARY_KEY> primaryKeyComparator,
               Predicate<INPUT> filter) {
         this.transformer = transformer;
         this.indexKeyExtractor = indexKeyExtractor;
+        this.indexKeysExtractor = indexKeysExtractor;
         this.primaryKeyExtractor = primaryKeyExtractor;
         this.indexKeyComparator = indexKeyComparator;
         this.primaryKeyComparator = primaryKeyComparator;
         this.filter = filter;
     }
 
-    public Function<INPUT, OUTPUT> getTransformer() {
+    public BiFunction<INDEX_KEY, INPUT, OUTPUT> getTransformer() {
         return transformer;
     }
 
     Function<INPUT, INDEX_KEY> getIndexKeyExtractor() {
         return indexKeyExtractor;
+    }
+
+    Function<INPUT, Set<INDEX_KEY>> getIndexKeysExtractor() {
+        return indexKeysExtractor;
     }
 
     Function<INPUT, PRIMARY_KEY> getPrimaryKeyExtractor() {
@@ -79,8 +88,9 @@ public class IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> {
 
     public static final class Builder<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> {
 
-        private Function<INPUT, OUTPUT> transformer;
+        private BiFunction<INDEX_KEY, INPUT, OUTPUT> transformer;
         private Function<INPUT, INDEX_KEY> indexKeyExtractor;
+        private Function<INPUT, Set<INDEX_KEY>> indexKeysExtractor;
         private Function<INPUT, PRIMARY_KEY> primaryKeyExtractor;
         private Comparator<INDEX_KEY> indexKeyComparator;
         private Comparator<PRIMARY_KEY> primaryKeyComparator;
@@ -89,13 +99,18 @@ public class IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> {
         private Builder() {
         }
 
-        public Builder<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> withTransformer(Function<INPUT, OUTPUT> transformer) {
+        public Builder<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> withTransformer(BiFunction<INDEX_KEY, INPUT, OUTPUT> transformer) {
             this.transformer = transformer;
             return this;
         }
 
         public Builder<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> withIndexKeyExtractor(Function<INPUT, INDEX_KEY> indexKeyExtractor) {
             this.indexKeyExtractor = indexKeyExtractor;
+            return this;
+        }
+
+        public Builder<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> withIndexKeysExtractor(Function<INPUT, Set<INDEX_KEY>> indexKeysExtractor) {
+            this.indexKeysExtractor = indexKeysExtractor;
             return this;
         }
 
@@ -120,15 +135,17 @@ public class IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> {
         }
 
         public IndexSpec<INDEX_KEY, PRIMARY_KEY, INPUT, OUTPUT> build() {
-            Preconditions.checkNotNull(transformer, "Transformer not set");
-            Preconditions.checkNotNull(indexKeyExtractor, "Index key extractor not set");
+            Preconditions.checkState(indexKeyExtractor != null || indexKeysExtractor != null, "Both index key and index keys extractors not set");
             Preconditions.checkNotNull(primaryKeyExtractor, "Primary key extractor not set");
             Preconditions.checkNotNull(indexKeyComparator, "Index key comparator not set");
             Preconditions.checkNotNull(primaryKeyComparator, "Primary key comparator not set");
+            if (transformer == null) {
+                transformer = (key, input) -> (OUTPUT) input;
+            }
             if (filter == null) {
                 filter = FunctionExt.alwaysTrue();
             }
-            return new IndexSpec<>(transformer, indexKeyExtractor, primaryKeyExtractor, indexKeyComparator, primaryKeyComparator, filter);
+            return new IndexSpec<>(transformer, indexKeyExtractor, indexKeysExtractor, primaryKeyExtractor, indexKeyComparator, primaryKeyComparator, filter);
         }
     }
 }

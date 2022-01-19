@@ -19,7 +19,6 @@ package com.netflix.titus.common.util.collections.index;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.util.collections.index.SamplePerfItem.SlotKey;
@@ -34,20 +33,18 @@ public class IndexPerf {
 
     public static void main(String[] args) {
         IndexSet<String, SamplePerfItem> indexSet = Indexes.<String, SamplePerfItem>newBuilder()
-                .withIndex(BY_PRIMARY_KEY, IndexSpec.<String, String, SamplePerfItem, SamplePerfItem>newBuilder()
+                .withOrder(BY_PRIMARY_KEY, IndexSpec.<String, String, SamplePerfItem, SamplePerfItem>newBuilder()
                         .withIndexKeyExtractor(SamplePerfItem::getPrimaryKey)
                         .withPrimaryKeyExtractor(SamplePerfItem::getPrimaryKey)
                         .withIndexKeyComparator(String::compareTo)
                         .withPrimaryKeyComparator(String::compareTo)
-                        .withTransformer(Function.identity())
                         .build()
                 )
-                .withIndex(BY_SLOT, IndexSpec.<SlotKey, String, SamplePerfItem, SamplePerfItem>newBuilder()
+                .withOrder(BY_SLOT, IndexSpec.<SlotKey, String, SamplePerfItem, SamplePerfItem>newBuilder()
                         .withIndexKeyExtractor(SamplePerfItem.slotKeyExtractor())
                         .withPrimaryKeyExtractor(SamplePerfItem::getPrimaryKey)
                         .withIndexKeyComparator(SlotKey::compareTo)
                         .withPrimaryKeyComparator(String::compareTo)
-                        .withTransformer(Function.identity())
                         .build()
                 )
                 .withGroup(GROUP_BY_SLOT, IndexSpec.<String, String, SamplePerfItem, SamplePerfItem>newBuilder()
@@ -55,7 +52,6 @@ public class IndexPerf {
                         .withPrimaryKeyExtractor(SamplePerfItem::getPrimaryKey)
                         .withIndexKeyComparator(String::compareTo)
                         .withPrimaryKeyComparator(String::compareTo)
-                        .withTransformer(Function.identity())
                         .build())
                 .build();
 
@@ -66,13 +62,13 @@ public class IndexPerf {
         printStats("Initialization", indexSet, stopwatch);
 
         stopwatch.reset().start();
-        List<SamplePerfItem> all = indexSet.<SamplePerfItem>getIndex(BY_PRIMARY_KEY).orderedList();
+        List<SamplePerfItem> all = indexSet.<SamplePerfItem>getOrder(BY_PRIMARY_KEY).orderedList();
         for (SamplePerfItem sampleValue : all) {
             indexSet = indexSet.add(Collections.singletonList(sampleValue.nextVersion()));
         }
         printStats("Update", indexSet, stopwatch);
 
-        List<SamplePerfItem> all2 = indexSet.<SamplePerfItem>getIndex(BY_PRIMARY_KEY).orderedList();
+        List<SamplePerfItem> all2 = indexSet.<SamplePerfItem>getOrder(BY_PRIMARY_KEY).orderedList();
         for (int i = 0; i < all.size(); i++) {
             SamplePerfItem before = all.get(i);
             SamplePerfItem after = all2.get(i);
@@ -84,8 +80,8 @@ public class IndexPerf {
     private static void printStats(String header, IndexSet<String, SamplePerfItem> indexSet, Stopwatch stopwatch) {
         System.out.println(header);
         System.out.printf("Elapsed          : %dms\n", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        System.out.println("byPrimaryKey size: " + indexSet.getIndex(BY_PRIMARY_KEY).orderedList().size());
-        System.out.println("bySlot size      : " + indexSet.getIndex(BY_SLOT).orderedList().size());
+        System.out.println("byPrimaryKey size: " + indexSet.getOrder(BY_PRIMARY_KEY).orderedList().size());
+        System.out.println("bySlot size      : " + indexSet.getOrder(BY_SLOT).orderedList().size());
         System.out.println("groupBySlot size : " + indexSet.getGroup(GROUP_BY_SLOT).get().size());
         System.out.println();
     }

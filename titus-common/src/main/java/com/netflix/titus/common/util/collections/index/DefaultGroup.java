@@ -62,7 +62,7 @@ class DefaultGroup<GROUP_KEY, PRIMARY_KEY, INPUT, OUTPUT> implements Group<GROUP
             }
             GROUP_KEY indexKey = spec.getIndexKeyExtractor().apply(value);
             PRIMARY_KEY primaryKey = spec.getPrimaryKeyExtractor().apply(value);
-            OUTPUT output = spec.getTransformer().apply(value);
+            OUTPUT output = spec.getTransformer().apply(indexKey, value);
             if (indexKey != null && primaryKey != null) {
                 PMap<PRIMARY_KEY, OUTPUT> byIndexKey = newIndexedValues.get(indexKey);
                 if (byIndexKey == null) {
