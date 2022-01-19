@@ -369,14 +369,6 @@ public class V1SpecPodFactory implements PodFactory {
                 runtimeInSec -> annotations.put(KubeConstants.JOB_RUNTIME_PREDICTION, runtimeInSec + "s")
         );
         Evaluators.acceptNotNull(
-                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
-                count -> annotations.put(KubeConstants.OPPORTUNISTIC_CPU_COUNT, count)
-        );
-        Evaluators.acceptNotNull(
-                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION),
-                id -> annotations.put(KubeConstants.OPPORTUNISTIC_ID, id)
-        );
-        Evaluators.acceptNotNull(
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID),
                 id -> annotations.put(KubeConstants.STATIC_IP_ALLOCATION_ID, id)
         );

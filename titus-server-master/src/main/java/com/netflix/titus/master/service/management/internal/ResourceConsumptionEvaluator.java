@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -142,13 +141,9 @@ class ResourceConsumptionEvaluator {
             List<Task> tasks = jobsAndTasks.getRight();
             List<Task> runningTasks = getRunningWorkers(tasks);
 
-            // taskResources won't include opportunistic CPU allocations since that will vary per task
             ResourceDimension taskResources = perTaskResourceDimension(job);
             String appName = Evaluators.getOrDefault(job.getJobDescriptor().getApplicationName(), DEFAULT_APPLICATION);
-            ResourceDimension currentConsumption = ResourceDimensions.multiply(taskResources, runningTasks.size()).toBuilder()
-                    .withOpportunisticCpus(opportunisticCpus(runningTasks))
-                    .build();
-            // no max for opportunistic cpus
+            ResourceDimension currentConsumption = ResourceDimensions.multiply(taskResources, runningTasks.size());
             ResourceDimension maxConsumption = ResourceDimensions.multiply(taskResources, getMaxJobSize(job));
 
             Map<String, List<Task>> tasksByInstanceType = tasks.stream().collect(
@@ -162,7 +157,7 @@ class ResourceConsumptionEvaluator {
                         ResourceDimension instanceTypeConsumption = ResourceDimensions.multiply(
                                 taskResources,
                                 runningInstanceTypeTasks.size()
-                        ).toBuilder().withOpportunisticCpus(opportunisticCpus(runningInstanceTypeTasks)).build();
+                        );
                         return new ResourceConsumption(
                                 instanceType,
                                 ConsumptionLevel.InstanceType,
@@ -264,7 +259,7 @@ class ResourceConsumptionEvaluator {
     }
 
     /**
-     * @return resource dimensions per task as defined in the job descriptor. Opportunistic allocations won't be present since they vary per task
+     * @return resource dimensions per task as defined in the job descriptor.
      */
     @VisibleForTesting
     static ResourceDimension perTaskResourceDimension(Job<?> job) {
@@ -277,15 +272,6 @@ class ResourceConsumptionEvaluator {
                 containerResources.getDiskMB(),
                 containerResources.getNetworkMbps(),
                 0);
-    }
-
-    @VisibleForTesting
-    static long opportunisticCpus(List<Task> tasks) {
-        return tasks.stream()
-                .map(JobFunctions::getOpportunisticCpuCount)
-                .filter(Optional::isPresent)
-                .mapToLong(Optional::get)
-                .sum();
     }
 
     private List<Task> getRunningWorkers(List<Task> tasks) {

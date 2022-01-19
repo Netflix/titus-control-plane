@@ -53,6 +53,8 @@ import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.KubeUtil;
+import com.netflix.titus.master.kubernetes.PodToTaskMapper;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodDeletedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
@@ -61,9 +63,6 @@ import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.netflix.titus.master.kubernetes.KubeUtil;
-import com.netflix.titus.master.kubernetes.PodToTaskMapper;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PodStatus;
@@ -75,8 +74,6 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION;
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 
@@ -323,9 +320,8 @@ public class KubeNotificationProcessor {
             taskWithExecutorData = JobManagerUtil.attachKubeletNetworkData(fixedTask, podWrapper);
         }
         Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
-        Task taskWithAnnotations = addMissingAttributes(podWrapper, taskWithNodeMetadata);
 
-        Optional<String> difference = areTasksEquivalent(currentTask, taskWithAnnotations);
+        Optional<String> difference = areTasksEquivalent(currentTask, taskWithNodeMetadata);
         if (!difference.isPresent()) {
             logger.debug("[precheck={}] Ignoring the pod event as the update results in the identical task object as the current one: taskId={}",
                     precheck, currentTask.getId());
@@ -335,10 +331,10 @@ public class KubeNotificationProcessor {
 
         if (!precheck) {
             logger.info("[precheck={}] Tasks are different: difference='{}', current={}, updated={}",
-                    precheck, difference.get(), currentTask, taskWithAnnotations);
+                    precheck, difference.get(), currentTask, taskWithNodeMetadata);
             metricsChangesApplied.increment();
         }
-        return Optional.of(taskWithAnnotations);
+        return Optional.of(taskWithNodeMetadata);
     }
 
     private static Task attachNodeMetadata(Task task, V1Node node) {
@@ -455,25 +451,6 @@ public class KubeNotificationProcessor {
             return Optional.of(statusTemplate.withState(expectedState).build());
         }
         return Optional.empty();
-    }
-
-    private static Task addMissingAttributes(PodWrapper podWrapper, Task updatedTask) {
-        Map<String, String> taskContext = updatedTask.getTaskContext();
-
-        Optional<String> updatedCpus = podWrapper.findPodAnnotation(KubeConstants.OPPORTUNISTIC_CPU_COUNT)
-                .filter(cpus -> !cpus.equals(taskContext.get(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)));
-
-        Optional<String> updatedAllocation = podWrapper.findPodAnnotation(KubeConstants.OPPORTUNISTIC_ID)
-                .filter(id -> !id.equals(taskContext.get(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION)));
-
-        if (!updatedCpus.isPresent() && !updatedAllocation.isPresent()) {
-            return updatedTask; // no updates, nothing to do
-        }
-
-        Task.TaskBuilder<?, ?> builder = updatedTask.toBuilder();
-        updatedCpus.ifPresent(cpus -> builder.addToTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, cpus));
-        updatedAllocation.ifPresent(id -> builder.addToTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, id));
-        return builder.build();
     }
 
     /**

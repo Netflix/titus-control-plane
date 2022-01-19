@@ -99,16 +99,6 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTE_LOG_S3_REGION = TASK_ATTRIBUTE_LOG_S3_PREFIX + "region";
 
     /**
-     * Id of the opportunistic allocation used for this task
-     */
-    public static final String TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION = "task.opportunisticCpuAllocation";
-
-    /**
-     * How many CPUs were allocated opportunistically
-     */
-    public static final String TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT = "task.opportunisticCpuCount";
-
-    /**
      * Task moved from one job to another.
      */
     public static final String TASK_ATTRIBUTES_MOVED_FROM_JOB = "task.movedFromJob";

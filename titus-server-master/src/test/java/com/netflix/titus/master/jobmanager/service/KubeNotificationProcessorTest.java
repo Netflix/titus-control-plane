@@ -41,11 +41,9 @@ import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
-import com.netflix.titus.master.kubernetes.client.model.PodPhase;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
@@ -66,12 +64,9 @@ import rx.Completable;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andIpAddress;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodeAnnotations;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.newNode;
-import static com.netflix.titus.master.kubernetes.PodDataGenerator.andNodeName;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
-import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPodAnnotations;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPodIp;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andRunning;
-import static com.netflix.titus.master.kubernetes.PodDataGenerator.andWaiting;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -128,28 +123,6 @@ public class KubeNotificationProcessorTest {
         reconcilerPodEvents.onComplete();
         podEvents.onComplete();
         processor.shutdown();
-    }
-
-    @Test
-    public void testOpportunisticAnnotationsArePropagatedToTasks() {
-        V1Pod oldPod = newPod(TASK.getId(), andPhase(PodPhase.PENDING.getPhaseName()), andWaiting());
-        V1Pod updatedPod = newPod(TASK.getId(), andPhase(PodPhase.PENDING.getPhaseName()), andNodeName("host1"),
-                andWaiting(), andRunning(),
-                andPodAnnotations(KubeConstants.OPPORTUNISTIC_CPU_COUNT, "5",
-                        KubeConstants.OPPORTUNISTIC_ID, "opportunistic-resource-1234")
-        );
-        podEvents.onNext(PodEvent.onUpdate(oldPod, updatedPod, Optional.empty()));
-
-        verify(jobOperations, times(1)).updateTask(eq(TASK.getId()), changeFunctionCaptor.capture(), eq(V3JobOperations.Trigger.Kube),
-                eq("Pod status updated from kubernetes node (k8phase='Pending', taskState=Accepted)"), any());
-
-        Function<Task, Optional<Task>> changeFunction = changeFunctionCaptor.getValue();
-        assertThat(changeFunction).isNotNull();
-        Optional<Task> updated = changeFunction.apply(TASK);
-        assertThat(updated).isPresent();
-        assertThat(updated.get().getTaskContext())
-                .containsEntry(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "5")
-                .containsEntry(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, "opportunistic-resource-1234");
     }
 
     @Test

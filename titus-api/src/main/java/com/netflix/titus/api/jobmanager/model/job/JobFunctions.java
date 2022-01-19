@@ -650,11 +650,6 @@ public final class JobFunctions {
         return Optional.ofNullable(after);
     }
 
-    public static Optional<Integer> getOpportunisticCpuCount(Task task) {
-        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT))
-                .flatMap(StringExt::parseInt);
-    }
-
     /**
      * Jobs can include a fractional runtime duration prediction in seconds, which are parsed with millisecond resolution.
      *

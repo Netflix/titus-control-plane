@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -44,7 +43,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.master.service.management.ResourceConsumptions.findConsumption;
-import static com.netflix.titus.master.service.management.internal.ResourceConsumptionEvaluator.opportunisticCpus;
 import static com.netflix.titus.master.service.management.internal.ResourceConsumptionEvaluator.perTaskResourceDimension;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -149,7 +147,7 @@ public class ResourceConsumptionEvaluatorTest {
         when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(asList(ConsumptionModelGenerator.DEFAULT_SLA, ConsumptionModelGenerator.CRITICAL_SLA_1, ConsumptionModelGenerator.NOT_USED_SLA));
 
         // Job with defined capacity group SLA
-        Job<BatchJobExt> goodCapacityJob = newOpportunisticBatchJob(
+        Job<BatchJobExt> goodCapacityJob = newBatchJob(
                 "goodCapacityJob",
                 jd -> jd.toBuilder()
                         .withExtensions(jd.getExtensions().toBuilder().withSize(2).build())
@@ -157,12 +155,9 @@ public class ResourceConsumptionEvaluatorTest {
                         .build()
         ).getLeft();
         List<Task> goodCapacityTasks = jobComponentStub.getJobOperations().getTasks(goodCapacityJob.getId());
-        assertThat(goodCapacityTasks).allSatisfy(
-                task -> assertThat(task.getTaskContext()).containsKey(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)
-        );
 
         // Job without appName defined
-        Job<BatchJobExt> noAppNameJob = newOpportunisticBatchJob(
+        Job<BatchJobExt> noAppNameJob = newBatchJob(
                 "badCapacityJob",
                 jd -> jd.toBuilder()
                         .withApplicationName("")
@@ -171,13 +166,9 @@ public class ResourceConsumptionEvaluatorTest {
                         .build()
         ).getLeft();
         List<Task> noAppNameTasks = jobComponentStub.getJobOperations().getTasks(noAppNameJob.getId());
-        assertThat(noAppNameTasks).allSatisfy(
-                task -> assertThat(task.getTaskContext()).containsKey(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)
-        );
-
 
         // Job with capacity group for which SLA is not defined
-        Job<BatchJobExt> badCapacityJob = newOpportunisticBatchJob(
+        Job<BatchJobExt> badCapacityJob = newBatchJob(
                 "badCapacityJob",
                 jd -> jd.toBuilder()
                         .withExtensions(jd.getExtensions().toBuilder().withSize(2).build())
@@ -185,9 +176,6 @@ public class ResourceConsumptionEvaluatorTest {
                         .build()
         ).getLeft();
         List<Task> badCapacityTasks = jobComponentStub.getJobOperations().getTasks(badCapacityJob.getId());
-        assertThat(badCapacityTasks).allSatisfy(
-                task -> assertThat(task.getTaskContext()).containsKey(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)
-        );
 
         // Evaluate
         ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v3JobOperations);
@@ -243,29 +231,22 @@ public class ResourceConsumptionEvaluatorTest {
         );
     }
 
-    private Pair<Job, List<Task>> newOpportunisticBatchJob(String name, Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> transformer) {
+    private Pair<Job, List<Task>> newBatchJob(String name, Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> transformer) {
         jobComponentStub.addJobTemplate(name, JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(self -> self.getContainer().but(c -> CONTAINER_RESOURCES)))
                 .map(transformer::apply)
         );
         return jobComponentStub.createJobAndTasks(
                 name,
-                (job, tasks) -> tasks.forEach(task -> {
-                    int cpuCount = (int) job.getJobDescriptor().getContainer().getContainerResources().getCpu();
-                    jobComponentStub.makeOpportunistic(task, cpuCount);
-                    jobComponentStub.moveTaskToState(task, TaskState.Started);
-                })
+                (job, tasks) -> tasks.forEach(task -> jobComponentStub.moveTaskToState(task, TaskState.Started))
         );
     }
 
     private static ResourceDimension expectedCurrentConsumptionForBatchJob(Job<BatchJobExt> job, List<Task> tasks) {
-        return ResourceDimensions.multiply(perTaskResourceDimension(job), job.getJobDescriptor().getExtensions().getSize()).toBuilder()
-                .withOpportunisticCpus(opportunisticCpus(tasks))
-                .build();
+        return ResourceDimensions.multiply(perTaskResourceDimension(job), job.getJobDescriptor().getExtensions().getSize());
     }
 
     private static ResourceDimension expectedMaxConsumptionForBatchJob(Job<BatchJobExt> job) {
-        // no max for opportunistic cpus
         return ResourceDimensions.multiply(perTaskResourceDimension(job), job.getJobDescriptor().getExtensions().getSize());
     }
 }

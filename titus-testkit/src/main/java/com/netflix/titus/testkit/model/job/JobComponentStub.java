@@ -204,14 +204,6 @@ public class JobComponentStub {
         stubbedJobData.removeTask(task, false);
     }
 
-    public Task makeOpportunistic(Task task, int opportunisticCpuCount) {
-        return stubbedJobData.changeTask(task.getId(), t -> t.toBuilder()
-                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, UUID.randomUUID().toString())
-                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, opportunisticCpuCount + "")
-                .build()
-        );
-    }
-
     public void delayConnection() {
         connectionDelay = true;
     }

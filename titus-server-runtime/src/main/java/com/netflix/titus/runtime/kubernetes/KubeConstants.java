@@ -142,24 +142,12 @@ public final class KubeConstants {
      */
     public static final String TAINT_NODE_DECOMMISSIONING = TITUS_NODE_DOMAIN + "decommissioning";
 
-    /*
-     * Opportunistic scheduling annotations
-     */
-
     /**
      * Predicted runtime for a Job in a format compatible with Go's <tt>time.Duration</tt>, e.g. <tt>10s</tt>.
      * <p>
      * See <a href="https://godoc.org/time#ParseDuration"><tt>time.ParseDuration</tt></a> for more details on the format.
      */
     public static final String JOB_RUNTIME_PREDICTION = "predictions.scheduler.titus.netflix.com/runtime";
-    /**
-     * Opportunistic CPUs allocated to Pods (uint) during scheduling
-     */
-    public static final String OPPORTUNISTIC_CPU_COUNT = "opportunistic.scheduler.titus.netflix.com/cpu";
-    /**
-     * Opportunistic resource CRD used when allocating opportunistic resources to a Pod during scheduling
-     */
-    public static final String OPPORTUNISTIC_ID = "opportunistic.scheduler.titus.netflix.com/id";
 
     /*
      * Pod environment variable name constants.

@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
-import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import com.netflix.titus.testkit.embedded.kube.event.SharedInformerStub;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -111,11 +110,6 @@ public class EmbeddedStdKubeApiFacade implements StdKubeApiFacade {
 
     @Override
     public SharedIndexInformer<V1PersistentVolumeClaim> getPersistentVolumeClaimInformer() {
-        return null;
-    }
-
-    @Override
-    public SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer() {
         return null;
     }
 }

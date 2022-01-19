@@ -19,7 +19,6 @@ package com.netflix.titus.master.kubernetes.client;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -27,7 +26,6 @@ import com.netflix.titus.master.jobmanager.service.ComputeProvider;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
-import com.netflix.titus.runtime.connector.kubernetes.std.NoOpStdKubeApiFacade;
 import io.kubernetes.client.openapi.ApiClient;
 
 public class KubeClientModule extends AbstractModule {
@@ -37,6 +35,7 @@ public class KubeClientModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(DirectKubeApiServerIntegrator.class).to(DefaultDirectKubeApiServerIntegrator.class);
+        bind(StdKubeApiFacade.class).to(JobControllerStdKubeApiFacadeDefault.class);
     }
 
     @Provides
@@ -56,15 +55,6 @@ public class KubeClientModule extends AbstractModule {
                 0L,
                 configuration.isCompressionEnabledForKubeApiClient()
         );
-    }
-
-    @Provides
-    @Singleton
-    public StdKubeApiFacade getKubeApiFacade(MesosConfiguration mesosConfiguration, Injector injector) {
-        if (mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
-            return injector.getInstance(JobControllerStdKubeApiFacadeDefault.class);
-        }
-        return new NoOpStdKubeApiFacade();
     }
 
     @Provides
