@@ -406,7 +406,7 @@ public class V1SpecPodFactory implements PodFactory {
                     annotations.put(NETWORK_ELASTIC_IPS, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH:
-                    annotations.put(POD_SCHED_POLICY, v);
+                    annotations.put(POD_SCHED_POLICY, "batch");
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_SUBNETS:
                     annotations.put(NETWORK_SUBNET_IDS, v);
