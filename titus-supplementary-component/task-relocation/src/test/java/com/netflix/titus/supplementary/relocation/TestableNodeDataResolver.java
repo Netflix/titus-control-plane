@@ -21,16 +21,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 
 public class TestableNodeDataResolver implements NodeDataResolver {
 
-    private final ConcurrentMap<String, ConcurrentMap<String, Node>> nodesByServerGroups = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ConcurrentMap<String, TitusNode>> nodesByServerGroups = new ConcurrentHashMap<>();
 
     @Override
-    public Map<String, Node> resolve() {
-        Map<String, Node> all = new HashMap<>();
+    public Map<String, TitusNode> resolve() {
+        Map<String, TitusNode> all = new HashMap<>();
         nodesByServerGroups.forEach((serverGroupId, nodes) -> all.putAll(nodes));
         return all;
     }
@@ -40,16 +40,16 @@ public class TestableNodeDataResolver implements NodeDataResolver {
         return 0;
     }
 
-    public Map<String, Node> getNodes(String serverGroupId) {
+    public Map<String, TitusNode> getNodes(String serverGroupId) {
         return nodesByServerGroups.get(serverGroupId);
     }
 
-    public void addNode(Node node) {
+    public void addNode(TitusNode node) {
         nodesByServerGroups.computeIfAbsent(node.getServerGroupId(), id -> new ConcurrentHashMap<>()).put(node.getId(), node);
     }
 
-    public Node getNode(String agentId) {
-        for (ConcurrentMap<String, Node> nodes : nodesByServerGroups.values()) {
+    public TitusNode getNode(String agentId) {
+        for (ConcurrentMap<String, TitusNode> nodes : nodesByServerGroups.values()) {
             if (nodes.containsKey(agentId)) {
                 return nodes.get(agentId);
             }

@@ -18,7 +18,7 @@ package com.netflix.titus.supplementary.relocation.connector;
 
 import com.google.common.base.Preconditions;
 
-public class Node {
+public class TitusNode {
 
     private final String id;
     private final String serverGroupId;
@@ -30,8 +30,8 @@ public class Node {
     private boolean serverGroupRelocationRequired;
     private boolean inBadCondition;
 
-    public Node(String id,
-                String serverGroupId) {
+    public TitusNode(String id,
+                     String serverGroupId) {
         this.id = id;
         this.serverGroupId = serverGroupId;
     }
@@ -135,10 +135,10 @@ public class Node {
             return this;
         }
 
-        public Node build() {
+        public TitusNode build() {
             Preconditions.checkNotNull(id, "instance id is null");
             Preconditions.checkNotNull(serverGroupId, "server group id is null");
-            Node node = new Node(id, serverGroupId);
+            TitusNode node = new TitusNode(id, serverGroupId);
             node.ipAddress = ipAddress;
             node.relocationNotAllowed = this.relocationNotAllowed;
             node.relocationRequiredImmediately = this.relocationRequiredImmediately;

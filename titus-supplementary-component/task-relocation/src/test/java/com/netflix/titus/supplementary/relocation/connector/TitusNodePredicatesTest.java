@@ -21,96 +21,105 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.regex.Pattern;
 
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOUtil;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
-import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1NodeCondition;
-import io.kubernetes.client.openapi.models.V1NodeSpec;
-import io.kubernetes.client.openapi.models.V1NodeStatus;
-import io.kubernetes.client.openapi.models.V1Taint;
-import org.joda.time.DateTime;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.NodeBuilder;
+import io.fabric8.kubernetes.api.model.NodeCondition;
+import io.fabric8.kubernetes.api.model.NodeSpec;
+import io.fabric8.kubernetes.api.model.NodeStatus;
+import io.fabric8.kubernetes.api.model.Taint;
+import io.fabric8.kubernetes.api.model.TaintBuilder;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class NodePredicatesTest {
+public class TitusNodePredicatesTest {
 
     @Test
     public void testIsOwnedByScheduler() {
-        V1Taint taint = new V1Taint().key(KubeConstants.TAINT_SCHEDULER).value("fenzo");
-        V1Node node = new V1Node().spec(new V1NodeSpec().taints(Collections.singletonList(taint)));
+        Node node = new NodeBuilder(false)
+                .editOrNewSpec()
+                .addToTaints(new TaintBuilder()
+                        .withKey(KubeConstants.TAINT_SCHEDULER)
+                        .withValue("fenzo")
+                        .build()
+                )
+                .endSpec()
+                .build();
         assertThat(NodePredicates.isOwnedByScheduler("fenzo", node)).isTrue();
         assertThat(NodePredicates.isOwnedByScheduler("kubeScheduler", node)).isFalse();
     }
 
     @Test
     public void nodeConditionTransitionThreshold() {
-        V1NodeCondition nodeCondition1 = new V1NodeCondition();
-        nodeCondition1.setLastTransitionTime(OffsetDateTime.now().minusMinutes(10));
+        NodeCondition nodeCondition1 = new NodeCondition();
+        nodeCondition1.setLastTransitionTime(Fabric8IOUtil.formatTimestamp(OffsetDateTime.now().minusMinutes(10)));
         boolean isTransitionRecent = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition1, 300);
         assertThat(isTransitionRecent).isFalse();
 
-        V1NodeCondition nodeCondition2 = new V1NodeCondition();
-        nodeCondition2.setLastTransitionTime(OffsetDateTime.now().minusSeconds(100));
+        NodeCondition nodeCondition2 = new NodeCondition();
+        nodeCondition2.setLastTransitionTime(Fabric8IOUtil.formatTimestamp(OffsetDateTime.now().minusSeconds(100)));
         boolean isTransitionRecent2 = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition2, 300);
         assertThat(isTransitionRecent2).isTrue();
     }
 
     @Test
     public void checkBadNodeCondition() {
-        V1Node v1Node = new V1Node();
+        Node node = new Node();
 
-        V1NodeCondition condition1 = new V1NodeCondition();
-        condition1.setLastTransitionTime(OffsetDateTime.now().minusMinutes(10));
+        NodeCondition condition1 = new NodeCondition();
+        condition1.setLastTransitionTime(Fabric8IOUtil.formatTimestamp(OffsetDateTime.now().minusMinutes(10)));
         condition1.setType("CorruptedMemoryFailure");
         condition1.setMessage("There isn't that much corrupt memory");
         condition1.setReason("CorruptedMemoryIsUnderThreshold");
         condition1.setStatus("true");
 
-        V1NodeCondition condition2 = new V1NodeCondition();
-        condition2.setLastTransitionTime(OffsetDateTime.now().minusMinutes(10));
+        NodeCondition condition2 = new NodeCondition();
+        condition2.setLastTransitionTime(Fabric8IOUtil.formatTimestamp(OffsetDateTime.now().minusMinutes(10)));
         condition2.setType("EniCarrierProblem");
         condition2.setMessage("Enis are working");
         condition2.setReason("EnisAreWorking");
         condition2.setStatus("False");
 
-        V1NodeStatus v1NodeStatus = new V1NodeStatus();
+        NodeStatus v1NodeStatus = new NodeStatus();
         v1NodeStatus.setConditions(Arrays.asList(condition1, condition2));
-        v1Node.setStatus(v1NodeStatus);
+        node.setStatus(v1NodeStatus);
 
         Pattern pattern = Pattern.compile(".*MemoryFailure");
-        boolean isBadCondition = NodePredicates.hasBadCondition(v1Node, pattern::matcher, 300);
+        boolean isBadCondition = NodePredicates.hasBadCondition(node, pattern::matcher, 300);
         assertThat(isBadCondition).isTrue();
 
         condition1.setStatus("False");
-        isBadCondition = NodePredicates.hasBadCondition(v1Node, pattern::matcher, 300);
+        isBadCondition = NodePredicates.hasBadCondition(node, pattern::matcher, 300);
         assertThat(isBadCondition).isFalse();
     }
 
     @Test
     public void checkBadTaint() {
-        V1Node v1Node = new V1Node();
-        V1NodeSpec v1NodeSpec = new V1NodeSpec();
+        Node node = new Node();
+        NodeSpec nodeSpec = new NodeSpec();
 
-        V1Taint taint1 = new V1Taint();
+        Taint taint1 = new Taint();
         taint1.setEffect("NoSchedule");
         taint1.setKey("node.titus.netflix.com/tier");
         taint1.setValue("Critical");
-        taint1.setTimeAdded(OffsetDateTime.now().minusMinutes(20));
+        taint1.setTimeAdded(Fabric8IOUtil.formatTimestamp(OffsetDateTime.now().minusMinutes(20)));
 
-        V1Taint taint2 = new V1Taint();
+        Taint taint2 = new Taint();
         taint2.setEffect("NoSchedule");
         taint2.setKey("node.kubernetes.io/unreachable");
-        taint2.setTimeAdded(OffsetDateTime.now().minusMinutes(10));
+        taint2.setTimeAdded(Fabric8IOUtil.formatTimestamp(OffsetDateTime.now().minusMinutes(10)));
 
-        v1NodeSpec.setTaints(Arrays.asList(taint1, taint2));
-        v1Node.setSpec(v1NodeSpec);
+        nodeSpec.setTaints(Arrays.asList(taint1, taint2));
+        node.setSpec(nodeSpec);
 
         Pattern pattern = Pattern.compile(".*unreachable");
-        boolean isBadTaint = NodePredicates.hasBadTaint(v1Node, pattern::matcher, 300);
+        boolean isBadTaint = NodePredicates.hasBadTaint(node, pattern::matcher, 300);
         assertThat(isBadTaint).isTrue();
 
-        v1NodeSpec.setTaints(Collections.singletonList(taint1));
-        isBadTaint = NodePredicates.hasBadTaint(v1Node, pattern::matcher, 300);
+        nodeSpec.setTaints(Collections.singletonList(taint1));
+        isBadTaint = NodePredicates.hasBadTaint(node, pattern::matcher, 300);
         assertThat(isBadTaint).isFalse();
     }
 }

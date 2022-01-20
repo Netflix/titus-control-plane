@@ -16,7 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.connector;
 
-import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
@@ -26,9 +26,9 @@ public class NodeDataResolverComponent {
 
     @Bean
     public NodeDataResolver getKubernetesNodeDataResolver(RelocationConfiguration configuration,
-                                                          StdKubeApiFacade kubeApiFacade) {
+                                                          Fabric8IOConnector fabric8IOConnector) {
         return new KubernetesNodeDataResolver(configuration,
-                kubeApiFacade,
+                fabric8IOConnector,
                 NodePredicates.getKubeSchedulerNodePredicate()
         );
     }

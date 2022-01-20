@@ -27,10 +27,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.common.util.RegExpExt;
-import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
-import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.openapi.models.V1Node;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +44,8 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
     private static final long NOT_SYNCED_STALENESS_MS = 10 * 3600_000;
 
     private final RelocationConfiguration configuration;
-    private final SharedIndexInformer<V1Node> nodeInformer;
-    private final Predicate<V1Node> nodeFilter;
+    private final SharedIndexInformer<Node> nodeInformer;
+    private final Predicate<Node> nodeFilter;
 
     private final Function<String, Matcher> relocationRequiredTaintsMatcher;
     private final Function<String, Matcher> relocationRequiredImmediatelyTaintsMatcher;
@@ -53,10 +53,10 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
     private final Function<String, Matcher> badTaintMatcherFactory;
 
     public KubernetesNodeDataResolver(RelocationConfiguration configuration,
-                                      StdKubeApiFacade kubeApiFacade,
-                                      Predicate<V1Node> nodeFilter) {
+                                      Fabric8IOConnector fabric8IOConnector,
+                                      Predicate<Node> nodeFilter) {
         this.configuration = configuration;
-        this.nodeInformer = kubeApiFacade.getNodeInformer();
+        this.nodeInformer = fabric8IOConnector.getNodeInformer();
         this.relocationRequiredTaintsMatcher = RegExpExt.dynamicMatcher(
                 configuration::getNodeRelocationRequiredTaints,
                 "nodeRelocationRequiredTaints",
@@ -76,14 +76,14 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
     }
 
     @Override
-    public Map<String, Node> resolve() {
-        List<V1Node> k8sNodes = nodeInformer.getIndexer().list().stream().filter(nodeFilter).collect(Collectors.toList());
-        Map<String, Node> result = new HashMap<>();
+    public Map<String, TitusNode> resolve() {
+        List<Node> k8sNodes = nodeInformer.getIndexer().list().stream().filter(nodeFilter).collect(Collectors.toList());
+        Map<String, TitusNode> result = new HashMap<>();
         k8sNodes.forEach(k8Node -> toReconcilerNode(k8Node).ifPresent(node -> result.put(node.getId(), node)));
         return result;
     }
 
-    private Optional<Node> toReconcilerNode(V1Node k8sNode) {
+    private Optional<TitusNode> toReconcilerNode(Node k8sNode) {
         if (k8sNode.getMetadata() == null
                 || k8sNode.getMetadata().getName() == null
                 || k8sNode.getMetadata().getLabels() == null
@@ -104,7 +104,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
         boolean hasBadTaint = NodePredicates.hasBadTaint(k8sNode, badTaintMatcherFactory,
                 configuration.getNodeTaintTransitionTimeThresholdSeconds());
 
-        Node node = Node.newBuilder()
+        TitusNode node = TitusNode.newBuilder()
                 .withId(k8sNode.getMetadata().getName())
                 .withServerGroupId(serverGroupId)
                 .withRelocationRequired(anyNoExecuteMatch(k8sNode, relocationRequiredTaintsMatcher))
@@ -114,7 +114,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
         return Optional.of(node);
     }
 
-    private boolean anyNoExecuteMatch(V1Node k8sNode, Function<String, Matcher> taintsMatcher) {
+    private boolean anyNoExecuteMatch(Node k8sNode, Function<String, Matcher> taintsMatcher) {
         return k8sNode.getSpec().getTaints().stream().anyMatch(taint ->
                 TAINT_EFFECT_NO_EXECUTE.equals(taint.getEffect()) && taintsMatcher.apply(taint.getKey()).matches()
         );

@@ -22,7 +22,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 
 public abstract class AbstractTaskRelocationTest {
@@ -32,7 +32,7 @@ public abstract class AbstractTaskRelocationTest {
 
     protected final RelocationConfiguration configuration = Archaius2Ext.newConfiguration(RelocationConfiguration.class);
 
-    protected final StdKubeApiFacade kubeApiFacade = TestDataFactory.mockKubeApiFacade();
+    protected final Fabric8IOConnector kubeApiFacade = TestDataFactory.mockFabric8IOConnector();
 
     protected final RelocationConnectorStubs relocationConnectorStubs;
 

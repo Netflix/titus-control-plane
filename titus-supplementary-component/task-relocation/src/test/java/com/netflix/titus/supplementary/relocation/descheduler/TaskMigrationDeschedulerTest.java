@@ -37,7 +37,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
@@ -112,7 +112,7 @@ public class TaskMigrationDeschedulerTest {
                 .withRelocationTime(Long.MAX_VALUE / 2)
                 .build();
 
-        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
         assertThat(results).isEmpty();
     }
 
@@ -128,13 +128,13 @@ public class TaskMigrationDeschedulerTest {
                 .withRelocationTime(clock.wallTime() - 1)
                 .build();
 
-        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
         assertThat(results).isNotEmpty();
     }
 
     @Test
     public void testFitness() {
-        List<Node> removableAgents = nodeDataResolver.resolve().values().stream()
+        List<TitusNode> removableAgents = nodeDataResolver.resolve().values().stream()
                 .filter(n -> n.getServerGroupId().equals("removable1"))
                 .collect(Collectors.toList());
         String agent1 = removableAgents.get(0).getId();
@@ -144,7 +144,7 @@ public class TaskMigrationDeschedulerTest {
         relocationConnectorStubs.placeOnAgent(agent2, tasksOfJob1.get(2));
         relocationConnectorStubs.setQuota("job1", 1);
 
-        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isPresent();
         assertThat(results.get().getLeft().getId()).isEqualTo(agent2);
 
@@ -154,16 +154,16 @@ public class TaskMigrationDeschedulerTest {
         when(evictionQuotaTracker.getJobEvictionQuota("job1")).thenReturn(1L);
 
         TaskMigrationDescheduler taskMigrationDescheduler = newDescheduler(evictionQuotaTracker, () -> "app1*");
-        Optional<Pair<Node, List<Task>>> results2 = taskMigrationDescheduler.nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results2 = taskMigrationDescheduler.nextBestMatch();
         assertThat(results2).isNotPresent();
 
         when(evictionQuotaTracker.isSystemDisruptionWindowOpen()).thenReturn(false);
-        Optional<Pair<Node, List<Task>>> results3 = taskMigrationDescheduler.nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results3 = taskMigrationDescheduler.nextBestMatch();
         assertThat(results3).isPresent();
         assertThat(results3.get().getLeft().getId()).isEqualTo(agent2);
 
         // job1 (app1) not exempt from system disruption window
-        Optional<Pair<Node, List<Task>>> results4 = newDescheduler(evictionQuotaTracker, () -> "foo*").nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results4 = newDescheduler(evictionQuotaTracker, () -> "foo*").nextBestMatch();
         assertThat(results4).isNotPresent();
     }
 
@@ -233,7 +233,7 @@ public class TaskMigrationDeschedulerTest {
         job1Task0 = jobOperations.findTaskById(job1Task0.getId()).get().getRight();
 
         relocationConnectorStubs.markNodeRelocationRequired(job1Task0.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
-        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        Optional<Pair<TitusNode, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isNotEmpty();
     }
 

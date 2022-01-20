@@ -35,7 +35,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationMetrics;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates.RelocationTrigger;
@@ -64,8 +64,8 @@ public class RelocationMetricsStep {
     }
 
     public void updateMetrics() {
-        Map<String, Node> nodes = nodeDataResolver.resolve();
-        Map<String, Node> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
+        Map<String, TitusNode> nodes = nodeDataResolver.resolve();
+        Map<String, TitusNode> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
 
         Set<String> jobIds = new HashSet<>();
 
@@ -110,14 +110,14 @@ public class RelocationMetricsStep {
             return job;
         }
 
-        void update(Job<?> latestJob, List<Task> latestTasks, Map<String, Node> taskToInstanceMap) {
+        void update(Job<?> latestJob, List<Task> latestTasks, Map<String, TitusNode> taskToInstanceMap) {
             this.job = latestJob;
             this.tasks = latestTasks;
 
             updateJobWithDisruptionBudget(taskToInstanceMap);
         }
 
-        private void updateJobWithDisruptionBudget(Map<String, Node> taskToInstanceMap) {
+        private void updateJobWithDisruptionBudget(Map<String, TitusNode> taskToInstanceMap) {
             if (tasks.isEmpty()) {
                 remove();
             } else {
@@ -125,7 +125,7 @@ public class RelocationMetricsStep {
             }
         }
 
-        private void updateTasks(Map<String, Node> taskToInstanceMap) {
+        private void updateTasks(Map<String, TitusNode> taskToInstanceMap) {
             int noRelocation = 0;
             int evacuatedAgentMatches = 0;
             int jobRelocationRequestMatches = 0;
@@ -133,7 +133,7 @@ public class RelocationMetricsStep {
             int taskRelocationUnrecognized = 0;
 
             for (Task task : tasks) {
-                Node instance = taskToInstanceMap.get(task.getId());
+                TitusNode instance = taskToInstanceMap.get(task.getId());
                 if (instance == null) {
                     noRelocation++;
                 } else {

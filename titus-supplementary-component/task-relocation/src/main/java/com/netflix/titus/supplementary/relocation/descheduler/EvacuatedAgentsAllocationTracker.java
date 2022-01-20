@@ -25,7 +25,7 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -33,13 +33,13 @@ import static com.netflix.titus.common.util.CollectionsExt.transformValues;
 
 class EvacuatedAgentsAllocationTracker {
 
-    private final Map<String, Node> removableAgentsById;
-    private final Map<String, Pair<Node, List<Task>>> removableAgentsAndTasksByAgentId;
+    private final Map<String, TitusNode> removableAgentsById;
+    private final Map<String, Pair<TitusNode, List<Task>>> removableAgentsAndTasksByAgentId;
     private final Set<String> descheduledTasks = new HashSet<>();
-    private final Map<String, Node> agentsByTaskId;
-    private final Map<String, Node> removableAgentsByTaskId = new HashMap<>();
+    private final Map<String, TitusNode> agentsByTaskId;
+    private final Map<String, TitusNode> removableAgentsByTaskId = new HashMap<>();
 
-    EvacuatedAgentsAllocationTracker(Map<String, Node> nodesById, Map<String, Task> tasksById) {
+    EvacuatedAgentsAllocationTracker(Map<String, TitusNode> nodesById, Map<String, Task> tasksById) {
         this.agentsByTaskId = RelocationUtil.buildTasksToInstanceMap(nodesById, tasksById);
         this.removableAgentsById = new HashMap<>();
         nodesById.forEach((nodeId, node) -> {
@@ -49,12 +49,12 @@ class EvacuatedAgentsAllocationTracker {
         });
         this.removableAgentsAndTasksByAgentId = transformValues(removableAgentsById, i -> Pair.of(i, RelocationUtil.findTasksOnInstance(i, tasksById.values())));
 
-        for (Pair<Node, List<Task>> agentTasksPair : removableAgentsAndTasksByAgentId.values()) {
+        for (Pair<TitusNode, List<Task>> agentTasksPair : removableAgentsAndTasksByAgentId.values()) {
             agentTasksPair.getRight().forEach(task -> removableAgentsByTaskId.put(task.getId(), agentTasksPair.getLeft()));
         }
     }
 
-    Map<String, Node> getRemovableAgentsById() {
+    Map<String, TitusNode> getRemovableAgentsById() {
         return removableAgentsById;
     }
 
@@ -63,7 +63,7 @@ class EvacuatedAgentsAllocationTracker {
     }
 
     List<Task> getTasksOnAgent(String instanceId) {
-        Pair<Node, List<Task>> pair = Preconditions.checkNotNull(
+        Pair<TitusNode, List<Task>> pair = Preconditions.checkNotNull(
                 removableAgentsAndTasksByAgentId.get(instanceId),
                 "Agent instance not found: instanceId=%s", instanceId
         );
@@ -74,11 +74,11 @@ class EvacuatedAgentsAllocationTracker {
         return removableAgentsByTaskId.containsKey(task.getId());
     }
 
-    Node getRemovableAgent(Task task) {
+    TitusNode getRemovableAgent(Task task) {
         return removableAgentsByTaskId.get(task.getId());
     }
 
-    Node getAgent(Task task) {
+    TitusNode getAgent(Task task) {
         return agentsByTaskId.get(task.getId());
     }
 }

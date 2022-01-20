@@ -30,7 +30,7 @@ import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.testkit.model.eviction.EvictionComponentStub;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
@@ -110,7 +110,7 @@ public class RelocationConnectorStubs {
 
     public RelocationConnectorStubs addActiveInstanceGroup(String serverGroupId, int size) {
         for (int i = 0; i < size; i++) {
-            nodeDataResolver.addNode(Node.newBuilder()
+            nodeDataResolver.addNode(TitusNode.newBuilder()
                     .withId(serverGroupId + "#" + i)
                     .withIpAddress(nextIpAddress())
                     .withServerGroupId(serverGroupId)
@@ -122,7 +122,7 @@ public class RelocationConnectorStubs {
 
     public RelocationConnectorStubs addRemovableInstanceGroup(String serverGroupId, int size) {
         for (int i = 0; i < size; i++) {
-            nodeDataResolver.addNode(Node.newBuilder()
+            nodeDataResolver.addNode(TitusNode.newBuilder()
                     .withId(serverGroupId + "#" + i)
                     .withIpAddress(nextIpAddress())
                     .withServerGroupId(serverGroupId)
@@ -147,17 +147,17 @@ public class RelocationConnectorStubs {
     }
 
     public RelocationConnectorStubs place(String instanceGroupId, Task... tasks) {
-        List<Node> nodes = new ArrayList<>(nodeDataResolver.getNodes(instanceGroupId).values());
+        List<TitusNode> nodes = new ArrayList<>(nodeDataResolver.getNodes(instanceGroupId).values());
         int counter = 0;
         for (Task task : tasks) {
-            Node node = nodes.get(counter++ % nodes.size());
+            TitusNode node = nodes.get(counter++ % nodes.size());
             jobComponentStub.place(task.getId(), node.getId(), node.getIpAddress());
         }
         return this;
     }
 
     public RelocationConnectorStubs placeOnAgent(String agentId, Task... tasks) {
-        Node agent = nodeDataResolver.getNode(agentId);
+        TitusNode agent = nodeDataResolver.getNode(agentId);
         for (Task task : tasks) {
             jobComponentStub.place(task.getId(), agent.getId(), agent.getIpAddress());
         }
@@ -172,7 +172,7 @@ public class RelocationConnectorStubs {
     }
 
     public void markNodeRelocationRequired(String nodeId) {
-        Node node = Preconditions.checkNotNull(nodeDataResolver.getNode(nodeId));
+        TitusNode node = Preconditions.checkNotNull(nodeDataResolver.getNode(nodeId));
         nodeDataResolver.addNode(node.toBuilder().withRelocationRequired(true).build());
     }
 

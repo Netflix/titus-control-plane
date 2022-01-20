@@ -20,7 +20,7 @@ import java.util.Map;
 
 public interface NodeDataResolver {
 
-    Map<String, Node> resolve();
+    Map<String, TitusNode> resolve();
 
     long getStalenessMs();
 }

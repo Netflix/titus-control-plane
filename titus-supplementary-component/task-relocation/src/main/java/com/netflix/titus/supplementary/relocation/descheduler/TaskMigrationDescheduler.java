@@ -35,7 +35,7 @@ import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
@@ -92,7 +92,7 @@ class TaskMigrationDescheduler {
         Map<String, DeschedulingResult> result = new HashMap<>();
         tasksById.values().forEach(task -> {
             Job<?> job = jobsById.get(task.getJobId());
-            Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            TitusNode instance = evacuatedAgentsAllocationTracker.getAgent(task);
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfMustBeRelocatedImmediately(job, task, instance).ifPresent(reason -> {
                     evictionQuotaTracker.consumeQuotaNoError(job.getId());
@@ -109,7 +109,7 @@ class TaskMigrationDescheduler {
         Map<String, DeschedulingResult> result = new HashMap<>();
         tasksById.values().forEach(task -> {
             Job<?> job = jobsById.get(task.getJobId());
-            Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            TitusNode instance = evacuatedAgentsAllocationTracker.getAgent(task);
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfRelocationRequired(job, task).ifPresent(reason -> {
                     if (isSystemEvictionQuotaAvailable(job) && canTerminate(task)) {
@@ -125,13 +125,13 @@ class TaskMigrationDescheduler {
         return result;
     }
 
-    Optional<Pair<Node, List<Task>>> nextBestMatch() {
+    Optional<Pair<TitusNode, List<Task>>> nextBestMatch() {
         return evacuatedAgentsAllocationTracker.getRemovableAgentsById().values().stream()
                 .map(i -> Pair.of(i, computeFitness(i)))
                 .filter(p -> p.getRight().getLeft() > 0)
                 .max(Comparator.comparingDouble(p -> p.getRight().getLeft()))
                 .map(p -> {
-                    Node agent = p.getLeft();
+                    TitusNode agent = p.getLeft();
                     List<Task> tasks = p.getRight().getRight();
 
                     tasks.forEach(task -> {
@@ -156,7 +156,7 @@ class TaskMigrationDescheduler {
         if (job == null) {
             message = "No job record found";
         } else {
-            Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            TitusNode instance = evacuatedAgentsAllocationTracker.getAgent(task);
             Optional<String> blockedOpt = instance != null
                     ? RelocationPredicates.checkIfRelocationBlocked(job, task, instance)
                     : Optional.empty();
@@ -175,7 +175,7 @@ class TaskMigrationDescheduler {
         return DeschedulingFailure.newBuilder().withReasonMessage(message).build();
     }
 
-    private DeschedulingResult newDeschedulingResultForRequestedRelocation(long now, Task task, Node instance, String reason) {
+    private DeschedulingResult newDeschedulingResultForRequestedRelocation(long now, Task task, TitusNode instance, String reason) {
         TaskRelocationPlan plan = TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
@@ -191,7 +191,7 @@ class TaskMigrationDescheduler {
                 .build();
     }
 
-    private Pair<Double, List<Task>> computeFitness(Node agent) {
+    private Pair<Double, List<Task>> computeFitness(TitusNode agent) {
         List<Task> tasks = evacuatedAgentsAllocationTracker.getTasksOnAgent(agent.getId());
         if (tasks.isEmpty()) {
             return FITNESS_RESULT_NONE;

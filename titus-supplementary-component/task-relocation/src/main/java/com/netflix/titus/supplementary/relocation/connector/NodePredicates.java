@@ -23,31 +23,32 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOUtil;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
-import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1NodeCondition;
-import io.kubernetes.client.openapi.models.V1Taint;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.NodeCondition;
+import io.fabric8.kubernetes.api.model.Taint;
 
 public class NodePredicates {
 
-    public static Predicate<V1Node> getKubeSchedulerNodePredicate() {
+    public static Predicate<Node> getKubeSchedulerNodePredicate() {
         return node -> isOwnedByScheduler("kubeScheduler", node);
     }
 
     @VisibleForTesting
-    static boolean isOwnedByScheduler(String schedulerName, V1Node node) {
+    static boolean isOwnedByScheduler(String schedulerName, Node node) {
         if (node == null || node.getSpec() == null || node.getSpec().getTaints() == null) {
             return false;
         }
 
-        List<V1Taint> taints = node.getSpec().getTaints();
+        List<Taint> taints = node.getSpec().getTaints();
         return taints.stream().anyMatch(taint ->
                 KubeConstants.TAINT_SCHEDULER.equals(taint.getKey()) && schedulerName.equals(taint.getValue())
         );
     }
 
     @VisibleForTesting
-    static boolean hasBadCondition(V1Node node, Function<String, Matcher> badConditionExpression,
+    static boolean hasBadCondition(Node node, Function<String, Matcher> badConditionExpression,
                                    int nodeConditionTransitionTimeThresholdSeconds) {
 
         if (node.getStatus() != null && node.getStatus().getConditions() != null) {
@@ -60,7 +61,7 @@ public class NodePredicates {
     }
 
     @VisibleForTesting
-    static boolean hasBadTaint(V1Node node, Function<String, Matcher> badTaintExpression,
+    static boolean hasBadTaint(Node node, Function<String, Matcher> badTaintExpression,
                                int nodeTaintTransitionTimeThresholdSeconds) {
         if (node.getSpec() != null && node.getSpec().getTaints() != null) {
             return node.getSpec().getTaints().stream()
@@ -71,7 +72,7 @@ public class NodePredicates {
         return false;
     }
 
-    static boolean matchesTaintValueIfAvailable(V1Taint taint, String value) {
+    static boolean matchesTaintValueIfAvailable(Taint taint, String value) {
         if (taint.getValue() != null) {
             return taint.getValue().equalsIgnoreCase(value);
         }
@@ -79,18 +80,20 @@ public class NodePredicates {
     }
 
 
-    static boolean isNodeConditionTransitionedRecently(V1NodeCondition nodeCondition, int thresholdSeconds) {
+    static boolean isNodeConditionTransitionedRecently(NodeCondition nodeCondition, int thresholdSeconds) {
         OffsetDateTime threshold = OffsetDateTime.now().minusSeconds(thresholdSeconds);
         if (nodeCondition.getLastTransitionTime() != null) {
-            return nodeCondition.getLastTransitionTime().isAfter(threshold);
+            OffsetDateTime timestamp = Fabric8IOUtil.parseTimestamp(nodeCondition.getLastTransitionTime());
+            return timestamp.isAfter(threshold);
         }
         return false;
     }
 
-    static boolean isTransitionedRecently(OffsetDateTime nodeTransitionTime, int thresholdSeconds) {
+    static boolean isTransitionedRecently(String nodeTransitionTime, int thresholdSeconds) {
         OffsetDateTime threshold = OffsetDateTime.now().minusSeconds(thresholdSeconds);
         if (nodeTransitionTime != null) {
-            return nodeTransitionTime.isAfter(threshold);
+            OffsetDateTime timestamp = Fabric8IOUtil.parseTimestamp(nodeTransitionTime);
+            return timestamp.isAfter(threshold);
         }
         return false;
     }
