@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.common.util.RegExpExt;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -53,7 +53,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
     private final Function<String, Matcher> badTaintMatcherFactory;
 
     public KubernetesNodeDataResolver(RelocationConfiguration configuration,
-                                      KubeApiFacade kubeApiFacade,
+                                      StdKubeApiFacade kubeApiFacade,
                                       Predicate<V1Node> nodeFilter) {
         this.configuration = configuration;
         this.nodeInformer = kubeApiFacade.getNodeInformer();

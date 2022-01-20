@@ -28,7 +28,7 @@ import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -43,7 +43,7 @@ public class PodDeletionGcController extends BaseGcController<V1Pod> {
     public static final String POD_DELETION_GC_CONTROLLER_DESCRIPTION = "GC pods with a deletion timestamp that needs to be cleaned up.";
 
     private static final Logger logger = LoggerFactory.getLogger(PodDeletionGcController.class);
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
     private final Clock clock;
     private final KubeControllerConfiguration kubeControllerConfiguration;
 
@@ -53,7 +53,7 @@ public class PodDeletionGcController extends BaseGcController<V1Pod> {
             @Named(GC_CONTROLLER) LocalScheduler scheduler,
             @Named(POD_DELETION_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
             @Named(POD_DELETION_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
-            KubeApiFacade kubeApiFacade,
+            StdKubeApiFacade kubeApiFacade,
             KubeControllerConfiguration kubeControllerConfiguration
     ) {
         super(

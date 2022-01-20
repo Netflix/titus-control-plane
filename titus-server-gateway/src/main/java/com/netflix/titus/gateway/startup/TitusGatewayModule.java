@@ -29,7 +29,6 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
-import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.environment.MyEnvironments;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
@@ -38,7 +37,6 @@ import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
 import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
-import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
@@ -46,10 +44,7 @@ import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
-import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 import com.netflix.titus.gateway.endpoint.GatewayEndpointModule;
-import com.netflix.titus.gateway.kubernetes.KubeApiClient;
-import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.FeatureFlagModule;
@@ -58,8 +53,9 @@ import com.netflix.titus.runtime.connector.eviction.EvictionConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobEventPropagationUtil;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerDataReplicationModule;
-import com.netflix.titus.runtime.connector.kubernetes.Fabric8IOClients;
-import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.DefaultFabric8IOConnector;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOClients;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.runtime.connector.registry.TitusContainerRegistryModule;
 import com.netflix.titus.runtime.connector.relocation.RelocationClientConnectorModule;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicationModule;
@@ -69,7 +65,6 @@ import com.netflix.titus.runtime.endpoint.admission.TitusAdmissionModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
-import org.springframework.context.annotation.Primary;
 
 // Common module dependencies
 // Server dependencies
@@ -101,7 +96,7 @@ public final class TitusGatewayModule extends AbstractModule {
         bind(Registry.class).toInstance(new DefaultRegistry());
         bind(SystemLogService.class).to(LoggingSystemLogService.class);
         bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
-        bind(KubeApiConnector.class).asEagerSingleton();
+        bind(Fabric8IOConnector.class).to(DefaultFabric8IOConnector.class).asEagerSingleton();
 
         install(new ContainerEventBusModule());
 

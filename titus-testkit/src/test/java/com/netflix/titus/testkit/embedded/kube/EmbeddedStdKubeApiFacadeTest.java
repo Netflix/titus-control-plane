@@ -32,13 +32,13 @@ import org.junit.Test;
 import static com.netflix.titus.testkit.embedded.kube.EmbeddedKubeClusters.RESOURCE_POOL_ELASTIC;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class EmbeddedKubeApiFacadeTest {
+public class EmbeddedStdKubeApiFacadeTest {
 
     private static final int DESIRED = 1;
 
     private final EmbeddedKubeCluster embeddedKubeCluster = EmbeddedKubeClusters.basicCluster(DESIRED);
 
-    private final EmbeddedKubeApiFacade integrator = new EmbeddedKubeApiFacade(embeddedKubeCluster);
+    private final EmbeddedStdKubeApiFacade integrator = new EmbeddedStdKubeApiFacade(embeddedKubeCluster);
 
     @Test
     public void testPodInformer() {

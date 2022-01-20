@@ -1,13 +1,24 @@
-package com.netflix.titus.gateway.kubernetes;
+/*
+ * Copyright 2022 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.netflix.titus.runtime.connector.kubernetes.fabric8io;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,9 +28,6 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.ExecutorsExt;
@@ -27,16 +35,17 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.grpc.protogen.TaskStatus;
-import io.fabric8.kubernetes.api.model.ContainerState;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.model.PodDeletedEvent;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.model.PodEvent;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.model.PodUpdatedEvent;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -46,209 +55,37 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
-import static com.netflix.titus.gateway.kubernetes.F8KubeObjectFormatter.formatPodEssentials;
+import static com.netflix.titus.runtime.connector.kubernetes.fabric8io.model.F8KubeObjectFormatter.formatPodEssentials;
 
 @Singleton
-public class KubeApiConnector {
+public class DefaultFabric8IOConnector implements Fabric8IOConnector {
     private static final Logger logger = LoggerFactory.getLogger("KubeSharedInformerLogger");
     private final NamespacedKubernetesClient kubernetesClient;
     private final TitusRuntime titusRuntime;
-    private final ConcurrentMap<String, Pod> pods = new ConcurrentHashMap<>();
+    private volatile PMap<String, Pod> pods = HashTreePMap.empty();
     private volatile SharedInformerFactory sharedInformerFactory;
     private volatile SharedIndexInformer<Pod> podInformer;
     private volatile SharedIndexInformer<Node> nodeInformer;
-    private final ReadOnlyJobOperations jobService;
 
     private ExecutorService notificationHandlerExecutor;
     private Scheduler scheduler;
     private Disposable subscription;
 
     @Inject
-    public KubeApiConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime,
-                            ReadOnlyJobOperations jobService) {
+    public DefaultFabric8IOConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime) {
         this.kubernetesClient = kubernetesClient;
         this.titusRuntime = titusRuntime;
-        this.jobService = jobService;
         enterActiveMode();
     }
 
     private final Object activationLock = new Object();
     private volatile boolean deactivated;
 
-    public List<TaskStatus.ContainerState> getContainerState(String taskId) {
-        if (pods.get(taskId) == null) {
-            return Collections.emptyList();
-        }
-        List<ContainerStatus> containerStatuses = pods.get(taskId).getStatus().getContainerStatuses();
-        ArrayList<TaskStatus.ContainerState> containerStates = new ArrayList();
-        if (containerStates == null) {
-            return Collections.emptyList();
-        }
-        if (containerStatuses.isEmpty() || containerStatuses.size() == 0) {
-            // we have pod status but no container status just yet
-            return Collections.emptyList();
-        } else {
-            ListIterator<ContainerStatus> iterator = containerStatuses.listIterator();
-            while (iterator.hasNext()) {
-                ContainerStatus containerStatus = iterator.next();
-                ContainerState status = containerStatus.getState();
-                TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
-                if (status.getRunning() != null) {
-                    containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
-                } else if (status.getTerminated() != null) {
-                    containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
-                }
-                containerStates.add(TaskStatus.ContainerState.newBuilder()
-                        .setContainerName(containerStatus.getName())
-                        .setContainerHealth(containerHealth).build());
-            }
-            return containerStates;
-        }
-    }
-
-    private SharedIndexInformer<Pod> createPodInformer(SharedInformerFactory sharedInformerFactory) {
-        return sharedInformerFactory.sharedIndexInformerFor(
-                Pod.class,
-                3000);
-    }
-
-    private SharedIndexInformer<Node> createNodeInformer(SharedInformerFactory sharedInformerFactory) {
-        return sharedInformerFactory.sharedIndexInformerFor(
-                Node.class,
-                3000);
-    }
-
     @PreDestroy
     public void shutdown() {
         if (sharedInformerFactory != null) {
             sharedInformerFactory.stopAllRegisteredInformers();
         }
-    }
-
-    @Deactivator
-    public void deactivate() {
-        if (!deactivated) {
-            synchronized (activationLock) {
-                shutdown();
-                this.deactivated = true;
-            }
-        }
-    }
-
-    public SharedIndexInformer<Pod> getPodInformer() {
-        activate();
-        return podInformer;
-    }
-
-    public SharedIndexInformer<Node> getNodeInformer() {
-        activate();
-        return nodeInformer;
-    }
-
-    private void activate() {
-        synchronized (activationLock) {
-            if (sharedInformerFactory != null) {
-                return;
-            }
-            try {
-                this.sharedInformerFactory = kubernetesClient.informers();
-                this.podInformer = createPodInformer(sharedInformerFactory);
-                this.nodeInformer = createNodeInformer(sharedInformerFactory);
-                sharedInformerFactory.startAllRegisteredInformers();
-                logger.info("Kube pod informer activated");
-            } catch (Exception e) {
-                logger.error("Could not intialize kubernetes shared informer", e);
-                if (sharedInformerFactory != null) {
-                    ExceptionExt.silent(() -> sharedInformerFactory.stopAllRegisteredInformers());
-                }
-                sharedInformerFactory = null;
-                podInformer = null;
-            }
-        }
-    }
-
-    private Optional<Node> findNode(Pod pod) {
-        String nodeName = pod.getSpec().getNodeName();
-        if (StringExt.isEmpty(nodeName)) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(this.getNodeInformer().getIndexer().getByKey(nodeName));
-    }
-
-
-    public Flux<PodEvent> events() {
-        return kubeInformerEvents().transformDeferred(ReactorExt.badSubscriberHandler(logger));
-    }
-
-    private Flux<PodEvent> kubeInformerEvents() {
-        return Flux.create(sink -> {
-            ResourceEventHandler<Pod> handler = new ResourceEventHandler<Pod>() {
-                @Override
-                public void onAdd(Pod pod) {
-                    Stopwatch stopwatch = Stopwatch.createStarted();
-                    try {
-                        String taskId = pod.getMetadata().getName();
-
-                        Pod old = pods.get(taskId);
-                        pods.put(taskId, pod);
-
-                        PodEvent podEvent;
-                        if (old != null) {
-                            podEvent = PodEvent.onUpdate(old, pod, findNode(pod));
-                            //metrics.onUpdate(pod);
-                        } else {
-                            podEvent = PodEvent.onAdd(pod);
-                            //metrics.onAdd(pod);
-                        }
-                        sink.next(podEvent);
-
-                        logger.info("Pod Added: pod={}, sequenceNumber={}", formatPodEssentials(pod), podEvent.getSequenceNumber());
-                        logger.debug("complete pod data: {}", pod);
-                    } finally {
-                        logger.info("Pod informer onAdd: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
-                    }
-                }
-
-                @Override
-                public void onUpdate(Pod oldPod, Pod newPod) {
-                    Stopwatch stopwatch = Stopwatch.createStarted();
-                    try {
-                        String taskId = newPod.getMetadata().getName();
-                        pods.put(taskId, newPod);
-
-                        PodUpdatedEvent podEvent = PodEvent.onUpdate(oldPod, newPod, findNode(newPod));
-                        sink.next(podEvent);
-
-                        logger.info("Pod Updated: old={}, new={}, sequenceNumber={}", formatPodEssentials(oldPod), formatPodEssentials(newPod), podEvent.getSequenceNumber());
-                        logger.debug("Complete pod data: old={}, new={}", oldPod, newPod);
-                    } finally {
-                        logger.info("Pod informer onUpdate: pod={}, elapsedMs={}", newPod.getMetadata().getName(), stopwatch.elapsed().toMillis());
-                    }
-                }
-
-
-                @Override
-                public void onDelete(Pod pod, boolean deletedFinalStateUnknown) {
-                    Stopwatch stopwatch = Stopwatch.createStarted();
-                    try {
-                        String taskId = pod.getMetadata().getName();
-                        pods.remove(taskId);
-
-                        PodDeletedEvent podEvent = PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod));
-                        sink.next(podEvent);
-
-                        logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}, sequenceNumber={}", formatPodEssentials(pod), deletedFinalStateUnknown, podEvent.getSequenceNumber());
-                        logger.debug("complete pod data: {}", pod);
-                    } finally {
-                        logger.info("Pod informer onDelete: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
-                    }
-                }
-            };
-            this.getPodInformer().addEventHandler(handler);
-
-            // A listener cannot be removed from shared informer.
-            // sink.onCancel(() -> ???);
-        });
     }
 
     @Activator
@@ -289,27 +126,159 @@ public class KubeApiConnector {
                 );
     }
 
+    @Deactivator
+    public void deactivate() {
+        if (!deactivated) {
+            synchronized (activationLock) {
+                shutdown();
+                this.deactivated = true;
+            }
+        }
+    }
+
+    @Override
+    public Map<String, Pod> getPods() {
+        return pods;
+    }
+
+    @Override
+    public SharedIndexInformer<Pod> getPodInformer() {
+        activate();
+        return podInformer;
+    }
+
+    @Override
+    public SharedIndexInformer<Node> getNodeInformer() {
+        activate();
+        return nodeInformer;
+    }
+
+    @Override
+    public Flux<PodEvent> events() {
+        return kubeInformerEvents().transformDeferred(ReactorExt.badSubscriberHandler(logger));
+    }
+
+    private void activate() {
+        synchronized (activationLock) {
+            if (sharedInformerFactory != null) {
+                return;
+            }
+            try {
+                this.sharedInformerFactory = kubernetesClient.informers();
+                this.podInformer = createPodInformer(sharedInformerFactory);
+                this.nodeInformer = createNodeInformer(sharedInformerFactory);
+                sharedInformerFactory.startAllRegisteredInformers();
+                logger.info("Kube pod informer activated");
+            } catch (Exception e) {
+                logger.error("Could not intialize kubernetes shared informer", e);
+                if (sharedInformerFactory != null) {
+                    ExceptionExt.silent(() -> sharedInformerFactory.stopAllRegisteredInformers());
+                }
+                sharedInformerFactory = null;
+                podInformer = null;
+            }
+        }
+    }
+
+    private Optional<Node> findNode(Pod pod) {
+        String nodeName = pod.getSpec().getNodeName();
+        if (StringExt.isEmpty(nodeName)) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(this.getNodeInformer().getIndexer().getByKey(nodeName));
+    }
+
+
+    private Flux<PodEvent> kubeInformerEvents() {
+        return Flux.create(sink -> {
+            ResourceEventHandler<Pod> handler = new ResourceEventHandler<Pod>() {
+                @Override
+                public void onAdd(Pod pod) {
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    try {
+                        String taskId = pod.getMetadata().getName();
+
+                        Pod old = pods.get(taskId);
+                        pods = pods.plus(taskId, pod);
+
+                        PodEvent podEvent;
+                        if (old != null) {
+                            podEvent = PodEvent.onUpdate(old, pod, findNode(pod));
+                            //metrics.onUpdate(pod);
+                        } else {
+                            podEvent = PodEvent.onAdd(pod);
+                            //metrics.onAdd(pod);
+                        }
+                        sink.next(podEvent);
+
+                        logger.info("Pod Added: pod={}, sequenceNumber={}", formatPodEssentials(pod), podEvent.getSequenceNumber());
+                        logger.debug("complete pod data: {}", pod);
+                    } finally {
+                        logger.info("Pod informer onAdd: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
+                    }
+                }
+
+                @Override
+                public void onUpdate(Pod oldPod, Pod newPod) {
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    try {
+                        String taskId = newPod.getMetadata().getName();
+                        pods = pods.plus(taskId, newPod);
+
+                        PodUpdatedEvent podEvent = PodEvent.onUpdate(oldPod, newPod, findNode(newPod));
+                        sink.next(podEvent);
+
+                        logger.info("Pod Updated: old={}, new={}, sequenceNumber={}", formatPodEssentials(oldPod), formatPodEssentials(newPod), podEvent.getSequenceNumber());
+                        logger.debug("Complete pod data: old={}, new={}", oldPod, newPod);
+                    } finally {
+                        logger.info("Pod informer onUpdate: pod={}, elapsedMs={}", newPod.getMetadata().getName(), stopwatch.elapsed().toMillis());
+                    }
+                }
+
+                @Override
+                public void onDelete(Pod pod, boolean deletedFinalStateUnknown) {
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+                    try {
+                        String taskId = pod.getMetadata().getName();
+                        pods = pods.minus(taskId);
+
+                        PodDeletedEvent podEvent = PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod));
+                        sink.next(podEvent);
+
+                        logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}, sequenceNumber={}", formatPodEssentials(pod), deletedFinalStateUnknown, podEvent.getSequenceNumber());
+                        logger.debug("complete pod data: {}", pod);
+                    } finally {
+                        logger.info("Pod informer onDelete: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
+                    }
+                }
+            };
+            this.getPodInformer().addEventHandler(handler);
+
+            // A listener cannot be removed from shared informer.
+            // sink.onCancel(() -> ???);
+        });
+    }
+
     private Mono<Void> processEvent(PodEvent event) {
-        Pair<Job<?>, Task> jobAndTask = jobService.findTaskById(event.getTaskId()).orElse(null);
-        if (jobAndTask == null) {
-            logger.warn("Got Kube notification about unknown task: {}", event.getTaskId());
-            return Mono.empty();
-        }
-
-        Task task = jobAndTask.getRight();
-        // This is basic sanity check. If it fails, we have a major problem with pod state.
-        if (event.getPod() == null || event.getPod().getStatus() == null || event.getPod().getStatus().getPhase() == null) {
-            logger.warn("Pod notification with pod without status or phase set: taskId={}, pod={}", task.getId(), event.getPod());
-            return Mono.empty();
-        }
-
+        // TODO drop if not needed
         return Mono.empty();
     }
 
     @VisibleForTesting
     protected Scheduler initializeNotificationScheduler() {
-        this.notificationHandlerExecutor = ExecutorsExt.namedSingleThreadExecutor(KubeApiConnector.class.getSimpleName());
+        this.notificationHandlerExecutor = ExecutorsExt.namedSingleThreadExecutor(DefaultFabric8IOConnector.class.getSimpleName());
         return Schedulers.fromExecutor(notificationHandlerExecutor);
     }
 
+    private SharedIndexInformer<Pod> createPodInformer(SharedInformerFactory sharedInformerFactory) {
+        return sharedInformerFactory.sharedIndexInformerFor(
+                Pod.class,
+                3000);
+    }
+
+    private SharedIndexInformer<Node> createNodeInformer(SharedInformerFactory sharedInformerFactory) {
+        return sharedInformerFactory.sharedIndexInformerFor(
+                Node.class,
+                3000);
+    }
 }

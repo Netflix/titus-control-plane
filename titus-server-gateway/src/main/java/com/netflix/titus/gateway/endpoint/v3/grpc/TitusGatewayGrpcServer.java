@@ -29,8 +29,6 @@ import javax.inject.Singleton;
 import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
-import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
-import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
@@ -67,11 +65,9 @@ public class TitusGatewayGrpcServer {
     private final AutoScalingServiceImplBase appAutoScalingService;
     private final LoadBalancerServiceImplBase loadBalancerService;
     private final SchedulerServiceImplBase schedulerService;
-    private final GrpcToReactorServerFactory reactorServerFactory;
     private final GrpcEndpointConfiguration config;
     private final TitusRuntime titusRuntime;
     private final ExecutorService grpcCallbackExecutor;
-    private final KubeApiConnector kubeApiConnector;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -85,21 +81,17 @@ public class TitusGatewayGrpcServer {
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             SchedulerServiceImplBase schedulerService,
-            GrpcToReactorServerFactory reactorServerFactory,
             GrpcEndpointConfiguration config,
-            TitusRuntime titusRuntime,
-            KubeApiConnector kubeApiConnector) {
+            TitusRuntime titusRuntime) {
         this.healthService = healthService;
         this.evictionService = evictionService;
         this.jobManagementService = jobManagementService;
         this.appAutoScalingService = appAutoScalingService;
         this.loadBalancerService = loadBalancerService;
         this.schedulerService = schedulerService;
-        this.reactorServerFactory = reactorServerFactory;
         this.config = config;
         this.titusRuntime = titusRuntime;
         this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor");
-        this.kubeApiConnector = kubeApiConnector;
     }
 
     public int getPort() {

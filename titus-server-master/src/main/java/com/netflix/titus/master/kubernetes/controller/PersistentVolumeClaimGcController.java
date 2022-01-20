@@ -32,7 +32,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,7 @@ public class PersistentVolumeClaimGcController extends BaseGcController<V1Persis
     public static final String PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER = "persistentVolumeClaimGcController";
     public static final String PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER_DESCRIPTION = "GC persistent volume claims that are no longer associated with active tasks.";
 
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
     private final V3JobOperations v3JobOperations;
 
     @Inject
@@ -60,7 +60,7 @@ public class PersistentVolumeClaimGcController extends BaseGcController<V1Persis
                                              @Named(GC_CONTROLLER) LocalScheduler scheduler,
                                              @Named(PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
                                              @Named(PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
-                                             KubeApiFacade kubeApiFacade,
+                                             StdKubeApiFacade kubeApiFacade,
                                              V3JobOperations v3JobOperations) {
         super(
                 PERSISTENT_VOLUME_CLAIM_GC_CONTROLLER,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.kubernetes;
+package com.netflix.titus.runtime.connector.kubernetes.std;
 
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -25,10 +26,10 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import reactor.core.publisher.Mono;
 
 /**
- * {@link KubeApiFacade} encapsulates Kube Java, except the entity model and the informer API. The latter is
+ * {@link StdKubeApiFacade} encapsulates Kube Java, except the entity model and the informer API. The latter is
  * provided as a set of interfaces (unlike ApiClient or CoreV1Api), so it is easy to mock in the test code.
  */
-public interface KubeApiFacade {
+public interface StdKubeApiFacade {
 
     // Nodes
 

@@ -30,7 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.cache.Indexer;
@@ -90,8 +90,8 @@ public class TestDataFactory {
     }
 
 
-    public static KubeApiFacade mockKubeApiFacade(V1Node... nodes) {
-        KubeApiFacade kubeApiFacade = mock(KubeApiFacade.class);
+    public static StdKubeApiFacade mockKubeApiFacade(V1Node... nodes) {
+        StdKubeApiFacade kubeApiFacade = mock(StdKubeApiFacade.class);
         SharedIndexInformer<V1Node> nodeInformer = mock(SharedIndexInformer.class);
         Indexer<V1Node> nodeIndexer = mock(Indexer.class);
         List<V1Node> nodeIndex = new ArrayList<>(Arrays.asList(nodes));

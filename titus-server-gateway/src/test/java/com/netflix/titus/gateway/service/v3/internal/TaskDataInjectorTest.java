@@ -27,12 +27,12 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.connector.relocation.TaskRelocationSnapshot;
@@ -71,7 +71,7 @@ public class TaskDataInjectorTest {
 
     private final RelocationServiceClient relocationServiceClient = mock(RelocationServiceClient.class);
     private final RelocationDataReplicator relocationDataReplicator = mock(RelocationDataReplicator.class);
-    private final KubeApiConnector kubeApiConnector = mock(KubeApiConnector.class);
+    private final Fabric8IOConnector kubeApiConnector = mock(Fabric8IOConnector.class);
 
     private final TaskDataInjector taskDataInjector = new TaskDataInjector(
             grpcConfiguration,

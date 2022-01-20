@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.kubernetes;
+package com.netflix.titus.runtime.connector.kubernetes.okhttp;
 
 import java.io.IOException;
 import javax.ws.rs.core.HttpHeaders;

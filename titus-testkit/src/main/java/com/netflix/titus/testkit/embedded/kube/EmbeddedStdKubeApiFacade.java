@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import com.netflix.titus.testkit.embedded.kube.event.SharedInformerStub;
 import io.kubernetes.client.informer.SharedIndexInformer;
@@ -31,12 +31,12 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
 import reactor.core.publisher.Mono;
 
-public class EmbeddedKubeApiFacade implements KubeApiFacade {
+public class EmbeddedStdKubeApiFacade implements StdKubeApiFacade {
 
     private final EmbeddedKubeCluster embeddedKubeCluster;
     private final EmbeddedKubeFleet fleet;
 
-    public EmbeddedKubeApiFacade(EmbeddedKubeCluster embeddedKubeCluster) {
+    public EmbeddedStdKubeApiFacade(EmbeddedKubeCluster embeddedKubeCluster) {
         fleet = embeddedKubeCluster.getFleet();
         this.embeddedKubeCluster = embeddedKubeCluster;
     }

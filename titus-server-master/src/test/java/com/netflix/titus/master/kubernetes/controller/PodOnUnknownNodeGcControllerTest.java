@@ -24,7 +24,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -41,7 +41,7 @@ public class PodOnUnknownNodeGcControllerTest {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(clock);
     private final FixedIntervalTokenBucketConfiguration tokenBucketConfiguration = mock(FixedIntervalTokenBucketConfiguration.class);
     private final ControllerConfiguration controllerConfiguration = mock(ControllerConfiguration.class);
-    private final KubeApiFacade kubeApiFacade = mock(KubeApiFacade.class);
+    private final StdKubeApiFacade kubeApiFacade = mock(StdKubeApiFacade.class);
     private final LocalScheduler scheduler = mock(LocalScheduler.class);
 
     private final PodOnUnknownNodeGcController podGcController = new PodOnUnknownNodeGcController(

@@ -25,9 +25,9 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.jobmanager.service.ComputeProvider;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.NoOpStdKubeApiFacade;
 import io.kubernetes.client.openapi.ApiClient;
 
 public class KubeClientModule extends AbstractModule {
@@ -48,7 +48,7 @@ public class KubeClientModule extends AbstractModule {
     @Provides
     @Singleton
     public ApiClient getKubeApiClient(MesosConfiguration configuration, TitusRuntime titusRuntime) {
-        return KubeApiClients.createApiClient(
+        return StdKubeApiClients.createApiClient(
                 configuration.getKubeApiServerUrl(),
                 configuration.getKubeConfigPath(),
                 CLIENT_METRICS_PREFIX,
@@ -60,11 +60,11 @@ public class KubeClientModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public KubeApiFacade getKubeApiFacade(MesosConfiguration mesosConfiguration, Injector injector) {
+    public StdKubeApiFacade getKubeApiFacade(MesosConfiguration mesosConfiguration, Injector injector) {
         if (mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
-            return injector.getInstance(JobControllerKubeApiFacade.class);
+            return injector.getInstance(JobControllerStdKubeApiFacadeDefault.class);
         }
-        return new NoOpKubeApiFacade();
+        return new NoOpStdKubeApiFacade();
     }
 
     @Provides

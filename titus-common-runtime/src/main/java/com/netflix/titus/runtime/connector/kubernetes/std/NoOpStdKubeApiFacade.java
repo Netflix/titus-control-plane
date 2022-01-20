@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.kubernetes;
+package com.netflix.titus.runtime.connector.kubernetes.std;
 
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -24,7 +25,7 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
 import reactor.core.publisher.Mono;
 
-public class NoOpKubeApiFacade implements KubeApiFacade {
+public class NoOpStdKubeApiFacade implements StdKubeApiFacade {
 
     @Override
     public void deleteNode(String nodeName) {

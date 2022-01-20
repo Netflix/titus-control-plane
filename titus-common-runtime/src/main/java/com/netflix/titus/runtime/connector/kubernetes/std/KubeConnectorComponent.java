@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.kubernetes;
+package com.netflix.titus.runtime.connector.kubernetes.std;
 
 import com.netflix.titus.common.environment.MyEnvironment;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import io.kubernetes.client.openapi.ApiClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
@@ -32,7 +33,7 @@ public class KubeConnectorComponent {
     }
 
     @Bean
-    public KubeApiFacade getKubeApiFacade(KubeConnectorConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
-        return new DefaultKubeApiFacade(configuration, apiClient, titusRuntime);
+    public StdKubeApiFacade getKubeApiFacade(KubeConnectorConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
+        return new DefaultStdStdKubeApiFacade(configuration, apiClient, titusRuntime);
     }
 }
