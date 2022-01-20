@@ -20,18 +20,18 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.runtime.connector.kubernetes.DefaultKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.DefaultStdStdKubeApiFacade;
 import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.ApiClient;
 
 @Singleton
-public class JobControllerKubeApiFacade extends DefaultKubeApiFacade {
+public class JobControllerStdKubeApiFacadeDefault extends DefaultStdStdKubeApiFacade {
 
     private final TitusRuntime titusRuntime;
 
     @Inject
-    public JobControllerKubeApiFacade(DirectKubeConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
+    public JobControllerStdKubeApiFacadeDefault(DirectKubeConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
         super(configuration, apiClient, titusRuntime);
         this.titusRuntime = titusRuntime;
     }

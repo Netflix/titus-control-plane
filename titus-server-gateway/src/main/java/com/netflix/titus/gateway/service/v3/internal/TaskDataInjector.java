@@ -16,6 +16,7 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,18 +30,22 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.gateway.kubernetes.KubeApiConnector;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
+import io.fabric8.kubernetes.api.model.ContainerState;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -57,7 +62,8 @@ class TaskDataInjector {
      * itself runs on 30sec plan refresh interval.
      */
     private static final long MAX_RELOCATION_DATA_STALENESS_MS = 30_000;
-    private static KubeApiConnector kubeApiConnector;
+
+    private static Fabric8IOConnector kubeApiConnector;
 
     private final GrpcClientConfiguration configuration;
     private final JobManagerConfiguration jobManagerConfiguration;
@@ -73,7 +79,7 @@ class TaskDataInjector {
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
-            KubeApiConnector kubeApiConnector) {
+            Fabric8IOConnector kubeApiConnector) {
         this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient,
                 relocationDataReplicator, kubeApiConnector, Schedulers.computation());
     }
@@ -85,7 +91,7 @@ class TaskDataInjector {
             FeatureActivationConfiguration featureActivationConfiguration,
             RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
-            KubeApiConnector kubeApiConnector,
+            Fabric8IOConnector kubeApiConnector,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.jobManagerConfiguration = jobManagerConfiguration;
@@ -204,12 +210,37 @@ class TaskDataInjector {
     }
 
     private Task newTaskWithContainerState(Task task) {
-        if(task.hasStatus()){
+        if (task.hasStatus()) {
             return task.toBuilder().setStatus(task.getStatus().toBuilder()
-                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+                    .addAllContainerState(getContainerState(task.getId()))).build();
         }
         return task.toBuilder().setStatus(TaskStatus.newBuilder()
-                    .addAllContainerState(kubeApiConnector.getContainerState(task.getId()))).build();
+                .addAllContainerState(getContainerState(task.getId()))).build();
+    }
+
+    private List<TaskStatus.ContainerState> getContainerState(String taskId) {
+        Map<String, Pod> pods = kubeApiConnector.getPods();
+        if (pods.get(taskId) == null) {
+            return Collections.emptyList();
+        }
+        List<ContainerStatus> containerStatuses = pods.get(taskId).getStatus().getContainerStatuses();
+        if (CollectionsExt.isNullOrEmpty(containerStatuses)) {
+            return Collections.emptyList();
+        }
+        List<TaskStatus.ContainerState> containerStates = new ArrayList<>();
+        for (ContainerStatus containerStatus : containerStatuses) {
+            ContainerState status = containerStatus.getState();
+            TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
+            if (status.getRunning() != null) {
+                containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
+            } else if (status.getTerminated() != null) {
+                containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
+            }
+            containerStates.add(TaskStatus.ContainerState.newBuilder()
+                    .setContainerName(containerStatus.getName())
+                    .setContainerHealth(containerHealth).build());
+        }
+        return containerStates;
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {

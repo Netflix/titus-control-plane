@@ -29,12 +29,11 @@ import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodStatus;
 import org.assertj.core.api.Assertions;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.RUNNING;
@@ -49,7 +48,7 @@ public class PodUnknownGcControllerTest {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(clock);
     private final FixedIntervalTokenBucketConfiguration tokenBucketConfiguration = mock(FixedIntervalTokenBucketConfiguration.class);
     private final ControllerConfiguration controllerConfiguration = mock(ControllerConfiguration.class);
-    private final KubeApiFacade kubeApiFacade = mock(KubeApiFacade.class);
+    private final StdKubeApiFacade kubeApiFacade = mock(StdKubeApiFacade.class);
     private final LocalScheduler scheduler = mock(LocalScheduler.class);
     private final KubeControllerConfiguration kubeControllerConfiguration = mock(KubeControllerConfiguration.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);

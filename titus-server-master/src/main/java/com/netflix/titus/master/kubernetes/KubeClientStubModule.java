@@ -26,14 +26,14 @@ import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
 import com.netflix.titus.master.kubernetes.client.NoOpDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
 import com.netflix.titus.master.kubernetes.controller.NoOpJobManagementReconciler;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.NoOpStdKubeApiFacade;
 
 public class KubeClientStubModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(KubeApiFacade.class).toInstance(new NoOpKubeApiFacade());
+        bind(StdKubeApiFacade.class).toInstance(new NoOpStdKubeApiFacade());
         bind(DirectKubeApiServerIntegrator.class).toInstance(new NoOpDirectKubeApiServerIntegrator());
         bind(KubeJobManagementReconciler.class).toInstance(new NoOpJobManagementReconciler());
     }

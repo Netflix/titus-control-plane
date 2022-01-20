@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.kubernetes.controller;
+package com.netflix.titus.runtime.connector.kubernetes.fabric8io;
 
-import javax.inject.Singleton;
+import java.util.Map;
 
-import com.netflix.titus.master.kubernetes.client.model.PodEvent;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.model.PodEvent;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import reactor.core.publisher.Flux;
 
-@Singleton
-public class NoOpJobManagementReconciler implements KubeJobManagementReconciler {
+public interface Fabric8IOConnector {
 
-    @Override
-    public Flux<PodEvent> getPodEventSource() {
-        return Flux.empty();
-    }
+    Map<String, Pod> getPods();
+
+    SharedIndexInformer<Pod> getPodInformer();
+
+    SharedIndexInformer<Node> getNodeInformer();
+
+    Flux<PodEvent> events();
 }

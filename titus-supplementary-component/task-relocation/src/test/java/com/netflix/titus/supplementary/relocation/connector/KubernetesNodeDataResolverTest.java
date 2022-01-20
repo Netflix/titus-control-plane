@@ -20,7 +20,7 @@ import java.util.Map;
 
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.runtime.RelocationAttributes;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -47,7 +47,7 @@ public class KubernetesNodeDataResolverTest {
         V1Node node1 = newNode(node1Name);
         V1Node node2 = newNode(node2Name);
 
-        KubeApiFacade kubeApiFacade = TestDataFactory.mockKubeApiFacade(node1, node2);
+        StdKubeApiFacade kubeApiFacade = TestDataFactory.mockKubeApiFacade(node1, node2);
         KubernetesNodeDataResolver resolver = new KubernetesNodeDataResolver(configuration, kubeApiFacade, node -> true);
         Map<String, Node> resolved = resolver.resolve();
         assertThat(resolved).hasSize(2);

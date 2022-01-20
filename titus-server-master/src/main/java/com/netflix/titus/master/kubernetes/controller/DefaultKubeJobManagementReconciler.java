@@ -55,7 +55,7 @@ import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodNotFoundEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.kubernetes.KubeUtil;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
@@ -89,7 +89,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     private final MesosConfiguration mesosConfiguration;
     private final DirectKubeConfiguration directKubeConfiguration;
     private final FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration;
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
     private final V3JobOperations v3JobOperations;
 
     private final Clock clock;
@@ -106,7 +106,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     public DefaultKubeJobManagementReconciler(MesosConfiguration mesosConfiguration,
                                               DirectKubeConfiguration directKubeConfiguration,
                                               @Named(GC_UNKNOWN_PODS) FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration,
-                                              KubeApiFacade kubeApiFacade,
+                                              StdKubeApiFacade kubeApiFacade,
                                               V3JobOperations v3JobOperations,
                                               TitusRuntime titusRuntime) {
         this.mesosConfiguration = mesosConfiguration;

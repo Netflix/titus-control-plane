@@ -47,7 +47,7 @@ import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
@@ -73,7 +73,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private static final String NOT_FOUND = "Not Found";
 
     private final DirectKubeConfiguration configuration;
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
 
     private final PodFactory podFactory;
     private final DefaultDirectKubeApiServerIntegratorMetrics metrics;
@@ -99,7 +99,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
-                                                KubeApiFacade kubeApiFacade,
+                                                StdKubeApiFacade kubeApiFacade,
                                                 PodFactory podFactory,
                                                 TitusRuntime titusRuntime) {
         this.configuration = configuration;

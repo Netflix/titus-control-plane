@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.kubernetes;
+package com.netflix.titus.runtime.connector.kubernetes.std;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -24,6 +24,9 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
+import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResourceList;
 import io.kubernetes.client.common.KubernetesObject;
@@ -47,12 +50,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.connector.kubernetes.KubeApiClients.createSharedInformerFactory;
+import static com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients.createSharedInformerFactory;
 
 @Singleton
-public class DefaultKubeApiFacade implements KubeApiFacade {
+public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFacade.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultStdStdKubeApiFacade.class);
 
     public static final String FAILED = "Failed";
     public static final String BACKGROUND = "Background";
@@ -89,7 +92,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     private volatile boolean deactivated;
 
     @Inject
-    public DefaultKubeApiFacade(KubeConnectorConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
+    public DefaultStdStdKubeApiFacade(KubeConnectorConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.apiClient = apiClient;
         this.coreV1Api = new CoreV1Api(apiClient);

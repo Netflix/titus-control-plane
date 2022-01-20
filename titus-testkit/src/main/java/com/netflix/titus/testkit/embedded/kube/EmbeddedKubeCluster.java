@@ -44,7 +44,7 @@ public class EmbeddedKubeCluster {
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedKubeCluster.class);
 
     private final EmbeddedKubeFleet embeddedKubeFleet = new EmbeddedKubeFleet();
-    private final EmbeddedKubeApiFacade kubeIntegrator;
+    private final EmbeddedStdKubeApiFacade kubeIntegrator;
     private final EmbeddedKubeScheduler kubeScheduler;
 
     private final ConcurrentMap<String, EmbeddedKubePod> pods = new ConcurrentHashMap<>();
@@ -53,11 +53,11 @@ public class EmbeddedKubeCluster {
     private volatile boolean allowPodTermination;
 
     public EmbeddedKubeCluster() {
-        this.kubeIntegrator = new EmbeddedKubeApiFacade(this);
+        this.kubeIntegrator = new EmbeddedStdKubeApiFacade(this);
         this.kubeScheduler = new EmbeddedKubeScheduler(this);
     }
 
-    public EmbeddedKubeApiFacade getKubeApiFacade() {
+    public EmbeddedStdKubeApiFacade getKubeApiFacade() {
         return kubeIntegrator;
     }
 

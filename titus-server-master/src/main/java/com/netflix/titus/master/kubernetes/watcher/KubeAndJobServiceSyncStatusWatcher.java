@@ -47,7 +47,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.PodToTaskMapper;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
@@ -64,7 +64,7 @@ public class KubeAndJobServiceSyncStatusWatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeAndJobServiceSyncStatusWatcher.class);
 
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
     private final ReadOnlyJobOperations jobService;
     private final ContainerResultCodeResolver containerResultCodeResolver;
     private final TitusRuntime titusRuntime;
@@ -74,7 +74,7 @@ public class KubeAndJobServiceSyncStatusWatcher {
     private final ConcurrentMap<String, TaskHolder> capturedState = new ConcurrentHashMap<>();
 
     @Inject
-    public KubeAndJobServiceSyncStatusWatcher(KubeApiFacade kubeApiFacade,
+    public KubeAndJobServiceSyncStatusWatcher(StdKubeApiFacade kubeApiFacade,
                                               ReadOnlyJobOperations jobService,
                                               ContainerResultCodeResolver containerResultCodeResolver,
                                               TitusRuntime titusRuntime) {

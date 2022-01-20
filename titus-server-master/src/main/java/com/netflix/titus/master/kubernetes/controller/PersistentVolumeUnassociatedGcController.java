@@ -34,7 +34,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeStatus;
@@ -53,7 +53,7 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
     public static final String PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER = "persistentVolumeUnassociatedGcController";
     public static final String PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER_DESCRIPTION = "GC persistent volumes that are no longer associated with active jobs.";
 
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
     private final KubeControllerConfiguration kubeControllerConfiguration;
     private final V3JobOperations v3JobOperations;
 
@@ -65,7 +65,7 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
                                                     @Named(GC_CONTROLLER) LocalScheduler scheduler,
                                                     @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
                                                     @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
-                                                    KubeApiFacade kubeApiFacade,
+                                                    StdKubeApiFacade kubeApiFacade,
                                                     KubeControllerConfiguration kubeControllerConfiguration,
                                                     V3JobOperations v3JobOperations) {
         super(

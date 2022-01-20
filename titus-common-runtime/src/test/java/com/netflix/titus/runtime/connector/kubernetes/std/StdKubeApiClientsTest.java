@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.kubernetes;
+package com.netflix.titus.runtime.connector.kubernetes.std;
 
 import java.util.UUID;
 
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients;
 import okhttp3.Request;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class KubeApiClientsTest {
+public class StdKubeApiClientsTest {
 
     @Test
     public void testMapUri() {
         String uuid = UUID.randomUUID().toString();
         String instanceId = "i-07d1b67286b43458e";
         String path = "/segment1_" + uuid + "/segment2_" + instanceId;
-        assertThat(KubeApiClients.mapUri(newRequest(path))).isEqualTo("/segment1_/segment2_");
+        assertThat(StdKubeApiClients.mapUri(newRequest(path))).isEqualTo("/segment1_/segment2_");
     }
 
     private Request newRequest(String path) {

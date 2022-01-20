@@ -19,7 +19,7 @@ package com.netflix.titus.master.kubernetes.controller;
 import com.google.gson.JsonSyntaxException;
 import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPA
 
 public final class GcControllerUtil {
 
-    public static boolean deleteNode(KubeApiFacade kubeApiFacade, Logger logger, V1Node node) {
+    public static boolean deleteNode(StdKubeApiFacade kubeApiFacade, Logger logger, V1Node node) {
         String nodeName = KubeUtil.getMetadataName(node.getMetadata());
         try {
             kubeApiFacade.deleteNode(nodeName);
@@ -46,7 +46,7 @@ public final class GcControllerUtil {
         return false;
     }
 
-    public static boolean deletePod(KubeApiFacade kubeApiFacade, Logger logger, V1Pod pod) {
+    public static boolean deletePod(StdKubeApiFacade kubeApiFacade, Logger logger, V1Pod pod) {
         String podName = KubeUtil.getMetadataName(pod.getMetadata());
         try {
             kubeApiFacade.deleteNamespacedPod(DEFAULT_NAMESPACE, podName);

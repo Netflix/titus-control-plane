@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeBuilder;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeSpec;
@@ -48,14 +48,14 @@ public class PersistentVolumeReclaimController extends BaseGcController<V1Persis
     public static final String PERSISTENT_VOLUME_RECLAIM_CONTROLLER = "persistentVolumeReclaimController";
     public static final String PERSISTENT_VOLUME_RECLAIM_CONTROLLER_DESCRIPTION = "GC persistent volumes that are no longer associated with active jobs.";
 
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
 
     @Inject
     public PersistentVolumeReclaimController(TitusRuntime titusRuntime,
                                              @Named(GC_CONTROLLER) LocalScheduler scheduler,
                                              @Named(PERSISTENT_VOLUME_RECLAIM_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
                                              @Named(PERSISTENT_VOLUME_RECLAIM_CONTROLLER) ControllerConfiguration controllerConfiguration,
-                                             KubeApiFacade kubeApiFacade) {
+                                             StdKubeApiFacade kubeApiFacade) {
         super(
                 PERSISTENT_VOLUME_RECLAIM_CONTROLLER,
                 PERSISTENT_VOLUME_RECLAIM_CONTROLLER_DESCRIPTION,

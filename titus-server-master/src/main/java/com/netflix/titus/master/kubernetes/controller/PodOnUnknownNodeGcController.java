@@ -29,7 +29,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.kubernetes.KubeUtil;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,7 @@ public class PodOnUnknownNodeGcController extends BaseGcController<V1Pod> {
     public static final String POD_ON_UNKNOWN_NODE_GC_CONTROLLER_DESCRIPTION = "GC pods on unknown nodes.";
 
     private static final Logger logger = LoggerFactory.getLogger(PodOnUnknownNodeGcController.class);
-    private final KubeApiFacade kubeApiFacade;
+    private final StdKubeApiFacade kubeApiFacade;
 
     @Inject
     public PodOnUnknownNodeGcController(
@@ -49,7 +49,7 @@ public class PodOnUnknownNodeGcController extends BaseGcController<V1Pod> {
             @Named(GC_CONTROLLER) LocalScheduler scheduler,
             @Named(POD_ON_UNKNOWN_NODE_GC_CONTROLLER) FixedIntervalTokenBucketConfiguration tokenBucketConfiguration,
             @Named(POD_ON_UNKNOWN_NODE_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
-            KubeApiFacade kubeApiFacade
+            StdKubeApiFacade kubeApiFacade
     ) {
         super(
                 POD_ON_UNKNOWN_NODE_GC_CONTROLLER,
