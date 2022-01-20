@@ -1,5 +1,20 @@
 package com.netflix.titus.gateway.kubernetes;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -31,21 +46,6 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import static com.netflix.titus.gateway.kubernetes.F8KubeObjectFormatter.formatPodEssentials;
 
 @Singleton
@@ -76,7 +76,7 @@ public class KubeApiConnector {
     private volatile boolean deactivated;
 
     public List<TaskStatus.ContainerState> getContainerState(String taskId) {
-        if(pods.get(taskId) == null) {
+        if (pods.get(taskId) == null) {
             return Collections.emptyList();
         }
         List<ContainerStatus> containerStatuses = pods.get(taskId).getStatus().getContainerStatuses();
@@ -93,14 +93,14 @@ public class KubeApiConnector {
                 ContainerStatus containerStatus = iterator.next();
                 ContainerState status = containerStatus.getState();
                 TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
-                if(status.getRunning() != null) {
+                if (status.getRunning() != null) {
                     containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
                 } else if (status.getTerminated() != null) {
                     containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
                 }
                 containerStates.add(TaskStatus.ContainerState.newBuilder()
-                                        .setContainerName(containerStatus.getName())
-                                        .setContainerHealth(containerHealth).build());
+                        .setContainerName(containerStatus.getName())
+                        .setContainerHealth(containerHealth).build());
             }
             return containerStates;
         }
@@ -187,8 +187,7 @@ public class KubeApiConnector {
                 public void onAdd(Pod pod) {
                     Stopwatch stopwatch = Stopwatch.createStarted();
                     try {
-
-                        String taskId = pod.getSpec().getContainers().get(0).getName();
+                        String taskId = pod.getMetadata().getName();
 
                         Pod old = pods.get(taskId);
                         pods.put(taskId, pod);
@@ -214,9 +213,8 @@ public class KubeApiConnector {
                 public void onUpdate(Pod oldPod, Pod newPod) {
                     Stopwatch stopwatch = Stopwatch.createStarted();
                     try {
-                        //metrics.onUpdate(newPod);
-
-                        pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
+                        String taskId = newPod.getMetadata().getName();
+                        pods.put(taskId, newPod);
 
                         PodUpdatedEvent podEvent = PodEvent.onUpdate(oldPod, newPod, findNode(newPod));
                         sink.next(podEvent);
@@ -233,9 +231,8 @@ public class KubeApiConnector {
                 public void onDelete(Pod pod, boolean deletedFinalStateUnknown) {
                     Stopwatch stopwatch = Stopwatch.createStarted();
                     try {
-                        //metrics.onDelete(pod);
-
-                        pods.remove(pod.getSpec().getContainers().get(0).getName());
+                        String taskId = pod.getMetadata().getName();
+                        pods.remove(taskId);
 
                         PodDeletedEvent podEvent = PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod));
                         sink.next(podEvent);
