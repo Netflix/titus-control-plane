@@ -129,7 +129,7 @@ public class V0SpecPodFactory implements PodFactory {
                 .labels(labels);
 
         V1Container container = new V1Container()
-                .name(taskId)
+                .name("main")
                 .image("imageIsInContainerInfo")
                 .env(toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()))
