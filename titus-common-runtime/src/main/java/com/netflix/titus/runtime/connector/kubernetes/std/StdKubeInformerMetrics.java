@@ -22,7 +22,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 
-class KubeInformerMetrics<ApiType extends KubernetesObject> {
+class StdKubeInformerMetrics<ApiType extends KubernetesObject> {
 
     private static final String METRICS_ROOT = "titus.kubeClient.";
 
@@ -38,9 +38,9 @@ class KubeInformerMetrics<ApiType extends KubernetesObject> {
 
     private final TitusRuntime titusRuntime;
 
-    public KubeInformerMetrics(String type,
-                               SharedIndexInformer<ApiType> informer,
-                               TitusRuntime titusRuntime) {
+    public StdKubeInformerMetrics(String type,
+                                  SharedIndexInformer<ApiType> informer,
+                                  TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
         this.sizeGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER, "type", type);
         this.syncedGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER_SYNCED, "type", type);

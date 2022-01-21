@@ -31,7 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.DateTimeExt;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 
 public final class RelocationUtil {
 
@@ -41,12 +41,12 @@ public final class RelocationUtil {
         return result;
     }
 
-    public static Map<String, Node> buildTasksToInstanceMap(Map<String, Node> nodesById, Map<String, Task> taskByIdMap) {
-        Map<String, Node> result = new HashMap<>();
+    public static Map<String, TitusNode> buildTasksToInstanceMap(Map<String, TitusNode> nodesById, Map<String, Task> taskByIdMap) {
+        Map<String, TitusNode> result = new HashMap<>();
         taskByIdMap.values().forEach(task -> {
             String instanceId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
             if (instanceId != null) {
-                Node instance = nodesById.get(instanceId);
+                TitusNode instance = nodesById.get(instanceId);
                 if (instance != null) {
                     result.put(task.getId(), instance);
                 }
@@ -55,12 +55,12 @@ public final class RelocationUtil {
         return result;
     }
 
-    public static Map<String, Node> buildTasksToInstanceMap(Map<String, Node> nodesById,
-                                                            ReadOnlyJobOperations jobOperations) {
+    public static Map<String, TitusNode> buildTasksToInstanceMap(Map<String, TitusNode> nodesById,
+                                                                 ReadOnlyJobOperations jobOperations) {
         return buildTasksToInstanceMap(nodesById, buildTaskByIdMap(jobOperations));
     }
 
-    public static List<String> buildTasksFromNodesAndJobsFilter(Map<String, Node> nodesById, Set<String> jobIds,
+    public static List<String> buildTasksFromNodesAndJobsFilter(Map<String, TitusNode> nodesById, Set<String> jobIds,
                                                                 ReadOnlyJobOperations jobOperations) {
         Map<String, Task> tasksById = buildTaskByIdMap(jobOperations);
         Set<String> taskIdsOnNodes = buildTasksToInstanceMap(nodesById, tasksById).keySet();
@@ -73,7 +73,7 @@ public final class RelocationUtil {
         }).collect(Collectors.toList());
     }
 
-    public static List<Task> findTasksOnInstance(Node instance, Collection<Task> tasks) {
+    public static List<Task> findTasksOnInstance(TitusNode instance, Collection<Task> tasks) {
         return tasks.stream()
                 .filter(task -> isAssignedToAgent(task) && isOnInstance(instance, task))
                 .collect(Collectors.toList());
@@ -84,7 +84,7 @@ public final class RelocationUtil {
         return state != TaskState.Accepted && state != TaskState.Finished;
     }
 
-    public static boolean isOnInstance(Node instance, Task task) {
+    public static boolean isOnInstance(TitusNode instance, Task task) {
         String taskAgentId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
         return taskAgentId != null && taskAgentId.equals(instance.getId());
     }

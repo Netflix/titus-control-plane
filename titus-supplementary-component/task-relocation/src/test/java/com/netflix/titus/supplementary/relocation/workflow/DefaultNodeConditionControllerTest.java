@@ -24,7 +24,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -86,7 +86,7 @@ public class DefaultNodeConditionControllerTest {
     @Test
     public void checkTasksTerminatedDueToBadNodeConditions() {
         // Mock jobs, tasks & nodes
-        Map<String, Node> nodeMap = buildNodes();
+        Map<String, TitusNode> nodeMap = buildNodes();
         List<Job<BatchJobExt>> jobs = getJobs(true);
         Map<String, List<Task>> tasksByJobIdMap = buildTasksForJobAndNodeAssignment(new ArrayList<>(nodeMap.values()), jobs);
 
@@ -129,7 +129,7 @@ public class DefaultNodeConditionControllerTest {
 
     @Test
     public void badNodeConditionsIgnoredForJobsNotOptingIn() {
-        Map<String, Node> nodeMap = buildNodes();
+        Map<String, TitusNode> nodeMap = buildNodes();
         List<Job<BatchJobExt>> jobs = getJobs(false);
         Map<String, List<Task>> stringListMap = buildTasksForJobAndNodeAssignment(new ArrayList<>(nodeMap.values()), jobs);
 
@@ -168,9 +168,9 @@ public class DefaultNodeConditionControllerTest {
     }
 
     private void verifyTerminatedTasksOnBadNodes(Set<String> terminatedTaskIds,
-                                                 Map<String, List<Task>> tasksByJobIdMap, Map<String, Node> nodeMap) {
+                                                 Map<String, List<Task>> tasksByJobIdMap, Map<String, TitusNode> nodeMap) {
         List<Task> allTasks = tasksByJobIdMap.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
-        List<String> badNodeIds = nodeMap.values().stream().filter(Node::isInBadCondition).map(Node::getId).collect(Collectors.toList());
+        List<String> badNodeIds = nodeMap.values().stream().filter(TitusNode::isInBadCondition).map(TitusNode::getId).collect(Collectors.toList());
         Set<String> taskIdsOnBadNodes = allTasks.stream()
                 .filter(task -> task.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID) &&
                         badNodeIds.contains(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)))
@@ -187,7 +187,7 @@ public class DefaultNodeConditionControllerTest {
         return Arrays.asList(job1, job2);
     }
 
-    private List<Task> buildJobTasks(Job<BatchJobExt> batchJob, List<Node> nodes) {
+    private List<Task> buildJobTasks(Job<BatchJobExt> batchJob, List<TitusNode> nodes) {
         List<Task> tasksForJob = new ArrayList<>();
         List<BatchJobTask> batchTasks = JobGenerator.batchTasks(batchJob).getValues(nodes.size());
         for (int i = 0; i < batchTasks.size(); i++) {
@@ -198,23 +198,23 @@ public class DefaultNodeConditionControllerTest {
         return tasksForJob;
     }
 
-    private Map<String, List<Task>> buildTasksForJobAndNodeAssignment(List<Node> nodes, List<Job<BatchJobExt>> jobs) {
+    private Map<String, List<Task>> buildTasksForJobAndNodeAssignment(List<TitusNode> nodes, List<Job<BatchJobExt>> jobs) {
         Map<String, List<Task>> tasksByJobIdMap = new HashMap<>(2);
         jobs.forEach(job -> tasksByJobIdMap.put(job.getId(), buildJobTasks(job, nodes)));
         return tasksByJobIdMap;
     }
 
 
-    private Map<String, Node> buildNodes() {
-        Map<String, Node> nodeMap = new HashMap<>(3);
+    private Map<String, TitusNode> buildNodes() {
+        Map<String, TitusNode> nodeMap = new HashMap<>(3);
         nodeMap.put(NodeIds.NODE_1.name(), buildNode(NodeIds.NODE_1.name(), true));
         nodeMap.put(NodeIds.NODE_2.name(), buildNode(NodeIds.NODE_2.name(), true));
         nodeMap.put(NodeIds.NODE_3.name(), buildNode(NodeIds.NODE_3.name(), false));
         return nodeMap;
     }
 
-    private Node buildNode(String id, boolean isBadCondition) {
-        return Node.newBuilder()
+    private TitusNode buildNode(String id, boolean isBadCondition) {
+        return TitusNode.newBuilder()
                 .withServerGroupId("serverGroup1")
                 .withId(id)
                 .withBadCondition(isBadCondition)

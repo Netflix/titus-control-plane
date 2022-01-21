@@ -34,7 +34,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationR
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Triple;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
@@ -82,8 +82,8 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
     }
 
     private Map<String, TaskRelocationPlan> buildRelocationPlans() {
-        Map<String, Node> nodes = nodeDataResolver.resolve();
-        List<Triple<Job<?>, Task, Node>> allItems = findAllJobTaskAgentTriples(nodes);
+        Map<String, TitusNode> nodes = nodeDataResolver.resolve();
+        List<Triple<Job<?>, Task, TitusNode>> allItems = findAllJobTaskAgentTriples(nodes);
 
         Map<String, TaskRelocationPlan> result = new HashMap<>();
 
@@ -93,7 +93,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
 
             Job<?> job = triple.getFirst();
             Task task = triple.getSecond();
-            Node instance = triple.getThird();
+            TitusNode instance = triple.getThird();
 
             checkIfNeedsRelocationPlan(job, task, instance).ifPresent(reason ->
                     result.put(task.getId(), buildSelfManagedRelocationPlan(job, task, reason))
@@ -105,15 +105,15 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
         return result;
     }
 
-    private List<Triple<Job<?>, Task, Node>> findAllJobTaskAgentTriples(Map<String, Node> nodes) {
-        Map<String, Node> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
+    private List<Triple<Job<?>, Task, TitusNode>> findAllJobTaskAgentTriples(Map<String, TitusNode> nodes) {
+        Map<String, TitusNode> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
 
-        List<Triple<Job<?>, Task, Node>> result = new ArrayList<>();
+        List<Triple<Job<?>, Task, TitusNode>> result = new ArrayList<>();
         jobOperations.getJobs().forEach(job -> {
             jobOperations.getTasks(job.getId()).forEach(task -> {
                 TaskState taskState = task.getStatus().getState();
                 if (taskState == TaskState.StartInitiated || taskState == TaskState.Started) {
-                    Node instance = taskToInstanceMap.get(task.getId());
+                    TitusNode instance = taskToInstanceMap.get(task.getId());
                     if (instance != null) {
                         result.add(Triple.of(job, task, instance));
                     } else {

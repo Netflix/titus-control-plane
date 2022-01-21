@@ -22,7 +22,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.runtime.RelocationAttributes;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -44,7 +44,7 @@ public class RelocationPredicatesTest {
 
     private static final Task TASK = JobGenerator.oneBatchTask().toBuilder().withJobId(JOB.getId()).build();
 
-    private static final Node ACTIVE_NODE = Node.newBuilder().withId("node1").withServerGroupId("serverGroup1").build();
+    private static final TitusNode ACTIVE_NODE = TitusNode.newBuilder().withId("node1").withServerGroupId("serverGroup1").build();
 
     @Test
     public void testJobRelocationRequiredByPredicates() {
@@ -80,14 +80,14 @@ public class RelocationPredicatesTest {
 
     @Test
     public void testInstanceRelocationRequiredPredicates() {
-        Node decommissionedNode = ACTIVE_NODE.toBuilder().withRelocationRequired(true).build();
+        TitusNode decommissionedNode = ACTIVE_NODE.toBuilder().withRelocationRequired(true).build();
         assertThat(checkIfNeedsRelocationPlan(JOB, TASK, decommissionedNode)).isPresent();
         assertThat(checkIfMustBeRelocatedImmediately(JOB, TASK, decommissionedNode)).isEmpty();
     }
 
     @Test
     public void testInstanceRelocationRequiredImmediatelyPredicates() {
-        Node decommissionedNode = ACTIVE_NODE.toBuilder().withRelocationRequiredImmediately(true).build();
+        TitusNode decommissionedNode = ACTIVE_NODE.toBuilder().withRelocationRequiredImmediately(true).build();
         assertThat(checkIfNeedsRelocationPlan(JOB, TASK, decommissionedNode)).isEmpty();
         assertThat(checkIfMustBeRelocatedImmediately(JOB, TASK, decommissionedNode)).isPresent();
     }

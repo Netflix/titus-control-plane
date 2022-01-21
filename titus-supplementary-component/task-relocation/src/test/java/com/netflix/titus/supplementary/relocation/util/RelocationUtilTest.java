@@ -13,7 +13,7 @@ import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 
@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when;
 
 public class RelocationUtilTest {
 
-    private Node buildNode(String nodeId) {
-        return Node.newBuilder()
+    private TitusNode buildNode(String nodeId) {
+        return TitusNode.newBuilder()
                 .withId(nodeId)
                 .withServerGroupId("serverGroup1")
                 .build();
@@ -55,7 +55,7 @@ public class RelocationUtilTest {
         when(jobOperations.getTasks(job2.getId())).thenReturn(Collections.singletonList(task2));
         when(jobOperations.getTasks(job3.getId())).thenReturn(Collections.singletonList(task3));
 
-        Map<String, Node> nodes = new HashMap<>(3);
+        Map<String, TitusNode> nodes = new HashMap<>(3);
         nodes.put(node1, buildNode(node1));
         nodes.put(node2, buildNode(node2));
         nodes.put(node3, buildNode(node3));

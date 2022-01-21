@@ -29,6 +29,7 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
@@ -71,6 +72,9 @@ public class DefaultFabric8IOConnector implements Fabric8IOConnector {
     private Scheduler scheduler;
     private Disposable subscription;
 
+    private Fabric8IOInformerMetrics<Pod> podInformerMetrics;
+    private Fabric8IOInformerMetrics<Node> nodeInformerMetrics;
+
     @Inject
     public DefaultFabric8IOConnector(NamespacedKubernetesClient kubernetesClient, TitusRuntime titusRuntime) {
         this.kubernetesClient = kubernetesClient;
@@ -83,7 +87,10 @@ public class DefaultFabric8IOConnector implements Fabric8IOConnector {
 
     @PreDestroy
     public void shutdown() {
+        Evaluators.acceptNotNull(subscription, Disposable::dispose);
         if (sharedInformerFactory != null) {
+            Evaluators.acceptNotNull(podInformerMetrics, Fabric8IOInformerMetrics::close);
+            Evaluators.acceptNotNull(nodeInformerMetrics, Fabric8IOInformerMetrics::close);
             sharedInformerFactory.stopAllRegisteredInformers();
         }
     }
@@ -167,6 +174,8 @@ public class DefaultFabric8IOConnector implements Fabric8IOConnector {
                 this.sharedInformerFactory = kubernetesClient.informers();
                 this.podInformer = createPodInformer(sharedInformerFactory);
                 this.nodeInformer = createNodeInformer(sharedInformerFactory);
+                this.podInformerMetrics = new Fabric8IOInformerMetrics<>("podInformer", podInformer, titusRuntime);
+                this.nodeInformerMetrics = new Fabric8IOInformerMetrics<>("nodeInformer", nodeInformer, titusRuntime);
                 sharedInformerFactory.startAllRegisteredInformers();
                 logger.info("Kube pod informer activated");
             } catch (Exception e) {

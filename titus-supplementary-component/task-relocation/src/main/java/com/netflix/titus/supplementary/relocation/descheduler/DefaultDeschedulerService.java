@@ -38,7 +38,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.eviction.EvictionConfiguration;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
@@ -99,9 +99,9 @@ public class DefaultDeschedulerService implements DeschedulerService {
         Map<String, DeschedulingResult> allRequestedEvictions = CollectionsExt.merge(requestedImmediateEvictions, requestedEvictions);
 
         Map<String, DeschedulingResult> regularEvictions = new HashMap<>();
-        Optional<Pair<Node, List<Task>>> bestMatch;
+        Optional<Pair<TitusNode, List<Task>>> bestMatch;
         while ((bestMatch = taskMigrationDescheduler.nextBestMatch()).isPresent()) {
-            Node agent = bestMatch.get().getLeft();
+            TitusNode agent = bestMatch.get().getLeft();
             List<Task> tasks = bestMatch.get().getRight();
             tasks.forEach(task -> {
                 if (!allRequestedEvictions.containsKey(task.getId())) {
@@ -132,7 +132,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                     relocationPlan = newNotDelayedRelocationPlan(task, false);
                 }
 
-                Node agent = evacuatedAgentsAllocationTracker.getRemovableAgent(task);
+                TitusNode agent = evacuatedAgentsAllocationTracker.getRemovableAgent(task);
                 regularEvictions.put(
                         task.getId(),
                         DeschedulingResult.newBuilder()
@@ -163,7 +163,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
     }
 
     @VisibleForTesting
-    Optional<TaskRelocationPlan> getRelocationPlanForTask(Node agent, Task task,
+    Optional<TaskRelocationPlan> getRelocationPlanForTask(TitusNode agent, Task task,
                                                           Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
         AtomicReference<Optional<TaskRelocationPlan>> result = new AtomicReference<>(Optional.empty());
         TaskRelocationPlan plannedAheadTaskRelocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());

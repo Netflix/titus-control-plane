@@ -83,11 +83,11 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
     private volatile SharedIndexInformer<V1PersistentVolumeClaim> persistentVolumeClaimInformer;
     private volatile SharedIndexInformer<V1OpportunisticResource> opportunisticResourceInformer;
 
-    private KubeInformerMetrics<V1Node> nodeInformerMetrics;
-    private KubeInformerMetrics<V1Pod> podInformerMetrics;
-    private KubeInformerMetrics<V1PersistentVolume> persistentVolumeInformerMetrics;
-    private KubeInformerMetrics<V1PersistentVolumeClaim> persistentVolumeClaimInformerMetrics;
-    private KubeInformerMetrics<V1OpportunisticResource> opportunisticResourceInformerMetrics;
+    private StdKubeInformerMetrics<V1Node> nodeInformerMetrics;
+    private StdKubeInformerMetrics<V1Pod> podInformerMetrics;
+    private StdKubeInformerMetrics<V1PersistentVolume> persistentVolumeInformerMetrics;
+    private StdKubeInformerMetrics<V1PersistentVolumeClaim> persistentVolumeClaimInformerMetrics;
+    private StdKubeInformerMetrics<V1OpportunisticResource> opportunisticResourceInformerMetrics;
 
     private volatile boolean deactivated;
 
@@ -105,11 +105,11 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
         if (sharedInformerFactory != null) {
             sharedInformerFactory.stopAllRegisteredInformers();
         }
-        Evaluators.acceptNotNull(nodeInformerMetrics, KubeInformerMetrics::shutdown);
-        Evaluators.acceptNotNull(podInformerMetrics, KubeInformerMetrics::shutdown);
-        Evaluators.acceptNotNull(persistentVolumeInformerMetrics, KubeInformerMetrics::shutdown);
-        Evaluators.acceptNotNull(persistentVolumeClaimInformerMetrics, KubeInformerMetrics::shutdown);
-        Evaluators.acceptNotNull(opportunisticResourceInformerMetrics, KubeInformerMetrics::shutdown);
+        Evaluators.acceptNotNull(nodeInformerMetrics, StdKubeInformerMetrics::shutdown);
+        Evaluators.acceptNotNull(podInformerMetrics, StdKubeInformerMetrics::shutdown);
+        Evaluators.acceptNotNull(persistentVolumeInformerMetrics, StdKubeInformerMetrics::shutdown);
+        Evaluators.acceptNotNull(persistentVolumeClaimInformerMetrics, StdKubeInformerMetrics::shutdown);
+        Evaluators.acceptNotNull(opportunisticResourceInformerMetrics, StdKubeInformerMetrics::shutdown);
     }
 
     @Deactivator
@@ -327,11 +327,11 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
                 this.persistentVolumeClaimInformer = customizeInformer("persistentVolumeClaimInformer", createPersistentVolumeClaimInformer(sharedInformerFactory));
                 this.opportunisticResourceInformer = customizeInformer("opportunisticInformer", createOpportunisticResourceInformer(sharedInformerFactory));
 
-                this.nodeInformerMetrics = new KubeInformerMetrics<>("node", nodeInformer, titusRuntime);
-                this.podInformerMetrics = new KubeInformerMetrics<>("pod", podInformer, titusRuntime);
-                this.persistentVolumeInformerMetrics = new KubeInformerMetrics<>("persistentvolume", persistentVolumeInformer, titusRuntime);
-                this.persistentVolumeClaimInformerMetrics = new KubeInformerMetrics<>("persistentvolumeclaim", persistentVolumeClaimInformer, titusRuntime);
-                this.opportunisticResourceInformerMetrics = new KubeInformerMetrics<>("opportunistic", opportunisticResourceInformer, titusRuntime);
+                this.nodeInformerMetrics = new StdKubeInformerMetrics<>("node", nodeInformer, titusRuntime);
+                this.podInformerMetrics = new StdKubeInformerMetrics<>("pod", podInformer, titusRuntime);
+                this.persistentVolumeInformerMetrics = new StdKubeInformerMetrics<>("persistentvolume", persistentVolumeInformer, titusRuntime);
+                this.persistentVolumeClaimInformerMetrics = new StdKubeInformerMetrics<>("persistentvolumeclaim", persistentVolumeClaimInformer, titusRuntime);
+                this.opportunisticResourceInformerMetrics = new StdKubeInformerMetrics<>("opportunistic", opportunisticResourceInformer, titusRuntime);
 
                 sharedInformerFactory.startAllRegisteredInformers();
 

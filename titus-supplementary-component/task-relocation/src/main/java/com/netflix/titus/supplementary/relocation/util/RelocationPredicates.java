@@ -28,7 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.RelocationAttributes;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
 
@@ -41,7 +41,7 @@ public class RelocationPredicates {
         Task
     }
 
-    public static Optional<String> checkIfNeedsRelocationPlan(Job<?> job, Task task, Node instance) {
+    public static Optional<String> checkIfNeedsRelocationPlan(Job<?> job, Task task, TitusNode instance) {
         if (!hasDisruptionBudget(job) || !isSelfManaged(job)) {
             return Optional.empty();
         }
@@ -79,7 +79,7 @@ public class RelocationPredicates {
         return Optional.empty();
     }
 
-    public static Optional<Pair<RelocationTrigger, String>> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, Node instance) {
+    public static Optional<Pair<RelocationTrigger, String>> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, TitusNode instance) {
         if (instance.isRelocationRequiredImmediately()) {
             return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent instance tagged for immediate eviction"));
         }
@@ -108,14 +108,14 @@ public class RelocationPredicates {
         return Optional.empty();
     }
 
-    public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task, Node instance) {
+    public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task, TitusNode instance) {
         if (instance.isRelocationRequired()) {
             return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent tagged for eviction"));
         }
         return checkIfRelocationRequired(job, task);
     }
 
-    public static Optional<String> checkIfRelocationBlocked(Job<?> job, Task task, Node instance) {
+    public static Optional<String> checkIfRelocationBlocked(Job<?> job, Task task, TitusNode instance) {
         if (isRelocationNotAllowed(task)) {
             return Optional.of("Task marked as not evictable");
         }

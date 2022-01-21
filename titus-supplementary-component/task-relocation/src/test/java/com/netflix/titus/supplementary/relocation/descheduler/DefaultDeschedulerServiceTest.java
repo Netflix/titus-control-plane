@@ -39,7 +39,7 @@ import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.supplementary.relocation.connector.KubernetesNodeDataResolver;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -141,7 +141,7 @@ public class DefaultDeschedulerServiceTest {
         DefaultDeschedulerService dds = new DefaultDeschedulerService(
                 jobOperations,
                 mock(ReadOnlyEvictionOperations.class),
-                new KubernetesNodeDataResolver(configuration, TestDataFactory.mockKubeApiFacade(), node -> true),
+                new KubernetesNodeDataResolver(configuration, TestDataFactory.mockFabric8IOConnector(), node -> true),
                 () -> "foo|bar",
                 titusRuntime
         );
@@ -155,7 +155,7 @@ public class DefaultDeschedulerServiceTest {
         ServiceJobTask task = JobGenerator.serviceTasks(job).getValue();
         when(jobOperations.getJob(job.getId())).thenReturn(Optional.of(job));
 
-        Node node = Node.newBuilder()
+        TitusNode node = TitusNode.newBuilder()
                 .withId("node1")
                 .withServerGroupId("asg1")
                 .withRelocationRequired(true).withBadCondition(false).build();

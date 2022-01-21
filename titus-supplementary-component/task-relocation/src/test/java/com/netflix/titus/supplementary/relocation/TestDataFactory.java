@@ -18,6 +18,7 @@ package com.netflix.titus.supplementary.relocation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,16 +31,17 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.informer.cache.Indexer;
-import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1NodeCondition;
-import io.kubernetes.client.openapi.models.V1NodeSpec;
-import io.kubernetes.client.openapi.models.V1NodeStatus;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.openapi.models.V1Taint;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.NodeBuilder;
+import io.fabric8.kubernetes.api.model.NodeCondition;
+import io.fabric8.kubernetes.api.model.NodeConditionBuilder;
+import io.fabric8.kubernetes.api.model.Taint;
+import io.fabric8.kubernetes.api.model.TaintBuilder;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
+import io.fabric8.kubernetes.client.informers.cache.Indexer;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofBatchSize;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LABEL_MACHINE_GROUP;
@@ -89,57 +91,53 @@ public class TestDataFactory {
                 .addRemovableInstanceGroup(REMOVABLE_INSTANCE_GROUP_ID, 10);
     }
 
+    public static Fabric8IOConnector mockFabric8IOConnector(Node... nodes) {
+        Fabric8IOConnector fabric8IOConnector = mock(Fabric8IOConnector.class);
+        SharedIndexInformer<Node> nodeInformer = mock(SharedIndexInformer.class);
+        Indexer<Node> nodeIndexer = mock(Indexer.class);
+        List<Node> nodeIndex = new ArrayList<>(Arrays.asList(nodes));
 
-    public static StdKubeApiFacade mockKubeApiFacade(V1Node... nodes) {
-        StdKubeApiFacade kubeApiFacade = mock(StdKubeApiFacade.class);
-        SharedIndexInformer<V1Node> nodeInformer = mock(SharedIndexInformer.class);
-        Indexer<V1Node> nodeIndexer = mock(Indexer.class);
-        List<V1Node> nodeIndex = new ArrayList<>(Arrays.asList(nodes));
-
-        when(kubeApiFacade.getNodeInformer()).thenReturn(nodeInformer);
+        when(fabric8IOConnector.getNodeInformer()).thenReturn(nodeInformer);
         when(nodeInformer.getIndexer()).thenReturn(nodeIndexer);
         when(nodeIndexer.list()).thenAnswer(invocation -> nodeIndex);
         when(nodeIndexer.getByKey(anyString())).thenAnswer(invocation -> {
             String key = invocation.getArgument(0);
-            Optional<V1Node> nodeOpt = nodeIndex.stream().filter(node -> node.getMetadata() != null &&
+            Optional<Node> nodeOpt = nodeIndex.stream().filter(node -> node.getMetadata() != null &&
                     node.getMetadata().getName() != null && node.getMetadata().getName().equals(key)).findFirst();
             return nodeOpt.orElse(null);
         });
-        return kubeApiFacade;
+        return fabric8IOConnector;
     }
 
-    public static V1Node newNode(String id) {
-        return new V1Node()
-                .metadata(new V1ObjectMeta()
-                        .name(id)
-                        .labels(CollectionsExt.asMap(
-                                NODE_LABEL_MACHINE_GROUP, "serverGroup1"
-                        ))
-                )
-                .spec(new V1NodeSpec()
-                        .taints(new ArrayList<>())
-                );
+    public static Node newNode(String id) {
+        return new NodeBuilder()
+                .withNewMetadata()
+                .withName(id)
+                .withLabels(CollectionsExt.asMap(NODE_LABEL_MACHINE_GROUP, "serverGroup1"))
+                .endMetadata()
+                .withNewSpec()
+                .endSpec()
+                .withNewStatus()
+                .endStatus()
+                .build();
     }
 
-    public static void addNodeCondition(V1Node node, String conditionType, String conditionValue) {
-        V1NodeCondition v1NodeCondition = new V1NodeCondition().type(conditionType).status(conditionValue)
-                .message("Msg for " + conditionType).reason("Reason for " + conditionType);
-        if (node.getStatus() != null) {
-            node.getStatus().addConditionsItem(v1NodeCondition);
-        } else {
-            V1NodeStatus v1NodeStatus = new V1NodeStatus().addConditionsItem(v1NodeCondition);
-            node.setStatus(v1NodeStatus);
-        }
+    public static void addNodeCondition(Node node, String conditionType, String conditionValue) {
+        List<NodeCondition> conditions = Evaluators.getOrDefault(node.getStatus().getConditions(), Collections.emptyList());
+        NodeCondition nodeCondition = new NodeConditionBuilder()
+                .withType(conditionType)
+                .withStatus(conditionValue)
+                .withMessage("Msg for " + conditionType)
+                .withReason("Reason for " + conditionType)
+                .build();
+        conditions.add(nodeCondition);
+        node.getStatus().setConditions(conditions);
     }
 
-    public static void addNodeTaint(V1Node node, String key, String value, String effect) {
-        V1Taint v1Taint = new V1Taint();
-        v1Taint.setKey(key);
-        v1Taint.setValue(value);
-        v1Taint.setEffect(effect);
-        if (node.getSpec().getTaints() != null) {
-            node.getSpec().getTaints().add(v1Taint);
-        }
+    public static void addNodeTaint(Node node, String key, String value, String effect) {
+        List<Taint> taints = Evaluators.getOrDefault(node.getSpec().getTaints(), Collections.emptyList());
+        Taint taint = new TaintBuilder().withKey(key).withValue(value).withEffect(effect).build();
+        taints.add(taint);
+        node.getSpec().setTaints(taints);
     }
-
 }

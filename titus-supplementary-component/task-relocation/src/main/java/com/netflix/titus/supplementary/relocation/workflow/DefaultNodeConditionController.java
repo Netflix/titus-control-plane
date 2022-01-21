@@ -24,7 +24,7 @@ import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
-import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.TitusNode;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
@@ -111,7 +111,7 @@ public class DefaultNodeConditionController implements NodeConditionController {
 
     public Mono<Void> handleNodesWithBadCondition() {
         // Identify bad nodes from node resolver
-        Map<String, Node> badConditionNodesById = nodeDataResolver.resolve().entrySet().stream().filter(nodeEntry -> nodeEntry.getValue().isInBadCondition())
+        Map<String, TitusNode> badConditionNodesById = nodeDataResolver.resolve().entrySet().stream().filter(nodeEntry -> nodeEntry.getValue().isInBadCondition())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // Find jobs that are eligible for bad node condition treatment
