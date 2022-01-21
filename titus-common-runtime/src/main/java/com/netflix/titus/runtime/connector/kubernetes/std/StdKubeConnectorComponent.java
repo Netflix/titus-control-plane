@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
-public class KubeConnectorComponent {
+public class StdKubeConnectorComponent {
 
     @Bean
     public KubeConnectorConfiguration getKubeConnectorConfiguration(MyEnvironment environment) {

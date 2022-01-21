@@ -28,6 +28,8 @@ import reactor.core.publisher.Mono;
 /**
  * {@link StdKubeApiFacade} encapsulates Kube Java, except the entity model and the informer API. The latter is
  * provided as a set of interfaces (unlike ApiClient or CoreV1Api), so it is easy to mock in the test code.
+
+ * @deprecated Use Fabric8IO instead.
  */
 public interface StdKubeApiFacade {
 
