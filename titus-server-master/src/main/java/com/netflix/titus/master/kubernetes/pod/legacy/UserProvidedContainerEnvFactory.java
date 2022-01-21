@@ -16,25 +16,30 @@
 
 package com.netflix.titus.master.kubernetes.pod.legacy;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.tuple.Pair;
 
 public class UserProvidedContainerEnvFactory implements ContainerEnvFactory {
 
     private static final ContainerEnvFactory INSTANCE = new UserProvidedContainerEnvFactory();
 
     @Override
-    public Map<String, String> buildContainerEnv(Job<?> job, Task task) {
+    public Pair<List<String>,Map<String, String>> buildContainerEnv(Job<?> job, Task task) {
+        // For UserProvided env vars, the SystemProvidedEnvVars list is naturally empty.
+        List<String> systemEnvNames = Collections.emptyList();
         Map<String, String> env = new HashMap<>();
         job.getJobDescriptor().getContainer().getEnv().forEach((k, v) -> {
             if (v != null) {
                 env.put(k, v);
             }
         });
-        return env;
+        return Pair.of(systemEnvNames, env);
     }
 
     public static ContainerEnvFactory getInstance() {

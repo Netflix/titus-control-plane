@@ -40,11 +40,14 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
-import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.DefaultAggregatingContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.TitusProvidedContainerEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.UserProvidedContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -79,7 +82,12 @@ public class V1SpecPodFactoryTest {
 
     private final TaintTolerationFactory taintTolerationFactory = mock(TaintTolerationFactory.class);
 
-    private final PodEnvFactory podEnvFactory = new DefaultPodEnvFactory();
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
+    private final DefaultAggregatingContainerEnvFactory defaultAggregatingContainerEnvFactory =
+            new DefaultAggregatingContainerEnvFactory(titusRuntime,
+                    UserProvidedContainerEnvFactory.getInstance(),
+                    TitusProvidedContainerEnvFactory.getInstance());
 
     private final TopologyFactory topologyFactory = mock(TopologyFactory.class);
 
@@ -95,7 +103,7 @@ public class V1SpecPodFactoryTest {
                 podAffinityFactory,
                 taintTolerationFactory,
                 topologyFactory,
-                podEnvFactory,
+                defaultAggregatingContainerEnvFactory,
                 logStorageInfo,
                 schedulerConfiguration
         );

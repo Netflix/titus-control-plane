@@ -16,20 +16,39 @@
 
 package com.netflix.titus.master.kubernetes.pod.legacy;
 
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 
 public class TitusProvidedContainerEnvFactory implements ContainerEnvFactory {
 
     private static final ContainerEnvFactory INSTANCE = new TitusProvidedContainerEnvFactory();
 
+    private static final List<String> commonPodEnvVars = new ArrayList<>(Arrays.asList(
+            KubeConstants.POD_ENV_TITUS_JOB_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_ID,
+            KubeConstants.POD_ENV_NETFLIX_EXECUTOR,
+            KubeConstants.POD_ENV_NETFLIX_INSTANCE_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_INSTANCE_ID,
+            KubeConstants.POD_ENV_TITUS_TASK_ORIGINAL_ID
+    ));
+
+    private static final List<String> batchPodEnvVars = Collections.singletonList(
+            KubeConstants.POD_ENV_TITUS_TASK_INDEX
+    );
+
     @Override
-    public Map<String, String> buildContainerEnv(Job<?> job, Task task) {
+    public Pair<List<String>, Map<String, String>> buildContainerEnv(Job<?> job, Task task) {
         Map<String, String> env = new HashMap<>();
         env.put(KubeConstants.POD_ENV_TITUS_JOB_ID, task.getJobId());
         env.put(KubeConstants.POD_ENV_TITUS_TASK_ID, task.getId());
@@ -37,11 +56,14 @@ public class TitusProvidedContainerEnvFactory implements ContainerEnvFactory {
         env.put(KubeConstants.POD_ENV_NETFLIX_INSTANCE_ID, task.getId());
         env.put(KubeConstants.POD_ENV_TITUS_TASK_INSTANCE_ID, task.getId());
         env.put(KubeConstants.POD_ENV_TITUS_TASK_ORIGINAL_ID, task.getOriginalId());
+        // In TitusProvidedContainerEnvFactory, systemEnvNames ends up having everything we add
+        List<String> systemEnvNames = new ArrayList<>(commonPodEnvVars);
         if (task instanceof BatchJobTask) {
             BatchJobTask batchJobTask = (BatchJobTask) task;
             env.put(KubeConstants.POD_ENV_TITUS_TASK_INDEX, "" + batchJobTask.getIndex());
+            systemEnvNames.addAll(batchPodEnvVars);
         }
-        return env;
+        return Pair.of(systemEnvNames, env);
     }
 
     public static ContainerEnvFactory getInstance() {

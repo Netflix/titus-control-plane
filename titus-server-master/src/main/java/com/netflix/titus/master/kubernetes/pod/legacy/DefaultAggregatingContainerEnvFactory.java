@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.pod.legacy;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,18 +57,22 @@ public class DefaultAggregatingContainerEnvFactory implements ContainerEnvFactor
     }
 
     @Override
-    public Map<String, String> buildContainerEnv(Job<?> job, Task task) {
+    public Pair<List<String>, Map<String, String>> buildContainerEnv(Job<?> job, Task task) {
+        List<String> systemEnvNames = new ArrayList<>();
         Map<String, String> env = new HashMap<>();
         for (ContainerEnvFactory factory : orderedFactoryList) {
-            Map<String, String> envMap = factory.buildContainerEnv(job, task);
+            Pair<List<String>, Map<String, String>> incomingContainerEnv = factory.buildContainerEnv(job, task);
+            Map<String, String> incomingEnv = incomingContainerEnv.getRight();
+            List<String> incomingSystemEnv = incomingContainerEnv.getLeft();
             // Tracking conflicting env var for any two given factories
             env.keySet()
                     .stream()
-                    .filter(envMap::containsKey)
+                    .filter(incomingEnv::containsKey)
                     .forEach(envVarName -> incrementConflictCounter(envVarName, job.getId(), job.getJobDescriptor().getApplicationName()));
-            env.putAll(envMap);
+            env.putAll(incomingEnv);
+            systemEnvNames.addAll(incomingSystemEnv);
         }
-        return env;
+        return Pair.of(systemEnvNames, env);
     }
 
     private void incrementConflictCounter(String envVarName, String jobId, String applicationName) {

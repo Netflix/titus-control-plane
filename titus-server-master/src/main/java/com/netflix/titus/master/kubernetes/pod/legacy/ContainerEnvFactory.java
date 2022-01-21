@@ -16,10 +16,13 @@
 
 package com.netflix.titus.master.kubernetes.pod.legacy;
 
+import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.tuple.Pair;
+import io.kubernetes.client.openapi.models.V1EnvVar;
 
 /**
  * Build container environment that is added to pod env section.
@@ -27,9 +30,11 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 public interface ContainerEnvFactory {
 
     /**
-     * Returns container environment variables (empty map if none set).
+     * A pair of two things:
+     * Right -> Map of env vars
+     * Left -> A list of strings representing which of those env vars were injected by Titus and not provided by the user
      *
      * @return none null environment variables map
      */
-    Map<String, String> buildContainerEnv(Job<?> job, Task task);
+    Pair<List<String>, Map<String, String>> buildContainerEnv(Job<?> job, Task task);
 }

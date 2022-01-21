@@ -54,7 +54,7 @@ import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
 import com.netflix.titus.master.kubernetes.pod.KubePodUtil;
 import com.netflix.titus.master.kubernetes.pod.PodFactory;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
-import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
+import com.netflix.titus.master.kubernetes.pod.legacy.ContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -165,7 +165,7 @@ public class V1SpecPodFactory implements PodFactory {
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
     private final TopologyFactory topologyFactory;
-    private final PodEnvFactory podEnvFactory;
+    private final ContainerEnvFactory containerEnvFactory;
     private final LogStorageInfo<Task> logStorageInfo;
     private final SchedulerConfiguration schedulerConfiguration;
 
@@ -175,7 +175,7 @@ public class V1SpecPodFactory implements PodFactory {
                             PodAffinityFactory podAffinityFactory,
                             TaintTolerationFactory taintTolerationFactory,
                             TopologyFactory topologyFactory,
-                            PodEnvFactory podEnvFactory,
+                            ContainerEnvFactory containerEnvFactory,
                             LogStorageInfo<Task> logStorageInfo,
                             SchedulerConfiguration schedulerConfiguration) {
         this.configuration = configuration;
@@ -183,7 +183,7 @@ public class V1SpecPodFactory implements PodFactory {
         this.podAffinityFactory = podAffinityFactory;
         this.taintTolerationFactory = taintTolerationFactory;
         this.topologyFactory = topologyFactory;
-        this.podEnvFactory = podEnvFactory;
+        this.containerEnvFactory = containerEnvFactory;
         this.logStorageInfo = logStorageInfo;
         this.schedulerConfiguration = schedulerConfiguration;
 
@@ -193,15 +193,14 @@ public class V1SpecPodFactory implements PodFactory {
     public V1Pod buildV1Pod(Job<?> job, Task task) {
 
         String taskId = task.getId();
-        Map<String, String> annotations = createPodAnnotations(job, task);
+        Map<String, String> annotations = createV1SchemaPodAnnotations(job, task);
 
         Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);
         annotations.putAll(affinityWithMetadata.getRight());
 
-        Pair<String, List<V1EnvVar>> envVarsWithIndex = podEnvFactory.buildEnv(job, task);
-        String systemEnvNames = envVarsWithIndex.getLeft();
-        List<V1EnvVar> envVarsList = envVarsWithIndex.getRight();
-        annotations.put(POD_SYSTEM_ENV_VAR_NAMES, systemEnvNames);
+        Pair<List<String>, Map<String, String>> envVarsWithIndex = containerEnvFactory.buildContainerEnv(job, task);
+        List<V1EnvVar> envVarsList = toV1EnvVar(envVarsWithIndex.getRight());
+        annotations.put(POD_SYSTEM_ENV_VAR_NAMES, String.join(",", envVarsWithIndex.getLeft()));
 
         Map<String, String> labels = new HashMap<>();
         labels.put("v3.job.titus.netflix.com/job-id", job.getId());
@@ -319,7 +318,7 @@ public class V1SpecPodFactory implements PodFactory {
         return new V1ResourceRequirements().requests(requests).limits(limits);
     }
 
-    Map<String, String> createPodAnnotations(
+    Map<String, String> createV1SchemaPodAnnotations(
             Job<?> job,
             Task task
     ) {

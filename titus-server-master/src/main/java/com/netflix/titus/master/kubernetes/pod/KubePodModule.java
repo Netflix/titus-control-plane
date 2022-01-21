@@ -30,8 +30,6 @@ import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.pod.affinity.DefaultPodAffinityFactory;
 import com.netflix.titus.master.kubernetes.pod.affinity.PodAffinityFactory;
-import com.netflix.titus.master.kubernetes.pod.env.DefaultPodEnvFactory;
-import com.netflix.titus.master.kubernetes.pod.env.PodEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.legacy.ContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.legacy.DefaultAggregatingContainerEnvFactory;
 import com.netflix.titus.master.kubernetes.pod.legacy.TitusProvidedContainerEnvFactory;
@@ -66,7 +64,6 @@ public class KubePodModule extends AbstractModule {
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
         bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
         bind(TopologyFactory.class).to(DefaultTopologyFactory.class);
-        bind(PodEnvFactory.class).to(DefaultPodEnvFactory.class);
     }
 
     /**
