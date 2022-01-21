@@ -27,12 +27,12 @@ import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEven
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
-import com.netflix.titus.ext.kube.clustermembership.connector.transport.main.MainKubeExternalResource;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.ext.kube.clustermembership.connector.transport.AbstractKubeLeaderElectionExecutorTest.KUBE_TIMEOUT;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.activeClusterMember;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.clusterMemberRegistrationRevision;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +55,7 @@ public abstract class AbstractKubeMembershipExecutorTest {
     @After
     public void tearDown() {
         ReactorExt.safeDispose(eventSubscriber);
-        createdMemberIds.forEach(memberId -> ExceptionExt.silent(() -> executor.removeMember(memberId).block(MainKubeExternalResource.KUBE_TIMEOUT)));
+        createdMemberIds.forEach(memberId -> ExceptionExt.silent(() -> executor.removeMember(memberId).block(KUBE_TIMEOUT)));
     }
 
     protected abstract KubeMembershipExecutor getExecutor();
@@ -120,7 +120,7 @@ public abstract class AbstractKubeMembershipExecutorTest {
 
     private ClusterMembershipChangeEvent findNextMemberEvent(String memberId) throws InterruptedException {
         while (true) {
-            ClusterMembershipEvent event = eventSubscriber.takeNext(MainKubeExternalResource.KUBE_TIMEOUT);
+            ClusterMembershipEvent event = eventSubscriber.takeNext(KUBE_TIMEOUT);
             assertThat(event).isNotNull();
             if (event instanceof ClusterMembershipChangeEvent) {
                 ClusterMembershipChangeEvent memberEvent = (ClusterMembershipChangeEvent) event;
