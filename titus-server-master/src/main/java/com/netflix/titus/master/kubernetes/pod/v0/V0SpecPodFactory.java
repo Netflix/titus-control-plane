@@ -115,6 +115,8 @@ public class V0SpecPodFactory implements PodFactory {
         annotations.putAll(affinityWithMetadata.getRight());
         annotations.putAll(createPlatformSidecarAnnotations(job));
 
+        Pair<List<String>, Map<String, String>> envVarsWithIndex = containerEnvFactory.buildContainerEnv(job, task);
+
         Map<String, String> labels = new HashMap<>();
         labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
         labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
@@ -131,7 +133,7 @@ public class V0SpecPodFactory implements PodFactory {
         V1Container container = new V1Container()
                 .name("main")
                 .image("imageIsInContainerInfo")
-                .env(toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
+                .env(toV1EnvVar(envVarsWithIndex.getRight()))
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()))
                 .volumeMounts(KubePodUtil.buildV1VolumeMounts(job.getJobDescriptor().getContainer().getVolumeMounts()));
 
