@@ -31,9 +31,54 @@ import reactor.core.publisher.Mono;
  * Helper class that given a list of {@link Flux} list emitters, merges first elements into a single list to build
  * one snapshot value.
  */
-class SnapshotMerger {
+public class SnapshotMerger {
 
-    static <T> Flux<List<T>> mergeWithSingleSnapshot(List<Flux<List<T>>> streams) {
+    public static <K, T> Flux<List<T>> mergeIndexedStreamWithSingleSnapshot(List<Flux<Pair<K, List<T>>>> indexedStreams) {
+        return Flux.defer(() -> {
+            ConcurrentMap<K, List<T>> snapshots = new ConcurrentHashMap<>();
+            BlockingQueue<List<T>> updates = new LinkedBlockingQueue<>();
+
+            return Flux.merge(indexedStreams).flatMap(pair -> {
+                List<T> event = pair.getRight();
+                if (snapshots.size() == indexedStreams.size()) {
+                    return Mono.just(event);
+                }
+
+                K shardKey = pair.getLeft();
+                if (snapshots.containsKey(shardKey)) {
+                    updates.add(event);
+                    return Flux.empty();
+                }
+
+                snapshots.put(shardKey, event);
+                if (snapshots.size() < indexedStreams.size()) {
+                    return Flux.empty();
+                }
+
+                // We can build full snapshot
+                List<T> mergedSnapshot = new ArrayList<>();
+                snapshots.forEach((idx, snapshot) -> mergedSnapshot.addAll(snapshot));
+
+                List<List<T>> allEvents = new ArrayList<>();
+                allEvents.add(mergedSnapshot);
+                updates.drainTo(allEvents);
+                return Flux.fromIterable(allEvents);
+            });
+        });
+    }
+
+    public static <T> Flux<List<T>> mergeWithSingleSnapshot(List<Flux<List<T>>> streams) {
+        return Flux.defer(() -> {
+            List<Flux<Pair<Integer, List<T>>>> indexedStreams = new ArrayList<>();
+            for (int i = 0; i < streams.size(); i++) {
+                int idx = i;
+                indexedStreams.add(streams.get(i).map(e -> Pair.of(idx, e)));
+            }
+
+            return mergeIndexedStreamWithSingleSnapshot(indexedStreams);
+        });
+
+        /*
         return Flux.defer(() -> {
             List<Flux<Pair<Integer, List<T>>>> indexedStreams = new ArrayList<>();
             for (int i = 0; i < streams.size(); i++) {
@@ -71,5 +116,6 @@ class SnapshotMerger {
                 return Flux.fromIterable(allEvents);
             });
         });
+         */
     }
 }

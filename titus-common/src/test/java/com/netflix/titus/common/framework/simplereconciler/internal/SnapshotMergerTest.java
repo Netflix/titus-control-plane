@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 
@@ -41,6 +42,38 @@ public class SnapshotMergerTest {
                 Flux.fromIterable(stream1),
                 Flux.fromIterable(stream2)
         ));
+        Iterator<List<String>> eventIt = events.toIterable().iterator();
+
+        assertThat(eventIt.hasNext()).isTrue();
+        List<String> snapshot = eventIt.next();
+        assertThat(snapshot).containsExactly(
+                "stream1_snapshot_value1", "stream1_snapshot_value2", "stream2_snapshot_value1", "stream2_snapshot_value2");
+
+        assertThat(eventIt.hasNext()).isTrue();
+        List<String> updates1 = eventIt.next();
+        assertThat(updates1).containsExactly("stream1_update_value1", "stream1_update_value2");
+
+        assertThat(eventIt.hasNext()).isTrue();
+        List<String> updates2 = eventIt.next();
+        assertThat(updates2).containsExactly("stream2_update_value1", "stream2_update_value2");
+    }
+
+    @Test
+    public void testIndexedMergeSnapshots() {
+        Flux<Pair<String, List<String>>> stream1 = Flux.fromIterable(Arrays.asList(
+                        Arrays.asList("stream1_snapshot_value1", "stream1_snapshot_value2"),
+                        Arrays.asList("stream1_update_value1", "stream1_update_value2")
+                ))
+                .map(list -> Pair.of("stream1", list));
+
+        Flux<Pair<String, List<String>>> stream2 = Flux.fromIterable(Arrays.asList(
+                Arrays.asList("stream2_snapshot_value1", "stream2_snapshot_value2"),
+                Arrays.asList("stream2_update_value1", "stream2_update_value2")
+        ))
+                .map(list -> Pair.of("stream2", list));
+
+        Flux<List<String>> events = SnapshotMerger.mergeIndexedStreamWithSingleSnapshot(Arrays.asList(stream1, stream2));
+
         Iterator<List<String>> eventIt = events.toIterable().iterator();
 
         assertThat(eventIt.hasNext()).isTrue();
