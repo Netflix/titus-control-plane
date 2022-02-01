@@ -79,7 +79,7 @@ public class SpectatorHikariMetricsTrackerFactory implements MetricsTrackerFacto
                     .withId(idPoolStats.withTags("pool", poolName, "poolStats", "pendingThreads"))
                     .monitorValue(poolStats, PoolStats::getPendingThreads);
 
-            this.latencies = SpectatorExt.newValueRangeCounter(
+            this.latencies = SpectatorExt.newValueRangeCounterSortable(
                     idLatencies.withTags("pool", poolName),
                     new String[]{"step"},
                     SpectatorUtils.LEVELS,

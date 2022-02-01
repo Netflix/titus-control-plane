@@ -103,7 +103,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         this.keepAliveEnabled = configuration.isKeepAliveReplicatedStreamEnabled();
 
         PolledMeter.using(titusRuntime.getRegistry()).withName(METRICS_ROOT + "activeSubscriptions").monitorValue(subscriptionCounter);
-        this.eventProcessingLatencies = SpectatorExt.newValueRangeCounter(
+        this.eventProcessingLatencies = SpectatorExt.newValueRangeCounterSortable(
                 titusRuntime.getRegistry().createId(METRICS_ROOT + "processingLatency"),
                 LEVELS,
                 titusRuntime.getRegistry()

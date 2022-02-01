@@ -66,7 +66,7 @@ public class DatabaseMetrics {
         String metricsRoot = metricsNamespace + ROOT_NAME;
         this.operationLatency = registry.createId(metricsRoot + databaseName + "." + OPERATION_LATENCY, commonTags);
         this.errorCounter = registry.createId(metricsRoot + databaseName + "." + OPERATION_ERROR, commonTags);
-        this.latencyBuckets = SpectatorExt.newValueRangeCounter(
+        this.latencyBuckets = SpectatorExt.newValueRangeCounterSortable(
                 registry.createId(metricsRoot + databaseName + ".latencyBuckets"),
                 new String[]{RECORD_TABLE_TAG, RECORD_OP_TAG, STATUS_TAG},
                 LEVELS,

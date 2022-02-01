@@ -104,7 +104,14 @@ public final class SpectatorExt {
      * Collection of counters for value ranges.
      */
     public static ValueRangeCounter newValueRangeCounter(Id rootId, long[] levels, Registry registry) {
-        return new ValueRangeCounter(rootId, levels, registry);
+        return new ValueRangeCounter(rootId, levels, level -> Long.toString(level), registry);
+    }
+
+    /**
+     * Collection of counters for value ranges. The 'level' tag values aligned and prefixed by 0 so text sorting is possible.
+     */
+    public static ValueRangeCounter newValueRangeCounterSortable(Id rootId, long[] levels, Registry registry) {
+        return new ValueRangeCounter(rootId, levels, ValueRangeCounter.newSortableFormatter(levels), registry);
     }
 
     /**
@@ -114,7 +121,19 @@ public final class SpectatorExt {
         return new DynamicTagProcessor<>(
                 rootId,
                 tagNames,
-                id -> new ValueRangeCounter(id, levels, registry)
+                id -> new ValueRangeCounter(id, levels, level -> Long.toString(level), registry)
+        );
+    }
+
+    /**
+     * Collection of counters for value ranges with a dynamic set of tag names.
+     * The 'level' tag values aligned and prefixed by 0 so text sorting is possible.
+     */
+    public static MetricSelector<ValueRangeCounter> newValueRangeCounterSortable(Id rootId, String[] tagNames, long[] levels, Registry registry) {
+        return new DynamicTagProcessor<>(
+                rootId,
+                tagNames,
+                id -> new ValueRangeCounter(id, levels, ValueRangeCounter.newSortableFormatter(levels), registry)
         );
     }
 

@@ -45,4 +45,21 @@ public class ValueRangeCounterTest {
         counters.recordLevel(5000);
         assertThat(counters.unbounded.count()).isEqualTo(2);
     }
+
+    @Test
+    public void testNewSortableFormatter() {
+        testNewSortableFormatter(1, "001", 1, 10, 100);
+        testNewSortableFormatter(9, "009", 1, 10, 100);
+        testNewSortableFormatter(10, "010", 1, 10, 100);
+        testNewSortableFormatter(99, "099", 1, 10, 100);
+        testNewSortableFormatter(100, "100", 1, 10, 100);
+
+        testNewSortableFormatter(1, "001", 9, 99, 999);
+        testNewSortableFormatter(999, "999", 9, 99, 999);
+    }
+
+    private void testNewSortableFormatter(long input, String expectedFormat, long... levels) {
+        String actualFormat = ValueRangeCounter.newSortableFormatter(levels).apply(input);
+        assertThat(actualFormat).isEqualTo(expectedFormat);
+    }
 }

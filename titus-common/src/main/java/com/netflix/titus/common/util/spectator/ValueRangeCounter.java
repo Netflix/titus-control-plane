@@ -18,6 +18,7 @@ package com.netflix.titus.common.util.spectator;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Counter;
@@ -25,6 +26,8 @@ import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 
 public class ValueRangeCounter {
+
+    private static final String UNBOUNDED = "unbounded";
 
     @VisibleForTesting
     final Map<Long, Counter> counters;
@@ -36,15 +39,15 @@ public class ValueRangeCounter {
 
     private final long[] levels;
 
-    public ValueRangeCounter(Id rootId, long[] levels, Registry registry) {
+    public ValueRangeCounter(Id rootId, long[] levels, Function<Long, String> levelFormatter, Registry registry) {
         this.levels = levels;
         Map<Long, Counter> counters = new HashMap<>();
         for (long level : levels) {
-            counters.put(level, registry.counter(rootId.withTag("level", Long.toString(level))));
+            counters.put(level, registry.counter(rootId.withTag("level", levelFormatter.apply(level))));
         }
         this.counters = counters;
         this.first = counters.get(levels[0]);
-        this.unbounded = registry.counter(rootId.withTag("level", "unbounded"));
+        this.unbounded = registry.counter(rootId.withTag("level", UNBOUNDED));
     }
 
     public void recordLevel(long level) {
@@ -64,5 +67,17 @@ public class ValueRangeCounter {
             }
         }
         return levels[levels.length - 1];
+    }
+
+    public static Function<Long, String> newSortableFormatter(long[] levels) {
+        if (levels.length <= 1) {
+            return level -> Long.toString(level);
+        }
+        long maxValue = levels[levels.length - 1];
+        if (maxValue < 1) {
+            return level -> Long.toString(level);
+        }
+        int digitCount = (int) Math.floor(Math.log10(maxValue)) + 1;
+        return value -> String.format("%0" + digitCount + "d", value);
     }
 }
