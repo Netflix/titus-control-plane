@@ -54,7 +54,7 @@ public class EventPropagationMetrics {
     private Map<String, ValueRangeCounter> buildStageCounterMap(Id root, List<String> stageNames, TitusRuntime titusRuntime, String kind) {
         Map<String, ValueRangeCounter> bucketCounters = new HashMap<>();
         for (String name : stageNames) {
-            bucketCounters.put(name, SpectatorExt.newValueRangeCounter(
+            bucketCounters.put(name, SpectatorExt.newValueRangeCounterSortable(
                     root.withTags("kind", kind, "stage", name),
                     LEVELS,
                     titusRuntime.getRegistry()

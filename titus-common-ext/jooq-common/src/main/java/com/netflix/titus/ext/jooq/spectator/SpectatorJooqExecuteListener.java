@@ -35,7 +35,7 @@ public class SpectatorJooqExecuteListener implements ExecuteListener {
 
     public SpectatorJooqExecuteListener(Id root, TitusRuntime titusRuntime) {
         this.clock = titusRuntime.getClock();
-        this.latencies = SpectatorExt.newValueRangeCounter(
+        this.latencies = SpectatorExt.newValueRangeCounterSortable(
                 titusRuntime.getRegistry().createId(root.name() + "latencies", root.tags()),
                 new String[]{"point"},
                 SpectatorUtils.LEVELS,
