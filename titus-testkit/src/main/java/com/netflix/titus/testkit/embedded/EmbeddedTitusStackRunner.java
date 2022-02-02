@@ -36,7 +36,6 @@ public class EmbeddedTitusStackRunner {
         CommandLineFacade cliFacade = buildCliFacade(args);
 
         EmbeddedTitusMaster titusMaster = EmbeddedTitusMaster.aTitusMaster()
-                .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                 .withEmbeddedKubeCluster(EmbeddedKubeClusters.basicCluster(2))
                 .withApiPort(8080)
                 .withGrpcPort(7104)

@@ -26,12 +26,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface SchedulerConfiguration {
 
     /**
-     * @return sleep interval between consecutive scheduler iterations.
-     */
-    @DefaultValue("500")
-    long getSchedulerIterationIntervalMs();
-
-    /**
      * An option to enable spreading for service jobs in the critical tier.
      *
      * @return whether or not to prefer spreading for service jobs in the critical tier.

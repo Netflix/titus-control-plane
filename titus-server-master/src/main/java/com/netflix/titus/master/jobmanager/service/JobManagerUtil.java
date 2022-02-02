@@ -17,10 +17,8 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -34,13 +32,10 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.common.framework.reconciler.EntityHolder;
-import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
-import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -51,18 +46,6 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 public final class JobManagerUtil {
 
     private JobManagerUtil() {
-    }
-
-    public static Set<String> filterActiveTaskIds(ReconciliationEngine<JobManagerReconcilerEvent> engine) {
-        Set<String> result = new HashSet<>();
-        for (EntityHolder taskHolder : engine.getRunningView().getChildren()) {
-            Task task = taskHolder.getEntity();
-            TaskState state = task.getStatus().getState();
-            if (state != TaskState.Finished) {
-                result.add(task.getId());
-            }
-        }
-        return result;
     }
 
     public static Pair<Tier, String> getTierAssignment(Job job, ApplicationSlaManagementService capacityGroupService) {

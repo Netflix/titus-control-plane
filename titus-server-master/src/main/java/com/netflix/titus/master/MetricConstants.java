@@ -25,23 +25,11 @@ public class MetricConstants {
 
     public static final String METRIC_SUPERVISOR = METRIC_ROOT + "supervisor.";
 
-    public static final String METRIC_AGENT = METRIC_ROOT + "agent.";
-
-    public static final String METRIC_AGENT_CACHE = METRIC_ROOT + "agentCache.";
-
-    public static final String METRIC_AGENT_MONITOR = METRIC_ROOT + "agentMonitor.";
-
     public static final String METRIC_CAPACITY_MANAGEMENT = METRIC_ROOT + "capacity.";
-
-    public static final String METRIC_CLUSTER_OPERATIONS = METRIC_ROOT + "clusterOperations.";
-
-    public static final String METRIC_SCHEDULING_SERVICE = METRIC_ROOT + "scheduler.";
 
     public static final String METRIC_SCHEDULING_EVICTION = METRIC_ROOT + "eviction.";
 
     public static final String METRIC_LEADER = METRIC_ROOT + "leader.";
-
-    public static final String METRIC_MESOS = METRIC_ROOT + "mesos.";
 
     public static final String METRIC_KUBERNETES = METRIC_ROOT + "kubernetes.";
 
