@@ -19,7 +19,6 @@ package com.netflix.titus.ext.kube.clustermembership.connector.transport;
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnectorException;
 import com.netflix.titus.common.util.ExceptionExt;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.kubernetes.client.openapi.ApiException;
 
 public class KubeUtils {
 
@@ -29,9 +28,6 @@ public class KubeUtils {
     public static int getHttpStatusCode(Throwable error) {
         Throwable cause = error;
         do {
-            if (cause instanceof ApiException) {
-                return ((ApiException) cause).getCode();
-            }
             if (cause instanceof KubernetesClientException) {
                 return ((KubernetesClientException) cause).getCode();
             }
@@ -45,13 +41,6 @@ public class KubeUtils {
     }
 
     public static ClusterMembershipConnectorException toConnectorException(Throwable error) {
-        if (error instanceof ApiException) {
-            ApiException apiException = (ApiException) error;
-            return ClusterMembershipConnectorException.clientError(
-                    String.format("%s: httpStatus=%s, body=%s", apiException.getMessage(), apiException.getCode(), apiException.getResponseBody()),
-                    error
-            );
-        }
         if (error instanceof KubernetesClientException) {
             KubernetesClientException fabric8IOException = (KubernetesClientException) error;
             return ClusterMembershipConnectorException.clientError(
