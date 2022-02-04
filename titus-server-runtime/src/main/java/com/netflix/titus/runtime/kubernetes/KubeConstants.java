@@ -224,5 +224,18 @@ public final class KubeConstants {
     public static final String PLATFORM_SIDECAR_SUFFIX = ".platform-sidecars.netflix.com";
     public static final String PLATFORM_SIDECAR_CHANNEL_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/channel";
     public static final String PLATFORM_SIDECAR_ARGS_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/arguments";
-    ;
+
+    /**
+     * container annotations (specified on a pod about a container)
+     * Specific containers indicate they want to set something by appending
+     * a prefix key with their container name ($name.containers.netflix.com).
+     */
+    public static final String ANNOTATION_KEY_SUFFIX_CONTAINERS = "containers.netflix.com";
+    public static final String ANNOTATION_KEY_SUFFIX_CONTAINERS_SIDECAR = "platform-sidecar";
+
+    /**
+     * ANNOTATION_KEY_IMAGE_TAG_PREFIX Stores the original tag for the image.
+     * This is because on the v1 pod image field, there is only room for the digest and no room for the tag it came from
+     */
+    public static final String ANNOTATION_KEY_IMAGE_TAG_PREFIX = "pod.titus.netflix.com/image-tag-";
 }
