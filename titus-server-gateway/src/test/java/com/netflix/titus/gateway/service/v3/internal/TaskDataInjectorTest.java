@@ -18,6 +18,7 @@ package com.netflix.titus.gateway.service.v3.internal;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.grpc.protogen.BasicImage;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
@@ -41,6 +43,10 @@ import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverte
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodStatus;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
@@ -48,7 +54,10 @@ import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static com.netflix.titus.common.util.CollectionsExt.asList;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
+import static com.netflix.titus.gateway.service.v3.internal.TaskDataInjector.buildBasicImageFromContainerStatus;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_IMAGE_TAG_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -250,6 +259,38 @@ public class TaskDataInjectorTest {
 
         TaskQueryResult result = testSubscriber.takeNext();
         assertThat(result.getItemsList()).contains(TASK1, TASK2);
+    }
+
+    @Test
+    public void testBuildBasicImageFromContainerStatus() {
+        Pod pod = new Pod();
+        ObjectMeta metadata = new ObjectMeta();
+        HashMap<String, String> annotations = new HashMap<String, String>();
+        annotations.put(ANNOTATION_KEY_IMAGE_TAG_PREFIX + "container1", "container1sTag");
+        metadata.setAnnotations(annotations);
+        pod.setMetadata(metadata);
+        String imageWithDigest = "registry.example.com/container1Image@123456";
+        String imageWithTag = "registry.example.com/container2Image:mytag";
+
+        ContainerStatus containerStatus1 = new ContainerStatus();
+        containerStatus1.setName("container1");
+        containerStatus1.setImage(imageWithDigest);
+        ContainerStatus containerStatus2 = new ContainerStatus();
+        containerStatus2.setName("container2");
+        containerStatus2.setImage(imageWithTag);
+        PodStatus status = new PodStatus();
+        status.setContainerStatuses(Arrays.asList(containerStatus1, containerStatus2));
+        pod.setStatus(status);
+
+        BasicImage bi1 = buildBasicImageFromContainerStatus(pod, imageWithDigest, "container1");
+        assertThat(bi1.getName()).isEqualTo("container1Image");
+        assertThat(bi1.getTag()).isEqualTo("container1sTag");
+        assertThat(bi1.getDigest()).isEqualTo("123456");
+
+        BasicImage bi2 = buildBasicImageFromContainerStatus(pod, imageWithTag, "container2");
+        assertThat(bi2.getName()).isEqualTo("container2Image");
+        assertThat(bi2.getTag()).isEqualTo("mytag");
+        assertThat(bi2.getDigest()).isEqualTo("");
     }
 
     private Task toLegacyTask(Task task, long deadlineTimestamp) {

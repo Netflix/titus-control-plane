@@ -33,6 +33,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.grpc.protogen.BasicImage;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
@@ -51,6 +52,10 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
+
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_IMAGE_TAG_PREFIX;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_SUFFIX_CONTAINERS;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_SUFFIX_CONTAINERS_SIDECAR;
 
 @Singleton
 class TaskDataInjector {
@@ -223,24 +228,105 @@ class TaskDataInjector {
         if (pods.get(taskId) == null) {
             return Collections.emptyList();
         }
-        List<ContainerStatus> containerStatuses = pods.get(taskId).getStatus().getContainerStatuses();
+        Pod pod = pods.get(taskId);
+        List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
         if (CollectionsExt.isNullOrEmpty(containerStatuses)) {
             return Collections.emptyList();
         }
         List<TaskStatus.ContainerState> containerStates = new ArrayList<>();
         for (ContainerStatus containerStatus : containerStatuses) {
             ContainerState status = containerStatus.getState();
+            String containerName = containerStatus.getName();
             TaskStatus.ContainerState.ContainerHealth containerHealth = TaskStatus.ContainerState.ContainerHealth.Unset;
             if (status.getRunning() != null) {
                 containerHealth = TaskStatus.ContainerState.ContainerHealth.Healthy;
             } else if (status.getTerminated() != null) {
                 containerHealth = TaskStatus.ContainerState.ContainerHealth.Unhealthy;
             }
+            BasicImage basicImage = buildBasicImageFromContainerStatus(pod, containerStatus.getImage(), containerName);
+            String platformSidecar = getPlatformSidecarThatCreatedContainer(pod, containerName);
             containerStates.add(TaskStatus.ContainerState.newBuilder()
                     .setContainerName(containerStatus.getName())
-                    .setContainerHealth(containerHealth).build());
+                    .setContainerHealth(containerHealth)
+                    .setContainerImage(basicImage)
+                    .setPlatformSidecar(platformSidecar)
+                    .build());
         }
         return containerStates;
+    }
+
+    /**
+     * Generates a Titus object for basic image from then general string object that k8s provides
+     * (the kind you might provide to `docker pull`)
+     * But the original tag is often not available. For that we have to look at annotations to see
+     * the tag that generated the digest (if available, not all images come from tags).
+     */
+    static BasicImage buildBasicImageFromContainerStatus(Pod pod, String image, String containerName) {
+        BasicImage.Builder bi = BasicImage.newBuilder();
+        String imageWithoutRegistry = stripRegistryFromImage(image);
+        String name = getNameFromImageString(imageWithoutRegistry);
+        bi.setName(name);
+        bi.setDigest(getDigestFromImageString(imageWithoutRegistry));
+        bi.setTag(getTagFromImageString(imageWithoutRegistry, containerName, pod));
+        return bi.build();
+    }
+
+    private static String stripRegistryFromImage(String image) {
+        int slashStart = image.indexOf("/");
+        if (slashStart < 0) {
+            return image;
+        } else {
+            return image.substring(slashStart + 1);
+        }
+    }
+
+    private static String getTagFromImageString(String image, String containerName,  Pod pod) {
+        int tagStart = image.lastIndexOf(":");
+        if (tagStart < 0) {
+            return getTagFromAnnotation(containerName, pod);
+        } else {
+            return image.substring(tagStart + 1);
+        }
+    }
+
+    private static String getTagFromAnnotation(String containerName, Pod pod) {
+        String key = ANNOTATION_KEY_IMAGE_TAG_PREFIX + containerName;
+        return pod.getMetadata().getAnnotations().getOrDefault(key, "");
+    }
+
+    private static String getDigestFromImageString(String image) {
+        int digestStart = image.lastIndexOf("@");
+        if (digestStart < 0) {
+            return "";
+        } else {
+            return image.substring(digestStart + 1);
+        }
+    }
+
+    private static String getNameFromImageString(String image) {
+        int digestStart = image.lastIndexOf("@");
+        if (digestStart < 0) {
+            int tagStart = image.lastIndexOf(":");
+            if (tagStart < 0) {
+                return image;
+            }
+            return image.substring(0, tagStart);
+        } else {
+            return image.substring(0, digestStart);
+        }
+    }
+
+    /**
+     * Inspects a pod and determines what platform sidecar originally injected the container.
+     * Returns empty string in the case that no platform sidecar injected the container (implies the container was user-defined)
+     *
+     * @param pod pod to inspect
+     * @param containerName the name of the container that was (potentially) added
+     * @return platform sidecar name
+     */
+    private String getPlatformSidecarThatCreatedContainer(Pod pod, String containerName) {
+        String key = containerName + "." + ANNOTATION_KEY_SUFFIX_CONTAINERS + "/" + ANNOTATION_KEY_SUFFIX_CONTAINERS_SIDECAR;
+        return pod.getMetadata().getAnnotations().getOrDefault(key, "");
     }
 
     static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
