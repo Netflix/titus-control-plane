@@ -27,15 +27,12 @@ import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.KubeUtil;
-import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
-import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResourceList;
 import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeList;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
@@ -45,7 +42,6 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.CallGeneratorParams;
-import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -62,16 +58,10 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
 
     private static final String KUBERNETES_NAMESPACE = "default";
 
-    private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
-    private static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
-    private static final String OPPORTUNISTIC_RESOURCE_NAMESPACE = "default";
-    private static final String OPPORTUNISTIC_RESOURCE_PLURAL = "opportunistic-resources";
-
     private final KubeConnectorConfiguration configuration;
 
     private final ApiClient apiClient;
     private final CoreV1Api coreV1Api;
-    private final CustomObjectsApi customObjectsApi;
     private final TitusRuntime titusRuntime;
 
     private final Object activationLock = new Object();
@@ -81,13 +71,11 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
     private volatile SharedIndexInformer<V1Pod> podInformer;
     private volatile SharedIndexInformer<V1PersistentVolume> persistentVolumeInformer;
     private volatile SharedIndexInformer<V1PersistentVolumeClaim> persistentVolumeClaimInformer;
-    private volatile SharedIndexInformer<V1OpportunisticResource> opportunisticResourceInformer;
 
     private StdKubeInformerMetrics<V1Node> nodeInformerMetrics;
     private StdKubeInformerMetrics<V1Pod> podInformerMetrics;
     private StdKubeInformerMetrics<V1PersistentVolume> persistentVolumeInformerMetrics;
     private StdKubeInformerMetrics<V1PersistentVolumeClaim> persistentVolumeClaimInformerMetrics;
-    private StdKubeInformerMetrics<V1OpportunisticResource> opportunisticResourceInformerMetrics;
 
     private volatile boolean deactivated;
 
@@ -96,7 +84,6 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
         this.configuration = configuration;
         this.apiClient = apiClient;
         this.coreV1Api = new CoreV1Api(apiClient);
-        this.customObjectsApi = new CustomObjectsApi(apiClient);
         this.titusRuntime = titusRuntime;
     }
 
@@ -109,7 +96,6 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
         Evaluators.acceptNotNull(podInformerMetrics, StdKubeInformerMetrics::shutdown);
         Evaluators.acceptNotNull(persistentVolumeInformerMetrics, StdKubeInformerMetrics::shutdown);
         Evaluators.acceptNotNull(persistentVolumeClaimInformerMetrics, StdKubeInformerMetrics::shutdown);
-        Evaluators.acceptNotNull(opportunisticResourceInformerMetrics, StdKubeInformerMetrics::shutdown);
     }
 
     @Deactivator
@@ -294,12 +280,6 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
         return getPodInformerStaleness() == 0;
     }
 
-    @Override
-    public SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer() {
-        activate();
-        return opportunisticResourceInformer;
-    }
-
     protected <T extends KubernetesObject> SharedIndexInformer<T> customizeInformer(String name, SharedIndexInformer<T> informer) {
         return informer;
     }
@@ -325,13 +305,11 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
                 this.podInformer = customizeInformer("podInformer", createPodInformer(sharedInformerFactory));
                 this.persistentVolumeInformer = customizeInformer("persistentVolumeInformer", createPersistentVolumeInformer(sharedInformerFactory));
                 this.persistentVolumeClaimInformer = customizeInformer("persistentVolumeClaimInformer", createPersistentVolumeClaimInformer(sharedInformerFactory));
-                this.opportunisticResourceInformer = customizeInformer("opportunisticInformer", createOpportunisticResourceInformer(sharedInformerFactory));
 
                 this.nodeInformerMetrics = new StdKubeInformerMetrics<>("node", nodeInformer, titusRuntime);
                 this.podInformerMetrics = new StdKubeInformerMetrics<>("pod", podInformer, titusRuntime);
                 this.persistentVolumeInformerMetrics = new StdKubeInformerMetrics<>("persistentvolume", persistentVolumeInformer, titusRuntime);
                 this.persistentVolumeClaimInformerMetrics = new StdKubeInformerMetrics<>("persistentvolumeclaim", persistentVolumeClaimInformer, titusRuntime);
-                this.opportunisticResourceInformerMetrics = new StdKubeInformerMetrics<>("opportunistic", opportunisticResourceInformer, titusRuntime);
 
                 sharedInformerFactory.startAllRegisteredInformers();
 
@@ -433,36 +411,5 @@ public class DefaultStdStdKubeApiFacade implements StdKubeApiFacade {
                 V1PersistentVolumeClaimList.class,
                 configuration.getKubeApiServerIntegratorRefreshIntervalMs()
         );
-    }
-
-    private SharedIndexInformer<V1OpportunisticResource> createOpportunisticResourceInformer(SharedInformerFactory sharedInformerFactory) {
-        return sharedInformerFactory.sharedIndexInformerFor(
-                this::listOpportunisticResourcesCall,
-                V1OpportunisticResource.class,
-                V1OpportunisticResourceList.class,
-                configuration.getKubeOpportunisticRefreshIntervalMs()
-        );
-    }
-
-    private Call listOpportunisticResourcesCall(CallGeneratorParams params) {
-        try {
-            return customObjectsApi.listNamespacedCustomObjectCall(
-                    OPPORTUNISTIC_RESOURCE_GROUP,
-                    OPPORTUNISTIC_RESOURCE_VERSION,
-                    OPPORTUNISTIC_RESOURCE_NAMESPACE,
-                    OPPORTUNISTIC_RESOURCE_PLURAL,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    params.resourceVersion,
-                    params.timeoutSeconds,
-                    params.watch,
-                    null
-            );
-        } catch (ApiException e) {
-            throw new IllegalStateException("listNamespacedCustomObjectCall error", e);
-        }
     }
 }

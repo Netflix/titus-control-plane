@@ -47,14 +47,13 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
-import com.netflix.titus.master.kubernetes.client.KubeModelConverters;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
+import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1CephFSVolumeSource;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1FlexVolumeSource;
-import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 import org.slf4j.Logger;
@@ -85,14 +84,6 @@ public class KubePodUtil {
         Evaluators.acceptNotNull(
                 job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC),
                 runtimeInSec -> annotations.put(KubeConstants.JOB_RUNTIME_PREDICTION, runtimeInSec + "s")
-        );
-        Evaluators.acceptNotNull(
-                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
-                count -> annotations.put(KubeConstants.OPPORTUNISTIC_CPU_COUNT, count)
-        );
-        Evaluators.acceptNotNull(
-                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION),
-                id -> annotations.put(KubeConstants.OPPORTUNISTIC_ID, id)
         );
         Evaluators.acceptNotNull(
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID),

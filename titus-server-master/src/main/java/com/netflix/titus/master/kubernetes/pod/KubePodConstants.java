@@ -23,8 +23,6 @@ public final class KubePodConstants {
     public static final String DEFAULT_NAMESPACE = "default";
     public static final String DEFAULT_IMAGE_PULL_POLICY = "IfNotPresent";
 
-    public static final String FENZO_SCHEDULER = "fenzo-scheduler";
-
     public static String NEVER_RESTART_POLICY = "Never";
 
     public static final String DEFAULT_DNS_POLICY = "Default";
@@ -112,19 +110,6 @@ public final class KubePodConstants {
     // Security
     public static final String SECURITY_APP_METADATA = "security.netflix.com/workload-metadata";
     public static final String SECURITY_APP_METADATA_SIG = "security.netflix.com/workload-metadata-sig";
-
-    // Opportunistic Resources
-    public static final String OPPORTUNISTIC_CPU = "opportunistic.scheduler.titus.netflix.com/cpu";
-    public static final String OPPORTUNISTIC_RESOURCE_ID = "opportunistic.scheduler.titus.netflix.com/id";
-
-    public static final String PREDICTION_RUNTIME = "predictions.scheduler.titus.netflix.com/runtime";
-    public static final String PREDICTION_CONFIDENCE = "predictions.scheduler.titus.netflix.com/confidence";
-    public static final String PREDICTION_MODEL_ID = "predictions.scheduler.titus.netflix.com/model-id";
-    public static final String PREDICTION_MODEL_VERSION = "predictions.scheduler.titus.netflix.com/version";
-
-    public static final String PREDICTION_AB_TEST_CELL = "predictions.scheduler.titus.netflix.com/ab-test";
-    public static final String PREDICTION_AVAILABLE = "predictions.scheduler.titus.netflix.com/available";
-    public static final String PREDICTION_SELECTOR_INFO = "predictions.scheduler.titus.netflix.com/selector-info";
 
     // Pod Features
     public static final String POD_CPU_BURSTING_ENABLED = "pod.netflix.com/cpu-bursting-enabled";

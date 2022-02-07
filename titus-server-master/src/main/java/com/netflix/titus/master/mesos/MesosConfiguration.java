@@ -51,12 +51,6 @@ public interface MesosConfiguration {
     long getOrphanedPodTimeoutMs();
 
     /**
-     * @return whether or not the kube api server integration is enabled. Only applied at startup.
-     */
-    @DefaultValue("false")
-    boolean isKubeApiServerIntegrationEnabled();
-
-    /**
      * @return the kube api server url to use. If this is empty, use the kube config path instead.
      */
     @DefaultValue("")

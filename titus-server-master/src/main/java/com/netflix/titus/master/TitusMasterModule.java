@@ -18,6 +18,7 @@ package com.netflix.titus.master;
 
 import javax.inject.Singleton;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.multibindings.Multibinder;
@@ -40,7 +41,6 @@ import com.netflix.titus.master.eviction.service.EvictionServiceModule;
 import com.netflix.titus.master.health.HealthModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
-import com.netflix.titus.master.kubernetes.KubeClientStubModule;
 import com.netflix.titus.master.kubernetes.KubeModule;
 import com.netflix.titus.master.kubernetes.controller.KubeControllerModule;
 import com.netflix.titus.master.kubernetes.pod.KubePodModule;
@@ -97,13 +97,11 @@ public class TitusMasterModule extends AbstractModule {
         install(new FeatureFlagModule());
 
         // Kubernetes
+        Preconditions.checkNotNull(mode, "Kube mode not set");
         if (mode == Mode.KUBE) {
             install(new KubeModule());
         } else if (mode == Mode.EMBEDDED_KUBE) {
             install(new KubeControllerModule());
-            install(new KubePodModule());
-        } else {
-            install(new KubeClientStubModule());
             install(new KubePodModule());
         }
 

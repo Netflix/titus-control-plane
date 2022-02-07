@@ -111,7 +111,6 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
         when(featureActivationConfiguration.isMoveTaskValidationEnabled()).thenReturn(true);
-        when(featureActivationConfiguration.isOpportunisticResourcesSchedulingEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 

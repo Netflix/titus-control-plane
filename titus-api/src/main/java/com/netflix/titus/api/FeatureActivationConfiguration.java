@@ -43,13 +43,6 @@ public interface FeatureActivationConfiguration {
     boolean isMoveTaskValidationEnabled();
 
     /**
-     * Toggle scheduling of tasks with a runtime duration prediction onto opportunistic resources. Only opportunistic
-     * CPUs are supported at the moment.
-     */
-    @DefaultValue("true")
-    boolean isOpportunisticResourcesSchedulingEnabled();
-
-    /**
      * Enable binpacking of tasks based on how hard they are to relocate
      */
     @DefaultValue("true")

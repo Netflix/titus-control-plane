@@ -17,7 +17,6 @@
 package com.netflix.titus.runtime.connector.kubernetes.std;
 
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiException;
-import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
@@ -83,6 +82,4 @@ public interface StdKubeApiFacade {
     default boolean isReadyForScheduling() {
         return true;
     }
-
-    SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer();
 }
