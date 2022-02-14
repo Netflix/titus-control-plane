@@ -64,6 +64,18 @@ public final class KubePodConstants {
     public static final String VLAN_ID = "network.netflix.com/vlan-id";
     public static final String ALLOCATION_INDEX = "network.netflix.com/allocation-idx";
 
+    // Legacy Pod Network Annotations
+    // These are backwards compatible shims for the now-deprecated "TitusExecutorDetails"
+    // These can be removed when the newer annotations are in use by the titus-executor
+    public static final String LEGACY_ANNOTATION_IS_ROUTABLE_IP = "IsRoutableIP";
+    public static final String LEGACY_ANNOTATION_IP_ADDRESS = "IPAddress";
+    public static final String LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS = "ElasticIPAddress";
+    public static final String LEGACY_ANNOTATION_ENI_IP_ADDRESS = "EniIPAddress";
+    public static final String LEGACY_ANNOTATION_ENI_IPV6_ADDRESS = "EniIPv6Address";
+    public static final String LEGACY_ANNOTATION_NETWORK_MODE = "NetworkMode";
+    public static final String LEGACY_ANNOTATION_ENI_ID = "EniID";
+    public static final String LEGACY_ANNOTATION_RESOURCE_ID = "ResourceID";
+
     // Security
     public static final String IAM_ROLE = "iam.amazonaws.com/role";
     public static final String SECURITY_GROUPS_LEGACY = "network.titus.netflix.com/securityGroups";

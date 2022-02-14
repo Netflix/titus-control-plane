@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -43,7 +44,6 @@ import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
@@ -65,9 +65,12 @@ import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andIpAddress
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodeAnnotations;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.newNode;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
-import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPodIp;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andRunning;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IPV6_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_NETWORK_MODE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -132,18 +135,13 @@ public class KubeNotificationProcessorTest {
                 TITUS_NODE_DOMAIN + "ami", "ami123",
                 TITUS_NODE_DOMAIN + "stack", "myStack"
         ));
+        Map<String, String> UpdatedAnnotations = new HashMap<>();
+        UpdatedAnnotations.put(LEGACY_ANNOTATION_IP_ADDRESS, "1.2.3.4");
+        pod.getMetadata().setAnnotations(UpdatedAnnotations);
+
         Task updatedTask = processor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
-                Optional.of(new TitusExecutorDetails(Collections.emptyMap(), new TitusExecutorDetails.NetworkConfiguration(
-                        true,
-                        "1.2.3.4",
-                        "",
-                        "1.2.3.4",
-                        NetworkConfiguration.NetworkMode.Ipv4Only.toString(),
-                        "eniId123",
-                        "resourceId123"
-                ))),
                 Optional.of(node),
                 TASK,
                 false
@@ -164,18 +162,17 @@ public class KubeNotificationProcessorTest {
                 TITUS_NODE_DOMAIN + "ami", "ami123",
                 TITUS_NODE_DOMAIN + "stack", "myStack"
         ));
+
+        Map<String, String> UpdatedAnnotations = new HashMap<>();
+        UpdatedAnnotations.put(LEGACY_ANNOTATION_IP_ADDRESS, "2001:db8:0:1234:0:567:8:1");
+        UpdatedAnnotations.put(LEGACY_ANNOTATION_ENI_IP_ADDRESS, "192.0.2.1");
+        UpdatedAnnotations.put(LEGACY_ANNOTATION_ENI_IPV6_ADDRESS, "2001:db8:0:1234:0:567:8:1");
+        UpdatedAnnotations.put(LEGACY_ANNOTATION_NETWORK_MODE, NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString());
+        pod.getMetadata().setAnnotations(UpdatedAnnotations);
+
         Task updatedTask = processor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
-                Optional.of(new TitusExecutorDetails(Collections.emptyMap(), new TitusExecutorDetails.NetworkConfiguration(
-                        true,
-                        "192.0.2.1",
-                        "2001:db8:0:1234:0:567:8:1",
-                        "192.0.2.1",
-                        NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString(),
-                        "eniId123",
-                        "resourceId123"
-                ))),
                 Optional.of(node),
                 TASK,
                 false
@@ -190,23 +187,6 @@ public class KubeNotificationProcessorTest {
         // be unique to that task, and tools would try to use it, people would try to ssh to it, etc.
         assertThat(updatedTask.getTaskContext()).doesNotContainKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4);
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, "192.0.2.1");
-    }
-
-    @Test
-    public void testUpdateTaskStatusKubelet() {
-        when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
-        V1Pod pod = newPod(TASK.getId(), andRunning(), andPodIp("192.0.2.0"));
-        V1Node node = newNode(andIpAddress("2.2.2.2"), andNodeAnnotations(TITUS_NODE_DOMAIN + "ami", "ami123"));
-        Task updatedTask = processor.updateTaskStatus(
-                new PodWrapper(pod),
-                TaskStatus.newBuilder().withState(TaskState.Started).build(),
-                Optional.empty(),
-                Optional.of(node),
-                TASK,
-                false
-        ).orElse(null);
-
-        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "192.0.2.0");
     }
 
     @Test
@@ -227,7 +207,6 @@ public class KubeNotificationProcessorTest {
         Task updatedTask = processor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskStatus.newBuilder().withState(TaskState.Started).build(),
-                Optional.empty(),
                 Optional.of(newNode()),
                 JobFunctions.changeTaskStatus(TASK, TaskStatus.newBuilder().withState(TaskState.KillInitiated).build()),
                 false

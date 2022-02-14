@@ -63,7 +63,6 @@ import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.VersionSupplier;
 import com.netflix.titus.master.jobmanager.service.VersionSuppliers;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import rx.Subscriber;
@@ -608,9 +607,6 @@ public class JobScenarioBuilder {
         }
 
         AtomicBoolean done = new AtomicBoolean();
-        Optional<TitusExecutorDetails> data = taskState == TaskState.StartInitiated
-                ? Optional.of(computeProvider.buildExecutorDetails(task.getId()))
-                : Optional.empty();
 
         final Map<String, String> newTaskContext = new HashMap<>();
         if (taskState == TaskState.Launched) {
@@ -625,7 +621,7 @@ public class JobScenarioBuilder {
                 .build();
 
         Function<Task, Optional<Task>> changeFunction = currentTask ->
-                JobManagerUtil.newMesosTaskStateUpdater(taskStatus, data, titusRuntime)
+                JobManagerUtil.newMesosTaskStateUpdater(taskStatus, titusRuntime)
                         .apply(currentTask)
                         .map(updated -> updated.toBuilder()
                                 .withTaskContext(CollectionsExt.merge(updated.getTaskContext(), newTaskContext))

@@ -62,7 +62,6 @@ import com.netflix.titus.master.kubernetes.client.model.PodNotFoundEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodUpdatedEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.kubernetes.controller.KubeJobManagementReconciler;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PodStatus;
@@ -233,18 +232,16 @@ public class KubeNotificationProcessor {
                     task.getStatus(), newTaskStatus, event.getSequenceNumber());
         }
 
-        Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
-
         // Check if the task is changed early before creating change action in the job service. If there is no material
         // change to the task, return immediately. If there are differences, we will check again in the change action
         // against most up to date task version.
-        if (!updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, task, true).isPresent()) {
+        if (!updateTaskStatus(podWrapper, newTaskStatus, node, task, true).isPresent()) {
             return Mono.empty();
         }
 
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
-                current -> updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current, false),
+                current -> updateTaskStatus(podWrapper, newTaskStatus, node, current, false),
                 V3JobOperations.Trigger.Kube,
                 "Pod status updated from kubernetes node (k8phase='" + event.getPod().getStatus().getPhase() + "', taskState=" + task.getStatus().getState() + ")",
                 KUBE_CALL_METADATA
@@ -279,7 +276,6 @@ public class KubeNotificationProcessor {
     @VisibleForTesting
     Optional<Task> updateTaskStatus(PodWrapper podWrapper,
                                     TaskStatus newTaskStatus,
-                                    Optional<TitusExecutorDetails> executorDetailsOpt,
                                     Optional<V1Node> node,
                                     Task currentTask,
                                     boolean precheck) {
@@ -313,12 +309,7 @@ public class KubeNotificationProcessor {
         }
 
         Task fixedTask = fillInMissingStates(podWrapper, updatedTask);
-        Task taskWithExecutorData;
-        if (executorDetailsOpt.isPresent()) {
-            taskWithExecutorData = JobManagerUtil.attachTitusExecutorNetworkData(fixedTask, executorDetailsOpt);
-        } else {
-            taskWithExecutorData = JobManagerUtil.attachKubeletNetworkData(fixedTask, podWrapper);
-        }
+        Task taskWithExecutorData = JobManagerUtil.attachNetworkDataFromPod(fixedTask, podWrapper);
         Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
 
         Optional<String> difference = areTasksEquivalent(currentTask, taskWithNodeMetadata);

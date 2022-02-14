@@ -24,7 +24,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.master.jobmanager.service.ComputeProvider;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import reactor.core.publisher.Mono;
 
 class StubbedComputeProvider implements ComputeProvider {
@@ -92,11 +91,6 @@ class StubbedComputeProvider implements ComputeProvider {
     public boolean isTaskFinished(String taskId) {
         ComputeProviderTask providerTask = mustHaveTask(taskId);
         return providerTask.isFinished();
-    }
-
-    public TitusExecutorDetails buildExecutorDetails(String taskId) {
-        ComputeProviderTask providerTask = mustHaveTask(taskId);
-        return providerTask.getExecutorDetails();
     }
 
     public void finishTask(String taskId) {

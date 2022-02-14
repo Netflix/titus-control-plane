@@ -24,7 +24,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 
 class ComputeProviderTask {
 
@@ -40,23 +39,10 @@ class ComputeProviderTask {
 
     private State state;
 
-    private final TitusExecutorDetails executorDetails;
-
     private final Map<String, String> scheduledTaskContext;
 
     ComputeProviderTask(Job<?> job, Task task) {
         this.state = State.Accepted;
-        this.executorDetails = new TitusExecutorDetails(
-                CollectionsExt.asMap("nfvpc", "1.2.3.4"),
-                new TitusExecutorDetails.NetworkConfiguration(
-                        true,
-                        "1.2.3.4",
-                        "2600:1f18:2772:d500:6410:ec14:39ca:30d7",
-                        "1.1.1.1",
-                        NetworkConfiguration.NetworkMode.Ipv6AndIpv4.toString(),
-                        "eni-12345",
-                        "eni-resource-1"
-                ));
         this.scheduledTaskContext = CollectionsExt.asMap(
                 TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "agent1"
         );
@@ -64,10 +50,6 @@ class ComputeProviderTask {
 
     public State getState() {
         return state;
-    }
-
-    public TitusExecutorDetails getExecutorDetails() {
-        return executorDetails;
     }
 
     public Map<String, String> getScheduledTaskContext() {
