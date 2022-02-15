@@ -72,7 +72,6 @@ public class ScenarioTemplates {
                 .triggerComputePlatformStartInitiatedEvent(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.StartInitiated);
-                    assertThat(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)).isNotEmpty();
                 })
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.StartInitiated);
     }

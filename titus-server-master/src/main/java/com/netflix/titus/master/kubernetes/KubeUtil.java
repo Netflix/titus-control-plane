@@ -35,7 +35,6 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ContainerState;
@@ -98,29 +97,6 @@ public class KubeUtil {
                 .filter(status -> status.getState() != null && status.getState().getTerminated() != null && status.getState().getTerminated().getFinishedAt() != null)
                 .findFirst()
                 .map(terminatedState -> terminatedState.getState().getTerminated().getFinishedAt().toInstant().toEpochMilli());
-    }
-
-    public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
-        if (pod.getMetadata() == null || pod.getMetadata().getAnnotations() == null) {
-            return Optional.empty();
-        }
-        Map<String, String> annotations = pod.getMetadata().getAnnotations();
-        if (!Strings.isNullOrEmpty(annotations.get("IpAddress"))) {
-            TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
-                    Collections.emptyMap(),
-                    new TitusExecutorDetails.NetworkConfiguration(
-                            Boolean.parseBoolean(annotations.getOrDefault("IsRoutableIp", "true")),
-                            annotations.getOrDefault("IpAddress", "UnknownIpAddress"),
-                            annotations.get("EniIPv6Address"),
-                            annotations.getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
-                            annotations.getOrDefault("NetworkMode", "UnknownNetworkMode"),
-                            annotations.getOrDefault("EniId", "UnknownEniId"),
-                            annotations.getOrDefault("ResourceId", "UnknownResourceId")
-                    )
-            );
-            return Optional.of(titusExecutorDetails);
-        }
-        return Optional.empty();
     }
 
     public static Optional<V1ContainerState> findContainerState(V1Pod pod) {

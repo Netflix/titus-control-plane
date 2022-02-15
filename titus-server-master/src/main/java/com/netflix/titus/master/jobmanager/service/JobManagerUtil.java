@@ -35,10 +35,16 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.grpc.protogen.NetworkConfiguration.NetworkMode;
+import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_ID;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IPV6_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_NETWORK_MODE;
 
 /**
  * Collection of common functions.
@@ -76,7 +82,7 @@ public final class JobManagerUtil {
         return applicationSLA == null ? ApplicationSlaManagementService.DEFAULT_APPLICATION : applicationSLA.getAppName();
     }
 
-    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, Optional<TitusExecutorDetails> detailsOpt, TitusRuntime titusRuntime) {
+    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, TitusRuntime titusRuntime) {
         return oldTask -> {
             TaskState oldState = oldTask.getStatus().getState();
             TaskState newState = newTaskStatus.getState();
@@ -84,7 +90,7 @@ public final class JobManagerUtil {
             // De-duplicate task status updates. 'Launched' state is reported from two places, so we get
             // 'Launched' state update twice. For other states there may be multiple updates, each with different reason.
             // For example in 'StartInitiated', multiple updates are send reporting progress of a container setup.
-            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus()) && !detailsOpt.isPresent()) {
+            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus())) {
                 return Optional.empty();
             }
             if (newState == oldState && newState == TaskState.Launched) {
@@ -97,54 +103,43 @@ public final class JobManagerUtil {
             }
 
             Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
-            Task newTaskWithPlacementData = attachTitusExecutorNetworkData(newTask, detailsOpt);
-            return Optional.of(newTaskWithPlacementData);
+            return Optional.of(newTask);
         };
     }
 
-    public static Task attachTitusExecutorNetworkData(Task task, Optional<TitusExecutorDetails> detailsOpt) {
-        return detailsOpt.map(details -> {
-            TitusExecutorDetails.NetworkConfiguration networkConfiguration = details.getNetworkConfiguration();
-            if (networkConfiguration != null) {
-                String ipv4 = networkConfiguration.getIpAddress();
-                String ipv6 = networkConfiguration.getIpV6Address();
-                String primaryIP = networkConfiguration.getPrimaryIpAddress();
-                Map<String, String> newContext = new HashMap<>(task.getTaskContext());
-                BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
-
-                if (networkConfiguration.getNetworkMode().equals(NetworkMode.Ipv6AndIpv4Fallback.toString())) {
-                    // In the IPV6_ONLY_WITH_TRANSITION mode, the ipv4 on the pod doesn't represent
-                    // a unique IP for that pod, but a shared one. This should not be consumed
-                    // as a normal ip by normal tools, and deserves a special attribute
-                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, ipv4);
-                } else if (!networkConfiguration.getNetworkMode().equals(NetworkMode.Ipv6Only.toString())) {
-                    // Only in the case of non IPv6-only mode do we want to set this attribute
-                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, ipv4);
-                }
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, primaryIP);
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, ipv6);
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, networkConfiguration.getEniID());
-                parseEniResourceId(networkConfiguration.getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
-
-                return task.toBuilder().addAllToTaskContext(newContext).build();
-            }
-            return task;
-        }).orElse(task);
-    }
-
-    public static Task attachKubeletNetworkData(Task task, PodWrapper podWrapper) {
-        if (podWrapper.getV1Pod().getStatus() == null) {
+    public static Task attachNetworkDataFromPod(Task task, PodWrapper podWrapper) {
+        Map<String, String> annotations = podWrapper.getV1Pod().getMetadata().getAnnotations();
+        if (annotations == null) {
             return task;
         }
-        String ipv4 = podWrapper.getV1Pod().getStatus().getPodIP();
-        if (ipv4 == null || ipv4.isEmpty()) {
-            return task;
-        }
+
+        String ipaddress = annotations.get(LEGACY_ANNOTATION_IP_ADDRESS);
+        String elasticIPAddress = annotations.get(LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS);
+        String eniIPAddress = annotations.get(LEGACY_ANNOTATION_ENI_IP_ADDRESS);
+        String eniIPv6Address = annotations.get(LEGACY_ANNOTATION_ENI_IPV6_ADDRESS);
+        String effectiveNetworkMode = annotations.get(LEGACY_ANNOTATION_NETWORK_MODE);
+        String eniID = annotations.get(LEGACY_ANNOTATION_ENI_ID);
 
         Map<String, String> newContext = new HashMap<>(task.getTaskContext());
         BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
-        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, ipv4);
-        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, ipv4);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, ipaddress);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, eniIPv6Address);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, eniID);
+
+        if (effectiveNetworkMode != null && effectiveNetworkMode.equals(NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString())) {
+            // In the IPV6_ONLY_WITH_TRANSITION mode, the ipv4 on the pod doesn't represent
+            // a unique IP for that pod, but a shared one. This should not be consumed
+            // as a normal ip by normal tools, and deserves a special attribute
+            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, eniIPAddress);
+        }
+        if (effectiveNetworkMode != null && effectiveNetworkMode != NetworkConfiguration.NetworkMode.Ipv6Only.toString() && effectiveNetworkMode != NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString()) {
+            // Only in the case of non IPv6-only mode do we want to set this attribute
+            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
+        }
+
+        //If we did assign an EIP, we set that as the "main" ip address
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, elasticIPAddress);
+
         return task.toBuilder().addAllToTaskContext(newContext).build();
     }
 
