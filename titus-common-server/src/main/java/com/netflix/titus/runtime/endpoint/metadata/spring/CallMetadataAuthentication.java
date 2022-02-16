@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.endpoint.metadata.spring;
 import java.util.Collection;
 
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import io.swagger.annotations.ApiModelProperty;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -27,7 +28,9 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public class CallMetadataAuthentication implements Authentication {
 
+    @ApiModelProperty(hidden = true)
     private final Authentication delegate;
+    @ApiModelProperty(hidden = true)
     private final CallMetadata callMetadata;
 
     public CallMetadataAuthentication(CallMetadata callMetadata, Authentication delegate) {
@@ -35,36 +38,43 @@ public class CallMetadataAuthentication implements Authentication {
         this.callMetadata = callMetadata;
     }
 
+    @ApiModelProperty(hidden = true)
     public CallMetadata getCallMetadata() {
         return callMetadata;
     }
 
     @Override
+    @ApiModelProperty(hidden = true)
     public String getName() {
         return delegate.getName();
     }
 
     @Override
+    @ApiModelProperty(hidden = true)
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return delegate.getAuthorities();
     }
 
     @Override
+    @ApiModelProperty(hidden = true)
     public Object getCredentials() {
         return delegate.getCredentials();
     }
 
     @Override
+    @ApiModelProperty(hidden = true)
     public Object getDetails() {
         return delegate.getDetails();
     }
 
     @Override
+    @ApiModelProperty(hidden = true)
     public Object getPrincipal() {
         return delegate.getPrincipal();
     }
 
     @Override
+    @ApiModelProperty(hidden = true)
     public boolean isAuthenticated() {
         return delegate.isAuthenticated();
     }
