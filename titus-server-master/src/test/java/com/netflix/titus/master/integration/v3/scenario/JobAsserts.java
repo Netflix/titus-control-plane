@@ -16,8 +16,6 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
-import java.io.IOException;
-import java.util.Base64;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -29,7 +27,7 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.testkit.embedded.kube.EmbeddedKubeUtil;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.titanframework.messages.TitanProtos;
+import io.kubernetes.client.openapi.models.V1VolumeMount;
 
 public class JobAsserts {
     public static Predicate<Job> jobInState(JobState expectedState) {
@@ -56,25 +54,25 @@ public class JobAsserts {
         };
     }
 
+    /**
+     * FIXME Incomplete checks as some parsing is required.
+     */
     public static Predicate<V1Pod> podWithEfsMounts(List<EfsMount> expectedEfsMounts) {
         return pod -> {
-            String containerInfoStr = pod.getMetadata().getAnnotations().get("containerInfo");
-            byte[] decodedContainerInfo = Base64.getDecoder().decode(containerInfoStr);
-
-            TitanProtos.ContainerInfo containerInfo;
-            try {
-                containerInfo = TitanProtos.ContainerInfo.parseFrom(decodedContainerInfo);
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot parse containerInfo");
+            List<V1VolumeMount> efsVolumes = pod.getSpec().getContainers().get(0).getVolumeMounts().stream()
+                    .filter(v -> v.getName().startsWith("efs"))
+                    .collect(Collectors.toList());
+            if (efsVolumes.size() != expectedEfsMounts.size()) {
+                return false;
             }
-            List<EfsMount> actualEfsMounts = containerInfo.getEfsConfigInfoList().stream().map(c -> EfsMount.newBuilder()
-                    .withEfsId(c.getEfsFsId())
-                    .withMountPoint(c.getMountPoint())
-                    .withEfsRelativeMountPoint(c.getEfsFsRelativeMntPoint())
-                    .withMountPerm(EfsMount.MountPerm.valueOf(c.getMntPerms().name()))
-                    .build()
-            ).collect(Collectors.toList());
-            return expectedEfsMounts.equals(actualEfsMounts);
+            for (int i = 0; i < efsVolumes.size(); i++) {
+                V1VolumeMount efsVolume = efsVolumes.get(i);
+                EfsMount expectedEfsMount = expectedEfsMounts.get(i);
+                if (!efsVolume.getMountPath().equals(expectedEfsMount.getMountPoint())) {
+                    return false;
+                }
+            }
+            return true;
         };
     }
 }

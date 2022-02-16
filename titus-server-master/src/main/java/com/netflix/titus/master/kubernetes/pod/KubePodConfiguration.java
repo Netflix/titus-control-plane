@@ -152,16 +152,4 @@ public interface KubePodConfiguration {
      * @return the pod spec target region to use
      */
     String getTargetRegion();
-
-    /**
-     * @return the pod spec routing rules to use.
-     */
-    @DefaultValue("v0")
-    String getDefaultPodSpecVersion();
-
-    /**
-     * @return the pod spec routing rules to use.
-     */
-    @DefaultValue("")
-    String getPodSpecVersionRoutingRules();
 }
