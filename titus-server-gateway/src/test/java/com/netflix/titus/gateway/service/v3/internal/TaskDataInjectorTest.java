@@ -120,7 +120,7 @@ public class TaskDataInjectorTest {
                 newRelocationSnapshot(newRelocationPlan(TASK1, deadlineTimestamp))
         );
 
-        Task merged = taskDataInjector.injectIntoTask(Observable.just(TASK1)).toBlocking().first();
+        Task merged = Observable.just(TASK1).map(taskDataInjector::injectIntoTask).toBlocking().first();
         assertThat(merged.getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getMigrationDetails().getDeadline()).isEqualTo(deadlineTimestamp);
     }
@@ -128,7 +128,7 @@ public class TaskDataInjectorTest {
     @Test
     public void testFindTaskWithoutRelocationDeadline() {
         when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.empty());
-        Task merged = taskDataInjector.injectIntoTask(Observable.just(TASK1)).toBlocking().first();
+        Task merged = Observable.just(TASK1).map(taskDataInjector::injectIntoTask).toBlocking().first();
         assertThat(merged.getMigrationDetails().getNeedsMigration()).isFalse();
     }
 
@@ -139,7 +139,7 @@ public class TaskDataInjectorTest {
         Task legacyTask = toLegacyTask(TASK1, deadlineTimestamp);
 
         when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.empty());
-        taskDataInjector.injectIntoTask(Observable.just(legacyTask)).toBlocking().first();
+        Observable.just(legacyTask).map(taskDataInjector::injectIntoTask).toBlocking().first();
 
         assertThat(legacyTask).isEqualToComparingFieldByField(legacyTask);
     }
@@ -158,7 +158,7 @@ public class TaskDataInjectorTest {
                 newRelocationPlan(TASK2, deadline2)
         ));
 
-        TaskQueryResult merged = taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = Observable.just(queryResult).map(queryResult1 -> taskDataInjector.injectIntoTaskQueryResult(queryResult1)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -176,7 +176,7 @@ public class TaskDataInjectorTest {
                 .addItems(TASK2)
                 .build();
         when(relocationDataReplicator.getCurrent()).thenReturn(newRelocationSnapshot(newRelocationPlan(TASK1, deadline1)));
-        TaskQueryResult merged = taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = Observable.just(queryResult).map(queryResult1 -> taskDataInjector.injectIntoTaskQueryResult(queryResult1)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -196,7 +196,7 @@ public class TaskDataInjectorTest {
                 .addItems(legacyTask)
                 .build();
         when(relocationDataReplicator.getCurrent()).thenReturn(newRelocationSnapshot(newRelocationPlan(TASK1, deadline1)));
-        TaskQueryResult merged = taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = Observable.just(queryResult).map(queryResult1 -> taskDataInjector.injectIntoTaskQueryResult(queryResult1)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);

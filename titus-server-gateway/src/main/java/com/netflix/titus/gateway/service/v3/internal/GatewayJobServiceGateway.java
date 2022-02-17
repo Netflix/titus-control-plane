@@ -228,7 +228,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 },
                 tunablesConfiguration.getRequestTimeoutMs()
         );
-        observable = taskDataInjector.injectIntoTask(observable);
+        observable = observable.map(taskDataInjector::injectIntoTask);
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -288,7 +288,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             }
         }
 
-        return taskDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
+        return observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS).map(queryResult -> taskDataInjector.injectIntoTaskQueryResult(queryResult));
     }
 
     @Override

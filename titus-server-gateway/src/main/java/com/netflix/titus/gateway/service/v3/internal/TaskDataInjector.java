@@ -37,7 +37,6 @@ import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import io.fabric8.kubernetes.api.model.ContainerState;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
-import rx.Observable;
 
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_IMAGE_TAG_PREFIX;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_SUFFIX_CONTAINERS;
@@ -99,17 +98,11 @@ class TaskDataInjector {
         return decoratedTasks;
     }
 
-    Observable<Task> injectIntoTask(Observable<Task> taskObservable) {
-        return taskObservable.map(this::injectIntoTask);
-    }
-
-    Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
-        return tasksObservable.map(queryResult ->
-                queryResult.toBuilder()
-                        .clearItems()
-                        .addAllItems(injectIntoTasks(queryResult.getItemsList()))
-                        .build()
-        );
+    public TaskQueryResult injectIntoTaskQueryResult(TaskQueryResult queryResult) {
+        return queryResult.toBuilder()
+                .clearItems()
+                .addAllItems(injectIntoTasks(queryResult.getItemsList()))
+                .build();
     }
 
     private Task newTaskWithContainerState(Task task) {
