@@ -20,38 +20,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.BasicImage;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
-import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
-import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import io.fabric8.kubernetes.api.model.ContainerState;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Scheduler;
-import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_IMAGE_TAG_PREFIX;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_SUFFIX_CONTAINERS;
@@ -60,51 +45,18 @@ import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_
 @Singleton
 class TaskDataInjector {
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskDataInjector.class);
-
-    /**
-     * We can tolerate task relocation cache staleness up to 60sec. This should be ok, as the relocation service
-     * itself runs on 30sec plan refresh interval.
-     */
-    private static final long MAX_RELOCATION_DATA_STALENESS_MS = 30_000;
-
-    private static Fabric8IOConnector kubeApiConnector;
-
-    private final GrpcClientConfiguration configuration;
-    private final JobManagerConfiguration jobManagerConfiguration;
+    private final Fabric8IOConnector kubeApiConnector;
     private final FeatureActivationConfiguration featureActivationConfiguration;
-    private final RelocationServiceClient relocationServiceClient;
     private final RelocationDataReplicator relocationDataReplicator;
-    private final Scheduler scheduler;
 
     @Inject
     TaskDataInjector(
-            GrpcClientConfiguration configuration,
-            JobManagerConfiguration jobManagerConfiguration,
             FeatureActivationConfiguration featureActivationConfiguration,
-            RelocationServiceClient relocationServiceClient,
             RelocationDataReplicator relocationDataReplicator,
             Fabric8IOConnector kubeApiConnector) {
-        this(configuration, jobManagerConfiguration, featureActivationConfiguration, relocationServiceClient,
-                relocationDataReplicator, kubeApiConnector, Schedulers.computation());
-    }
-
-    @VisibleForTesting
-    TaskDataInjector(
-            GrpcClientConfiguration configuration,
-            JobManagerConfiguration jobManagerConfiguration,
-            FeatureActivationConfiguration featureActivationConfiguration,
-            RelocationServiceClient relocationServiceClient,
-            RelocationDataReplicator relocationDataReplicator,
-            Fabric8IOConnector kubeApiConnector,
-            Scheduler scheduler) {
-        this.configuration = configuration;
-        this.jobManagerConfiguration = jobManagerConfiguration;
         this.featureActivationConfiguration = featureActivationConfiguration;
-        this.relocationServiceClient = relocationServiceClient;
         this.relocationDataReplicator = relocationDataReplicator;
         this.kubeApiConnector = kubeApiConnector;
-        this.scheduler = scheduler;
     }
 
     JobChangeNotification injectIntoTaskUpdateEvent(JobChangeNotification event) {
@@ -129,89 +81,28 @@ class TaskDataInjector {
         ).build();
     }
 
-    Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {
-        Observable<Task> taskObservableWithContainerState = taskObservable;
-
+    Task injectIntoTask(Task task) {
+        Task decoratedTask = task;
         if (featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
-            taskObservableWithContainerState = taskObservable.map(this::newTaskWithContainerState);
+            decoratedTask = newTaskWithContainerState(task);
         }
-
-        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
-            return taskObservableWithContainerState;
+        if (featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
+            decoratedTask = newTaskWithRelocationPlan(decoratedTask, relocationDataReplicator.getCurrent().getPlans().get(decoratedTask.getId()));
         }
-
-        if (shouldUseRelocationCache()) {
-            return taskObservableWithContainerState.map(task -> newTaskWithRelocationPlan(task, relocationDataReplicator.getCurrent().getPlans().get(taskId)));
-        }
-
-        Observable<Optional<TaskRelocationPlan>> relocationPlanResolver = ReactorExt.toObservable(relocationServiceClient.findTaskRelocationPlan(taskId))
-                .timeout(getTaskRelocationTimeout(), TimeUnit.MILLISECONDS, scheduler)
-                .doOnError(error -> logger.info("Could not resolve task relocation status for task: taskId={}, error={}", taskId, ExceptionExt.toMessageChain(error)))
-                .onErrorReturn(e -> Optional.empty());
-
-        return Observable.zip(
-                taskObservableWithContainerState,
-                relocationPlanResolver,
-                (task, planOpt) -> planOpt.map(plan -> newTaskWithRelocationPlan(task, plan)).orElse(task)
-        );
+        return decoratedTask;
     }
 
-    Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
-        Observable<TaskQueryResult> tasksObservableWithContainerState = tasksObservable;
-
-        if (featureActivationConfiguration.isInjectingContainerStatesEnabled()) {
-            tasksObservableWithContainerState.flatMap(queryResult -> {
-                List<Task> newTaskList = queryResult.getItemsList().stream()
-                        .map(task -> newTaskWithContainerState(task))
-                        .collect(Collectors.toList());
-                return Observable.just(queryResult.toBuilder().clearItems().addAllItems(newTaskList).build());
-            });
-        }
-
-        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
-            return tasksObservableWithContainerState;
-        }
-
-        return tasksObservableWithContainerState.flatMap(queryResult -> {
-            Set<String> taskIds = queryResult.getItemsList().stream().map(Task::getId).collect(Collectors.toSet());
-
-            if (shouldUseRelocationCache()) {
-                Map<String, TaskRelocationPlan> plans = relocationDataReplicator.getCurrent().getPlans();
-                List<Task> newTaskList = queryResult.getItemsList().stream()
-                        .map(task -> {
-                            TaskRelocationPlan plan = plans.get(task.getId());
-                            return plan != null ? newTaskWithRelocationPlan(task, plan) : task;
-                        })
-                        .collect(Collectors.toList());
-                return Observable.just(queryResult.toBuilder().clearItems().addAllItems(newTaskList).build());
-            }
-
-            return ReactorExt.toObservable(relocationServiceClient.findTaskRelocationPlans(taskIds))
-                    .timeout(getTaskRelocationTimeout(), TimeUnit.MILLISECONDS, scheduler)
-                    .doOnError(error -> logger.info("Could not resolve task relocation status for tasks: taskIds={}, error={}", taskIds, ExceptionExt.toMessageChain(error)))
-                    .onErrorReturn(e -> Collections.emptyList())
-                    .map(relocationPlans -> {
-                        Map<String, TaskRelocationPlan> plansById = relocationPlans.stream().collect(Collectors.toMap(TaskRelocationPlan::getTaskId, p -> p));
-                        if (plansById.isEmpty()) {
-                            return queryResult;
-                        }
-                        List<Task> newTaskList = queryResult.getItemsList().stream()
-                                .map(task -> {
-                                    TaskRelocationPlan plan = plansById.get(task.getId());
-                                    return plan != null ? newTaskWithRelocationPlan(task, plan) : task;
-                                })
-                                .collect(Collectors.toList());
-                        return queryResult.toBuilder().clearItems().addAllItems(newTaskList).build();
-                    });
-        });
+    public List<Task> injectIntoTasks(List<Task> tasks) {
+        List<Task> decoratedTasks = new ArrayList<>();
+        tasks.forEach(task -> decoratedTasks.add(injectIntoTask(task)));
+        return decoratedTasks;
     }
 
-    private boolean shouldUseRelocationCache() {
-        return jobManagerConfiguration.isUseRelocationCache() && relocationDataReplicator.getStalenessMs() < MAX_RELOCATION_DATA_STALENESS_MS;
-    }
-
-    private long getTaskRelocationTimeout() {
-        return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
+    public TaskQueryResult injectIntoTaskQueryResult(TaskQueryResult queryResult) {
+        return queryResult.toBuilder()
+                .clearItems()
+                .addAllItems(injectIntoTasks(queryResult.getItemsList()))
+                .build();
     }
 
     private Task newTaskWithContainerState(Task task) {
@@ -280,7 +171,7 @@ class TaskDataInjector {
         }
     }
 
-    private static String getTagFromImageString(String image, String containerName,  Pod pod) {
+    private static String getTagFromImageString(String image, String containerName, Pod pod) {
         int tagStart = image.lastIndexOf(":");
         if (tagStart < 0) {
             return getTagFromAnnotation(containerName, pod);
@@ -320,7 +211,7 @@ class TaskDataInjector {
      * Inspects a pod and determines what platform sidecar originally injected the container.
      * Returns empty string in the case that no platform sidecar injected the container (implies the container was user-defined)
      *
-     * @param pod pod to inspect
+     * @param pod           pod to inspect
      * @param containerName the name of the container that was (potentially) added
      * @return platform sidecar name
      */

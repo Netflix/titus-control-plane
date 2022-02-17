@@ -35,7 +35,6 @@ public interface JobManagerConfiguration {
     String getDefaultSubnets();
 
     /**
-     *
      * @return Default account to launch containers in. This value is used when not explicitly provided by the caller.
      */
     String getDefaultContainerAccountId();
@@ -48,23 +47,4 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("10000")
     int getMinDiskSizeMB();
-
-    /**
-     * The task relocation service has lower availability than TitusMaster. In case if it is down or very latent,
-     * applying the regular request timeout might result in large latency increase for all client requests.
-     * Instead we set more aggressive timeout for the task relocation service, at the cost of not including the
-     * relocation data in the client response.
-     *
-     * @return fraction of the GRPC request timeout set for the task relocation service requests
-     */
-    @DefaultValue("0.1")
-    double getRelocationTimeoutCoefficient();
-
-    /**
-     * If set to true, the relocation data cache is used when merging task data with the relocation data.
-     * If set to false, a direct call to the relocation service is made each time for each task, reverting to the
-     * previous behavior.
-     */
-    @DefaultValue("true")
-    boolean isUseRelocationCache();
 }

@@ -17,11 +17,7 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
@@ -36,26 +32,20 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.fabric8io.Fabric8IOConnector;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
-import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.connector.relocation.TaskRelocationSnapshot;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
-import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import org.junit.Before;
 import org.junit.Test;
-import reactor.core.publisher.Mono;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
-import static com.netflix.titus.common.util.CollectionsExt.asList;
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.gateway.service.v3.internal.TaskDataInjector.buildBasicImageFromContainerStatus;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_IMAGE_TAG_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,7 +55,6 @@ import static org.mockito.Mockito.when;
 public class TaskDataInjectorTest {
 
     private static final long REQUEST_TIMEOUT_MS = 1_000L;
-    private static final long RELOCATION_TIMEOUT_MS = REQUEST_TIMEOUT_MS / 2;
 
     private final TestScheduler testScheduler = Schedulers.test();
 
@@ -75,27 +64,16 @@ public class TaskDataInjectorTest {
     private static final Task TASK2 = GrpcJobManagementModelConverters.toGrpcTask(JobGenerator.oneBatchTask().toBuilder().withId("task2").build(), EmptyLogStorageInfo.empty());
 
     private final GrpcClientConfiguration grpcConfiguration = mock(GrpcClientConfiguration.class);
-    private final JobManagerConfiguration jobManagerConfiguration = mock(JobManagerConfiguration.class);
     private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
 
-    private final RelocationServiceClient relocationServiceClient = mock(RelocationServiceClient.class);
     private final RelocationDataReplicator relocationDataReplicator = mock(RelocationDataReplicator.class);
     private final Fabric8IOConnector kubeApiConnector = mock(Fabric8IOConnector.class);
 
-    private final TaskDataInjector taskDataInjector = new TaskDataInjector(
-            grpcConfiguration,
-            jobManagerConfiguration,
-            featureActivationConfiguration,
-            relocationServiceClient,
-            relocationDataReplicator,
-            kubeApiConnector,
-            testScheduler
-    );
+    private final TaskDataInjector taskDataInjector = new TaskDataInjector(featureActivationConfiguration, relocationDataReplicator, kubeApiConnector);
 
     @Before
     public void setUp() {
         when(grpcConfiguration.getRequestTimeout()).thenReturn(REQUEST_TIMEOUT_MS);
-        when(jobManagerConfiguration.getRelocationTimeoutCoefficient()).thenReturn(0.5);
         when(featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()).thenReturn(true);
     }
 
@@ -126,27 +104,31 @@ public class TaskDataInjectorTest {
         assertThat(updatedEvent).isEqualTo(event);
     }
 
-    private TaskRelocationSnapshot newRelocationSnapshot(TaskRelocationPlan plan) {
-        return TaskRelocationSnapshot.newBuilder().addPlan(plan).build();
+    private TaskRelocationSnapshot newRelocationSnapshot(TaskRelocationPlan... plans) {
+        TaskRelocationSnapshot.Builder builder = TaskRelocationSnapshot.newBuilder();
+        for (TaskRelocationPlan plan : plans) {
+            builder.addPlan(plan);
+        }
+        return builder.build();
     }
 
     @Test
     public void testFindTaskWithRelocationDeadline() {
         long deadlineTimestamp = titusRuntime.getClock().wallTime() + 1_000;
 
-        when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(
-                Mono.just(Optional.of(newRelocationPlan(TASK1, deadlineTimestamp)))
+        when(relocationDataReplicator.getCurrent()).thenReturn(
+                newRelocationSnapshot(newRelocationPlan(TASK1, deadlineTimestamp))
         );
 
-        Task merged = taskDataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).toBlocking().first();
+        Task merged = Observable.just(TASK1).map(taskDataInjector::injectIntoTask).toBlocking().first();
         assertThat(merged.getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getMigrationDetails().getDeadline()).isEqualTo(deadlineTimestamp);
     }
 
     @Test
     public void testFindTaskWithoutRelocationDeadline() {
-        when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(Mono.just(Optional.empty()));
-        Task merged = taskDataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).toBlocking().first();
+        when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.empty());
+        Task merged = Observable.just(TASK1).map(taskDataInjector::injectIntoTask).toBlocking().first();
         assertThat(merged.getMigrationDetails().getNeedsMigration()).isFalse();
     }
 
@@ -156,23 +138,10 @@ public class TaskDataInjectorTest {
 
         Task legacyTask = toLegacyTask(TASK1, deadlineTimestamp);
 
-        when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(Mono.just(Optional.empty()));
-        taskDataInjector.injectIntoTask(legacyTask.getId(), Observable.just(legacyTask)).toBlocking().first();
+        when(relocationDataReplicator.getCurrent()).thenReturn(TaskRelocationSnapshot.empty());
+        Observable.just(legacyTask).map(taskDataInjector::injectIntoTask).toBlocking().first();
 
         assertThat(legacyTask).isEqualToComparingFieldByField(legacyTask);
-    }
-
-    @Test
-    public void testFindTaskWithRelocationDataFetchTimeout() {
-        when(relocationServiceClient.findTaskRelocationPlan(TASK1.getId())).thenReturn(Mono.never());
-
-        ExtTestSubscriber<Task> testSubscriber = new ExtTestSubscriber<>();
-        taskDataInjector.injectIntoTask(TASK1.getId(), Observable.just(TASK1)).subscribe(testSubscriber);
-
-        testSubscriber.assertOpen();
-        testScheduler.advanceTimeBy(RELOCATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        assertThat(testSubscriber.takeNext()).isEqualTo(TASK1);
-        testSubscriber.assertOnCompleted();
     }
 
     @Test
@@ -184,13 +153,12 @@ public class TaskDataInjectorTest {
                 .addItems(TASK1)
                 .addItems(TASK2)
                 .build();
-        List<TaskRelocationPlan> relocationPlans = Arrays.asList(
+        when(relocationDataReplicator.getCurrent()).thenReturn(newRelocationSnapshot(
                 newRelocationPlan(TASK1, deadline1),
                 newRelocationPlan(TASK2, deadline2)
-        );
-        when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.just(relocationPlans));
+        ));
 
-        TaskQueryResult merged = taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        TaskQueryResult merged = Observable.just(queryResult).map(queryResult1 -> taskDataInjector.injectIntoTaskQueryResult(queryResult1)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -207,11 +175,8 @@ public class TaskDataInjectorTest {
                 .addItems(TASK1)
                 .addItems(TASK2)
                 .build();
-        List<TaskRelocationPlan> relocationPlans = Collections.singletonList(newRelocationPlan(TASK1, deadline1));
-
-        when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.just(relocationPlans));
-
-        TaskQueryResult merged = taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        when(relocationDataReplicator.getCurrent()).thenReturn(newRelocationSnapshot(newRelocationPlan(TASK1, deadline1)));
+        TaskQueryResult merged = Observable.just(queryResult).map(queryResult1 -> taskDataInjector.injectIntoTaskQueryResult(queryResult1)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -230,10 +195,8 @@ public class TaskDataInjectorTest {
                 .addItems(TASK1)
                 .addItems(legacyTask)
                 .build();
-        List<TaskRelocationPlan> relocationPlans = Collections.singletonList(newRelocationPlan(TASK1, deadline1));
-        when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.just(relocationPlans));
-
-        TaskQueryResult merged = taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).toBlocking().first();
+        when(relocationDataReplicator.getCurrent()).thenReturn(newRelocationSnapshot(newRelocationPlan(TASK1, deadline1)));
+        TaskQueryResult merged = Observable.just(queryResult).map(queryResult1 -> taskDataInjector.injectIntoTaskQueryResult(queryResult1)).toBlocking().first();
 
         assertThat(merged.getItems(0).getMigrationDetails().getNeedsMigration()).isTrue();
         assertThat(merged.getItems(0).getMigrationDetails().getDeadline()).isEqualTo(deadline1);
@@ -242,30 +205,10 @@ public class TaskDataInjectorTest {
     }
 
     @Test
-    public void testFindTasksWithRelocationDataFetchTimeout() {
-        when(relocationServiceClient.findTaskRelocationPlans(asSet(TASK1.getId(), TASK2.getId()))).thenReturn(Mono.never());
-
-        TaskQueryResult queryResult = TaskQueryResult.newBuilder()
-                .addItems(TASK1)
-                .addItems(TASK2)
-                .build();
-
-        ExtTestSubscriber<TaskQueryResult> testSubscriber = new ExtTestSubscriber<>();
-        taskDataInjector.injectIntoTaskQueryResult(Observable.just(queryResult)).subscribe(testSubscriber);
-
-        testSubscriber.assertOpen();
-        testScheduler.advanceTimeBy(RELOCATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        testSubscriber.assertOnCompleted();
-
-        TaskQueryResult result = testSubscriber.takeNext();
-        assertThat(result.getItemsList()).contains(TASK1, TASK2);
-    }
-
-    @Test
     public void testBuildBasicImageFromContainerStatus() {
         Pod pod = new Pod();
         ObjectMeta metadata = new ObjectMeta();
-        HashMap<String, String> annotations = new HashMap<String, String>();
+        HashMap<String, String> annotations = new HashMap<>();
         annotations.put(ANNOTATION_KEY_IMAGE_TAG_PREFIX + "container1", "container1sTag");
         metadata.setAnnotations(annotations);
         pod.setMetadata(metadata);

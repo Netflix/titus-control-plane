@@ -67,6 +67,7 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
@@ -213,7 +214,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     Observable.defer(() -> {
                         Task grpcTask = localCacheQueryProcessor.findTask(taskId).orElse(null);
                         if (grpcTask != null) {
-                            return Observable.just(grpcTask);
+                            return Observable.just(taskDataInjector.injectIntoTask(grpcTask));
                         }
                         return retrieveArchivedTask(taskId);
                     })
@@ -227,7 +228,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 },
                 tunablesConfiguration.getRequestTimeoutMs()
         );
-        observable = taskDataInjector.injectIntoTask(taskId, observable);
+        observable = observable.map(taskDataInjector::injectIntoTask);
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -250,11 +251,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         // "needsMigration" query is served from the local job and relocation cache.
         if (needsMigrationFilter) {
             PageResult<Task> pageResult = needsMigrationQueryHandler.findTasks(GrpcJobQueryModelConverters.toJobQueryCriteria(taskQuery), toPage(taskQuery.getPage()));
-            return Observable.just(TaskQueryResult.newBuilder()
+            TaskQueryResult taskQueryResult = TaskQueryResult.newBuilder()
                     .setPagination(toGrpcPagination(pageResult.getPagination()))
-                    .addAllItems(pageResult.getItems())
-                    .build()
-            );
+                    .addAllItems(taskDataInjector.injectIntoTasks(pageResult.getItems()))
+                    .build();
+            return Observable.just(taskQueryResult);
         }
 
         Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(taskQuery.getFilteringCriteriaMap().getOrDefault("taskStates", "")));
@@ -287,7 +288,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             }
         }
 
-        return taskDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
+        return observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS).map(queryResult -> taskDataInjector.injectIntoTaskQueryResult(queryResult));
     }
 
     @Override
@@ -313,14 +314,25 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {
         if (localCacheQueryProcessor.canUseCache(taskQuery.getFilteringCriteriaMap(), "findTasks", callMetadata)) {
             return localCacheQueryProcessor.syncCache("findTasks", TaskQueryResult.class).concatWith(
-                    Observable.fromCallable(() -> localCacheQueryProcessor.findTasks(taskQuery))
+                    Observable.fromCallable(() -> {
+                        TaskQueryResult taskQueryResult = localCacheQueryProcessor.findTasks(taskQuery);
+                        return taskQueryResult.toBuilder()
+                                .clearItems()
+                                .addAllItems(taskDataInjector.injectIntoTasks(taskQueryResult.getItemsList()))
+                                .build();
+                    })
             );
         }
 
-        return createRequestObservable(emitter -> {
+        return GrpcUtil.<TaskQueryResult>createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, callMetadata, tunablesConfiguration.getRequestTimeoutMs()).findTasks(taskQuery, streamObserver);
-        }, tunablesConfiguration.getRequestTimeoutMs());
+        }, tunablesConfiguration.getRequestTimeoutMs()).map(taskQueryResult ->
+                taskQueryResult.toBuilder()
+                        .clearItems()
+                        .addAllItems(taskDataInjector.injectIntoTasks(taskQueryResult.getItemsList()))
+                        .build()
+        );
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {
