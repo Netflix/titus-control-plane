@@ -33,12 +33,16 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.NetworkConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
@@ -65,6 +69,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -107,6 +113,38 @@ public class V1SpecPodFactoryTest {
                 logStorageInfo,
                 schedulerConfiguration
         );
+    }
+
+    @Test
+    public void relocationLabel() {
+        Job<ServiceJobExt> job = JobGenerator.oneServiceJob();
+        Job<ServiceJobExt> selfManagedJob = job.toBuilder().withJobDescriptor(job.getJobDescriptor().but(
+                jd -> jd.getDisruptionBudget().toBuilder()
+                        .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+        )).build();
+        ServiceJobTask task = JobGenerator.oneServiceTask();
+        when(podAffinityFactory.buildV1Affinity(any(), eq(task))).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+
+        V1Pod pod = podFactory.buildV1Pod(job, task);
+        assertThat(pod.getMetadata().getLabels()).doesNotContainKey(KubeConstants.POD_LABEL_RELOCATION_BINPACK);
+        V1Pod selfManagedPod = podFactory.buildV1Pod(selfManagedJob, task);
+        assertThat(selfManagedPod.getMetadata().getLabels()).containsEntry(KubeConstants.POD_LABEL_RELOCATION_BINPACK, "SelfManaged");
+    }
+
+    @Test
+    public void testCapacityGroupAssignment() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        BatchJobTask task = JobGenerator.oneBatchTask();
+
+        job = job.toBuilder().withJobDescriptor(job.getJobDescriptor().toBuilder().withCapacityGroup("myGroup").build()).build();
+        when(capacityGroupManagement.getApplicationSLA("myGroup")).thenReturn(
+                ApplicationSLA.newBuilder().withAppName("myGroup").build()
+        );
+
+        when(podAffinityFactory.buildV1Affinity(job, task)).thenReturn(Pair.of(new V1Affinity(), new HashMap<>()));
+        V1Pod pod = podFactory.buildV1Pod(job, task);
+
+        assertThat(pod.getMetadata().getLabels()).containsEntry(KubeConstants.LABEL_CAPACITY_GROUP, "mygroup");
     }
 
     @Test

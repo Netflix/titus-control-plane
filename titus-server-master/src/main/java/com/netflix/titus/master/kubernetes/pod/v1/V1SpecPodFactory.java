@@ -203,8 +203,10 @@ public class V1SpecPodFactory implements PodFactory {
         annotations.put(POD_SYSTEM_ENV_VAR_NAMES, String.join(",", envVarsWithIndex.getLeft()));
 
         Map<String, String> labels = new HashMap<>();
-        labels.put("v3.job.titus.netflix.com/job-id", job.getId());
-        labels.put("v3.job.titus.netflix.com/task-id", taskId);
+        labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
+        labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
+
+        JobManagerUtil.getRelocationBinpackMode(job).ifPresent(mode -> labels.put(KubeConstants.POD_LABEL_RELOCATION_BINPACK, mode));
 
         // A V1Container has no room to store the original tag that the Image came from, so we store it as an
         // annotation. Only saving the 'main' one for now.
