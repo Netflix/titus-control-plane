@@ -67,14 +67,14 @@ public final class KubePodConstants {
     // Legacy Pod Network Annotations
     // These are backwards compatible shims for the now-deprecated "TitusExecutorDetails"
     // These can be removed when the newer annotations are in use by the titus-executor
-    public static final String LEGACY_ANNOTATION_IS_ROUTABLE_IP = "IsRoutableIP";
-    public static final String LEGACY_ANNOTATION_IP_ADDRESS = "IPAddress";
+    public static final String LEGACY_ANNOTATION_IS_ROUTABLE_IP = "IsRoutableIp";
+    public static final String LEGACY_ANNOTATION_IP_ADDRESS = "IpAddress";
     public static final String LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS = "ElasticIPAddress";
-    public static final String LEGACY_ANNOTATION_ENI_IP_ADDRESS = "EniIPAddress";
+    public static final String LEGACY_ANNOTATION_ENI_IP_ADDRESS = "EniIpAddress";
     public static final String LEGACY_ANNOTATION_ENI_IPV6_ADDRESS = "EniIPv6Address";
     public static final String LEGACY_ANNOTATION_NETWORK_MODE = "NetworkMode";
-    public static final String LEGACY_ANNOTATION_ENI_ID = "EniID";
-    public static final String LEGACY_ANNOTATION_RESOURCE_ID = "ResourceID";
+    public static final String LEGACY_ANNOTATION_ENI_ID = "EniId";
+    public static final String LEGACY_ANNOTATION_RESOURCE_ID = "ResourceId";
 
     // Security
     public static final String IAM_ROLE = "iam.amazonaws.com/role";
