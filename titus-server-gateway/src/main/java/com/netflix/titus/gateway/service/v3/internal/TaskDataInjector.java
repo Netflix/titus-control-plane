@@ -157,8 +157,18 @@ class TaskDataInjector {
         String imageWithoutRegistry = stripRegistryFromImage(image);
         String name = getNameFromImageString(imageWithoutRegistry);
         bi.setName(name);
-        bi.setDigest(getDigestFromImageString(imageWithoutRegistry));
-        bi.setTag(getTagFromImageString(imageWithoutRegistry, containerName, pod));
+        String digestFromImageString = getDigestFromImageString(imageWithoutRegistry);
+        if (digestFromImageString.equals("")) {
+            // If the image string doesn't have a digest, then the best we can do is
+            // set the tag from whatever the image string has
+            bi.setTag(getTagFromImageString(imageWithoutRegistry));
+        } else {
+            // If we *do* have a digest, then we can set it, but we have to get the tag
+            // from an annotation. This is because the k8s pod object doesn't have room
+            // for both pieces of data
+            bi.setDigest(digestFromImageString);
+            bi.setTag(getTagFromAnnotation(containerName, pod));
+        }
         return bi.build();
     }
 
@@ -171,10 +181,10 @@ class TaskDataInjector {
         }
     }
 
-    private static String getTagFromImageString(String image, String containerName, Pod pod) {
+    private static String getTagFromImageString(String image) {
         int tagStart = image.lastIndexOf(":");
         if (tagStart < 0) {
-            return getTagFromAnnotation(containerName, pod);
+            return "";
         } else {
             return image.substring(tagStart + 1);
         }
