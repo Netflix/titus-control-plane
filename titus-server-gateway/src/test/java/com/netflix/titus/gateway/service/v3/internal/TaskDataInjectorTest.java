@@ -212,7 +212,7 @@ public class TaskDataInjectorTest {
         annotations.put(ANNOTATION_KEY_IMAGE_TAG_PREFIX + "container1", "container1sTag");
         metadata.setAnnotations(annotations);
         pod.setMetadata(metadata);
-        String imageWithDigest = "registry.example.com/container1Image@123456";
+        String imageWithDigest = "registry.example.com/container1Image@sha123:123456";
         String imageWithTag = "registry.example.com/container2Image:mytag";
 
         ContainerStatus containerStatus1 = new ContainerStatus();
@@ -228,7 +228,7 @@ public class TaskDataInjectorTest {
         BasicImage bi1 = buildBasicImageFromContainerStatus(pod, imageWithDigest, "container1");
         assertThat(bi1.getName()).isEqualTo("container1Image");
         assertThat(bi1.getTag()).isEqualTo("container1sTag");
-        assertThat(bi1.getDigest()).isEqualTo("123456");
+        assertThat(bi1.getDigest()).isEqualTo("sha123:123456");
 
         BasicImage bi2 = buildBasicImageFromContainerStatus(pod, imageWithTag, "container2");
         assertThat(bi2.getName()).isEqualTo("container2Image");
