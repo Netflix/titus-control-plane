@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos;
+package com.netflix.titus.master.config;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+// For historic reasons these config settings are still under the old "mesos" name
 @Configuration(prefix = "titus.mesos")
-@Deprecated
-public interface MesosConfiguration {
+public interface BackendConfiguration {
 
     @DefaultValue(".*invalidRequest.*")
     String getInvalidRequestMessagePattern();

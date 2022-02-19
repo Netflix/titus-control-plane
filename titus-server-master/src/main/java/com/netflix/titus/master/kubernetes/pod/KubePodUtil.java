@@ -17,7 +17,6 @@
 package com.netflix.titus.master.kubernetes.pod;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +24,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -43,12 +41,8 @@ import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.Evaluators;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.master.kubernetes.PerformanceToolUtil;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1CephFSVolumeSource;
@@ -68,54 +62,6 @@ public class KubePodUtil {
     private static final Logger logger = LoggerFactory.getLogger(KubePodUtil.class);
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
-
-    public static Map<String, String> createPodAnnotations(
-            Job<?> job,
-            Task task,
-            byte[] containerInfoData,
-            Map<String, String> passthroughAttributes,
-            boolean includeJobDescriptor
-    ) {
-        String encodedContainerInfo = Base64.getEncoder().encodeToString(containerInfoData);
-
-        Map<String, String> annotations = new HashMap<>(passthroughAttributes);
-        annotations.putAll(PerformanceToolUtil.toAnnotations(job));
-        annotations.put("containerInfo", encodedContainerInfo);
-        Evaluators.acceptNotNull(
-                job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC),
-                runtimeInSec -> annotations.put(KubeConstants.JOB_RUNTIME_PREDICTION, runtimeInSec + "s")
-        );
-        Evaluators.acceptNotNull(
-                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID),
-                id -> annotations.put(KubeConstants.STATIC_IP_ALLOCATION_ID, id)
-        );
-        Evaluators.acceptNotNull(
-                job.getJobDescriptor().getNetworkConfiguration().getNetworkModeName(),
-                modeName -> annotations.put(KubeConstants.NETWORK_MODE, modeName)
-        );
-
-        annotations.putAll(createEbsPodAnnotations(job, task));
-
-        if (includeJobDescriptor) {
-            annotations.put("jobDescriptor", createEncodedJobDescriptor(job));
-        }
-
-        annotations.putAll(createPodAnnotationsFromJobParameters(job));
-
-        return annotations;
-    }
-
-    public static String createEncodedJobDescriptor(Job<?> job) {
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> filteredJobDescriptor = filterPodJobDescriptor(job.getJobDescriptor());
-        JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(filteredJobDescriptor);
-        try {
-            String jobDescriptorJson = grpcJsonPrinter.print(grpcJobDescriptor);
-            return StringExt.gzipAndBase64Encode(jobDescriptorJson);
-        } catch (InvalidProtocolBufferException e) {
-            logger.error("Unable to convert protobuf message into json: ", e);
-            throw new RuntimeException(e);
-        }
-    }
 
     public static Map<String, String> createPodAnnotationsFromJobParameters(Job<?> job) {
         Map<String, String> annotations = new HashMap<>();
