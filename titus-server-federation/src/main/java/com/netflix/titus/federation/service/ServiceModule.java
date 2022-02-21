@@ -28,7 +28,7 @@ public class ServiceModule extends AbstractModule {
     protected void configure() {
         bind(HealthService.class).to(AggregatingHealthService.class);
         bind(AggregatingSchedulerService.class).to(DefaultAggregatingSchedulerService.class);
-        bind(JobServiceGateway.class).to(FallbackJobServiceGateway.class);
+        bind(JobServiceGateway.class).to(SwitchingJobServiceGateway.class);
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
         bind(JobActivityHistoryService.class).to(NoopJobActivityHistoryService.class);

@@ -1,9 +1,6 @@
 package com.netflix.titus.federation.service;
 
-import com.netflix.spectator.api.Counter;
-import com.netflix.spectator.api.Id;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
@@ -26,34 +23,24 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
 import javax.inject.Inject;
-import java.util.Arrays;
-import java.util.List;
 
-public class FallbackJobServiceGateway implements JobServiceGateway {
-    public static final String METRIC_ROOT = "titus.fallbackJobServiceGateway.";
-    private static final String METRIC_FALLBACK_ROOT= METRIC_ROOT + "fallbackCount.";
+public class SwitchingJobServiceGateway implements JobServiceGateway {
 
     private final TitusFederationConfiguration federationConfiguration;
     private final JobServiceGateway primary;
     private final JobServiceGateway secondary;
-    private final TitusRuntime titusRuntime;
-    private final List<Status.Code> fallbackCodes = Arrays.asList(Status.Code.UNIMPLEMENTED);
 
     @Inject
-    public FallbackJobServiceGateway(
-            TitusRuntime titusRuntime,
+    public SwitchingJobServiceGateway(
             TitusFederationConfiguration federationConfiguration,
             RemoteJobServiceGateway primary,
             AggregatingJobServiceGateway secondary) {
 
-        this.titusRuntime = titusRuntime;
         this.federationConfiguration = federationConfiguration;
         this.primary = primary;
         this.secondary = secondary;
@@ -64,7 +51,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "createJob";
         Observable<String> primaryObservable = primary.createJob(jobDescriptor, callMetadata);
         Observable<String> secondaryObservable = secondary.createJob(jobDescriptor, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
@@ -72,7 +59,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "updateJobCapacity";
         Completable primaryCompletable = primary.updateJobCapacity(jobCapacityUpdate, callMetadata);
         Completable secondaryCompletable = secondary.updateJobCapacity(jobCapacityUpdate, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -84,7 +71,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         Completable secondaryCompletable = secondary.updateJobCapacityWithOptionalAttributes(
                 jobCapacityUpdateWithOptionalAttributes,
                 callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -92,7 +79,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "updateJobProcesses";
         Completable primaryCompletable = primary.updateJobProcesses(jobProcessesUpdate, callMetadata);
         Completable secondaryCompletable = secondary.updateJobProcesses(jobProcessesUpdate, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -100,7 +87,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "updateJobStatus";
         Completable primaryCompletable = primary.updateJobStatus(statusUpdate, callMetadata);
         Completable secondaryCompletable = secondary.updateJobStatus(statusUpdate, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -108,7 +95,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "updateJobDisruptionBudget";
         Mono<Void> primaryMono = primary.updateJobDisruptionBudget(request, callMetadata);
         Mono<Void> secondaryMono = secondary.updateJobDisruptionBudget(request, callMetadata);
-        return getFallbackMono(methodName, primaryMono, secondaryMono);
+        return getSwitchingMono(methodName, primaryMono, secondaryMono);
     }
 
     @Override
@@ -116,7 +103,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "updateJobAttributes";
         Mono<Void> primaryMono = primary.updateJobAttributes(request, callMetadata);
         Mono<Void> secondaryMono = secondary.updateJobAttributes(request, callMetadata);
-        return getFallbackMono(methodName, primaryMono, secondaryMono);
+        return getSwitchingMono(methodName, primaryMono, secondaryMono);
     }
 
     @Override
@@ -124,7 +111,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "deleteJobAttributes";
         Mono<Void> primaryMono = primary.deleteJobAttributes(request, callMetadata);
         Mono<Void> secondaryMono = secondary.deleteJobAttributes(request, callMetadata);
-        return getFallbackMono(methodName, primaryMono, secondaryMono);
+        return getSwitchingMono(methodName, primaryMono, secondaryMono);
     }
 
     @Override
@@ -132,7 +119,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "findJob";
         Observable<Job> primaryObservable = primary.findJob(jobId, callMetadata);
         Observable<Job> secondaryObservable = secondary.findJob(jobId, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
@@ -140,27 +127,23 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "findJobs";
         Observable<JobQueryResult> primaryObservable = primary.findJobs(jobQuery, callMetadata);
         Observable<JobQueryResult> secondaryObservable = secondary.findJobs(jobQuery, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
-        // Fallback is not applicable to streaming APIs.
-        if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.observeJob(jobId, callMetadata);
-        }
-
-        return secondary.observeJob(jobId, callMetadata);
+        final String methodName = "observeJob";
+        Observable<JobChangeNotification> primaryObservable = primary.observeJob(jobId, callMetadata);
+        Observable<JobChangeNotification> secondaryObservable = secondary.observeJob(jobId, callMetadata);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
-        // Fallback is not applicable to streaming APIs.
-        if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.observeJobs(query, callMetadata);
-        }
-
-        return secondary.observeJobs(query, callMetadata);
+        final String methodName = "observeJobs";
+        Observable<JobChangeNotification> primaryObservable = primary.observeJobs(query, callMetadata);
+        Observable<JobChangeNotification> secondaryObservable = secondary.observeJobs(query, callMetadata);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
@@ -168,7 +151,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "killJob";
         Completable primaryCompletable = primary.killJob(jobId, callMetadata);
         Completable secondaryCompletable = secondary.killJob(jobId, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -176,7 +159,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "findTask";
         Observable<Task> primaryObservable = primary.findTask(taskId, callMetadata);
         Observable<Task> secondaryObservable = secondary.findTask(taskId, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
@@ -184,7 +167,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "findTasks";
         Observable<TaskQueryResult> primaryObservable = primary.findTasks(taskQuery, callMetadata);
         Observable<TaskQueryResult> secondaryObservable = secondary.findTasks(taskQuery, callMetadata);
-        return getFallbackObservable(methodName, primaryObservable, secondaryObservable);
+        return getSwitchingObservable(methodName, primaryObservable, secondaryObservable);
     }
 
     @Override
@@ -192,7 +175,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "killTask";
         Completable primaryCompletable = primary.killTask(taskKillRequest, callMetadata);
         Completable secondaryCompletable = secondary.killTask(taskKillRequest, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -200,7 +183,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "updateTaskAttributes";
         Completable primaryCompletable = primary.updateTaskAttributes(request, callMetadata);
         Completable secondaryCompletable = secondary.updateTaskAttributes(request, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -208,7 +191,7 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "deleteTaskAttributes";
         Completable primaryCompletable = primary.deleteTaskAttributes(request, callMetadata);
         Completable secondaryCompletable = secondary.deleteTaskAttributes(request, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
     @Override
@@ -216,58 +199,26 @@ public class FallbackJobServiceGateway implements JobServiceGateway {
         final String methodName = "moveTask";
         Completable primaryCompletable = primary.moveTask(taskMoveRequest, callMetadata);
         Completable secondaryCompletable = secondary.moveTask(taskMoveRequest, callMetadata);
-        return getFallbackCompletable(methodName, primaryCompletable, secondaryCompletable);
+        return getSwitchingCompletable(methodName, primaryCompletable, secondaryCompletable);
     }
 
-    private <T> Observable<T> getFallbackObservable(String methodName, Observable<T> primary, Observable<T> secondary) {
+    private <T> Observable<T> getSwitchingObservable(String methodName, Observable<T> primary, Observable<T> secondary) {
         if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.onErrorResumeNext( (t) -> {
-                incrementFallbackCounter(methodName, t);
-                if (shouldFallback(t)) {
-                    return secondary;
-                } else {
-                    return Observable.error(t);
-                }
-            });
+            return primary;
         } else {
             return secondary;
         }
     }
 
-    private <T> Mono<T> getFallbackMono(String methodName, Mono<T> primary, Mono<T> secondary) {
+    private <T> Mono<T> getSwitchingMono(String methodName, Mono<T> primary, Mono<T> secondary) {
         if (federationConfiguration.isRemoteFederationEnabled()) {
-            return primary.onErrorResume(t -> {
-                incrementFallbackCounter(methodName, t);
-                if (shouldFallback(t)) {
-                    return secondary;
-                } else {
-                    return Mono.error(t);
-                }
-            });
+            return primary;
         } else {
             return secondary;
         }
     }
 
-    private Completable getFallbackCompletable(String methodName, Completable primary, Completable secondary) {
-        return getFallbackObservable(methodName, primary.toObservable(), secondary.toObservable()).toCompletable();
-    }
-
-    private boolean shouldFallback(Throwable t) {
-        return t instanceof StatusRuntimeException && fallbackCodes.contains(Status.fromThrowable(t).getCode());
-    }
-
-    private void incrementFallbackCounter(String methodName, Throwable t) {
-        Id metricId = this.getMetricId(METRIC_FALLBACK_ROOT + methodName, t);
-        this.titusRuntime.getRegistry().counter(metricId).increment();
-    }
-
-    private Id getMetricId(String metricName, Throwable t) {
-        Status.Code code = Status.fromThrowable(t).getCode();
-        String reason = code == Status.Code.UNKNOWN ? t.getClass().getSimpleName() : code.toString();
-
-        return this.titusRuntime.getRegistry().createId(
-                metricName,
-                "reason", reason);
+    private Completable getSwitchingCompletable(String methodName, Completable primary, Completable secondary) {
+        return getSwitchingObservable(methodName, primary.toObservable(), secondary.toObservable()).toCompletable();
     }
 }

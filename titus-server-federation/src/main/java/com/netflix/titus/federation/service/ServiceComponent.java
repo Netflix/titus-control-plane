@@ -42,10 +42,9 @@ public class ServiceComponent {
     @Bean
     @Primary
     public JobServiceGateway getFallbackJobServiceGateway(
-            TitusRuntime titusRuntime,
             TitusFederationConfiguration federationConfiguration,
             RemoteJobServiceGateway primary,
             AggregatingJobServiceGateway secondary) {
-        return new FallbackJobServiceGateway(titusRuntime, federationConfiguration, primary, secondary);
+        return new SwitchingJobServiceGateway(federationConfiguration, primary, secondary);
     }
 }
