@@ -92,8 +92,4 @@ public interface MasterConfiguration {
     @PropertyName(name = "mesos.slave.attribute.zone.name")
     @DefaultValue("zone")
     String getHostZoneAttributeName();
-
-    @PropertyName(name = "titus.jobcoordinator.pod.containerInfoEnvEnabled")
-    @DefaultValue("true")
-    boolean isContainerInfoEnvEnabled();
 }

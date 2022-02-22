@@ -26,7 +26,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.mesos.MesosConfiguration;
+import com.netflix.titus.master.config.BackendConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,12 +42,12 @@ public class DefaultContainerResultCodeResolver implements ContainerResultCodeRe
     private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
 
     @Inject
-    public DefaultContainerResultCodeResolver(MesosConfiguration mesosConfiguration) {
-        this.invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
-        this.crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
-        this.transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
-        this.localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
-        this.unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
+    public DefaultContainerResultCodeResolver(BackendConfiguration backendConfiguration) {
+        this.invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
+        this.crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
+        this.transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        this.localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        this.unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
     }
 
     public Optional<String> resolve(TaskState taskState, String reasonMessage) {
