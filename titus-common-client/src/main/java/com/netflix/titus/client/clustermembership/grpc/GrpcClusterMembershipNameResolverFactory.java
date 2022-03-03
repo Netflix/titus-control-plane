@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.client.clustermembership.resolver.ClusterMemberResolver;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.IOExt;
 import io.grpc.Attributes;
@@ -39,16 +40,19 @@ public class GrpcClusterMembershipNameResolverFactory extends NameResolver.Facto
     private final GrpcClusterMembershipNameResolverConfiguration configuration;
     private final Function<URI, ClusterMemberResolver> clusterMemberResolverProvider;
     private final Function<ClusterMember, ClusterMemberAddress> addressSelector;
+    private final TitusRuntime titusRuntime;
 
     private volatile boolean closed;
     private final ConcurrentMap<URI, Allocation> allocatedResolvers = new ConcurrentHashMap<>();
 
     public GrpcClusterMembershipNameResolverFactory(GrpcClusterMembershipNameResolverConfiguration configuration,
                                                     Function<URI, ClusterMemberResolver> clusterMemberResolverProvider,
-                                                    Function<ClusterMember, ClusterMemberAddress> addressSelector) {
+                                                    Function<ClusterMember, ClusterMemberAddress> addressSelector,
+                                                    TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.clusterMemberResolverProvider = clusterMemberResolverProvider;
         this.addressSelector = addressSelector;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -67,7 +71,7 @@ public class GrpcClusterMembershipNameResolverFactory extends NameResolver.Facto
             ClusterMemberResolver resolver = clusterMemberResolverProvider.apply(targetUri);
             return new Allocation(
                     resolver,
-                    new GrpcClusterMembershipLeaderNameResolver(configuration, resolver, addressSelector)
+                    new GrpcClusterMembershipLeaderNameResolver(configuration, resolver, addressSelector, titusRuntime)
             );
         }).getGrpcClusterMembershipLeaderNameResolver();
     }

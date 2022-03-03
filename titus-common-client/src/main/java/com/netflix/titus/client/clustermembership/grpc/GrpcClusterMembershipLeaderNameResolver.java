@@ -23,11 +23,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
+import com.netflix.titus.client.clustermembership.ClusterMembershipClientMetrics;
 import com.netflix.titus.client.clustermembership.resolver.ClusterMemberResolver;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import io.grpc.Attributes;
 import io.grpc.EquivalentAddressGroup;
@@ -46,9 +51,14 @@ class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
 
     private static final String CLUSTER_MEMBERSHIP_AUTHORITY = "ClusterMembershipAuthority";
 
+    private static final String METRICS_ROOT = ClusterMembershipClientMetrics.CLUSTER_MEMBERSHIP_CLIENT_METRICS_ROOT + "grpcNameResolver";
+
     private final GrpcClusterMembershipNameResolverConfiguration configuration;
     private final ClusterMemberResolver resolver;
     private final Function<ClusterMember, ClusterMemberAddress> addressSelector;
+
+    private volatile LeaderMetrics leaderMetrics;
+    private final TitusRuntime titusRuntime;
 
     private volatile Listener listener;
     private volatile Disposable eventStreamDisposable;
@@ -56,10 +66,12 @@ class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
 
     GrpcClusterMembershipLeaderNameResolver(GrpcClusterMembershipNameResolverConfiguration configuration,
                                             ClusterMemberResolver resolver,
-                                            Function<ClusterMember, ClusterMemberAddress> addressSelector) {
+                                            Function<ClusterMember, ClusterMemberAddress> addressSelector,
+                                            TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.resolver = resolver;
         this.addressSelector = addressSelector;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -111,7 +123,9 @@ class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
 
                 if (lastLeader == null || !lastLeader.getCurrent().getMemberId().equals(memberRevision.getCurrent().getMemberId())) {
                     logger.info("New leader: {}", memberRevision);
+                    Evaluators.acceptNotNull(leaderMetrics, LeaderMetrics::close);
                     lastLeader = memberRevision;
+                    leaderMetrics = new LeaderMetrics(lastLeader, titusRuntime);
                 } else {
                     logger.debug("Refreshing: {}", lastLeader);
                 }
@@ -121,7 +135,9 @@ class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
                 listener.onAddresses(servers, Attributes.EMPTY);
             } else {
                 if (lastLeader != null) {
+                    leaderMetrics.close();
                     lastLeader = null;
+                    leaderMetrics = null;
                     logger.warn("No leader");
                 }
                 listener.onError(Status.UNAVAILABLE.withDescription("Unable to resolve leader server"));
@@ -129,6 +145,27 @@ class GrpcClusterMembershipLeaderNameResolver extends NameResolver {
         } catch (Exception e) {
             logger.error("Unable to create server with error: ", e);
             listener.onError(Status.UNAVAILABLE.withCause(e));
+        }
+    }
+
+    private static class LeaderMetrics {
+        private final long electedTimestamp;
+        private final Id metricLeaderId;
+        private final TitusRuntime titusRuntime;
+
+        private LeaderMetrics(ClusterMembershipRevision<ClusterMember> lastLeader, TitusRuntime titusRuntime) {
+            this.electedTimestamp = titusRuntime.getClock().wallTime();
+            this.titusRuntime = titusRuntime;
+            this.metricLeaderId = titusRuntime.getRegistry().createId(METRICS_ROOT + "leaderElected",
+                    "memberId", lastLeader.getCurrent().getMemberId()
+            );
+            PolledMeter.using(titusRuntime.getRegistry()).withId(metricLeaderId).monitorValue(this,
+                    self -> self.titusRuntime.getClock().wallTime() - self.electedTimestamp
+            );
+        }
+
+        private void close() {
+            PolledMeter.remove(titusRuntime.getRegistry(), metricLeaderId);
         }
     }
 }
