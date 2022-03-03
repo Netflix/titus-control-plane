@@ -24,6 +24,8 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
 import com.netflix.titus.client.clustermembership.resolver.ClusterMemberResolver;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
@@ -52,6 +54,8 @@ public class GrpcClusterMembershipLeaderNameResolverTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     private final GrpcClusterMembershipNameResolverConfiguration configuration = mock(GrpcClusterMembershipNameResolverConfiguration.class);
 
     private final ClusterMemberResolver clusterResolver = mock(ClusterMemberResolver.class);
@@ -69,7 +73,8 @@ public class GrpcClusterMembershipLeaderNameResolverTest {
         nameResolver = new GrpcClusterMembershipLeaderNameResolver(
                 configuration,
                 clusterResolver,
-                member -> member.getClusterMemberAddresses().get(0)
+                member -> member.getClusterMemberAddresses().get(0),
+                titusRuntime
         );
 
         Flux.<Either<List<EquivalentAddressGroup>, Status>>create(sink -> {
