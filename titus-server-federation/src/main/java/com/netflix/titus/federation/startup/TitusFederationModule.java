@@ -44,19 +44,7 @@ import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.federation.endpoint.FederationEndpointModule;
-import com.netflix.titus.federation.service.CellConnector;
-import com.netflix.titus.federation.service.CellInfoResolver;
-import com.netflix.titus.federation.service.CellWebClientConnector;
-import com.netflix.titus.federation.service.DefaultCellConnector;
-import com.netflix.titus.federation.service.DefaultCellInfoResolver;
-import com.netflix.titus.federation.service.DefaultCellWebClientConnector;
-import com.netflix.titus.federation.service.DefaultRemoteFederationConnector;
-import com.netflix.titus.federation.service.DefaultRemoteFederationInfoResolver;
-import com.netflix.titus.federation.service.RemoteFederationConnector;
-import com.netflix.titus.federation.service.RemoteFederationInfoResolver;
-import com.netflix.titus.federation.service.ServiceModule;
-import com.netflix.titus.federation.service.SimpleWebClientFactory;
-import com.netflix.titus.federation.service.WebClientFactory;
+import com.netflix.titus.federation.service.*;
 import com.netflix.titus.federation.service.router.ApplicationCellRouter;
 import com.netflix.titus.federation.service.router.CellRouter;
 import com.netflix.titus.federation.service.router.ChainCellRouter;
@@ -88,6 +76,8 @@ public class TitusFederationModule extends AbstractModule {
         bind(WebClientFactory.class).toInstance(SimpleWebClientFactory.getInstance());
         bind(CellInfoResolver.class).to(DefaultCellInfoResolver.class);
         bind(RemoteFederationInfoResolver.class).to(DefaultRemoteFederationInfoResolver.class);
+        bind(VpcServiceConnector.class).to(DefaultVpcServiceConnector.class);
+
 
         install(new FederationEndpointModule());
         install(new ServiceModule());

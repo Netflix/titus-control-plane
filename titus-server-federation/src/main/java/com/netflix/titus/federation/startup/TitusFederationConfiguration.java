@@ -25,6 +25,12 @@ public interface TitusFederationConfiguration {
     @DefaultValue("hostName1:7001")
     String getRemoteFederation();
 
+    @DefaultValue("vpcservice")
+    String getVpcServiceHostname();
+
+    @DefaultValue("7001")
+    int getVpcServicePort();
+
     @DefaultValue("cell1=hostName1:7001;cell2=hostName2:7002")
     String getCells();
 
