@@ -3,18 +3,15 @@ package com.netflix.titus.runtime.endpoint.v3.grpc;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.runtime.service.TitusAgentSecurityGroupService;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc;
-import com.netflix.titus.TitusVpcApi.ResetSecurityGroupRequest;
 import com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 
-import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGroupServiceStub;
 import rx.Subscription;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
@@ -24,11 +21,11 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnErro
 @Singleton
 public class DefaultTitusAgentSecurityGroupServiceGrpc  extends TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGroupServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobActivityHistoryServiceGrpc.class);
-    private final TitusAgentSecurityGroupService titusAgentSecurityGroupServiceGateway;
+    private final TitusAgentSecurityGroupClient titusAgentSecurityGroupServiceGateway;
     private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public DefaultTitusAgentSecurityGroupServiceGrpc(TitusAgentSecurityGroupService titusAgentSecurityGroupService, //client
+    public DefaultTitusAgentSecurityGroupServiceGrpc(TitusAgentSecurityGroupClient titusAgentSecurityGroupService, //client
                                                      CallMetadataResolver callMetadataResolver) {
         this.titusAgentSecurityGroupServiceGateway = titusAgentSecurityGroupService;
         this.callMetadataResolver = callMetadataResolver;

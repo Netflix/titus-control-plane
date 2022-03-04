@@ -5,6 +5,6 @@ import com.netflix.titus.TitusVpcApi.ResetSecurityGroupRequest;
 import com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse;
 import rx.Observable;
 
-public interface TitusAgentSecurityGroupService {
+public interface TitusAgentSecurityGroupClient {
     Observable<ResetSecurityGroupResponse> ResetSecurityGroup(ResetSecurityGroupRequest request, CallMetadata callMetadata);
 }

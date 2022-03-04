@@ -5,12 +5,9 @@ import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGr
 import com.netflix.titus.TitusVpcApi;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
-import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.runtime.service.TitusAgentSecurityGroupService;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 import com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse;
-import com.netflix.titus.TitusVpcApi.ResetSecurityGroupRequest;
 import rx.Observable;
 import io.grpc.stub.StreamObserver;
 
@@ -19,13 +16,13 @@ import javax.inject.Inject;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
-public class TitusAgentSecurityGroupServiceGateway implements TitusAgentSecurityGroupService {
+public class DefaultTitusAgentSecurityGroupClient implements TitusAgentSecurityGroupClient {
     private final TitusAgentSecurityGroupServiceStub clientToVpcService;
     private final GrpcConfiguration grpcConfiguration;
 
     @Inject
-    public TitusAgentSecurityGroupServiceGateway(VpcServiceConnector connector,
-                                                 GrpcConfiguration grpcConfiguration) {
+    public DefaultTitusAgentSecurityGroupClient(VpcServiceConnector connector,
+                                                GrpcConfiguration grpcConfiguration) {
         this.clientToVpcService = TitusAgentSecurityGroupServiceGrpc.newStub(connector.getChannel());
         this.grpcConfiguration = grpcConfiguration;
     }

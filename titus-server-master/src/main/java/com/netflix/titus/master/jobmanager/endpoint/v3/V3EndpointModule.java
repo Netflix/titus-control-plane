@@ -21,15 +21,14 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGroupServiceImplBase;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultGrpcObjectsCache;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultTitusAgentSecurityGroupServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCache;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCacheConfiguration;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 
 public class V3EndpointModule extends AbstractModule {
 
@@ -41,7 +40,6 @@ public class V3EndpointModule extends AbstractModule {
     protected void configure() {
         bind(GrpcObjectsCache.class).to(DefaultGrpcObjectsCache.class);
         bind(JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
-        bind(TitusAgentSecurityGroupServiceImplBase.class).to(DefaultTitusAgentSecurityGroupServiceGrpc.class);
     }
 
     @Provides
