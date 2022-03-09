@@ -17,17 +17,14 @@
 package com.netflix.titus.federation.endpoint.grpc;
 
 import com.google.inject.AbstractModule;
+import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobActivityHistoryServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.*;
 
 public class FederationGrpcModule extends AbstractModule {
 

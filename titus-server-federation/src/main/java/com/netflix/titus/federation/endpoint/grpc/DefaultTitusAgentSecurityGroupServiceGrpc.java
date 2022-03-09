@@ -1,8 +1,9 @@
-package com.netflix.titus.runtime.endpoint.v3.grpc;
+package com.netflix.titus.federation.endpoint.grpc;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobActivityHistoryServiceGrpc;
 import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

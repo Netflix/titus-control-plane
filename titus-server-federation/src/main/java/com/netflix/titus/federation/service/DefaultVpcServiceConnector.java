@@ -17,8 +17,10 @@ public class DefaultVpcServiceConnector implements VpcServiceConnector {
     @Inject
     public DefaultVpcServiceConnector(TitusFederationConfiguration configuration) {
         this.configuration = configuration;
+        String []hostPort = configuration.getVpcService().split(":");
+
         channel = NettyChannelBuilder
-                .forAddress(configuration.getVpcServiceHostname(), configuration.getVpcServicePort())
+                .forAddress(hostPort[0], Integer.parseInt(hostPort[1]))
                 .usePlaintext()
                 .defaultLoadBalancingPolicy("round_robin")
                 .build();

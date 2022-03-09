@@ -27,6 +27,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
@@ -46,6 +47,7 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGroupServiceImplBase;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -70,6 +72,7 @@ public class TitusFederationGrpcServer {
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final EndpointConfiguration config;
     private final TitusRuntime runtime;
+    private TitusAgentSecurityGroupServiceImplBase securityGroupService;
     private final ExecutorService grpcCallbackExecutor;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -87,6 +90,7 @@ public class TitusFederationGrpcServer {
             JobActivityHistoryServiceImplBase jobActivityHistoryService,
             GrpcToReactorServerFactory reactorServerFactory,
             EndpointConfiguration config,
+            TitusAgentSecurityGroupServiceImplBase sgService,
             TitusRuntime runtime) {
         this.admissionController = admissionController;
         this.healthService = healthService;
@@ -98,6 +102,7 @@ public class TitusFederationGrpcServer {
         this.reactorServerFactory = reactorServerFactory;
         this.config = config;
         this.runtime = runtime;
+        this.securityGroupService = sgService;
         this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(runtime.getRegistry(), "grpcCallbackExecutor");
     }
 
@@ -135,6 +140,9 @@ public class TitusFederationGrpcServer {
                         jobActivityHistoryService,
                         createInterceptors(JobActivityHistoryServiceGrpc.getServiceDescriptor())))
                 .addService(ProtoReflectionService.newInstance())
+                .addService(ServerInterceptors.intercept(
+                        securityGroupService,
+                        createInterceptors(TitusAgentSecurityGroupServiceGrpc.getServiceDescriptor())))
                 .build();
 
         LOG.info("Starting gRPC server on port {}.", port);

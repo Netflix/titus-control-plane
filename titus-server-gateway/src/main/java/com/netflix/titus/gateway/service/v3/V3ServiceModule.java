@@ -36,6 +36,7 @@ import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 
 public class V3ServiceModule extends AbstractModule {
     @Override
@@ -46,6 +47,7 @@ public class V3ServiceModule extends AbstractModule {
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
         bind(TitusManagementService.class).to(DefaultTitusManagementService.class);
         bind(SchedulerService.class).to(DefaultSchedulerService.class);
+        //bind(TitusAgentSecurityGroupClient.class).to(DefaultTitusAgentSecurityGroupClient.class)
     }
 
     @Provides

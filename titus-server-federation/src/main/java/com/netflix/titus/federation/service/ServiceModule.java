@@ -22,6 +22,7 @@ import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.JobActivityHistoryService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 
 public class ServiceModule extends AbstractModule {
     @Override
@@ -32,5 +33,6 @@ public class ServiceModule extends AbstractModule {
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
         bind(JobActivityHistoryService.class).to(NoopJobActivityHistoryService.class);
+        bind(TitusAgentSecurityGroupClient.class).to(DefaultTitusAgentSecurityGroupClient.class);
     }
 }
