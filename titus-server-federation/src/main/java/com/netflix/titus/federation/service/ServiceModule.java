@@ -33,6 +33,5 @@ public class ServiceModule extends AbstractModule {
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
         bind(JobActivityHistoryService.class).to(NoopJobActivityHistoryService.class);
-        bind(TitusAgentSecurityGroupClient.class).to(DefaultTitusAgentSecurityGroupClient.class);
     }
 }
