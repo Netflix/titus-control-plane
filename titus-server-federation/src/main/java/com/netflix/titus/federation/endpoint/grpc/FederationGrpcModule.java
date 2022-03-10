@@ -18,6 +18,7 @@ package com.netflix.titus.federation.endpoint.grpc;
 
 import com.google.inject.AbstractModule;
 import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc;
+import com.netflix.titus.federation.service.DefaultTitusAgentSecurityGroupClient;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
@@ -25,6 +26,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.*;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 
 public class FederationGrpcModule extends AbstractModule {
 
@@ -37,5 +39,7 @@ public class FederationGrpcModule extends AbstractModule {
         bind(AutoScalingServiceGrpc.AutoScalingServiceImplBase.class).to(DefaultAutoScalingServiceGrpc.class);
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(JobActivityHistoryServiceGrpc.JobActivityHistoryServiceImplBase.class).to(DefaultJobActivityHistoryServiceGrpc.class);
+        bind(TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGroupServiceImplBase.class).to(DefaultTitusAgentSecurityGroupServiceGrpc.class);
+        bind(TitusAgentSecurityGroupClient.class).to(DefaultTitusAgentSecurityGroupClient.class);
     }
 }

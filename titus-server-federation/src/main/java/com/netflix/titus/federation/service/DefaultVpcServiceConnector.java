@@ -28,6 +28,6 @@ public class DefaultVpcServiceConnector implements VpcServiceConnector {
 
     @Override
     public ManagedChannel getChannel() {
-        return null;
+        return channel;
     }
 }

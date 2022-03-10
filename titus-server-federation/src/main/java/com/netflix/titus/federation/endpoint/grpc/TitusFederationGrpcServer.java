@@ -137,12 +137,12 @@ public class TitusFederationGrpcServer {
                         loadBalancerService,
                         createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())))
                 .addService(ServerInterceptors.intercept(
+                        securityGroupService,
+                        createInterceptors(TitusAgentSecurityGroupServiceGrpc.getServiceDescriptor())))
+                .addService(ServerInterceptors.intercept(
                         jobActivityHistoryService,
                         createInterceptors(JobActivityHistoryServiceGrpc.getServiceDescriptor())))
                 .addService(ProtoReflectionService.newInstance())
-                .addService(ServerInterceptors.intercept(
-                        securityGroupService,
-                        createInterceptors(TitusAgentSecurityGroupServiceGrpc.getServiceDescriptor())))
                 .build();
 
         LOG.info("Starting gRPC server on port {}.", port);

@@ -37,7 +37,7 @@ public class DefaultTitusAgentSecurityGroupServiceGrpc  extends TitusAgentSecuri
                                    io.grpc.stub.StreamObserver<com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse> responseObserver) {
         Subscription subscription =
                 titusAgentSecurityGroupServiceGateway.ResetSecurityGroup(request, resolveCallMetadata()).subscribe(
-                        response -> responseObserver.onNext(ResetSecurityGroupResponse.newBuilder().build()), //TODO: Ask @ghartmann
+                        response -> responseObserver.onNext(ResetSecurityGroupResponse.newBuilder().build()),
                         e -> safeOnError(logger, e, responseObserver),
                         responseObserver::onCompleted
                         );
