@@ -118,6 +118,16 @@ public class JobImageSanitizerTest {
     }
 
     @Test
+    public void testRegistryRuntimeError() {
+        when(registryClient.getImageDigest(anyString(), anyString()))
+                .thenReturn(Mono.error(new RuntimeException("Unable to reach the registry")));
+
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
     public void testJobWithDigestExists() {
         Image image = jobDescriptorWithDigest.getContainer().getImage();
         when(registryClient.getImageDigest(image.getName(), image.getDigest())).thenReturn(Mono.just(digest));
