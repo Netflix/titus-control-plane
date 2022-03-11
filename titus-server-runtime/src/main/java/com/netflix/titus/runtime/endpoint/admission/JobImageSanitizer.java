@@ -130,7 +130,8 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
                 imageResource,
                 throwable.getClass().getSimpleName()
         );
-        return true;
+        // unknown errors should prevent job creation
+        return false;
     }
 
     @SuppressWarnings("unchecked")
