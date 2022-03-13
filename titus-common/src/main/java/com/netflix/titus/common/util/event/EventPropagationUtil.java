@@ -47,11 +47,16 @@ import com.netflix.titus.common.util.StringExt;
 public class EventPropagationUtil {
 
     public static final String EVENT_ATTRIBUTE_PROPAGATION_STAGES = "event.propagation.stages";
+    public static final int MAX_LENGTH_EVENT_PROPAGATION_STAGE = 500;
 
     public static String buildNextStage(String id, Map<String, String> attributes, long beforeTimestamp, long afterTimestamp) {
         String stages = attributes.get(EVENT_ATTRIBUTE_PROPAGATION_STAGES);
         long delaysMs = afterTimestamp - beforeTimestamp;
-        return (stages == null ? "" : stages + ";") + id + "(" + delaysMs + "ms):" + "before=" + beforeTimestamp + ",after=" + afterTimestamp;
+        String nextStagePayload = id + "(" + delaysMs + "ms):" + "before=" + beforeTimestamp + ",after=" + afterTimestamp;
+        if (stages != null && stages.length() < MAX_LENGTH_EVENT_PROPAGATION_STAGE) {
+            return stages + ";" + nextStagePayload;
+        }
+        return nextStagePayload;
     }
 
     public static Map<String, String> copyAndAddNextStage(String id, Map<String, String> attributes, long beforeTimestamp, long afterTimestamp) {

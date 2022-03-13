@@ -66,4 +66,22 @@ public class EventPropagationUtilTest {
         assertThat(federationTrace.getStages()).containsEntry("federationInternal", 600L);
         assertThat(federationTrace.getStages()).doesNotContainKey("client");
     }
+
+    @Test
+    public void testTitusPropagationTrackingTooLong () {
+        Map<String, String> attributes = Collections.singletonMap("keyA", "valueA");
+        int ts = 0;
+        for (int i = 0; i < 100; i++) {
+            ts = ts + 100;
+            attributes = EventPropagationUtil.copyAndAddNextStage("s" + i, attributes, ts, ts + 200);
+            assertThat(attributes).containsKey(EventPropagationUtil.EVENT_ATTRIBUTE_PROPAGATION_STAGES);
+        }
+
+        EventPropagationTrace clientTrace = EventPropagationUtil.parseTrace(attributes, false, ts, CLIENT_LABELS).orElse(null);
+        assertThat(clientTrace).isNotNull();
+        assertThat(attributes).containsKey(EventPropagationUtil.EVENT_ATTRIBUTE_PROPAGATION_STAGES);
+        String traceStr = attributes.get(EventPropagationUtil.EVENT_ATTRIBUTE_PROPAGATION_STAGES);
+        assertThat(traceStr.length()).isLessThan(EventPropagationUtil.MAX_LENGTH_EVENT_PROPAGATION_STAGE);
+    }
+
 }
