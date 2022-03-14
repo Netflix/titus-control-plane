@@ -37,7 +37,8 @@ import org.springframework.context.annotation.Primary;
         DefaultAggregatingSchedulerService.class,
         DefaultJobActivityHistoryService.class,
         RemoteJobServiceGateway.class,
-        TitusAgentSecurityGroupClient.class,
+        DefaultTitusAgentSecurityGroupClient.class,
+        DefaultVpcServiceConnector.class,
 })
 
 public class ServiceComponent {
