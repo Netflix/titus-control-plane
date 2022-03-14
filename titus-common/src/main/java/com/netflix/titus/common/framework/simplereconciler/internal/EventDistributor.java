@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
@@ -37,7 +38,6 @@ import com.netflix.spectator.api.Timer;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.common.util.spectator.SpectatorExt;
 import reactor.core.publisher.FluxSink;
 
 /**
@@ -57,7 +57,8 @@ class EventDistributor<DATA> {
 
     // This is modified only by the internal thread. No need to sync. We use map here for fast removal.
     // This collection is observed by Spectator poller, so we have to use ConcurrentMap.
-    private final ConcurrentMap<String, EmitterHolder> activeSinks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, EmitterHolder> activeSinks = new ConcurrentHashMap<>();
+    private final AtomicLong nextSinkId = new AtomicLong();
 
     private volatile Thread eventLoopThread;
     private volatile boolean shutdown;
@@ -107,13 +108,12 @@ class EventDistributor<DATA> {
     }
 
     void connectSink(String clientId, FluxSink<List<SimpleReconcilerEvent<DATA>>> sink) {
-        String id = SpectatorExt.uniqueTagValue(clientId, activeSinks::containsKey);
-        sinkQueue.add(new EmitterHolder(id, sink));
+        sinkQueue.add(new EmitterHolder(clientId, sink));
     }
 
     void addEvents(List<SimpleReconcilerEvent<DATA>> events) {
         eventQueue.addAll(events);
-        eventQueueDepth.accumulateAndGet(events.size(), (current, delta) -> current + delta);
+        eventQueueDepth.accumulateAndGet(events.size(), Integer::sum);
     }
 
     private void doLoop() {
@@ -160,14 +160,14 @@ class EventDistributor<DATA> {
         if (!newEmitters.isEmpty()) {
             List<SimpleReconcilerEvent<DATA>> merged = mergeSnapshotAndPendingEvents(snapshot, events);
             newEmitters.forEach(holder -> {
-                activeSinks.put(holder.getId(), holder);
+                activeSinks.put(nextSinkId.getAndIncrement(), holder);
                 holder.onNext(merged);
             });
         }
     }
 
     private void removeUnsubscribedSinks() {
-        Set<String> cancelled = new HashSet<>();
+        Set<Long> cancelled = new HashSet<>();
         activeSinks.forEach((id, holder) -> {
             if (holder.isCancelled()) {
                 cancelled.add(id);
@@ -204,7 +204,7 @@ class EventDistributor<DATA> {
         if (events.isEmpty()) {
             return;
         }
-        Set<String> cancelled = new HashSet<>();
+        Set<Long> cancelled = new HashSet<>();
         activeSinks.forEach((id, holder) -> {
             if (!holder.onNext(events)) {
                 cancelled.add(id);
