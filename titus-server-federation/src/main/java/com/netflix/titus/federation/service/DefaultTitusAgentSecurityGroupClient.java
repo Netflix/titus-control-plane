@@ -5,15 +5,13 @@ import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGr
 import com.netflix.titus.TitusVpcApi;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 import com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse;
-import rx.Observable;
+import reactor.core.publisher.Mono;
 import io.grpc.stub.StreamObserver;
 
 import javax.inject.Inject;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 public class DefaultTitusAgentSecurityGroupClient implements TitusAgentSecurityGroupClient {
@@ -28,20 +26,30 @@ public class DefaultTitusAgentSecurityGroupClient implements TitusAgentSecurityG
     }
 
     @Override
-    public Observable<TitusVpcApi.ResetSecurityGroupResponse> ResetSecurityGroup(
+    public Mono<ResetSecurityGroupResponse> resetSecurityGroup(
             TitusVpcApi.ResetSecurityGroupRequest request, CallMetadata callMetadata) {
-        return createRequestObservable(emitter -> {
-            StreamObserver<ResetSecurityGroupResponse> streamObserver;
-            streamObserver = GrpcUtil.createClientResponseObserver(
-                    emitter,
-                    response -> emitter.onNext(response),
-                    emitter::onError,
-                    emitter::onCompleted
-            );
-            wrap(clientToVpcService,
+
+        return Mono.create(sink -> {
+            TitusAgentSecurityGroupServiceStub clientStub = wrap(clientToVpcService,
                     callMetadata,
-                    grpcConfiguration.getRequestTimeoutMs()).resetSecurityGroup(request, streamObserver);
-        }, grpcConfiguration.getRequestTimeoutMs());
+                    grpcConfiguration.getRequestTimeoutMs());
+            clientStub.resetSecurityGroup(request, new StreamObserver<ResetSecurityGroupResponse>() {
+                @Override
+                public void onNext(ResetSecurityGroupResponse value) {
+                    sink.success(value);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    sink.error(t);
+                }
+
+                @Override
+                public void onCompleted() {
+                    sink.success();
+                }
+            });
+        });
     }
 
     private TitusAgentSecurityGroupServiceStub wrap(TitusAgentSecurityGroupServiceStub client,
