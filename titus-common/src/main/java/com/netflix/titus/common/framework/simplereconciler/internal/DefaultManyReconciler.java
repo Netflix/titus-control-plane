@@ -216,31 +216,32 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
     private void doSchedule(long delayMs) {
         reconcilerWorker.schedule(() -> {
-            // Self-terminate
-            if (stateRef.get() == ReconcilerState.Closed) {
-                reconcilerWorker.dispose();
-                return;
-            }
-
-            if (stateRef.get() == ReconcilerState.Closing && tryClose()) {
-                reconcilerWorker.dispose();
-                return;
-            }
-
-            connectEventListeners();
-
             long startTimeMs = clock.wallTime();
             long startTimeNs = clock.nanoTime();
-            boolean fullCycle = (startTimeMs - lastLongCycleTimestamp) >= longCycleMs;
-
-            if (fullCycle) {
-                lastLongCycleTimestamp = startTimeMs;
-            }
 
             try {
+                // Self-terminate
+                if (stateRef.get() == ReconcilerState.Closed) {
+                    reconcilerWorker.dispose();
+                    return;
+                }
+
+                if (stateRef.get() == ReconcilerState.Closing && tryClose()) {
+                    reconcilerWorker.dispose();
+                    return;
+                }
+
+                connectEventListeners();
+
+                boolean fullCycle = (startTimeMs - lastLongCycleTimestamp) >= longCycleMs;
+
+                if (fullCycle) {
+                    lastLongCycleTimestamp = startTimeMs;
+                }
+
                 doProcess(fullCycle);
                 doSchedule(quickCycleMs);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 metrics.evaluated(clock.nanoTime() - startTimeNs, e);
                 logger.warn("Unexpected error in the reconciliation loop", e);
                 doSchedule(longCycleMs);
