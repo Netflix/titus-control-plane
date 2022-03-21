@@ -72,7 +72,7 @@ public class ReconcilerExecutorMetrics {
         lastEvaluationTimestamp = clock.wallTime();
     }
 
-    void evaluated(long executionTimeNs, Exception error) {
+    void evaluated(long executionTimeNs, Throwable error) {
         registry.timer(evaluationId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
