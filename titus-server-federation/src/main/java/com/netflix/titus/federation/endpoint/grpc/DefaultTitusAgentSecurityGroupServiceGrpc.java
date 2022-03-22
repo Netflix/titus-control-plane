@@ -5,6 +5,8 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobActivityHistoryServiceGrpc;
 import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
+import io.reactivex.subscribers.DefaultSubscriber;
+import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -14,6 +16,10 @@ import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.TitusAgentSecurityGroupServiceGrpc;
 import com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import reactor.core.CoreSubscriber;
+
+import java.awt.event.ActionListener;
+import java.util.function.Consumer;
 
 @Singleton
 public class DefaultTitusAgentSecurityGroupServiceGrpc  extends TitusAgentSecurityGroupServiceGrpc.TitusAgentSecurityGroupServiceImplBase {
@@ -33,25 +39,14 @@ public class DefaultTitusAgentSecurityGroupServiceGrpc  extends TitusAgentSecuri
                                    io.grpc.stub.StreamObserver<com.netflix.titus.TitusVpcApi.ResetSecurityGroupResponse> responseObserver) {
 
         titusAgentSecurityGroupServiceGateway.resetSecurityGroup(request, resolveCallMetadata()).subscribe(
-                new Subscriber<ResetSecurityGroupResponse>() {
-            @Override
-            public void onSubscribe(Subscription s) {}
-
-            @Override
-            public void onNext(ResetSecurityGroupResponse resetSecurityGroupResponse) {
-                responseObserver.onNext(resetSecurityGroupResponse);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                responseObserver.onError(t);
-            }
-
-            @Override
-            public void onComplete() {
-                responseObserver.onCompleted();
-            }
-        });
+                resetSecurityGroupResponse -> {
+                    logger.debug(" Proxy server got response for " + request.getSecurityGroupID());
+                    responseObserver.onNext(resetSecurityGroupResponse);
+                    responseObserver.onCompleted();
+                }, throwable -> {
+                    logger.debug(" Proxy server got error for " + request.getSecurityGroupID());
+                    responseObserver.onError(throwable);
+                });
     }
 
     private CallMetadata resolveCallMetadata() {
