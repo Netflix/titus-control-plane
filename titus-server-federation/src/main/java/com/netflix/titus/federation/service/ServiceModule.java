@@ -22,6 +22,7 @@ import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.JobActivityHistoryService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 
 public class ServiceModule extends AbstractModule {
     @Override

@@ -32,6 +32,7 @@ import org.springframework.context.annotation.Import;
         DefaultAutoScalingServiceGrpc.class,
         DefaultLoadBalancerServiceGrpc.class,
         DefaultJobActivityHistoryServiceGrpc.class,
+        DefaultTitusAgentSecurityGroupServiceGrpc.class,
 })
 public class FederationGrpcComponent {
 }

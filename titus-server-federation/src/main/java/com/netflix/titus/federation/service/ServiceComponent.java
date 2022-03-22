@@ -19,6 +19,7 @@ package com.netflix.titus.federation.service;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -36,6 +37,8 @@ import org.springframework.context.annotation.Primary;
         DefaultAggregatingSchedulerService.class,
         DefaultJobActivityHistoryService.class,
         RemoteJobServiceGateway.class,
+        DefaultTitusAgentSecurityGroupClient.class,
+        DefaultVpcServiceConnector.class,
 })
 
 public class ServiceComponent {

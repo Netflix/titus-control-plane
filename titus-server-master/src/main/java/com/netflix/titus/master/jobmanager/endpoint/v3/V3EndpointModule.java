@@ -28,6 +28,7 @@ import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.DefaultJobManagement
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultGrpcObjectsCache;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCache;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcObjectsCacheConfiguration;
+import com.netflix.titus.runtime.service.TitusAgentSecurityGroupClient;
 
 public class V3EndpointModule extends AbstractModule {
 
