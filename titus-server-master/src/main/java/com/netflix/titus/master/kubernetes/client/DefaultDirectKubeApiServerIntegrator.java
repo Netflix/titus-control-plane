@@ -68,7 +68,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private static final Logger logger = LoggerFactory.getLogger(DefaultDirectKubeApiServerIntegrator.class);
 
     private static final String KUBERNETES_NAMESPACE = "default";
-    private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
+    /**
+     * This setting needs to be higher than the gracePeriodSeconds on the pod spec itself.
+     * This is because we need to give VK its own gracePeriodSeconds time to actually shut down,
+     * *before* TJC/kube actually delete the pod from api server, because other related systems
+     * need to still have the pod object in memory. If we delete the pod object too soon, we may
+     * incorrectly assume that the pod's resource (e.g. ip addreses) are free to use!
+     * */
+    private static final int DELETE_GRACE_PERIOD_SECONDS = 800;
 
     private static final String NOT_FOUND = "Not Found";
 
