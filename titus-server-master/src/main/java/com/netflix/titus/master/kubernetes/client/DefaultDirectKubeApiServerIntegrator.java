@@ -69,8 +69,6 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private static final String KUBERNETES_NAMESPACE = "default";
 
-    private static final String NOT_FOUND = "Not Found";
-
     private final DirectKubeConfiguration configuration;
     private final StdKubeApiFacade kubeApiFacade;
 
