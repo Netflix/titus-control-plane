@@ -68,7 +68,6 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private static final Logger logger = LoggerFactory.getLogger(DefaultDirectKubeApiServerIntegrator.class);
 
     private static final String KUBERNETES_NAMESPACE = "default";
-    private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
 
     private static final String NOT_FOUND = "Not Found";
 
@@ -172,7 +171,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             Stopwatch timer = Stopwatch.createStarted();
             try {
                 logger.info("Deleting pod: {}", taskId);
-                kubeApiFacade.deleteNamespacedPod(KUBERNETES_NAMESPACE, taskId, DELETE_GRACE_PERIOD_SECONDS);
+                kubeApiFacade.deleteNamespacedPod(KUBERNETES_NAMESPACE, taskId, configuration.getDeleteGracePeriodSeconds());
                 metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (JsonSyntaxException e) {
                 // this is probably successful. the generated client has the wrong response type
