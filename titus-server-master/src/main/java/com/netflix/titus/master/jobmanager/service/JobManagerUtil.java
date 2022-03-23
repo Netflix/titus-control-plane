@@ -137,8 +137,7 @@ public final class JobManagerUtil {
             contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
         }
 
-        //If we did assign an EIP, we set that as the "main" ip address
-        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, elasticIPAddress);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_ELASTIC_IPV4, elasticIPAddress);
 
         return task.toBuilder().addAllToTaskContext(newContext).build();
     }
