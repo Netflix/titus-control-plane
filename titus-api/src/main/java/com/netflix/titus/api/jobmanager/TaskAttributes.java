@@ -57,6 +57,8 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
     public static final String TASK_ATTRIBUTES_CONTAINER_IPV4 = "task.containerIPv4";
     public static final String TASK_ATTRIBUTES_CONTAINER_IPV6 = "task.containerIPv6";
+    public static final String TASK_ATTRIBUTES_ELASTIC_IPV4 = "task.elasticIPv4";
+
     /*
      * TASK_ATTRIBUTES_TRANSITION_IPV4 is a special IP that represents the IP that
      * Tasks in the special Ipv6AndIpv4Fallback network Mode use.
