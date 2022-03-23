@@ -105,6 +105,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.ENTRYPOIN
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IAM_ROLE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.INGRESS_BANDWIDTH;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_ACCEPTED_TIMESTAMP_MS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_DISRUPTION_BUDGET_POLICY_NAME;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_ID;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_TYPE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_KEEP_LOCAL_FILE;
@@ -332,6 +333,10 @@ public class V1SpecPodFactory implements PodFactory {
 
         annotations.put(JOB_ID, job.getId());
         annotations.put(JOB_TYPE, getJobType(job).name());
+        if (jobDescriptor.getDisruptionBudget().getDisruptionBudgetPolicy() != null) {
+            annotations.put(JOB_DISRUPTION_BUDGET_POLICY_NAME,
+                    jobDescriptor.getDisruptionBudget().getDisruptionBudgetPolicy().getClass().getSimpleName());
+        }
 
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         annotations.put(WORKLOAD_NAME, jobDescriptor.getApplicationName());
