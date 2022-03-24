@@ -98,6 +98,7 @@ public final class KubePodConstants {
     public static final String JOB_TYPE = "v3.job.titus.netflix.com/type";
     public static final String JOB_DESCRIPTOR = "v3.job.titus.netflix.com/descriptor";
     public static final String ENTRYPOINT_SHELL_SPLITTING_ENABLED = "pod.titus.netflix.com/entrypoint-shell-splitting-enabled";
+    public static final String JOB_DISRUPTION_BUDGET_POLICY_NAME = "v3.job.titus.netflix.com/disruption-budget-policy";
 
     // Networking
     public static final String SUBNETS_LEGACY = "network.titus.netflix.com/subnets";
