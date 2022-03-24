@@ -52,6 +52,7 @@ import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentica
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -243,13 +244,13 @@ public class JobManagementSpringResource {
         return Responses.fromCompletable(jobServiceGateway.killJob(jobId, authentication.getCallMetadata()), HttpStatus.OK);
     }
 
-    @ApiOperation("Find the task with the specified ID")
+    @ApiOperation(value = "Find a task with the specified ID", notes = "Returns an exact task if you already know the task ID", response = Job.class)
     @GetMapping(path = "/tasks/{taskId}")
     public Task findTask(@PathVariable("taskId") String taskId, CallMetadataAuthentication authentication) {
         return Responses.fromSingleValueObservable(jobServiceGateway.findTask(taskId, authentication.getCallMetadata()));
     }
 
-    @ApiOperation("Find tasks")
+    @ApiOperation(value = "Find tasks", notes = "Find tasks with optional filtering criteria")
     @GetMapping(path = "/tasks")
     public TaskQueryResult findTasks(@RequestParam MultiValueMap<String, String> queryParameters, CallMetadataAuthentication authentication) {
         TaskQuery.Builder queryBuilder = TaskQuery.newBuilder();
@@ -261,11 +262,14 @@ public class JobManagementSpringResource {
         return Responses.fromSingleValueObservable(jobServiceGateway.findTasks(queryBuilder.build(), authentication.getCallMetadata()));
     }
 
-    @ApiOperation("Kill task")
+    @ApiOperation(value = "Kill task", notes = "Terminates a Titus Task given a particular Task ID.")
     @DeleteMapping(path = "/tasks/{taskId}")
     public ResponseEntity<Void> killTask(
+            @ApiParam(name = "taskId", value = "Titus Task ID you which to terminate")
             @PathVariable("taskId") String taskId,
+            @ApiParam(name = "shrink", value = "Set true to shrink the desired of the job after killing the task. Defaults to false.", defaultValue = "false")
             @RequestParam(name = "shrink", defaultValue = "false") boolean shrink,
+            @ApiParam(name = "preventMinSizeUpdate", value = "Set true to prevent the job from going below its minimum size. Defaults to false.", defaultValue = "false")
             @RequestParam(name = "preventMinSizeUpdate", defaultValue = "false") boolean preventMinSizeUpdate,
             CallMetadataAuthentication authentication
     ) {

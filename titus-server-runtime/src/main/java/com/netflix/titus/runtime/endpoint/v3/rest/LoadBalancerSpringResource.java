@@ -60,7 +60,7 @@ public class LoadBalancerSpringResource {
         this.systemLog = systemLog;
     }
 
-    @ApiOperation("Find the load balancer(s) with the specified ID")
+    @ApiOperation("Find the load balancer(s) with the specified Job ID")
     @GetMapping(path = "/{jobId}")
     public GetJobLoadBalancersResult getJobLoadBalancers(@PathVariable("jobId") String jobId, CallMetadataAuthentication authentication) {
         return Responses.fromSingleValueObservable(loadBalancerService.getLoadBalancers(

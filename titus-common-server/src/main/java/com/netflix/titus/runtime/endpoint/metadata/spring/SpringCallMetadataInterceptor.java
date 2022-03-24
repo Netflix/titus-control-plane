@@ -27,6 +27,7 @@ import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.Caller;
 import com.netflix.titus.api.model.callmetadata.CallerType;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataHeaders;
+import io.swagger.annotations.ApiModelProperty;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
@@ -39,6 +40,7 @@ import static java.util.Arrays.asList;
 public class SpringCallMetadataInterceptor extends HandlerInterceptorAdapter {
 
     @VisibleForTesting
+    @ApiModelProperty(required = false, hidden = true)
     static final String DEBUG_QUERY_PARAM = "debug";
 
     @Override
