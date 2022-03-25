@@ -53,7 +53,7 @@ import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodNotFoundEvent;
-import com.netflix.titus.master.config.BackendConfiguration;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.master.kubernetes.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
@@ -86,7 +86,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
         UNKNOWN
     }
 
-    private final BackendConfiguration backendConfiguration;
+    private final KubernetesConfiguration kubernetesConfiguration;
     private final DirectKubeConfiguration directKubeConfiguration;
     private final FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration;
     private final StdKubeApiFacade kubeApiFacade;
@@ -103,13 +103,13 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     private ScheduleReference schedulerRef;
 
     @Inject
-    public DefaultKubeJobManagementReconciler(BackendConfiguration backendConfiguration,
+    public DefaultKubeJobManagementReconciler(KubernetesConfiguration kubernetesConfiguration,
                                               DirectKubeConfiguration directKubeConfiguration,
                                               @Named(GC_UNKNOWN_PODS) FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration,
                                               StdKubeApiFacade kubeApiFacade,
                                               V3JobOperations v3JobOperations,
                                               TitusRuntime titusRuntime) {
-        this.backendConfiguration = backendConfiguration;
+        this.kubernetesConfiguration = kubernetesConfiguration;
         this.directKubeConfiguration = directKubeConfiguration;
         this.gcUnknownPodsTokenBucketConfiguration = gcUnknownPodsTokenBucketConfiguration;
         this.kubeApiFacade = kubeApiFacade;
@@ -130,8 +130,8 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
         ScheduleDescriptor scheduleDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("reconcileNodesAndPods")
                 .withDescription("Reconcile nodes and pods")
-                .withInitialDelay(Duration.ofMillis(backendConfiguration.getReconcilerInitialDelayMs()))
-                .withInterval(Duration.ofMillis(backendConfiguration.getReconcilerIntervalMs()))
+                .withInitialDelay(Duration.ofMillis(kubernetesConfiguration.getReconcilerInitialDelayMs()))
+                .withInterval(Duration.ofMillis(kubernetesConfiguration.getReconcilerIntervalMs()))
                 .withTimeout(Duration.ofMinutes(5))
                 .build();
 
@@ -154,7 +154,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     }
 
     private void reconcile() {
-        if (!backendConfiguration.isReconcilerEnabled()) {
+        if (!kubernetesConfiguration.isReconcilerEnabled()) {
             logger.info("Skipping the job management / Kube reconciliation cycle: reconciler disabled");
             return;
         }
@@ -261,7 +261,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
             return true;
         }
         if (task.getStatus().getState() == TaskState.Accepted && TaskStatus.hasPod(task)) {
-            return clock.isPast(task.getStatus().getTimestamp() + backendConfiguration.getOrphanedPodTimeoutMs());
+            return clock.isPast(task.getStatus().getTimestamp() + kubernetesConfiguration.getOrphanedPodTimeoutMs());
         }
         return false;
     }

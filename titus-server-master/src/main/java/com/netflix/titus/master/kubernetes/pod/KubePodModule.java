@@ -47,7 +47,7 @@ import com.netflix.titus.master.kubernetes.pod.taint.TaintTolerationFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.DefaultTopologyFactory;
 import com.netflix.titus.master.kubernetes.pod.topology.TopologyFactory;
 import com.netflix.titus.master.kubernetes.pod.v1.V1SpecPodFactory;
-import com.netflix.titus.master.config.BackendConfiguration;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 public class KubePodModule extends AbstractModule {
@@ -64,12 +64,12 @@ public class KubePodModule extends AbstractModule {
     }
 
     /**
-     * TODO Move properties from {@link BackendConfiguration} to other configuration classes.
+     * TODO Move properties from {@link KubernetesConfiguration} to other configuration classes.
      */
     @Provides
     @Singleton
-    public BackendConfiguration getBackendConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(BackendConfiguration.class);
+    public KubernetesConfiguration getBackendConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(KubernetesConfiguration.class);
     }
 
     @Provides

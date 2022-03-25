@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.config;
+package com.netflix.titus.master.kubernetes;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-// For historic reasons these config settings are still under the old "mesos" name
-@Configuration(prefix = "titus.mesos")
-public interface BackendConfiguration {
+@Configuration(prefix = "titus.kubernetes")
+public interface KubernetesConfiguration {
 
     @DefaultValue(".*invalidRequest.*")
     String getInvalidRequestMessagePattern();
