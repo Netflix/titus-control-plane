@@ -19,6 +19,7 @@ package com.netflix.titus.common.util.loadshedding.tokenbucket;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -26,7 +27,8 @@ import com.netflix.titus.common.util.cache.Cache;
 import com.netflix.titus.common.util.cache.Caches;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
-import com.netflix.titus.common.util.loadshedding.AdmissionController;
+import com.netflix.titus.common.util.loadshedding.AdaptiveAdmissionController;
+import com.netflix.titus.common.util.loadshedding.AdmissionBackoffStrategy;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -67,9 +69,11 @@ import org.slf4j.LoggerFactory;
  * (Bob, create.*). Similarly, for methods getJob/getTask/etc there will be two buckets (Alice, get.*) and
  * (Bob, get.*) respectively.
  */
-public class TokenBucketAdmissionController implements AdmissionController {
+public class TokenBucketAdmissionController implements AdaptiveAdmissionController {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenBucketAdmissionController.class);
+
+    private static final String METRIC_ROOT = "titus.tokenBucketAdmissionController.";
 
     private static final AdmissionControllerResponse DEFAULT_OK = AdmissionControllerResponse.newBuilder()
             .withAllowed(true)
@@ -81,10 +85,14 @@ public class TokenBucketAdmissionController implements AdmissionController {
 
     private final List<TokenBucketConfiguration> tokenBucketConfigurations;
 
+    private final AdmissionBackoffStrategy admissionBackoffStrategy;
+
     /**
      * Bucket id consists of a caller id (or caller pattern), and endpoint pattern.
      */
     private final Cache<Pair<String, String>, TokenBucketInstance> bucketsById;
+
+    private final Random random = new Random();
 
     /**
      * Maps requests to its assigned bucket ids. We cannot map to the {@link TokenBucketInstance} directly, as its
@@ -93,26 +101,39 @@ public class TokenBucketAdmissionController implements AdmissionController {
     private final Cache<AdmissionControllerRequest, Pair<String, String>> requestToBucketIdCache;
 
     public TokenBucketAdmissionController(List<TokenBucketConfiguration> tokenBucketConfigurations,
+                                          AdmissionBackoffStrategy admissionBackoffStrategy,
                                           TitusRuntime titusRuntime) {
         this.tokenBucketConfigurations = tokenBucketConfigurations;
+        this.admissionBackoffStrategy = admissionBackoffStrategy;
 
         this.bucketsById = Caches.instrumentedCacheWithMaxSize(
                 MAX_CACHE_SIZE,
                 CACHE_ITEM_TIMEOUT,
-                "titus.tokenBucketAdmissionController.cache",
+                METRIC_ROOT + "cache",
                 titusRuntime.getRegistry()
         );
         this.requestToBucketIdCache = Caches.instrumentedCacheWithMaxSize(
                 MAX_CACHE_SIZE,
                 CACHE_ITEM_TIMEOUT,
-                "titus.tokenBucketAdmissionController.requestCache",
+                METRIC_ROOT + "requestCache",
                 titusRuntime.getRegistry()
         );
+
     }
 
     @Override
     public AdmissionControllerResponse apply(AdmissionControllerRequest request) {
         return findTokenBucket(request).map(this::consume).orElse(DEFAULT_OK);
+    }
+
+    @Override
+    public void onSuccess(long elapsedMs) {
+        admissionBackoffStrategy.onSuccess(elapsedMs);
+    }
+
+    @Override
+    public void onError(long elapsedMs, ErrorKind errorKind, Throwable cause) {
+        admissionBackoffStrategy.onError(elapsedMs, errorKind, cause);
     }
 
     private Optional<TokenBucketInstance> findTokenBucket(AdmissionControllerRequest request) {
@@ -166,12 +187,22 @@ public class TokenBucketAdmissionController implements AdmissionController {
 
         TokenBucket tokenBucket = tokenBucketInstance.getTokenBucket();
         if (tokenBucket.tryTake()) {
-            builder.withAllowed(true)
-                    .withReasonMessage(String.format(
-                            "Consumed token of: bucketName=%s, remainingTokens=%s",
-                            tokenBucketInstance.getConfiguration().getName(),
-                            tokenBucket.getNumberOfTokens()
-                    ));
+            double factor = admissionBackoffStrategy.getThrottleFactor();
+            if (factor < 1.0 && random.nextDouble() >= factor) {
+                builder.withAllowed(false)
+                        .withReasonMessage(String.format(
+                                "Rate limited due to backoff: bucketName=%s, backoffFactor=%f",
+                                tokenBucketInstance.getConfiguration().getName(),
+                                factor)
+                        );
+            } else {
+                builder.withAllowed(true)
+                        .withReasonMessage(String.format(
+                                "Consumed token of: bucketName=%s, remainingTokens=%s",
+                                tokenBucketInstance.getConfiguration().getName(),
+                                tokenBucket.getNumberOfTokens()
+                        ));
+            }
         } else {
             builder.withAllowed(false)
                     .withReasonMessage(String.format(

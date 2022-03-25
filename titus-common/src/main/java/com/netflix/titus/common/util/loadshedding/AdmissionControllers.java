@@ -20,6 +20,9 @@ import java.util.function.Supplier;
 
 import com.netflix.archaius.api.Config;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.loadshedding.backoff.NoOpAdmissionBackoffStrategy;
+import com.netflix.titus.common.util.loadshedding.backoff.SimpleAdmissionBackoffStrategy;
+import com.netflix.titus.common.util.loadshedding.backoff.SimpleAdmissionBackoffStrategyConfiguration;
 import com.netflix.titus.common.util.loadshedding.tokenbucket.ArchaiusTokenBucketAdmissionConfigurationParser;
 import com.netflix.titus.common.util.loadshedding.tokenbucket.ConfigurableTokenBucketAdmissionController;
 
@@ -28,15 +31,47 @@ import com.netflix.titus.common.util.loadshedding.tokenbucket.ConfigurableTokenB
  */
 public final class AdmissionControllers {
 
+    public static AdmissionBackoffStrategy noBackoff() {
+        return NoOpAdmissionBackoffStrategy.getInstance();
+    }
+
+    public static AdmissionBackoffStrategy simpleBackoff(String id,
+                                                         SimpleAdmissionBackoffStrategyConfiguration configuration,
+                                                         TitusRuntime titusRuntime) {
+        return new SimpleAdmissionBackoffStrategy(id, configuration, titusRuntime);
+    }
+
     public static AdmissionController circuitBreaker(AdmissionController delegate, Supplier<Boolean> condition) {
         return new CircuitBreakerAdmissionController(delegate, condition);
+    }
+
+    public static AdaptiveAdmissionController circuitBreaker(AdaptiveAdmissionController delegate, Supplier<Boolean> condition) {
+        return new CircuitBreakerAdaptiveAdmissionController(delegate, condition);
+    }
+
+    public static AdaptiveAdmissionController fixed(AdmissionControllerResponse response) {
+        return new FixedResponseAdmissionController(response);
     }
 
     public static AdmissionController spectator(AdmissionController delegate, TitusRuntime titusRuntime) {
         return new SpectatorAdmissionController(delegate, titusRuntime);
     }
 
+    public static AdaptiveAdmissionController spectator(AdaptiveAdmissionController delegate, TitusRuntime titusRuntime) {
+        return new SpectatorAdaptiveAdmissionController(delegate, titusRuntime);
+    }
+
     public static AdmissionController tokenBucketsFromArchaius(Config config, TitusRuntime titusRuntime) {
-        return new ConfigurableTokenBucketAdmissionController(new ArchaiusTokenBucketAdmissionConfigurationParser(config), titusRuntime);
+        return tokenBucketsFromArchaius(config, noBackoff(), titusRuntime);
+    }
+
+    public static AdaptiveAdmissionController tokenBucketsFromArchaius(Config config,
+                                                                       AdmissionBackoffStrategy backoffStrategy,
+                                                                       TitusRuntime titusRuntime) {
+        return new ConfigurableTokenBucketAdmissionController(
+                new ArchaiusTokenBucketAdmissionConfigurationParser(config),
+                backoffStrategy,
+                titusRuntime
+        );
     }
 }

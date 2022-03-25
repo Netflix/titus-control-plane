@@ -23,6 +23,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
+import com.netflix.titus.common.util.loadshedding.AdmissionControllers;
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.NOT_SHARED_CONFIGURATION;
@@ -38,6 +39,7 @@ public class TokenBucketAdmissionControllerTest {
     public void testSharedBucket() {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Collections.singletonList(SHARED_ANY_CONFIGURATION),
+                AdmissionControllers.noBackoff(),
                 titusRuntime
         );
 
@@ -66,6 +68,7 @@ public class TokenBucketAdmissionControllerTest {
     public void testNotSharedBucket() {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Collections.singletonList(NOT_SHARED_CONFIGURATION),
+                AdmissionControllers.noBackoff(),
                 titusRuntime
         );
 
@@ -101,6 +104,7 @@ public class TokenBucketAdmissionControllerTest {
     public void testOverlappingCallerIdButDifferentEndpointBuckets() {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Arrays.asList(SHARED_GETTERS_CONFIGURATION, SHARED_ANY_CONFIGURATION),
+                AdmissionControllers.noBackoff(),
                 titusRuntime
         );
 
@@ -123,7 +127,11 @@ public class TokenBucketAdmissionControllerTest {
 
     @Test
     public void testNoMatch() {
-        TokenBucketAdmissionController controller = new TokenBucketAdmissionController(Collections.emptyList(), titusRuntime);
+        TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
+                Collections.emptyList(),
+                AdmissionControllers.noBackoff(),
+                titusRuntime
+        );
 
         AdmissionControllerRequest request = AdmissionControllerRequest.newBuilder()
                 .withCallerId("any")

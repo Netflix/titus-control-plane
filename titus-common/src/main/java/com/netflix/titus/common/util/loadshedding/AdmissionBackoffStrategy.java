@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,18 @@
 
 package com.netflix.titus.common.util.loadshedding;
 
-import java.util.function.Function;
-
 /**
- * {@link AdmissionController} monitors incoming request rate, and decides if an arriving request
- * should be allowed or discarded. All implementations must be thread safe and support concurrent invocations.
+ * Based on observed success / error invocations, computes an adjustment factor for an admission control rate.
  */
-public interface AdmissionController extends Function<AdmissionControllerRequest, AdmissionControllerResponse> {
+public interface AdmissionBackoffStrategy {
+
+    /**
+     * In range 0-1. For example, if admission rate is 100, and throttle factor is 0.5, the effective admission
+     * rate is computed as 100 * 0.5 = 50.
+     */
+    double getThrottleFactor();
+
+    void onSuccess(long elapsedMs);
+
+    void onError(long elapsedMs, AdaptiveAdmissionController.ErrorKind errorKind, Throwable cause);
 }

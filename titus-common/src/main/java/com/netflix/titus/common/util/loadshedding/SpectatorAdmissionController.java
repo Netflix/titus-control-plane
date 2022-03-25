@@ -16,23 +16,18 @@
 
 package com.netflix.titus.common.util.loadshedding;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 
 import static com.netflix.titus.common.util.StringExt.getNonEmptyOrDefault;
 
-@Singleton
 public class SpectatorAdmissionController implements AdmissionController {
 
     private static final String METRIC_NAME = "titus.admissionController.decision";
 
-    private final AdmissionController delegate;
+    final AdmissionController delegate;
     private final Registry registry;
 
-    @Inject
     public SpectatorAdmissionController(AdmissionController delegate, TitusRuntime titusRuntime) {
         this.delegate = delegate;
         this.registry = titusRuntime.getRegistry();

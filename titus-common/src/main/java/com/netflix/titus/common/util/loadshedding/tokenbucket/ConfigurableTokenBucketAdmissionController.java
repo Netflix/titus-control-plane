@@ -28,9 +28,11 @@ import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.loadshedding.AdmissionController;
+import com.netflix.titus.common.util.loadshedding.AdaptiveAdmissionController;
+import com.netflix.titus.common.util.loadshedding.AdmissionBackoffStrategy;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
+import com.netflix.titus.common.util.loadshedding.FixedResponseAdmissionController;
 import com.netflix.titus.common.util.retry.Retryers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * is created. As a result token buckets state is reset, which is fine as long as changes do not happen too
  * frequently.
  */
-public class ConfigurableTokenBucketAdmissionController implements AdmissionController, Closeable {
+public class ConfigurableTokenBucketAdmissionController implements AdaptiveAdmissionController, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigurableTokenBucketAdmissionController.class);
 
@@ -67,17 +69,19 @@ public class ConfigurableTokenBucketAdmissionController implements AdmissionCont
             .build();
 
     private final Supplier<List<TokenBucketConfiguration>> configurationSupplier;
-    private final Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory;
+    private final Function<List<TokenBucketConfiguration>, AdaptiveAdmissionController> delegateFactory;
 
     private final ScheduleReference ref;
 
     private volatile List<TokenBucketConfiguration> activeConfiguration = Collections.emptyList();
-    private volatile AdmissionController delegate = any -> ALL_ALLOWED;
+    private volatile AdaptiveAdmissionController delegate = new FixedResponseAdmissionController(ALL_ALLOWED);
 
     public ConfigurableTokenBucketAdmissionController(Supplier<List<TokenBucketConfiguration>> configurationSupplier,
+                                                      AdmissionBackoffStrategy admissionBackoffStrategy,
                                                       TitusRuntime titusRuntime) {
         this(configurationSupplier,
-                tokenBucketConfigurations -> new TokenBucketAdmissionController(tokenBucketConfigurations, titusRuntime),
+                tokenBucketConfigurations -> new TokenBucketAdmissionController(tokenBucketConfigurations,
+                        admissionBackoffStrategy, titusRuntime),
                 SCHEDULE_DESCRIPTOR,
                 titusRuntime
         );
@@ -85,7 +89,7 @@ public class ConfigurableTokenBucketAdmissionController implements AdmissionCont
 
     @VisibleForTesting
     ConfigurableTokenBucketAdmissionController(Supplier<List<TokenBucketConfiguration>> configurationSupplier,
-                                               Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory,
+                                               Function<List<TokenBucketConfiguration>, AdaptiveAdmissionController> delegateFactory,
                                                ScheduleDescriptor scheduleDescriptor,
                                                TitusRuntime titusRuntime) {
         this.configurationSupplier = configurationSupplier;
@@ -102,6 +106,16 @@ public class ConfigurableTokenBucketAdmissionController implements AdmissionCont
     @Override
     public AdmissionControllerResponse apply(AdmissionControllerRequest request) {
         return delegate.apply(request);
+    }
+
+    @Override
+    public void onSuccess(long elapsedMs) {
+        delegate.onSuccess(elapsedMs);
+    }
+
+    @Override
+    public void onError(long elapsedMs, ErrorKind errorKind, Throwable cause) {
+        delegate.onError(elapsedMs, errorKind, cause);
     }
 
     private void reload(ExecutionContext context) {
