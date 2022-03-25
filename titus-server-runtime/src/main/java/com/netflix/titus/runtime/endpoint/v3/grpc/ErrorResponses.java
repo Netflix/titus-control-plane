@@ -152,9 +152,11 @@ public final class ErrorResponses {
                 case NotEnabled:
                     return Status.PERMISSION_DENIED;
                 case JobCreateLimited:
+                    return Status.RESOURCE_EXHAUSTED;
                 case InvalidContainerResources:
                 case InvalidDesiredCapacity:
                 case InvalidMaxCapacity:
+                case InvalidSequenceId:
                 case NotServiceJob:
                 case NotServiceJobDescriptor:
                 case NotBatchJob:

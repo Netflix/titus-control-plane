@@ -49,6 +49,7 @@ public class JobManagerException extends RuntimeException {
         InvalidContainerResources,
         InvalidDesiredCapacity,
         InvalidMaxCapacity,
+        InvalidSequenceId,
         BelowMinCapacity,
         AboveMaxCapacity,
         TerminateAndShrinkNotAllowed,
@@ -94,6 +95,7 @@ public class JobManagerException extends RuntimeException {
             case InvalidContainerResources:
             case InvalidDesiredCapacity:
             case InvalidMaxCapacity:
+            case InvalidSequenceId:
             case BelowMinCapacity:
             case AboveMaxCapacity:
             case TerminateAndShrinkNotAllowed:
@@ -114,6 +116,10 @@ public class JobManagerException extends RuntimeException {
 
     public static JobManagerException jobCreateLimited(String violation) {
         return new JobManagerException(ErrorCode.JobCreateLimited, violation);
+    }
+
+    public static JobManagerException invalidSequenceId(String violation) {
+        return new JobManagerException(ErrorCode.InvalidSequenceId, violation);
     }
 
     public static JobManagerException jobNotFound(String jobId) {

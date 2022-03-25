@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 
@@ -45,7 +46,7 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
     }
 
     @Override
-    public <JOB_DESCR> Optional<String> checkIfAllowed(JOB_DESCR jobDescriptor) {
+    public <JOB_DESCR> Optional<JobManagerException> checkIfAllowed(JOB_DESCR jobDescriptor) {
         Preconditions.checkArgument(
                 jobDescriptor instanceof JobDescriptor,
                 "Not V3 job descriptor"
@@ -53,10 +54,15 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
 
         Optional<String> activeJobLimit = checkActiveJobLimit();
         if (activeJobLimit.isPresent()) {
-            return activeJobLimit;
+            return Optional.of(JobManagerException.jobCreateLimited(activeJobLimit.get()));
         }
-        return checkJobIdSequence(jobDescriptor);
 
+        Optional<String> idSequenceError = checkJobIdSequence(jobDescriptor);
+        if (idSequenceError.isPresent()) {
+            return Optional.of(JobManagerException.invalidSequenceId(idSequenceError.get()));
+        }
+
+        return Optional.empty();
     }
 
     @Override

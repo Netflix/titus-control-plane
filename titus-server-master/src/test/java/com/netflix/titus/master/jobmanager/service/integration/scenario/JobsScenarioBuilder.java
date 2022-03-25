@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -150,7 +151,7 @@ public class JobsScenarioBuilder {
 
         JobSubmitLimiter jobSubmitLimiter = new JobSubmitLimiter() {
             @Override
-            public <JOB_DESCR> Optional<String> checkIfAllowed(JOB_DESCR jobDescriptor) {
+            public <JOB_DESCR> Optional<JobManagerException> checkIfAllowed(JOB_DESCR jobDescriptor) {
                 return Optional.empty();
             }
 
