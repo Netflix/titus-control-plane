@@ -30,7 +30,7 @@ public class CircuitBreakerAdmissionController implements AdmissionController {
             .withEquivalenceGroup("all")
             .build();
 
-    private final AdmissionController delegate;
+    final AdmissionController delegate;
     private final Supplier<Boolean> enabled;
 
     public CircuitBreakerAdmissionController(AdmissionController delegate, Supplier<Boolean> enabled) {

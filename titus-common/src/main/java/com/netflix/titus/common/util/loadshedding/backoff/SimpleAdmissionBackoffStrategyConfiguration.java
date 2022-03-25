@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.util.loadshedding;
+package com.netflix.titus.common.util.loadshedding.backoff;
 
-import java.util.function.Function;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-/**
- * {@link AdmissionController} monitors incoming request rate, and decides if an arriving request
- * should be allowed or discarded. All implementations must be thread safe and support concurrent invocations.
- */
-public interface AdmissionController extends Function<AdmissionControllerRequest, AdmissionControllerResponse> {
+public interface SimpleAdmissionBackoffStrategyConfiguration {
+
+    @DefaultValue("5000")
+    long getMonitoringIntervalMs();
+
+    @DefaultValue("0.1")
+    double getUnavailableThrottleFactor();
+
+    @DefaultValue("0.1")
+    double getRateLimitedAdjustmentFactor();
 }

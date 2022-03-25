@@ -24,6 +24,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.loadshedding.AdaptiveAdmissionController;
 import com.netflix.titus.common.util.loadshedding.AdmissionController;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
@@ -80,7 +81,7 @@ public class ConfigurableTokenBucketAdmissionControllerTest {
         assertThat(secondDelegate.configuration).hasSize(2);
     }
 
-    private static class AdmissionControllerDelegateMock implements AdmissionController {
+    private static class AdmissionControllerDelegateMock implements AdaptiveAdmissionController {
 
         private final List<TokenBucketConfiguration> configuration;
 
@@ -91,6 +92,14 @@ public class ConfigurableTokenBucketAdmissionControllerTest {
         @Override
         public AdmissionControllerResponse apply(AdmissionControllerRequest request) {
             return AdmissionControllerResponse.newBuilder().build();
+        }
+
+        @Override
+        public void onSuccess(long elapsedMs) {
+        }
+
+        @Override
+        public void onError(long elapsedMs, ErrorKind errorKind, Throwable cause) {
         }
     }
 }
