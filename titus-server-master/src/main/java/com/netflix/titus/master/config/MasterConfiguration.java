@@ -25,9 +25,6 @@ public interface MasterConfiguration {
     @DefaultValue("false")
     boolean isLocalMode();
 
-    @PropertyName(name = "region")
-    String getRegion();
-
     @PropertyName(name = "titus.master.cellName")
     @DefaultValue("dev")
     String getCellName();
@@ -47,49 +44,4 @@ public interface MasterConfiguration {
     @PropertyName(name = "titus.master.ip")
     @DefaultValue("")
     String getMasterIP();
-
-    @PropertyName(name = "titus.master.job.use.resource.network.mbps")
-    @DefaultValue("true")
-    boolean getUseNetworkMbpsAttribute();
-
-    @PropertyName(name = "titus.master.job.security.groups.assignment.disable")
-    @DefaultValue("false")
-    boolean getDisableSecurityGroupsAssignments();
-
-    @PropertyName(name = "mesos.master.location")
-    @DefaultValue("localhost:5050")
-    String getMasterLocation();
-
-    @PropertyName(name = "mesos.titus.executor")
-    @DefaultValue("/apps/titus-executor/bin/run")
-    String pathToTitusExecutor();
-
-    @PropertyName(name = "titus.master.active.slave.attribute.name")
-    @DefaultValue("asg")
-    String getActiveSlaveAttributeName();
-
-    @PropertyName(name = "titus.master.framework.name")
-    @DefaultValue("TitusFramework")
-    String getMesosFrameworkName();
-
-    @PropertyName(name = "titus.master.mesos.failover.timeout.secs")
-    @DefaultValue("604800.0")
-        // 604800 secs = 1 week
-    double getMesosFailoverTimeOutSecs();
-
-    @PropertyName(name = "mesos.task.reconciliation.interval.secs")
-    @DefaultValue("300")
-    long getMesosTaskReconciliationIntervalSecs();
-
-    @PropertyName(name = "mesos.lease.offer.expiry.secs")
-    @DefaultValue("300")
-    long getMesosLeaseOfferExpirySecs();
-
-    @PropertyName(name = "mesos.lease.offer.max.reject.count")
-    @DefaultValue("4")
-    int getMesosLeaseMaxRejectCount();
-
-    @PropertyName(name = "mesos.slave.attribute.zone.name")
-    @DefaultValue("zone")
-    String getHostZoneAttributeName();
 }

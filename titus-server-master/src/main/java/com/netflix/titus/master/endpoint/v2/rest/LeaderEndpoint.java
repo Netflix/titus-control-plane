@@ -24,7 +24,7 @@ import javax.ws.rs.core.MediaType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
 
 /**
- * Provides information about current TitusMaster/Mesos leaders.
+ * Provides information about current TitusMaster leader.
  */
 @Path(LeaderEndpoint.PATH_API_V2_LEADER)
 @Produces(MediaType.APPLICATION_JSON)

@@ -30,7 +30,7 @@ import io.kubernetes.client.openapi.ApiClient;
 
 public class KubeClientModule extends AbstractModule {
 
-    public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
+    public static final String CLIENT_METRICS_PREFIX = "titusMaster.kubernetes.kubeApiServerIntegration";
 
     @Override
     protected void configure() {
