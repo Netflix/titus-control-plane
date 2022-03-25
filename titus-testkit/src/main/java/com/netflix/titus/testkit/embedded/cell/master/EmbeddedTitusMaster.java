@@ -91,7 +91,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 /**
- * Run TitusMaster server with mocked external integrations (mesos, storage).
+ * Run TitusMaster server with mocked external integrations (Kubernetes, storage).
  */
 public class EmbeddedTitusMaster {
 

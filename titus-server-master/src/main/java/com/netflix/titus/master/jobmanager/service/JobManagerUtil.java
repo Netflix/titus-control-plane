@@ -82,7 +82,7 @@ public final class JobManagerUtil {
         return applicationSLA == null ? ApplicationSlaManagementService.DEFAULT_APPLICATION : applicationSLA.getAppName();
     }
 
-    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, TitusRuntime titusRuntime) {
+    public static Function<Task, Optional<Task>> newTaskStateUpdater(TaskStatus newTaskStatus, TitusRuntime titusRuntime) {
         return oldTask -> {
             TaskState oldState = oldTask.getStatus().getState();
             TaskState newState = newTaskStatus.getState();

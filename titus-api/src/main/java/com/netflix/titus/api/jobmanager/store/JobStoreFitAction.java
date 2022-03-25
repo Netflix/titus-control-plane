@@ -87,7 +87,7 @@ public class JobStoreFitAction extends AbstractFitAction {
         DuplicatedEni,
 
         /**
-         * Change/remove Mesos assigned resources (IP, ENI) for a launched task.
+         * Change/remove assigned resources (IP, ENI) for a launched task.
          */
         CorruptedTaskPlacementData
     }

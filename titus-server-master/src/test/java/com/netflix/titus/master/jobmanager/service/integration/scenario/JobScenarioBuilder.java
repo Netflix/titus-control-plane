@@ -621,7 +621,7 @@ public class JobScenarioBuilder {
                 .build();
 
         Function<Task, Optional<Task>> changeFunction = currentTask ->
-                JobManagerUtil.newMesosTaskStateUpdater(taskStatus, titusRuntime)
+                JobManagerUtil.newTaskStateUpdater(taskStatus, titusRuntime)
                         .apply(currentTask)
                         .map(updated -> updated.toBuilder()
                                 .withTaskContext(CollectionsExt.merge(updated.getTaskContext(), newTaskContext))

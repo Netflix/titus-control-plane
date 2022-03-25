@@ -34,7 +34,6 @@ public class ZookeeperPaths {
     private final String allMastersPath;
     private final String leaderElectionPath;
     private final String leaderAnnouncementPath;
-    private final String mesosPath;
 
     @Inject
     public ZookeeperPaths(ZookeeperConfiguration configuration) {
@@ -42,7 +41,6 @@ public class ZookeeperPaths {
         this.allMastersPath = ZKPaths.makePath(titusMasterPath, ALL_MASTERS);
         this.leaderElectionPath = ZKPaths.makePath(titusMasterPath, LEADER_ELECTION_NODE);
         this.leaderAnnouncementPath = ZKPaths.makePath(titusMasterPath, LEADER_ANNOUNCEMENT_NODE);
-        this.mesosPath = ZKPaths.makePath(configuration.getZkRoot(), "/mesos");
     }
 
     public String getAllMastersPath() {
@@ -57,17 +55,12 @@ public class ZookeeperPaths {
         return leaderAnnouncementPath;
     }
 
-    public String getMesosPath() {
-        return mesosPath;
-    }
-
     @Override
     public String toString() {
         return "ZookeeperPaths{" +
                 "allMastersPath='" + allMastersPath + '\'' +
                 ", leaderElectionPath='" + leaderElectionPath + '\'' +
                 ", leaderAnnouncementPath='" + leaderAnnouncementPath + '\'' +
-                ", mesosPath='" + mesosPath + '\'' +
                 '}';
     }
 }

@@ -27,7 +27,7 @@ public enum TaskState {
     Accepted,
 
     /**
-     * A task had resources allocated, and was passed to Mesos
+     * A task had resources allocated, and was passed to Kubernetes
      */
     Launched,
 
@@ -47,7 +47,7 @@ public enum TaskState {
     KillInitiated,
 
     /**
-     * No connectivity between Mesos and an agent running a task. Task's state cannot be determined until the connection is established again.
+     * No connectivity between Kubernetes and an agent running a task. Task's state cannot be determined until the connection is established again.
      */
     Disconnected,
 

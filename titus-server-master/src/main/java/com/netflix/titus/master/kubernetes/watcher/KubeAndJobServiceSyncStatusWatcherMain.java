@@ -46,9 +46,9 @@ public class KubeAndJobServiceSyncStatusWatcherMain {
 
     private static final KubeConnectorConfiguration kubeConnectorConfiguration = Archaius2Ext.newConfiguration(KubeConnectorConfiguration.class);
 
-    private static final BackendConfiguration mesosConfig = Archaius2Ext.newConfiguration(BackendConfiguration.class);
+    private static final BackendConfiguration backendConfig = Archaius2Ext.newConfiguration(BackendConfiguration.class);
 
-    private static final DefaultContainerResultCodeResolver containerResultCodeResolver = new DefaultContainerResultCodeResolver(mesosConfig);
+    private static final DefaultContainerResultCodeResolver containerResultCodeResolver = new DefaultContainerResultCodeResolver(backendConfig);
 
     private static final ReadOnlyJobOperations jobService = new ReadOnlyJobOperations() {
         @Override

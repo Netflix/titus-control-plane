@@ -39,9 +39,9 @@ import com.netflix.titus.master.jobmanager.service.common.action.TitusModelActio
  * within an expected amount of time, it is killed.
  * <p>
  * <h1>Why cannot use task state timestamp?</h1>
- * Due to TitusMaster failover process, and delayed Mesos state reconciliation. If we would do this, we might
+ * Due to TitusMaster failover process, and delayed Kubernetes state reconciliation. If we would do this, we might
  * kill tasks that progressed their state, but we are not aware of this, due to a delay in the reconciliation process.
- * This could be solved by doing Mesos reconciliation during system bootstrap, before job reconciliation process starts
+ * This could be solved by doing Kubernetes reconciliation during system bootstrap, before job reconciliation process starts
  * (a possible improvement in the future).
  */
 public class TaskTimeoutChangeActions {
