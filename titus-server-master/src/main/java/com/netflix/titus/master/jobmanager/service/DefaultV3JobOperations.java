@@ -243,10 +243,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     if (reservationFailure.isPresent()) {
                         return Observable.error(JobManagerException.jobCreateLimited(reservationFailure.get()));
                     }
-                    Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDescriptorWithCallerId);
-                    if (limited.isPresent()) {
-                        jobSubmitLimiter.releaseId(jobDescriptorWithCallerId);
-                        return Observable.error(JobManagerException.jobCreateLimited(limited.get()));
+                    Optional<JobManagerException> jobLimitError = jobSubmitLimiter.checkIfAllowed(jobDescriptorWithCallerId);
+                    if (jobLimitError.isPresent()) {
+                        return Observable.error(jobLimitError.get());
                     }
 
                     Job<?> job = newJob(jobDescriptorWithCallerId);

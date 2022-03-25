@@ -17,12 +17,14 @@ package com.netflix.titus.master.jobmanager.service.limiter;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
+
 public interface JobSubmitLimiter {
 
     /**
      * Check if it is ok to schedule a given job. If not, the result contains a reason message.
      */
-    <JOB_DESCR> Optional<String> checkIfAllowed(JOB_DESCR jobDescriptor);
+    <JOB_DESCR> Optional<JobManagerException> checkIfAllowed(JOB_DESCR jobDescriptor);
 
     /**
      * Reserve job id sequence. If reservation fails, the result contains a reason message.
