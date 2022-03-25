@@ -245,6 +245,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     }
                     Optional<JobManagerException> jobLimitError = jobSubmitLimiter.checkIfAllowed(jobDescriptorWithCallerId);
                     if (jobLimitError.isPresent()) {
+                        jobSubmitLimiter.releaseId(jobDescriptorWithCallerId);
                         return Observable.error(jobLimitError.get());
                     }
 
