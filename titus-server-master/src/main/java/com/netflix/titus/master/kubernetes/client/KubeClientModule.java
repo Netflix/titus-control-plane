@@ -23,7 +23,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.jobmanager.service.ComputeProvider;
-import com.netflix.titus.master.config.BackendConfiguration;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
 import io.kubernetes.client.openapi.ApiClient;
@@ -46,7 +46,7 @@ public class KubeClientModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public ApiClient getKubeApiClient(BackendConfiguration configuration, TitusRuntime titusRuntime) {
+    public ApiClient getKubeApiClient(KubernetesConfiguration configuration, TitusRuntime titusRuntime) {
         return StdKubeApiClients.createApiClient(
                 configuration.getKubeApiServerUrl(),
                 configuration.getKubeConfigPath(),

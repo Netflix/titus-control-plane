@@ -26,7 +26,6 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.config.BackendConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,12 +41,12 @@ public class DefaultContainerResultCodeResolver implements ContainerResultCodeRe
     private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
 
     @Inject
-    public DefaultContainerResultCodeResolver(BackendConfiguration backendConfiguration) {
-        this.invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
-        this.crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
-        this.transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
-        this.localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
-        this.unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(backendConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
+    public DefaultContainerResultCodeResolver(KubernetesConfiguration kubernetesConfiguration) {
+        this.invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(kubernetesConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
+        this.crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(kubernetesConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
+        this.transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(kubernetesConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        this.localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(kubernetesConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        this.unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(kubernetesConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
     }
 
     public Optional<String> resolve(TaskState taskState, String reasonMessage) {

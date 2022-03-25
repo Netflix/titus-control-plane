@@ -30,7 +30,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
-import com.netflix.titus.master.config.BackendConfiguration;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.std.DefaultStdStdKubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
@@ -46,7 +46,7 @@ public class KubeAndJobServiceSyncStatusWatcherMain {
 
     private static final KubeConnectorConfiguration kubeConnectorConfiguration = Archaius2Ext.newConfiguration(KubeConnectorConfiguration.class);
 
-    private static final BackendConfiguration backendConfig = Archaius2Ext.newConfiguration(BackendConfiguration.class);
+    private static final KubernetesConfiguration backendConfig = Archaius2Ext.newConfiguration(KubernetesConfiguration.class);
 
     private static final DefaultContainerResultCodeResolver containerResultCodeResolver = new DefaultContainerResultCodeResolver(backendConfig);
 
