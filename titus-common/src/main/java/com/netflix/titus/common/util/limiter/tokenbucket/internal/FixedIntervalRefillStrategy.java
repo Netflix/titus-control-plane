@@ -44,8 +44,9 @@ public class FixedIntervalRefillStrategy implements RefillStrategy {
         this.intervalInNanos = unit.toNanos(interval);
         this.toStringValue = "FixedIntervalRefillStrategy{refillRate=" + DateTimeExt.toRateString(interval, numberOfTokensPerInterval, unit, "refill") + '}';
 
-        this.lastRefillTimeNano = -intervalInNanos;
-        this.nextRefillTimeNano = -intervalInNanos;
+        long nowNano = clock.nanoTime();
+        this.lastRefillTimeNano = nowNano - intervalInNanos;
+        this.nextRefillTimeNano = nowNano - intervalInNanos;
     }
 
     @Override
