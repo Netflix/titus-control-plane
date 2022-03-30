@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import com.netflix.titus.common.util.time.Clocks;
 
 /**
  * Supplementary functions to work with the token bucket policies.
@@ -47,7 +48,8 @@ public final class TokenBucketPolicies {
                 policy.getInitialNumberOfTokens(),
                 refillPolicy.getNumberOfTokensPerInterval(),
                 refillPolicy.getIntervalMs(),
-                TimeUnit.MILLISECONDS
+                TimeUnit.MILLISECONDS,
+                Clocks.system()
         );
     }
 }

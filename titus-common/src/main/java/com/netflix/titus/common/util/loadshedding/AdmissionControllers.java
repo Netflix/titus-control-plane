@@ -61,16 +61,18 @@ public final class AdmissionControllers {
         return new SpectatorAdaptiveAdmissionController(delegate, titusRuntime);
     }
 
-    public static AdmissionController tokenBucketsFromArchaius(Config config, TitusRuntime titusRuntime) {
-        return tokenBucketsFromArchaius(config, noBackoff(), titusRuntime);
+    public static AdmissionController tokenBucketsFromArchaius(Config config, boolean includeDetailsInResponse, TitusRuntime titusRuntime) {
+        return tokenBucketsFromArchaius(config, noBackoff(), includeDetailsInResponse, titusRuntime);
     }
 
     public static AdaptiveAdmissionController tokenBucketsFromArchaius(Config config,
                                                                        AdmissionBackoffStrategy backoffStrategy,
+                                                                       boolean includeDetailsInResponse,
                                                                        TitusRuntime titusRuntime) {
         return new ConfigurableTokenBucketAdmissionController(
                 new ArchaiusTokenBucketAdmissionConfigurationParser(config),
                 backoffStrategy,
+                includeDetailsInResponse,
                 titusRuntime
         );
     }

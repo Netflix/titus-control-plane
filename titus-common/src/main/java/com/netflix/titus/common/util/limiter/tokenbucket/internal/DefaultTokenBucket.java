@@ -73,14 +73,29 @@ public class DefaultTokenBucket implements TokenBucket {
         Preconditions.checkArgument(numberOfTokens > 0, "Number of tokens must be greater than 0.");
         Preconditions.checkArgument(numberOfTokens <= capacity, "Number of tokens must not be greater than the capacity.");
 
-        synchronized (mutex) {
-            refill(refillStrategy.refill());
+        // Quick path if no refill.
+        if (refillStrategy.getTimeUntilNextRefill(TimeUnit.MILLISECONDS) > 0) {
+            if (numberOfTokens > this.numberOfTokens) {
+                return false;
+            }
+            synchronized (mutex) {
+                if (numberOfTokens <= this.numberOfTokens) {
+                    this.numberOfTokens -= numberOfTokens;
+                    return true;
+                }
+            }
+            return false;
+        }
 
+        synchronized (mutex) {
+            long refill = refillStrategy.refill();
+            if (refill > 0) {
+                refillInternal(refill);
+            }
             if (numberOfTokens <= this.numberOfTokens) {
                 this.numberOfTokens -= numberOfTokens;
                 return true;
             }
-
             return false;
         }
     }
@@ -110,8 +125,12 @@ public class DefaultTokenBucket implements TokenBucket {
     @Override
     public void refill(long numberOfTokens) {
         synchronized (mutex) {
-            this.numberOfTokens = Math.min(capacity, Math.max(0, this.numberOfTokens + numberOfTokens));
+            refillInternal(numberOfTokens);
         }
+    }
+
+    private void refillInternal(long numberOfTokens) {
+        this.numberOfTokens = Math.min(capacity, Math.max(0, this.numberOfTokens + numberOfTokens));
     }
 
     @Override

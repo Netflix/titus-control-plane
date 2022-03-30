@@ -21,19 +21,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import com.netflix.titus.common.util.time.Clocks;
+import com.netflix.titus.common.util.time.TestClock;
 
 /**
  * {@link TokenBucket} supplier which recreates a token bucket if any of its configurable parameters changes.
  * The configuration parameters are read from {@link FixedIntervalTokenBucketConfiguration}.
  */
 public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
+
+    private final TestClock clock = Clocks.test();
 
     private final String name;
     private final FixedIntervalTokenBucketConfiguration configuration;
@@ -102,13 +105,13 @@ public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
             this.numberOfTokensPerInterval = configuration.getNumberOfTokensPerInterval();
 
             RefillStrategy baseRefillStrategy = new FixedIntervalRefillStrategy(
-                    Stopwatch.createStarted(),
                     numberOfTokensPerInterval,
-                    intervalMs, TimeUnit.MILLISECONDS
+                    intervalMs, TimeUnit.MILLISECONDS,
+                    clock
             );
 
             this.refillStrategy = titusRuntime.map(runtime ->
-                    (RefillStrategy) new SpectatorRefillStrategyDecorator(name, baseRefillStrategy, runtime))
+                            (RefillStrategy) new SpectatorRefillStrategyDecorator(name, baseRefillStrategy, runtime))
                     .orElse(baseRefillStrategy);
 
             this.tokenBucket = new DefaultTokenBucket(

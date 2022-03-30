@@ -40,6 +40,7 @@ public class TokenBucketAdmissionControllerTest {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Collections.singletonList(SHARED_ANY_CONFIGURATION),
                 AdmissionControllers.noBackoff(),
+                true,
                 titusRuntime
         );
 
@@ -69,6 +70,7 @@ public class TokenBucketAdmissionControllerTest {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Collections.singletonList(NOT_SHARED_CONFIGURATION),
                 AdmissionControllers.noBackoff(),
+                true,
                 titusRuntime
         );
 
@@ -105,6 +107,7 @@ public class TokenBucketAdmissionControllerTest {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Arrays.asList(SHARED_GETTERS_CONFIGURATION, SHARED_ANY_CONFIGURATION),
                 AdmissionControllers.noBackoff(),
+                true,
                 titusRuntime
         );
 
@@ -130,6 +133,7 @@ public class TokenBucketAdmissionControllerTest {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
                 Collections.emptyList(),
                 AdmissionControllers.noBackoff(),
+                true,
                 titusRuntime
         );
 

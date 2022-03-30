@@ -56,6 +56,7 @@ public class FederationEndpointComponent {
                                                                                                 TitusRuntime titusRuntime) {
         AdmissionController mainController = AdmissionControllers.tokenBucketsFromArchaius(
                 new SpringConfig(ADMISSION_CONTROLLER_CONFIGURATION_PREFIX, environment),
+                true,
                 titusRuntime
         );
         AdmissionController circuitBreaker = AdmissionControllers.circuitBreaker(

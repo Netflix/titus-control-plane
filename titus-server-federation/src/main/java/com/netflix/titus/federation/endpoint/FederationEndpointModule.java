@@ -57,6 +57,7 @@ public class FederationEndpointModule extends AbstractModule {
                                                                                                 TitusRuntime titusRuntime) {
         AdmissionController mainController = AdmissionControllers.tokenBucketsFromArchaius(
                 config.getPrefixedView(ADMISSION_CONTROLLER_CONFIGURATION_PREFIX),
+                true,
                 titusRuntime
         );
         AdmissionController circuitBreaker = AdmissionControllers.circuitBreaker(

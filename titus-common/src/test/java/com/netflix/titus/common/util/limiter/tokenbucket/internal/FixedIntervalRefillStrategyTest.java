@@ -18,58 +18,29 @@ package com.netflix.titus.common.util.limiter.tokenbucket.internal;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Ticker;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
+import com.netflix.titus.common.util.time.Clocks;
+import com.netflix.titus.common.util.time.TestClock;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class FixedIntervalRefillStrategyTest {
 
+    private final TestClock clock = Clocks.test();
+
     @Test
     public void refillShouldReturn10() {
-        TestTicker testTicker = createTestTicker();
-        Stopwatch stopwatch = Stopwatch.createStarted(testTicker);
-        testTicker.setNanos(TimeUnit.SECONDS.toNanos(9));
-
-        RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(stopwatch, 1, 1, TimeUnit.SECONDS);
-
+        RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(1, 1, TimeUnit.SECONDS, clock);
+        clock.advanceTime(9, TimeUnit.SECONDS);
         assertEquals(10, refillStrategy.refill());
     }
 
     @Test
     public void timeUntilNextRefillShouldReturn1000() {
-        TestTicker testTicker = createTestTicker();
-        Stopwatch stopwatch = Stopwatch.createStarted(testTicker);
-
-        RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(stopwatch, 1, 5, TimeUnit.SECONDS);
+        RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(1, 5, TimeUnit.SECONDS, clock);
         refillStrategy.refill();
-
         long timeUntilNextRefill = refillStrategy.getTimeUntilNextRefill(TimeUnit.MILLISECONDS);
-        System.out.println(timeUntilNextRefill);
         assertEquals(5_000, timeUntilNextRefill);
-    }
-
-    private static class TestTicker extends Ticker {
-
-        private final Object mutex = new Object();
-
-        private volatile long nanos;
-
-        public void setNanos(long nanos) {
-            synchronized (mutex) {
-                this.nanos = nanos;
-            }
-        }
-
-        @Override
-        public long read() {
-            return nanos;
-        }
-    }
-
-    private TestTicker createTestTicker() {
-        return new TestTicker();
     }
 }

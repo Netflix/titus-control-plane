@@ -37,7 +37,7 @@ public class LoggingCodeInvariants extends CodeInvariants {
 
     private static final CodeInvariants INSTANCE = new LoggingCodeInvariants(
             Limiters.createFixedIntervalTokenBucket(
-                    "invariants", 1000, 1000, 100, 1, TimeUnit.SECONDS
+                    "invariants", 1000, 1000, 100, 1, TimeUnit.SECONDS, Clocks.system()
             ),
             Clocks.system()
     );

@@ -22,10 +22,12 @@ public class AdmissionControllerRequest {
 
     private final String endpointName;
     private final String callerId;
+    private final int hash;
 
     private AdmissionControllerRequest(String endpointName, String callerId) {
         this.endpointName = endpointName;
         this.callerId = callerId;
+        this.hash = Objects.hash(endpointName, callerId);
     }
 
     public String getEndpointName() {
@@ -51,7 +53,7 @@ public class AdmissionControllerRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(endpointName, callerId);
+        return hash;
     }
 
     @Override
