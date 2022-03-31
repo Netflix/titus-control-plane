@@ -58,7 +58,7 @@ subprojects {
     ext {
         titusApiDefinitionsVersion = '0.0.3-rc.18'
 
-        springVersion = '5.2.11.RELEASE'
+        springVersion = '5.3.18.RELEASE'
         springSecurityVersion = '5.3.6.RELEASE'
         springBootVersion = '2.3.6.RELEASE'
         springCloudVersion = '2.2.6.RELEASE'
