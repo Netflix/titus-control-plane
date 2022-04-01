@@ -246,14 +246,14 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
         return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes, callMetadata);
     }
 
-    private Optional<TitusServiceException> checkJobId(String jobId) {
+    public static Optional<TitusServiceException> checkJobId(String jobId) {
         if (StringExt.isUUID(jobId)) {
             return Optional.empty();
         }
         return Optional.of(TitusServiceException.invalidArgument("Job id must be UUID string, but is: " + jobId));
     }
 
-    private Optional<TitusServiceException> checkTaskId(String taskId) {
+    public static Optional<TitusServiceException> checkTaskId(String taskId) {
         if (StringExt.isUUID(taskId)) {
             return Optional.empty();
         }
