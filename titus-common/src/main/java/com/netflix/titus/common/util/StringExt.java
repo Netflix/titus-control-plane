@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
@@ -65,6 +66,18 @@ public final class StringExt {
      */
     public static boolean isNotEmpty(String s) {
         return s != null && !s.isEmpty();
+    }
+
+    /**
+     * Check if the given string is a valid UUID value.
+     */
+    public static boolean isUUID(String s) {
+        try {
+            UUID.fromString(s);
+        } catch (Exception ignore) {
+            return false;
+        }
+        return true;
     }
 
     /**

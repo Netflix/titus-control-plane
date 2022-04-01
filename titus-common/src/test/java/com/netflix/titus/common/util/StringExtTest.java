@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.common.util.tuple.Either;
@@ -35,6 +36,13 @@ import static org.assertj.core.api.Assertions.fail;
 public class StringExtTest {
 
     private enum EnumValue {A, B, C, D}
+
+    @Test
+    public void testUUID() {
+        assertThat(StringExt.isUUID("")).isFalse();
+        assertThat(StringExt.isUUID("abc")).isFalse();
+        assertThat(StringExt.isUUID(UUID.randomUUID().toString())).isTrue();
+    }
 
     @Test
     public void testParseEnumListIgnoreCase() {
@@ -89,7 +97,7 @@ public class StringExtTest {
         String output = StringExt.gzipAndBase64Encode(input);
         assertThat(output.length()).isLessThan(input.length());
     }
-  
+
     @Test
     public void testNameFromJavaBeanGetter() {
         assertNameFromJavaBeanGetterReturnsName("getMyName", "myName");

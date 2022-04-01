@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.jobmanager.gateway;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,10 +29,23 @@ import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
+import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
+import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,8 +105,8 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
                     logger.error("Sanitization error", throwable);
                     return Observable.error(
                             TitusServiceException.newBuilder(
-                                    TitusServiceException.ErrorCode.INVALID_ARGUMENT,
-                                    "Job sanitization error in TitusGateway: " + throwable.getMessage())
+                                            TitusServiceException.ErrorCode.INVALID_ARGUMENT,
+                                            "Job sanitization error in TitusGateway: " + throwable.getMessage())
                                     .withCause(throwable)
                                     .build()
                     );
@@ -112,7 +126,102 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
     }
 
     @Override
+    public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate, CallMetadata callMetadata) {
+        return checkJobId(jobProcessesUpdate.getJobId())
+                .map(Completable::error)
+                .orElseGet(() -> delegate.updateJobProcesses(jobProcessesUpdate, callMetadata));
+    }
+
+    @Override
+    public Completable updateJobStatus(JobStatusUpdate statusUpdate, CallMetadata callMetadata) {
+        return checkJobId(statusUpdate.getId())
+                .map(Completable::error)
+                .orElseGet(() -> delegate.updateJobStatus(statusUpdate, callMetadata));
+    }
+
+    @Override
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, CallMetadata callMetadata) {
+        return checkJobId(request.getJobId())
+                .map(Mono::<Void>error)
+                .orElseGet(() -> delegate.updateJobDisruptionBudget(request, callMetadata));
+    }
+
+    @Override
+    public Mono<Void> updateJobAttributes(JobAttributesUpdate request, CallMetadata callMetadata) {
+        return checkJobId(request.getJobId())
+                .map(Mono::<Void>error)
+                .orElseGet(() -> delegate.updateJobAttributes(request, callMetadata));
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request, CallMetadata callMetadata) {
+        return checkJobId(request.getJobId())
+                .map(Mono::<Void>error)
+                .orElseGet(() -> delegate.deleteJobAttributes(request, callMetadata));
+    }
+
+    @Override
+    public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
+        return checkJobId(jobId)
+                .map(Observable::<Job>error)
+                .orElseGet(() -> findJob(jobId, callMetadata));
+    }
+
+    @Override
+    public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
+        return checkJobId(jobId)
+                .map(Observable::<JobChangeNotification>error)
+                .orElseGet(() -> delegate.observeJob(jobId, callMetadata));
+    }
+
+    @Override
+    public Completable killJob(String jobId, CallMetadata callMetadata) {
+        return checkJobId(jobId)
+                .map(Completable::error)
+                .orElseGet(() -> delegate.killJob(jobId, callMetadata));
+    }
+
+    @Override
+    public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
+        return checkTaskId(taskId)
+                .map(Observable::<Task>error)
+                .orElseGet(() -> delegate.findTask(taskId, callMetadata));
+    }
+
+    @Override
+    public Completable killTask(TaskKillRequest taskKillRequest, CallMetadata callMetadata) {
+        return checkTaskId(taskKillRequest.getTaskId())
+                .map(Completable::error)
+                .orElseGet(() -> delegate.killTask(taskKillRequest, callMetadata));
+    }
+
+    @Override
+    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate, CallMetadata callMetadata) {
+        return checkTaskId(attributesUpdate.getTaskId())
+                .map(Completable::error)
+                .orElseGet(() -> delegate.updateTaskAttributes(attributesUpdate, callMetadata));
+    }
+
+    @Override
+    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest, CallMetadata callMetadata) {
+        return checkTaskId(deleteRequest.getTaskId())
+                .map(Completable::error)
+                .orElseGet(() -> delegate.deleteTaskAttributes(deleteRequest, callMetadata));
+    }
+
+    @Override
+    public Completable moveTask(TaskMoveRequest taskMoveRequest, CallMetadata callMetadata) {
+        return checkTaskId(taskMoveRequest.getTaskId())
+                .map(Completable::error)
+                .orElseGet(() -> delegate.moveTask(taskMoveRequest, callMetadata));
+    }
+
+    @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate, CallMetadata callMetadata) {
+        Optional<TitusServiceException> badId = checkJobId(jobCapacityUpdate.getJobId());
+        if (badId.isPresent()) {
+            return Completable.error(badId.get());
+        }
         Capacity newCapacity = GrpcJobManagementModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
         Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
         if (!violations.isEmpty()) {
@@ -124,6 +233,10 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes,
                                                                CallMetadata callMetadata) {
+        Optional<TitusServiceException> badId = checkJobId(jobCapacityUpdateWithOptionalAttributes.getJobId());
+        if (badId.isPresent()) {
+            return Completable.error(badId.get());
+        }
         final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
         CapacityAttributes capacityAttributes = GrpcJobManagementModelConverters.toCoreCapacityAttributes(jobCapacityWithOptionalAttributes);
         Set<ValidationError> violations = entitySanitizer.validate(capacityAttributes);
@@ -131,5 +244,19 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
         return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes, callMetadata);
+    }
+
+    private Optional<TitusServiceException> checkJobId(String jobId) {
+        if (StringExt.isUUID(jobId)) {
+            return Optional.empty();
+        }
+        return Optional.of(TitusServiceException.invalidArgument("Job id must be UUID string, but is: " + jobId));
+    }
+
+    private Optional<TitusServiceException> checkTaskId(String taskId) {
+        if (StringExt.isUUID(taskId)) {
+            return Optional.empty();
+        }
+        return Optional.of(TitusServiceException.invalidArgument("Task id must be UUID string, but is: " + taskId));
     }
 }
