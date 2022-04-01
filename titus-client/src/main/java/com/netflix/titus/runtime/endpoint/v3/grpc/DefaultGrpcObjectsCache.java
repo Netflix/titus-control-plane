@@ -12,6 +12,7 @@ import javax.inject.Singleton;
 import com.google.protobuf.GeneratedMessageV3;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -32,13 +33,16 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
     private final V3JobOperations jobOperations;
     private final GrpcObjectsCacheConfiguration configuration;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
+    private final LeaderActivator leaderActivator;
     private final TitusRuntime titusRuntime;
 
     @Inject
     public DefaultGrpcObjectsCache(V3JobOperations jobOperations,
                                    GrpcObjectsCacheConfiguration configuration,
                                    LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
+                                   LeaderActivator leaderActivator,
                                    TitusRuntime titusRuntime) {
+        this.leaderActivator = leaderActivator;
         this.titusRuntime = titusRuntime;
         this.configuration = configuration;
         this.logStorageInfo = logStorageInfo;
@@ -58,6 +62,10 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
                     return job;
                 },
                 () -> {
+                    // FIXME DefaultGrpcObjectsCache activation happens immediately in DefaultJobManagementServiceGrpc
+                    if (!leaderActivator.isActivated()) {
+                        return job -> true;
+                    }
                     List<com.netflix.titus.api.jobmanager.model.job.Job> allJobs = jobOperations.getJobs();
                     Set<String> knownJobIds = new HashSet<>();
                     allJobs.forEach(job -> knownJobIds.add(job.getId()));
@@ -77,6 +85,10 @@ public class DefaultGrpcObjectsCache implements GrpcObjectsCache {
                     return task;
                 },
                 () -> {
+                    // FIXME DefaultGrpcObjectsCache activation happens immediately in DefaultJobManagementServiceGrpc
+                    if (!leaderActivator.isActivated()) {
+                        return job -> true;
+                    }
                     List<com.netflix.titus.api.jobmanager.model.job.Task> allTasks = jobOperations.getTasks();
                     Set<String> knownTasksIds = new HashSet<>();
                     allTasks.forEach(task -> knownTasksIds.add(task.getId()));

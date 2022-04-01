@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,8 @@ class DeschedulingResultLogger {
             1,
             1,
             LOGGING_INTERVAL_MS,
-            TimeUnit.MILLISECONDS
+            TimeUnit.MILLISECONDS,
+            Clocks.system()
     );
 
     void doLog(Map<String, DeschedulingResult> deschedulingResult) {

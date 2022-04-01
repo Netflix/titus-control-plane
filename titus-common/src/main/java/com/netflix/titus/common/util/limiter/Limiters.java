@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
@@ -30,6 +29,7 @@ import com.netflix.titus.common.util.limiter.tokenbucket.internal.DynamicTokenBu
 import com.netflix.titus.common.util.limiter.tokenbucket.internal.FixedIntervalRefillStrategy;
 import com.netflix.titus.common.util.limiter.tokenbucket.internal.FixedIntervalTokenBucketSupplier;
 import com.netflix.titus.common.util.limiter.tokenbucket.internal.SpectatorTokenBucketDecorator;
+import com.netflix.titus.common.util.time.Clock;
 
 public class Limiters {
 
@@ -47,9 +47,9 @@ public class Limiters {
      * Create a {@link TokenBucket} with a fixed interval {@link RefillStrategy}.
      */
     public static TokenBucket createFixedIntervalTokenBucket(String name, long capacity, long initialNumberOfTokens,
-                                                             long numberOfTokensPerInterval, long interval, TimeUnit unit) {
-        RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(Stopwatch.createStarted(),
-                numberOfTokensPerInterval, interval, unit);
+                                                             long numberOfTokensPerInterval, long interval, TimeUnit unit,
+                                                             Clock clock) {
+        RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(numberOfTokensPerInterval, interval, unit, clock);
         return new DefaultTokenBucket(name, capacity, refillStrategy, initialNumberOfTokens);
     }
 

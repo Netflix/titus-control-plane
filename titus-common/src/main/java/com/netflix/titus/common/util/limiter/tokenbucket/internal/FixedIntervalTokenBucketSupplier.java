@@ -21,13 +21,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import com.netflix.titus.common.util.time.Clocks;
 
 /**
  * {@link TokenBucket} supplier which recreates a token bucket if any of its configurable parameters changes.
@@ -102,13 +102,13 @@ public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
             this.numberOfTokensPerInterval = configuration.getNumberOfTokensPerInterval();
 
             RefillStrategy baseRefillStrategy = new FixedIntervalRefillStrategy(
-                    Stopwatch.createStarted(),
                     numberOfTokensPerInterval,
-                    intervalMs, TimeUnit.MILLISECONDS
+                    intervalMs, TimeUnit.MILLISECONDS,
+                    titusRuntime.map(TitusRuntime::getClock).orElse(Clocks.system())
             );
 
             this.refillStrategy = titusRuntime.map(runtime ->
-                    (RefillStrategy) new SpectatorRefillStrategyDecorator(name, baseRefillStrategy, runtime))
+                            (RefillStrategy) new SpectatorRefillStrategyDecorator(name, baseRefillStrategy, runtime))
                     .orElse(baseRefillStrategy);
 
             this.tokenBucket = new DefaultTokenBucket(

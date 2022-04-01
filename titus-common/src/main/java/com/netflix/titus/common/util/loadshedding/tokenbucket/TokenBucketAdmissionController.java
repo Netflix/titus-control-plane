@@ -31,6 +31,7 @@ import com.netflix.titus.common.util.loadshedding.AdaptiveAdmissionController;
 import com.netflix.titus.common.util.loadshedding.AdmissionBackoffStrategy;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
+import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,9 +76,24 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
 
     private static final String METRIC_ROOT = "titus.tokenBucketAdmissionController.";
 
-    private static final AdmissionControllerResponse DEFAULT_OK = AdmissionControllerResponse.newBuilder()
+    private static final AdmissionControllerResponse RESPONSE_DEFAULT_OK = AdmissionControllerResponse.newBuilder()
             .withAllowed(true)
             .withReasonMessage("Rate limits not configured")
+            .build();
+
+    private static final AdmissionControllerResponse RESPONSE_ALLOWED = AdmissionControllerResponse.newBuilder()
+            .withAllowed(true)
+            .withReasonMessage("Consumed one token")
+            .build();
+
+    private static final AdmissionControllerResponse RESPONSE_NO_TOKENS = AdmissionControllerResponse.newBuilder()
+            .withAllowed(false)
+            .withReasonMessage("No more tokens")
+            .build();
+
+    private static final AdmissionControllerResponse RESPONSE_BACKOFF = AdmissionControllerResponse.newBuilder()
+            .withAllowed(false)
+            .withReasonMessage("Rate limited due to backoff")
             .build();
 
     private static final int MAX_CACHE_SIZE = 10_000;
@@ -86,6 +102,11 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
     private final List<TokenBucketConfiguration> tokenBucketConfigurations;
 
     private final AdmissionBackoffStrategy admissionBackoffStrategy;
+
+    /**
+     * String concatenation is expensive, so request detailed response message explicitly if desired.
+     */
+    private final boolean includeDetailsInResponse;
 
     /**
      * Bucket id consists of a caller id (or caller pattern), and endpoint pattern.
@@ -100,11 +121,15 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
      */
     private final Cache<AdmissionControllerRequest, Pair<String, String>> requestToBucketIdCache;
 
+    private final TitusRuntime titusRuntime;
+
     public TokenBucketAdmissionController(List<TokenBucketConfiguration> tokenBucketConfigurations,
                                           AdmissionBackoffStrategy admissionBackoffStrategy,
+                                          boolean includeDetailsInResponse,
                                           TitusRuntime titusRuntime) {
         this.tokenBucketConfigurations = tokenBucketConfigurations;
         this.admissionBackoffStrategy = admissionBackoffStrategy;
+        this.includeDetailsInResponse = includeDetailsInResponse;
 
         this.bucketsById = Caches.instrumentedCacheWithMaxSize(
                 MAX_CACHE_SIZE,
@@ -119,11 +144,16 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
                 titusRuntime.getRegistry()
         );
 
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
     public AdmissionControllerResponse apply(AdmissionControllerRequest request) {
-        return findTokenBucket(request).map(this::consume).orElse(DEFAULT_OK);
+        TokenBucketInstance tokenBucket = findTokenBucket(request).orElse(null);
+        if (tokenBucket == null) {
+            return RESPONSE_DEFAULT_OK;
+        }
+        return includeDetailsInResponse ? consumeWithDetailedResponse(tokenBucket) : consumeFast(tokenBucket);
     }
 
     @Override
@@ -164,7 +194,9 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
             requestToBucketIdCache.put(request, bucketId);
         }
 
-        return Optional.ofNullable(bucketsById.get(bucketId, i -> new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration)));
+        return Optional.ofNullable(bucketsById.get(bucketId, i ->
+                new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration, titusRuntime.getClock())
+        ));
     }
 
     private boolean matches(TokenBucketConfiguration configuration, AdmissionControllerRequest request) {
@@ -182,7 +214,19 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
         }
     }
 
-    private AdmissionControllerResponse consume(TokenBucketInstance tokenBucketInstance) {
+    private AdmissionControllerResponse consumeFast(TokenBucketInstance tokenBucketInstance) {
+        TokenBucket tokenBucket = tokenBucketInstance.getTokenBucket();
+        if (tokenBucket.tryTake()) {
+            double factor = admissionBackoffStrategy.getThrottleFactor();
+            if (factor < 1.0 && random.nextDouble() >= factor) {
+                return RESPONSE_BACKOFF;
+            }
+            return RESPONSE_ALLOWED;
+        }
+        return RESPONSE_NO_TOKENS;
+    }
+
+    private AdmissionControllerResponse consumeWithDetailedResponse(TokenBucketInstance tokenBucketInstance) {
         AdmissionControllerResponse.Builder builder = AdmissionControllerResponse.newBuilder();
 
         TokenBucket tokenBucket = tokenBucketInstance.getTokenBucket();
@@ -190,26 +234,17 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
             double factor = admissionBackoffStrategy.getThrottleFactor();
             if (factor < 1.0 && random.nextDouble() >= factor) {
                 builder.withAllowed(false)
-                        .withReasonMessage(String.format(
-                                "Rate limited due to backoff: bucketName=%s, backoffFactor=%f",
-                                tokenBucketInstance.getConfiguration().getName(),
-                                factor)
-                        );
+                        .withReasonMessage("Rate limited due to backoff: bucketName=" +
+                                tokenBucketInstance.getConfiguration().getName() + ", backoffFactor=" + factor);
             } else {
                 builder.withAllowed(true)
-                        .withReasonMessage(String.format(
-                                "Consumed token of: bucketName=%s, remainingTokens=%s",
-                                tokenBucketInstance.getConfiguration().getName(),
-                                tokenBucket.getNumberOfTokens()
-                        ));
+                        .withReasonMessage("Consumed token of: bucketName=" +
+                                tokenBucketInstance.getConfiguration().getName() + ", remainingTokens=" + tokenBucket.getNumberOfTokens());
             }
         } else {
             builder.withAllowed(false)
-                    .withReasonMessage(String.format(
-                            "No more tokens: bucketName=%s, remainingTokens=%s",
-                            tokenBucketInstance.getConfiguration().getName(),
-                            tokenBucket.getNumberOfTokens())
-                    );
+                    .withReasonMessage("No more tokens: bucketName=" +
+                            tokenBucketInstance.getConfiguration().getName() + ", remainingTokens=" + tokenBucket.getNumberOfTokens());
         }
 
         return builder.withDecisionPoint(TokenBucketAdmissionController.class.getSimpleName())
@@ -223,7 +258,7 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
         private final TokenBucket tokenBucket;
         private final String id;
 
-        private TokenBucketInstance(String effectiveCallerId, TokenBucketConfiguration configuration) {
+        private TokenBucketInstance(String effectiveCallerId, TokenBucketConfiguration configuration, Clock clock) {
             this.configuration = configuration;
             this.tokenBucket = Limiters.createFixedIntervalTokenBucket(
                     configuration.getName(),
@@ -231,7 +266,8 @@ public class TokenBucketAdmissionController implements AdaptiveAdmissionControll
                     configuration.getCapacity(),
                     configuration.getRefillRateInSec(),
                     1,
-                    TimeUnit.SECONDS
+                    TimeUnit.SECONDS,
+                    clock
             );
 
             this.id = String.format("%s/%s", configuration.getName(), effectiveCallerId);

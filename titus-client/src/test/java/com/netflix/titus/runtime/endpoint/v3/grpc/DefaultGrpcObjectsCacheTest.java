@@ -9,6 +9,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -29,17 +30,22 @@ public class DefaultGrpcObjectsCacheTest {
 
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
+    private final LeaderActivator leaderActivator = mock(LeaderActivator.class);
+
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo = EmptyLogStorageInfo.empty();
 
     private DefaultGrpcObjectsCache grpcObjectsCache;
 
     private final SomeJobs someJobs = new SomeJobs();
 
+
     @Before
     public void setUp() {
         when(configuration.getCacheRefreshInitialDelayMs()).thenReturn(1L);
         when(configuration.getCacheRefreshIntervalMs()).thenReturn(1L);
         when(configuration.getCacheCleanupDelayMs()).thenReturn(1L);
+
+        when(leaderActivator.isActivated()).thenReturn(true);
 
         someJobs.addJob(2);
         someJobs.addJob(5);
@@ -51,7 +57,7 @@ public class DefaultGrpcObjectsCacheTest {
 
     private void setupGrpcObjectCache(boolean isEnabled) {
         when(configuration.isGrpcObjectsCacheEnabled()).thenReturn(isEnabled);
-        grpcObjectsCache = new DefaultGrpcObjectsCache(v3JobOperations, configuration, logStorageInfo, TitusRuntimes.internal());
+        grpcObjectsCache = new DefaultGrpcObjectsCache(v3JobOperations, configuration, logStorageInfo, leaderActivator, TitusRuntimes.internal());
         grpcObjectsCache.activate();
     }
 

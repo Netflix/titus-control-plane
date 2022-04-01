@@ -18,44 +18,50 @@ package com.netflix.titus.common.util.limiter.tokenbucket.internal;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
+import com.netflix.titus.common.util.time.Clock;
 
 public class FixedIntervalRefillStrategy implements RefillStrategy {
+
     private final Object mutex = new Object();
 
-    private final Stopwatch stopwatch;
     private final long numberOfTokensPerInterval;
     private final long intervalInNanos;
     private final String toStringValue;
-    private long lastRefillTime;
-    private long nextRefillTime;
+    private long lastRefillTimeNano;
 
-    public FixedIntervalRefillStrategy(Stopwatch stopwatch, long numberOfTokensPerInterval, long interval, TimeUnit unit) {
-        this.stopwatch = stopwatch;
+    /**
+     * Make it volatile, so we do not have to sync for reading.
+     */
+    private volatile long nextRefillTimeNano;
+
+    private final Clock clock;
+
+    public FixedIntervalRefillStrategy(long numberOfTokensPerInterval, long interval, TimeUnit unit, Clock clock) {
         this.numberOfTokensPerInterval = numberOfTokensPerInterval;
+        this.clock = clock;
         this.intervalInNanos = unit.toNanos(interval);
         this.toStringValue = "FixedIntervalRefillStrategy{refillRate=" + DateTimeExt.toRateString(interval, numberOfTokensPerInterval, unit, "refill") + '}';
 
-        this.lastRefillTime = -intervalInNanos;
-        this.nextRefillTime = -intervalInNanos;
-
-        if (!this.stopwatch.isRunning()) {
-            this.stopwatch.start();
-        }
+        long nowNano = clock.nanoTime();
+        this.lastRefillTimeNano = nowNano - intervalInNanos;
+        this.nextRefillTimeNano = nowNano - intervalInNanos;
     }
 
     @Override
     public long refill() {
+        long nowNano = clock.nanoTime();
+        if (nowNano < nextRefillTimeNano) {
+            return 0;
+        }
         synchronized (mutex) {
-            long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
-            if (elapsed < nextRefillTime) {
+            if (nowNano < nextRefillTimeNano) {
                 return 0;
             }
-            long numberOfIntervals = Math.max(0, (elapsed - lastRefillTime) / intervalInNanos);
-            lastRefillTime += numberOfIntervals * intervalInNanos;
-            nextRefillTime = lastRefillTime + intervalInNanos;
+            long numberOfIntervals = Math.max(0, (nowNano - lastRefillTimeNano) / intervalInNanos);
+            lastRefillTimeNano += numberOfIntervals * intervalInNanos;
+            nextRefillTimeNano = lastRefillTimeNano + intervalInNanos;
 
             return numberOfIntervals * numberOfTokensPerInterval;
         }
@@ -63,8 +69,8 @@ public class FixedIntervalRefillStrategy implements RefillStrategy {
 
     @Override
     public long getTimeUntilNextRefill(TimeUnit unit) {
-        long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
-        return unit.convert(Math.max(0, nextRefillTime - elapsed), TimeUnit.NANOSECONDS);
+        long nowNano = clock.nanoTime();
+        return unit.convert(Math.max(0, nextRefillTimeNano - nowNano), TimeUnit.NANOSECONDS);
     }
 
     @Override

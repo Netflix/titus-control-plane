@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.embedded.kube;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1Pod;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class EmbeddedStdKubeApiFacade implements StdKubeApiFacade {
@@ -105,11 +107,11 @@ public class EmbeddedStdKubeApiFacade implements StdKubeApiFacade {
 
     @Override
     public SharedIndexInformer<V1PersistentVolume> getPersistentVolumeInformer() {
-        return null;
+        return new SharedInformerStub<>(Collections.emptyList(), Flux.never());
     }
 
     @Override
     public SharedIndexInformer<V1PersistentVolumeClaim> getPersistentVolumeClaimInformer() {
-        return null;
+        return new SharedInformerStub<>(Collections.emptyList(), Flux.never());
     }
 }

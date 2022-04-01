@@ -60,6 +60,7 @@ public class MasterEndpointModule extends AbstractModule {
                                                                                                 TitusRuntime titusRuntime) {
         AdmissionController mainController = AdmissionControllers.tokenBucketsFromArchaius(
                 config.getPrefixedView(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX),
+                true,
                 titusRuntime
         );
         AdmissionController circuitBreaker = AdmissionControllers.circuitBreaker(

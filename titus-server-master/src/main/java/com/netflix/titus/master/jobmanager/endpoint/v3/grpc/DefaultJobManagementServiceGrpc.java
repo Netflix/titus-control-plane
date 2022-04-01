@@ -45,6 +45,7 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -150,6 +151,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            CellInfoResolver cellInfoResolver,
                                            AuthorizationService authorizationService,
                                            GrpcObjectsCacheConfiguration grpcObjectsCacheConfiguration,
+                                           LeaderActivator leaderActivator,
                                            TitusRuntime titusRuntime) {
         this.jobOperations = jobOperations;
         this.entitySanitizer = entitySanitizer;
@@ -165,7 +167,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         );
         this.observeJobsScheduler = Schedulers.from(observeJobsThreadPool);
 
-        this.grpcObjectsCache = new DefaultGrpcObjectsCache(jobOperations, grpcObjectsCacheConfiguration, logStorageInfo, titusRuntime);
+        this.grpcObjectsCache = new DefaultGrpcObjectsCache(jobOperations, grpcObjectsCacheConfiguration, logStorageInfo, leaderActivator, titusRuntime);
         grpcObjectsCache.activate();
         this.metrics = new DefaultJobManagementServiceGrpcMetrics(titusRuntime);
         this.eventProcessingContext = new ObserveJobsContext(

@@ -78,10 +78,11 @@ public class ConfigurableTokenBucketAdmissionController implements AdaptiveAdmis
 
     public ConfigurableTokenBucketAdmissionController(Supplier<List<TokenBucketConfiguration>> configurationSupplier,
                                                       AdmissionBackoffStrategy admissionBackoffStrategy,
+                                                      boolean includeDetailsInResponse,
                                                       TitusRuntime titusRuntime) {
         this(configurationSupplier,
                 tokenBucketConfigurations -> new TokenBucketAdmissionController(tokenBucketConfigurations,
-                        admissionBackoffStrategy, titusRuntime),
+                        admissionBackoffStrategy, includeDetailsInResponse, titusRuntime),
                 SCHEDULE_DESCRIPTOR,
                 titusRuntime
         );
