@@ -108,6 +108,21 @@ public final class CallMetadataHeaders {
      */
     public static final String DIRECT_CALLER_CONTEXT_TRANSPORT_SECURE = "titus.transport.secure";
 
+    /**
+     * Caller address.
+     */
+    public static final String DIRECT_CALLER_CONTEXT_CALLER_ADDRESS = "titus.transport.remoteAddress";
+
+    /**
+     * Local server IP address.
+     */
+    public static final String DIRECT_CALLER_CONTEXT_LOCAL_ADDRESS = "titus.transport.localAddress";
+
+    /**
+     * Local server port number.
+     */
+    public static final String DIRECT_CALLER_CONTEXT_LOCAL_PORT = "titus.transport.localPort";
+
     private CallMetadataHeaders() {
     }
 }

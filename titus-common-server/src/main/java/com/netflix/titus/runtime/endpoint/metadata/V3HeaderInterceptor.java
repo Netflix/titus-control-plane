@@ -16,14 +16,19 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters;
 import io.grpc.Context;
 import io.grpc.Contexts;
+import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
@@ -41,6 +46,8 @@ import static com.netflix.titus.common.util.CollectionsExt.asSet;
 public class V3HeaderInterceptor implements ServerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(V3HeaderInterceptor.class);
+
+    private static final String UNKNOWN_IP = "unknown";
 
     private static final String X_TITUS_GRPC_CALLER_CONTEXT = "X-Titus-GrpcCallerContext";
 
@@ -137,6 +144,27 @@ public class V3HeaderInterceptor implements ServerInterceptor {
         callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_TRANSPORT_TYPE, "GRPC");
         callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_TRANSPORT_SECURE, "?");
 
+        String callerAddress = processAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR)).getLeft();
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_CALLER_ADDRESS, callerAddress);
+
+        Pair<String, Integer> localIpAndPort = processAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_LOCAL_ADDR));
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_LOCAL_ADDRESS, localIpAndPort.getLeft());
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_LOCAL_PORT, "" + localIpAndPort.getRight());
+
         return context.withValue(CALLER_CONTEXT_CONTEXT_KEY, callerContext);
+    }
+
+    private Pair<String, Integer> processAddress(@Nullable final SocketAddress socketAddress) {
+        if (socketAddress == null) {
+            return Pair.of(UNKNOWN_IP, 0);
+        }
+
+        if (!(socketAddress instanceof InetSocketAddress)) {
+            return Pair.of(socketAddress.toString(), 0);
+        }
+
+        final InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+        final String hostString = inetSocketAddress.getHostString();
+        return Pair.of(hostString == null ? UNKNOWN_IP : hostString, inetSocketAddress.getPort());
     }
 }
