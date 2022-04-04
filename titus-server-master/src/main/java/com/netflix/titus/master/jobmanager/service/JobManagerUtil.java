@@ -38,6 +38,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_ID;
@@ -47,7 +48,6 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_AN
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_NETWORK_MODE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_MODE;
 
 /**
  * Collection of common functions.
@@ -140,17 +140,10 @@ public final class JobManagerUtil {
             contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
         }
 
-        String hsmAnnotationValue = annotations.get(NETWORK_MODE);
+        String hsmAnnotationValue = annotations.get(KubeConstants.NETWORK_MODE);
         if (hsmAnnotationValue != null && hsmAnnotationValue.equals(NetworkConfiguration.NetworkMode.HighScale.toString())) {
-            String subnetAnnotations = annotations.get(NETWORK_SUBNET_IDS);
-            if (subnetAnnotations != null) {
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, subnetAnnotations);
-            }
-
-            String securityGroupAnnotations = annotations.get(NETWORK_SUBNET_IDS);
-            if (securityGroupAnnotations != null) {
-                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, securityGroupAnnotations);
-            }
+            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS,  annotations.get(NETWORK_SUBNET_IDS));
+            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, annotations.get(NETWORK_SECURITY_GROUPS));
         }
 
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_ELASTIC_IPV4, elasticIPAddress);
