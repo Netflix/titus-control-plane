@@ -45,6 +45,9 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_AN
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IPV6_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_IP_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_NETWORK_MODE;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_MODE;
 
 /**
  * Collection of common functions.
@@ -135,6 +138,14 @@ public final class JobManagerUtil {
         if (effectiveNetworkMode != null && effectiveNetworkMode != NetworkConfiguration.NetworkMode.Ipv6Only.toString() && effectiveNetworkMode != NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString()) {
             // Only in the case of non IPv6-only mode do we want to set this attribute
             contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
+        }
+
+        String hsmAnnotationValue = annotations.get(NETWORK_MODE);
+        if (hsmAnnotationValue.equals("HighScale")) {
+            String subnetAnnotations = annotations.get(NETWORK_SUBNET_IDS);
+            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, subnetAnnotations);
+            String securityGroupAnnotations = annotations.get(NETWORK_SUBNET_IDS);
+            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, securityGroupAnnotations);
         }
 
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_ELASTIC_IPV4, elasticIPAddress);

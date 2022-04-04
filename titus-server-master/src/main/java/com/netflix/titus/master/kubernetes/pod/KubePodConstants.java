@@ -113,6 +113,7 @@ public final class KubePodConstants {
     public static final String NETWORK_SECURITY_GROUPS = "network.netflix.com/security-groups";
     public static final String NETWORK_SUBNET_IDS = "network.netflix.com/subnet-ids";
     public static final String NETWORK_STATIC_IP_ALLOCATION_UUID = "network.netflix.com/static-ip-allocation-uuid";
+    public static final String NETWORK_MODE = "network.netflix.com/network-mode";
 
     // Storage
     public static final String STORAGE_EBS_VOLUME_ID = "ebs.volume.netflix.com/volume-id";

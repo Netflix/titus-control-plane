@@ -73,6 +73,8 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_IP_ALLOCATION_ID = "task.ipAllocationId";
     public static final String TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION = "task.ipAllocationAlreadyInUseByTask";
     public static final String TASK_ATTRIBUTES_EBS_VOLUME_ID = "task.ebs.volumeId";
+    public static final String TASK_ATTRIBUTES_NETWORK_SUBNETS = "task.networkSubnets";
+    public static final String TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS = "task.networkSecurityGroups";
 
     /*
      * Log location attributes.
