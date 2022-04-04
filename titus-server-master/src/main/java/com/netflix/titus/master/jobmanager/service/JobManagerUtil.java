@@ -141,11 +141,16 @@ public final class JobManagerUtil {
         }
 
         String hsmAnnotationValue = annotations.get(NETWORK_MODE);
-        if (hsmAnnotationValue.equals("HighScale")) {
+        if (hsmAnnotationValue != null && hsmAnnotationValue.equals(NetworkConfiguration.NetworkMode.HighScale.toString())) {
             String subnetAnnotations = annotations.get(NETWORK_SUBNET_IDS);
-            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, subnetAnnotations);
+            if (subnetAnnotations != null) {
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, subnetAnnotations);
+            }
+
             String securityGroupAnnotations = annotations.get(NETWORK_SUBNET_IDS);
-            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, securityGroupAnnotations);
+            if (securityGroupAnnotations != null) {
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, securityGroupAnnotations);
+            }
         }
 
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_ELASTIC_IPV4, elasticIPAddress);
