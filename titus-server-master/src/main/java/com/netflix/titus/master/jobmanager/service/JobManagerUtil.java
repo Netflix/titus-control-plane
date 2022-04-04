@@ -140,6 +140,7 @@ public final class JobManagerUtil {
             contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
         }
 
+        //In the high scale mode, we would have overwritten the user configured subnetIds and security group IDs
         String hsmAnnotationValue = annotations.get(KubeConstants.NETWORK_MODE);
         if (hsmAnnotationValue != null && hsmAnnotationValue.equals(NetworkConfiguration.NetworkMode.HighScale.toString())) {
             contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS,  annotations.get(NETWORK_SUBNET_IDS));
