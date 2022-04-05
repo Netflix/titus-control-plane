@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
@@ -37,6 +38,8 @@ import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTask
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 public class TaskRetryPolicyTest {
+
+    private static final ImmediateRetryPolicy NO_RETRIES = JobModel.newImmediateRetryPolicy().withRetries(0).build();
 
     private static final ImmediateRetryPolicy IMMEDIATE = JobModel.newImmediateRetryPolicy().withRetries(5).build();
     private static final int[] IMMEDIATE_DELAYS_SEC = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -124,6 +127,14 @@ public class TaskRetryPolicyTest {
         JobDescriptor<ServiceJobExt> jobWithRetries = changeRetryPolicy(oneTaskServiceJobDescriptor(), EXPONENTIAL);
         int retryLimit = jobWithRetries.getExtensions().getRetryPolicy().getRetries();
         testRetryPolicyResetIfTaskInStartedStateLongEnough(jobWithRetries, retryLimit);
+    }
+
+    @Test
+    public void testBatchSystemRetry() {
+        JobDescriptor<BatchJobExt> jobWithoutRetries = changeRetryPolicy(oneTaskBatchJobDescriptor(), NO_RETRIES);
+        runJob(jobWithoutRetries)
+                .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_LOCAL_SYSTEM_ERROR)
+                .template(ScenarioTemplates.cleanAfterFinishedTaskAndRetry(0, 0, TaskStatus.REASON_LOCAL_SYSTEM_ERROR, 0L));
     }
 
     private void testRetryPolicyResetIfTaskInStartedStateLongEnough(JobDescriptor<?> jobWithRetries, int retryLimit) {
