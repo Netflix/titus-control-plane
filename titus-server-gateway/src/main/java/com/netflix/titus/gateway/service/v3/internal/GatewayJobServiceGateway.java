@@ -156,6 +156,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
     @Override
     public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
+        TitusServiceException validationError = SanitizingJobServiceGateway.checkJobId(jobId).orElse(null);
+        if (validationError != null) {
+            return Observable.error(validationError);
+        }
+
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "findJob", callMetadata)) {
             return localCacheQueryProcessor.syncCache("findJob", Job.class).concatWith(
                     Observable.defer(() -> {
@@ -209,6 +214,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
     @Override
     public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
+        TitusServiceException validationError = SanitizingJobServiceGateway.checkTaskId(taskId).orElse(null);
+        if (validationError != null) {
+            return Observable.error(validationError);
+        }
+
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "findTask", callMetadata)) {
             return localCacheQueryProcessor.syncCache("findTask", Task.class).concatWith(
                     Observable.defer(() -> {
@@ -293,6 +303,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
+        TitusServiceException validationError = SanitizingJobServiceGateway.checkJobId(jobId).orElse(null);
+        if (validationError != null) {
+            return Observable.error(validationError);
+        }
+
         if (localCacheQueryProcessor.canUseCache(Collections.emptyMap(), "observeJob", callMetadata)) {
             return localCacheQueryProcessor.syncCache("observeJob", JobChangeNotification.class)
                     .concatWith(localCacheQueryProcessor.observeJob(jobId))
