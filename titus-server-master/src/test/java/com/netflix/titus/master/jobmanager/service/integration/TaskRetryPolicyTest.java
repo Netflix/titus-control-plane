@@ -130,7 +130,7 @@ public class TaskRetryPolicyTest {
     }
 
     @Test
-    public void testBatchSystemRetry() {
+    public void testBatchSystemRetryStillRetriesOnNoRetriesJobs() {
         JobDescriptor<BatchJobExt> jobWithoutRetries = changeRetryPolicy(oneTaskBatchJobDescriptor(), NO_RETRIES);
         runJob(jobWithoutRetries)
                 .triggerComputePlatformFinishedEvent(0, 0, -1, TaskStatus.REASON_LOCAL_SYSTEM_ERROR)
