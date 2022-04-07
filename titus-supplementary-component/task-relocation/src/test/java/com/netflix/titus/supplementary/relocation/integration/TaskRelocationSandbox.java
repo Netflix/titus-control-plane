@@ -21,6 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationServiceBlockingStub;
@@ -29,7 +30,11 @@ import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipIn
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
 import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.GrpcCallAssistantComponent;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.GrpcCallAssistantConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
+import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
+import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 import com.netflix.titus.runtime.health.AlwaysHealthyComponent;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.RelocationLeaderActivator;
@@ -73,6 +78,10 @@ public class TaskRelocationSandbox {
         container.register(ClusterMembershipServiceComponent.class);
         container.register(ClusterMembershipGrpcEndpointComponent.class);
         container.register(LeaderActivationComponent.class);
+
+        container.registerBean(HostCallerIdResolver.class, NoOpHostCallerIdResolver::getInstance);
+        container.register(GrpcCallAssistantComponent.class);
+        container.registerBean(GrpcCallAssistantConfiguration.class, () -> Archaius2Ext.newConfiguration(GrpcCallAssistantConfiguration.class));
 
         container.register(CallMetadataResolveComponent.class);
         container.register(GrpcToReactorServerFactoryComponent.class);

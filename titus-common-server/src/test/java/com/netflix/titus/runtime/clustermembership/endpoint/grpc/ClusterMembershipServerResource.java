@@ -17,21 +17,21 @@
 package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
 import java.time.Duration;
-import java.util.Collections;
 
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
-import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
+import com.netflix.titus.client.clustermembership.grpc.ClusterMembershipClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
-import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
-import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
+import com.netflix.titus.runtime.clustermembership.DefaultClusterMembershipClient;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.TitusGrpcServer;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.DefaultGrpcClientCallAssistantFactory;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.DefaultGrpcServerCallAssistant;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.GrpcCallAssistantConfiguration;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.junit.rules.ExternalResource;
@@ -50,7 +50,7 @@ public class ClusterMembershipServerResource extends ExternalResource {
 
     private TitusGrpcServer server;
     private ManagedChannel channel;
-    private ReactorClusterMembershipClient client;
+    private ClusterMembershipClient client;
 
     public ClusterMembershipServerResource(ClusterMembershipService service) {
         this.service = service;
@@ -60,17 +60,10 @@ public class ClusterMembershipServerResource extends ExternalResource {
     protected void before() {
         when(grpcEndpointConfiguration.getPort()).thenReturn(0);
 
-        DefaultGrpcToReactorServerFactory reactorServerFactory = new DefaultGrpcToReactorServerFactory<>(
-                CallMetadata.class,
-                () -> CallMetadataConstants.UNDEFINED_CALL_METADATA
-        );
+        DefaultGrpcServerCallAssistant grpcServerCallAssistant = new DefaultGrpcServerCallAssistant(AnonymousCallMetadataResolver.getInstance(), NoOpHostCallerIdResolver.getInstance());
         server = TitusGrpcServer.newBuilder(0, titusRuntime)
-                .withService(
-                        reactorServerFactory.apply(
-                                ClusterMembershipServiceGrpc.getServiceDescriptor(),
-                                new ReactorClusterMembershipGrpcService(service, titusRuntime)
-                        ),
-                        Collections.emptyList()
+                .withServerConfigurer(builder ->
+                        builder.addService(new GrpcClusterMembershipService(service, grpcServerCallAssistant, titusRuntime))
                 )
                 .withExceptionMapper(ClusterMembershipGrpcExceptionMapper.getInstance())
                 .withShutdownTime(Duration.ZERO)
@@ -81,15 +74,11 @@ public class ClusterMembershipServerResource extends ExternalResource {
                 .usePlaintext()
                 .build();
 
-        this.client = new DefaultGrpcToReactorClientFactory<>(
-                grpcRequestConfiguration,
-                (stub, contextOpt) -> stub,
-                CallMetadata.class
-        ).apply(
-                ClusterMembershipServiceGrpc.newStub(channel),
-                ReactorClusterMembershipClient.class,
-                ClusterMembershipServiceGrpc.getServiceDescriptor()
+        GrpcCallAssistantConfiguration configuration = Archaius2Ext.newConfiguration(GrpcCallAssistantConfiguration.class);
+        DefaultGrpcClientCallAssistantFactory grpcClientCallAssistantFactory = new DefaultGrpcClientCallAssistantFactory(
+                configuration, AnonymousCallMetadataResolver.getInstance()
         );
+        this.client = new DefaultClusterMembershipClient(grpcClientCallAssistantFactory, channel);
     }
 
     @Override
@@ -100,7 +89,7 @@ public class ClusterMembershipServerResource extends ExternalResource {
         }
     }
 
-    public ReactorClusterMembershipClient getClient() {
+    public ClusterMembershipClient getClient() {
         return client;
     }
 

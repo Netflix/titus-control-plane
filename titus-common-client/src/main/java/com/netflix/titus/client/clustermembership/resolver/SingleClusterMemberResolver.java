@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
@@ -30,21 +29,18 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipStat
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipFunctions;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
+import com.netflix.titus.client.clustermembership.grpc.ClusterMembershipClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
+import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.ReactorRetriers;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.grpc.protogen.ClusterMember.LeadershipState;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
-import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
 import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
-import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
@@ -55,7 +51,6 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.publisher.SignalType;
-import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import static com.netflix.titus.api.clustermembership.model.ClusterMembershipFunctions.hasIpAddress;
@@ -74,14 +69,13 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
      */
     private static final Duration GRPC_REQUEST_TIMEOUT = Duration.ofSeconds(1);
 
+    private final CloseableReference<ClusterMembershipClient> clientRef;
     private final String name;
     private final ClusterMembershipResolverConfiguration configuration;
     private final ClusterMemberAddress address;
     private final ClusterMemberVerifier clusterMemberVerifier;
     private final Clock clock;
 
-    private final ManagedChannel channel;
-    private final ReactorClusterMembershipClient client;
     private final Disposable eventStreamDisposable;
 
     private volatile String rejectedMemberError;
@@ -95,33 +89,20 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
     private final AtomicReference<Long> disconnectTimeRef;
 
     public SingleClusterMemberResolver(ClusterMembershipResolverConfiguration configuration,
-                                       Function<ClusterMemberAddress, ManagedChannel> channelProvider,
+                                       CloseableReference<ClusterMembershipClient> clientRef,
                                        ClusterMemberAddress address,
                                        ClusterMemberVerifier clusterMemberVerifier,
-                                       Scheduler scheduler,
                                        TitusRuntime titusRuntime) {
+        this.clientRef = clientRef;
         this.name = "member@" + ClusterMembershipFunctions.toStringUri(address);
         this.configuration = configuration;
         this.address = address;
         this.clusterMemberVerifier = clusterMemberVerifier;
         this.clock = titusRuntime.getClock();
 
-        this.channel = channelProvider.apply(address);
         this.disconnectTimeRef = new AtomicReference<>(clock.wallTime());
-        this.client = ReactorToGrpcClientBuilder
-                .newBuilderWithDefaults(
-                        ReactorClusterMembershipClient.class,
-                        ClusterMembershipServiceGrpc.newStub(channel),
-                        ClusterMembershipServiceGrpc.getServiceDescriptor(),
-                        CallMetadata.class
-                )
-                // FIXME Once call metadata interceptor is moved into common module
-//                .withGrpcStubDecorator(AnonymousCallMetadataResolver.getInstance())
-                .withTimeout(GRPC_REQUEST_TIMEOUT)
-                .withStreamingTimeout(Duration.ofMillis(configuration.getSingleMemberReconnectIntervalMs()))
-                .build();
 
-        this.eventStreamDisposable = client.events()
+        this.eventStreamDisposable = clientRef.get().events()
                 .materialize()
                 .flatMap(signal -> {
                     if (signal.getType() == SignalType.ON_COMPLETE) {
@@ -189,7 +170,7 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
     public void shutdown() {
         ReactorExt.safeDispose(eventStreamDisposable);
         ExceptionExt.silent(eventSink::complete);
-        ExceptionExt.silent(channel::shutdownNow);
+        clientRef.close();
     }
 
     @Override

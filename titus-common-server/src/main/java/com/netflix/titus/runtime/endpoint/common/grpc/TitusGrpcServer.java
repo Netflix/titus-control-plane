@@ -113,7 +113,7 @@ public class TitusGrpcServer {
         private final List<ServerInterceptor> interceptors = new ArrayList<>();
         private final List<Function<Throwable, Optional<Status>>> serviceExceptionMappers = new ArrayList<>();
         private Duration shutdownTime;
-        private UnaryOperator<ServerBuilder> serverConfigurer;
+        private final List<UnaryOperator<ServerBuilder>> serverConfigurers = new ArrayList<>();
 
         private Builder() {
             // Add default exception mappings.
@@ -143,7 +143,7 @@ public class TitusGrpcServer {
         }
 
         public Builder withServerConfigurer(UnaryOperator<ServerBuilder> serverConfigurer) {
-            this.serverConfigurer = serverConfigurer;
+            this.serverConfigurers.add(serverConfigurer);
             return this;
         }
 
@@ -177,8 +177,8 @@ public class TitusGrpcServer {
             commonInterceptors.addAll(interceptors);
 
             ServerBuilder serverBuilder = ServerBuilder.forPort(port);
-            if (serverConfigurer != null) {
-                serverBuilder = serverConfigurer.apply(serverBuilder);
+            for (UnaryOperator<ServerBuilder> c : serverConfigurers) {
+                c.apply(serverBuilder);
             }
             for (ServiceBuilder serviceBuilder : serviceBuilders.values()) {
                 serverBuilder.addService(serviceBuilder.build(commonInterceptors));

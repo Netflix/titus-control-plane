@@ -22,10 +22,12 @@ import java.util.Iterator;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
+import com.netflix.titus.client.clustermembership.grpc.ClusterMembershipClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.grpc.protogen.ClusterMember;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevision;
 import io.grpc.Server;
@@ -34,7 +36,6 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import reactor.core.scheduler.Schedulers;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,12 +92,12 @@ public class SingleClusterMemberResolverTest {
                 .build()
                 .start();
 
+        SimpleClusterMembershipClient client = new SimpleClusterMembershipClient(InProcessChannelBuilder.forName(serviceName).directExecutor().build());
         this.resolver = new SingleClusterMemberResolver(
                 configuration,
-                address -> InProcessChannelBuilder.forName(serviceName).directExecutor().build(),
+                CloseableReference.referenceOf(client, ClusterMembershipClient::shutdown),
                 ADDRESS,
                 clusterMemberVerifier,
-                Schedulers.parallel(),
                 titusRuntime
         );
     }

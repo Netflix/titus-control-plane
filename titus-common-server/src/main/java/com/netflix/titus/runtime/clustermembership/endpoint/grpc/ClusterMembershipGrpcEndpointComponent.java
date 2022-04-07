@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.GrpcServerCallAssistant;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,7 +26,9 @@ import org.springframework.context.annotation.Configuration;
 public class ClusterMembershipGrpcEndpointComponent {
 
     @Bean
-    public ReactorClusterMembershipGrpcService getReactorClusterMembershipGrpcService(ClusterMembershipService service, TitusRuntime titusRuntime) {
-        return new ReactorClusterMembershipGrpcService(service, titusRuntime);
+    public GrpcClusterMembershipService getGrpcClusterMembershipService(ClusterMembershipService service,
+                                                                        GrpcServerCallAssistant assistant,
+                                                                        TitusRuntime titusRuntime) {
+        return new GrpcClusterMembershipService(service, assistant, titusRuntime);
     }
 }

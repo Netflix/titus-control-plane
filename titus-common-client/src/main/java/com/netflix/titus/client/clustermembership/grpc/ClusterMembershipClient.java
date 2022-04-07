@@ -27,12 +27,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Cluster membership Spring-Reactor client interface. To be used with
- * {@link com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder}.
- * This API maps to the GRPC ClusterMembershipService documented at:
+ * Reactor wrapper around the GRPC ClusterMembershipService documented at:
  * https://github.com/Netflix/titus-api-definitions/blob/master/src/main/proto/netflix/titus/titus_cluster_membership_api.proto.
  */
-public interface ReactorClusterMembershipClient {
+public interface ClusterMembershipClient {
 
     Mono<ClusterMembershipRevisions> getMembers();
 
@@ -47,4 +45,6 @@ public interface ReactorClusterMembershipClient {
     Mono<Void> stopBeingLeader();
 
     Flux<ClusterMembershipEvent> events();
+
+    void shutdown();
 }
