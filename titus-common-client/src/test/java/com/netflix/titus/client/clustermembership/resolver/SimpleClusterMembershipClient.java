@@ -33,6 +33,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
+/**
+ * FIXME We need this implementation for testing as DefaultClusterMembershipClient is located in titus-common-server package.
+ * To resolve this issue we have to move CallMetadata classes to titus-common-client.
+ */
 class SimpleClusterMembershipClient implements ClusterMembershipClient {
 
     private final ManagedChannel channel;
