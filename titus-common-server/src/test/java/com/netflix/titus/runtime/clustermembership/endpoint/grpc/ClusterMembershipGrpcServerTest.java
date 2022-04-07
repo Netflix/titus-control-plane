@@ -31,7 +31,6 @@ import com.netflix.titus.grpc.protogen.MemberId;
 import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -85,7 +84,7 @@ public class ClusterMembershipGrpcServerTest {
         assertThat(addResult.getCurrent().getLabelsMap()).containsEntry("keyA", "valueA");
         expectMemberUpdateEvent(update -> assertThat(update.getLabelsMap()).containsEntry("keyA", "valueA"));
 
-        // Add label
+        // Remove label
         ClusterMembershipRevision removeResult = client.deleteMemberLabels(DeleteMemberLabelsRequest.newBuilder()
                 .setMemberId(ClusterMembershipServiceStub.LOCAL_MEMBER_ID)
                 .addKeys("keyA")
