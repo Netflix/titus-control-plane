@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -26,11 +27,13 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
+import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipSnapshotEvent;
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
 import com.netflix.titus.common.util.CollectionsExt;
-import reactor.core.publisher.DirectProcessor;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.activeClusterMember;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.clusterMemberRegistrationRevision;
@@ -60,7 +63,7 @@ public class ClusterMembershipServiceStub implements ClusterMembershipService {
     private volatile Map<String, ClusterMembershipRevision<ClusterMember>> siblings;
     private volatile ClusterMembershipRevision<ClusterMemberLeadership> siblingElection;
 
-    private final DirectProcessor<ClusterMembershipEvent> eventProcessor = DirectProcessor.create();
+    private final Sinks.Many<ClusterMembershipEvent> eventProcessor = Sinks.many().multicast().directAllOrNothing();
 
     public ClusterMembershipServiceStub() {
         this.localMember = LOCAL_MEMBER;
@@ -101,7 +104,7 @@ public class ClusterMembershipServiceStub implements ClusterMembershipService {
     public Mono<ClusterMembershipRevision<ClusterMember>> updateSelf(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> memberUpdate) {
         return Mono.fromCallable(() -> {
             this.localMember = memberUpdate.apply(localMember.getCurrent());
-            eventProcessor.onNext(ClusterMembershipEvent.memberUpdatedEvent(localMember));
+            eventProcessor.tryEmitNext(ClusterMembershipEvent.memberUpdatedEvent(localMember));
             return localMember;
         });
     }
@@ -117,7 +120,7 @@ public class ClusterMembershipServiceStub implements ClusterMembershipService {
             this.localLeadership = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                     .withCurrent(localLeadership.getCurrent().toBuilder().withLeadershipState(ClusterMemberLeadershipState.NonLeader).build())
                     .build();
-            eventProcessor.onNext(ClusterMembershipEvent.leaderLost(localLeadership));
+            eventProcessor.tryEmitNext(ClusterMembershipEvent.leaderLost(localLeadership));
 
             // Elect new leader
             ClusterMembershipRevision<ClusterMember> sibling = CollectionsExt.first(siblings.values());
@@ -128,16 +131,19 @@ public class ClusterMembershipServiceStub implements ClusterMembershipService {
                             .build()
                     )
                     .build();
-            eventProcessor.onNext(ClusterMembershipEvent.leaderElected(siblingElection));
+            eventProcessor.tryEmitNext(ClusterMembershipEvent.leaderElected(siblingElection));
         });
     }
 
     @Override
     public Flux<ClusterMembershipEvent> events() {
-        return Flux.<ClusterMembershipEvent>just(ClusterMembershipEvent.snapshotEvent(
-                CollectionsExt.copyAndAddToList(siblings.values(), localMember),
-                localLeadership,
-                Optional.of(localLeadership)
-        )).concatWith(eventProcessor);
+        return eventProcessor.asFlux().transformDeferred(ReactorExt.head(() -> {
+            ClusterMembershipSnapshotEvent snapshot = ClusterMembershipEvent.snapshotEvent(
+                    CollectionsExt.copyAndAddToList(siblings.values(), localMember),
+                    localLeadership,
+                    Optional.of(localLeadership)
+            );
+            return Collections.singletonList(snapshot);
+        }));
     }
 }
