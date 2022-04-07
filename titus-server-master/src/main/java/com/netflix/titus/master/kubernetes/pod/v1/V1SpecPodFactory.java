@@ -85,6 +85,7 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRI
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ASSIGN_IPV6_ADDRESS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_FUSE_ENABLED;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_HOSTNAME_STYLE;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_KEEP_LOCAL_FILE_AFTER_UPLOAD;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_STDIO_CHECK_INTERVAL;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_CHECK_INTERVAL;
@@ -249,11 +250,12 @@ public class V1SpecPodFactory implements PodFactory {
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
         String schedulerName = selectScheduler(schedulerConfiguration, capacityGroupDescriptor, configuration);
 
+
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
                 .containers(allContainers)
                 .volumes(volumes)
-                .terminationGracePeriodSeconds(configuration.getPodTerminationGracePeriodSeconds())
+                .terminationGracePeriodSeconds(getTerminationGracePeriodSeconds(job))
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
                 .affinity(affinityWithMetadata.getLeft())
@@ -291,6 +293,18 @@ public class V1SpecPodFactory implements PodFactory {
                 .volumeMounts(KubePodUtil.buildV1VolumeMounts(extraContainer.getVolumeMounts()));
     }
 
+    private Long getTerminationGracePeriodSeconds(Job<?> job) {
+        String jobKillWaitSeconds = job.getJobDescriptor().getAttributes().get(JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS);
+        if (jobKillWaitSeconds != null) {
+            try {
+                return Long.valueOf(jobKillWaitSeconds);
+            } catch (NumberFormatException e) {
+                return configuration.getPodTerminationGracePeriodSeconds();
+            }
+        } else {
+            return configuration.getPodTerminationGracePeriodSeconds();
+        }
+    }
 
     @VisibleForTesting
     V1ResourceRequirements buildV1ResourceRequirements(ContainerResources containerResources) {
