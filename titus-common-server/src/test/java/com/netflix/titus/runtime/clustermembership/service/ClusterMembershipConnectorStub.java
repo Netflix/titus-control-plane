@@ -27,10 +27,12 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
+import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipSnapshotEvent;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
@@ -39,7 +41,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
     private volatile ClusterMembershipRevision<ClusterMember> localMemberRevision;
     private volatile ClusterMembershipRevision<ClusterMemberLeadership> localLeadershipRevision;
 
-    private final DirectProcessor<ClusterMembershipEvent> eventProcessor = DirectProcessor.create();
+    private final Sinks.Many<ClusterMembershipEvent> eventProcessor = Sinks.many().multicast().directAllOrNothing();
 
     ClusterMembershipConnectorStub() {
         this.localMemberRevision = ClusterMembershipRevision.<ClusterMember>newBuilder()
@@ -123,10 +125,10 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
     @Override
     public Flux<ClusterMembershipEvent> membershipChangeEvents() {
-        return Flux.defer(() -> Flux.<ClusterMembershipEvent>
-                just(ClusterMembershipEvent.snapshotEvent(Collections.emptyList(), localLeadershipRevision, Optional.empty()))
-                .concatWith(eventProcessor)
-        );
+        return eventProcessor.asFlux().transformDeferred(ReactorExt.head(() -> {
+            ClusterMembershipSnapshotEvent snapshot = ClusterMembershipEvent.snapshotEvent(Collections.emptyList(), localLeadershipRevision, Optional.empty());
+            return Collections.singletonList(snapshot);
+        }));
     }
 
     void becomeLeader() {
@@ -145,7 +147,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
     private void emitEvent(ClusterMembershipEvent event) {
         synchronized (eventProcessor) {
-            eventProcessor.onNext(event);
+            eventProcessor.tryEmitNext(event);
         }
     }
 }

@@ -20,7 +20,7 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
-import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
+import com.netflix.titus.client.clustermembership.grpc.ClusterMembershipClient;
 import com.netflix.titus.grpc.protogen.ClusterMember;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevision;
@@ -47,7 +47,7 @@ public class ClusterMembershipGrpcServerTest {
 
     private final TitusRxSubscriber<ClusterMembershipEvent> eventSubscriber = new TitusRxSubscriber<>();
 
-    private ReactorClusterMembershipClient client;
+    private ClusterMembershipClient client;
 
     @Before
     public void setUp() {

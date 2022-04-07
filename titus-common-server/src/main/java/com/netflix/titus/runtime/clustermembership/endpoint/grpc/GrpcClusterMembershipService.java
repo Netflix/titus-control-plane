@@ -24,6 +24,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Preconditions;
+import com.google.protobuf.Empty;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipSnapshotEvent;
@@ -35,10 +36,13 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevision;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevisions;
+import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeleteMemberLabelsRequest;
 import com.netflix.titus.grpc.protogen.EnableMemberRequest;
 import com.netflix.titus.grpc.protogen.MemberId;
 import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
+import com.netflix.titus.runtime.endpoint.common.grpc.assistant.GrpcServerCallAssistant;
+import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -46,61 +50,75 @@ import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipG
 import static com.netflix.titus.runtime.clustermembership.endpoint.grpc.MemberDataMixer.NO_LEADER_ID;
 
 @Singleton
-public class ReactorClusterMembershipGrpcService {
+public class GrpcClusterMembershipService extends ClusterMembershipServiceGrpc.ClusterMembershipServiceImplBase {
 
     private final String localMemberId;
     private final ClusterMembershipService service;
-
+    private final GrpcServerCallAssistant assistant;
     private final Clock clock;
 
     @Inject
-    public ReactorClusterMembershipGrpcService(ClusterMembershipService service, TitusRuntime titusRuntime) {
+    public GrpcClusterMembershipService(ClusterMembershipService service,
+                                        GrpcServerCallAssistant assistant,
+                                        TitusRuntime titusRuntime) {
         this.localMemberId = service.getLocalLeadership().getCurrent().getMemberId();
         this.service = service;
+        this.assistant = assistant;
         this.clock = titusRuntime.getClock();
     }
 
     /**
      * Get all known cluster members.
      */
-    public Mono<ClusterMembershipRevisions> getMembers() {
-        return Mono.fromCallable(() -> {
-            List<ClusterMembershipRevision> grpcRevisions = new ArrayList<>();
-            grpcRevisions.add(toGrpcClusterMembershipRevision(service.getLocalClusterMember(), isLocalLeader()));
+    @Override
+    public void getMembers(Empty request, StreamObserver<ClusterMembershipRevisions> responseObserver) {
+        assistant.callDirect(responseObserver, context -> getMembersInternal());
+    }
 
-            String leaderId = getLeaderId();
-            for (com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision<ClusterMember> sibling : service.getClusterMemberSiblings().values()) {
-                grpcRevisions.add(toGrpcClusterMembershipRevision(sibling, sibling.getCurrent().getMemberId().equals(leaderId)));
-            }
+    public ClusterMembershipRevisions getMembersInternal() {
+        List<ClusterMembershipRevision> grpcRevisions = new ArrayList<>();
+        grpcRevisions.add(toGrpcClusterMembershipRevision(service.getLocalClusterMember(), isLocalLeader()));
 
-            return ClusterMembershipRevisions.newBuilder().addAllRevisions(grpcRevisions).build();
-        });
+        String leaderId = getLeaderId();
+        for (com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision<ClusterMember> sibling : service.getClusterMemberSiblings().values()) {
+            grpcRevisions.add(toGrpcClusterMembershipRevision(sibling, sibling.getCurrent().getMemberId().equals(leaderId)));
+        }
+
+        return ClusterMembershipRevisions.newBuilder().addAllRevisions(grpcRevisions).build();
     }
 
     /**
      * Get member with the given id.
      */
-    public Mono<ClusterMembershipRevision> getMember(MemberId request) {
-        return Mono.fromCallable(() -> {
-            String memberId = request.getId();
+    @Override
+    public void getMember(MemberId request, StreamObserver<ClusterMembershipRevision> responseObserver) {
+        assistant.callDirect(responseObserver, context -> getMemberInternal(request));
+    }
 
-            if (service.getLocalClusterMember().getCurrent().getMemberId().equals(memberId)) {
-                return toGrpcClusterMembershipRevision(service.getLocalClusterMember(), isLocalLeader());
-            }
+    public ClusterMembershipRevision getMemberInternal(MemberId request) {
+        String memberId = request.getId();
 
-            com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision<ClusterMember> sibling = service.getClusterMemberSiblings().get(memberId);
-            if (sibling == null) {
-                throw ClusterMembershipServiceException.memberNotFound(memberId);
-            }
-            return toGrpcClusterMembershipRevision(sibling, getLeaderId().equals(memberId));
-        });
+        if (service.getLocalClusterMember().getCurrent().getMemberId().equals(memberId)) {
+            return toGrpcClusterMembershipRevision(service.getLocalClusterMember(), isLocalLeader());
+        }
+
+        com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision<ClusterMember> sibling = service.getClusterMemberSiblings().get(memberId);
+        if (sibling == null) {
+            throw ClusterMembershipServiceException.memberNotFound(memberId);
+        }
+        return toGrpcClusterMembershipRevision(sibling, getLeaderId().equals(memberId));
     }
 
     /**
      * Adds all labels from the request object to the target member. Labels that exist are
      * overridden. Returns the updated object.
      */
-    public Mono<ClusterMembershipRevision> updateMemberLabels(UpdateMemberLabelsRequest request) {
+    @Override
+    public void updateMemberLabels(UpdateMemberLabelsRequest request, StreamObserver<ClusterMembershipRevision> responseObserver) {
+        assistant.callMono(responseObserver, context -> updateMemberLabelsInternal(request));
+    }
+
+    public Mono<ClusterMembershipRevision> updateMemberLabelsInternal(UpdateMemberLabelsRequest request) {
         if (!request.getMemberId().equals(localMemberId)) {
             return Mono.error(ClusterMembershipServiceException.localOnly(request.getMemberId()));
         }
@@ -124,7 +142,12 @@ public class ReactorClusterMembershipGrpcService {
      * Removes all specified labels from the target object. Labels that do not exist are ignored.
      * Returns the updated object.
      */
-    public Mono<ClusterMembershipRevision> deleteMemberLabels(DeleteMemberLabelsRequest request) {
+    @Override
+    public void deleteMemberLabels(DeleteMemberLabelsRequest request, StreamObserver<ClusterMembershipRevision> responseObserver) {
+        assistant.callMono(responseObserver, context -> deleteMemberLabelsInternal(request));
+    }
+
+    public Mono<ClusterMembershipRevision> deleteMemberLabelsInternal(DeleteMemberLabelsRequest request) {
         if (!request.getMemberId().equals(localMemberId)) {
             return Mono.error(ClusterMembershipServiceException.localOnly(request.getMemberId()));
         }
@@ -147,7 +170,12 @@ public class ReactorClusterMembershipGrpcService {
     /**
      * Enable or disable a member.
      */
-    public Mono<ClusterMembershipRevision> enableMember(EnableMemberRequest request) {
+    @Override
+    public void enableMember(EnableMemberRequest request, StreamObserver<ClusterMembershipRevision> responseObserver) {
+        assistant.callMono(responseObserver, context -> enableMemberInternal(request));
+    }
+
+    public Mono<ClusterMembershipRevision> enableMemberInternal(EnableMemberRequest request) {
         if (!request.getMemberId().equals(localMemberId)) {
             return Mono.error(ClusterMembershipServiceException.localOnly(request.getMemberId()));
         }
@@ -168,15 +196,21 @@ public class ReactorClusterMembershipGrpcService {
      * Requests the member that handles this request to stop being leader. If the given member
      * is not a leader, the request is ignored.
      */
-    public Mono<Void> stopBeingLeader() {
+    @Override
+    public void stopBeingLeader(Empty request, StreamObserver<Empty> responseObserver) {
+        assistant.callMonoEmpty(responseObserver, context -> stopBeingLeaderInternal());
+    }
+
+    public Mono<Void> stopBeingLeaderInternal() {
         return service.stopBeingLeader();
     }
 
     /**
      * Event stream.
      */
-    public Flux<ClusterMembershipEvent> events() {
-        return Flux.defer(() -> {
+    @Override
+    public void events(Empty request, StreamObserver<ClusterMembershipEvent> responseObserver) {
+        assistant.callFlux(responseObserver, context -> Flux.defer(() -> {
             AtomicReference<MemberDataMixer> leaderRef = new AtomicReference<>();
             return service.events().flatMapIterable(event -> {
                 MemberDataMixer data = leaderRef.get();
@@ -192,7 +226,7 @@ public class ReactorClusterMembershipGrpcService {
                 }
                 return data.process(event);
             });
-        });
+        }));
     }
 
     private String getLeaderId() {

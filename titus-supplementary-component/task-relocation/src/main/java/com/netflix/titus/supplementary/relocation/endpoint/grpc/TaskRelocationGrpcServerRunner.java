@@ -24,12 +24,11 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
-import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationStatus;
-import com.netflix.titus.runtime.clustermembership.endpoint.grpc.GrpcLeaderServerInterceptor;
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcExceptionMapper;
-import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ReactorClusterMembershipGrpcService;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.GrpcClusterMembershipService;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.GrpcLeaderServerInterceptor;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.TitusGrpcServer;
 
@@ -41,7 +40,7 @@ public class TaskRelocationGrpcServerRunner {
     @Inject
     public TaskRelocationGrpcServerRunner(GrpcEndpointConfiguration configuration,
                                           LeaderActivationStatus leaderActivationStatus,
-                                          ReactorClusterMembershipGrpcService reactorClusterMembershipGrpcService,
+                                          GrpcClusterMembershipService grpcClusterMembershipService,
                                           ReactorTaskRelocationGrpcService reactorTaskRelocationGrpcService,
                                           GrpcToReactorServerFactory reactorServerFactory,
                                           TitusRuntime titusRuntime) {
@@ -51,13 +50,7 @@ public class TaskRelocationGrpcServerRunner {
                 .withShutdownTime(Duration.ofMillis(configuration.getShutdownTimeoutMs()))
 
                 // Cluster membership service
-                .withService(
-                        reactorServerFactory.apply(
-                                ClusterMembershipServiceGrpc.getServiceDescriptor(),
-                                reactorClusterMembershipGrpcService
-                        ),
-                        Collections.emptyList()
-                )
+                .withServerConfigurer(builder -> builder.addService(grpcClusterMembershipService))
                 .withExceptionMapper(ClusterMembershipGrpcExceptionMapper.getInstance())
 
                 // Relocation service

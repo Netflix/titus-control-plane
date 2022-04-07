@@ -24,7 +24,7 @@ import com.netflix.titus.grpc.protogen.DeleteMemberLabelsRequest;
 import com.netflix.titus.grpc.protogen.EnableMemberRequest;
 import com.netflix.titus.grpc.protogen.MemberId;
 import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
-import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ReactorClusterMembershipGrpcService;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.GrpcClusterMembershipService;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,20 +37,20 @@ public class ClusterMembershipSpringResource {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(1);
 
-    private final ReactorClusterMembershipGrpcService clusterMembershipService;
+    private final GrpcClusterMembershipService clusterMembershipService;
 
-    public ClusterMembershipSpringResource(ReactorClusterMembershipGrpcService clusterMembershipService) {
+    public ClusterMembershipSpringResource(GrpcClusterMembershipService clusterMembershipService) {
         this.clusterMembershipService = clusterMembershipService;
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/members", produces = "application/json")
     public ClusterMembershipRevisions getMembers() {
-        return clusterMembershipService.getMembers().block(TIMEOUT);
+        return clusterMembershipService.getMembersInternal();
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/members/{memberId}", produces = "application/json")
     public ClusterMembershipRevision getMember(@PathVariable("memberId") String memberId) {
-        return clusterMembershipService.getMember(MemberId.newBuilder().setId(memberId).build()).block(TIMEOUT);
+        return clusterMembershipService.getMemberInternal(MemberId.newBuilder().setId(memberId).build());
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/members/{memberId}/labels", consumes = "application/json", produces = "application/json")
@@ -59,7 +59,7 @@ public class ClusterMembershipSpringResource {
         if (request.getMemberId().equals(memberId)) {
             throw new IllegalArgumentException("Member id in path and request body are different");
         }
-        return clusterMembershipService.updateMemberLabels(request).block(TIMEOUT);
+        return clusterMembershipService.updateMemberLabelsInternal(request).block(TIMEOUT);
     }
 
     @RequestMapping(method = RequestMethod.DELETE, path = "/members/{memberId}/labels", consumes = "application/json", produces = "application/json")
@@ -68,7 +68,7 @@ public class ClusterMembershipSpringResource {
         if (request.getMemberId().equals(memberId)) {
             throw new IllegalArgumentException("Member id in path and request body are different");
         }
-        return clusterMembershipService.deleteMemberLabels(request).block(TIMEOUT);
+        return clusterMembershipService.deleteMemberLabelsInternal(request).block(TIMEOUT);
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/members/{memberId}/enable", consumes = "application/json", produces = "application/json")
@@ -77,11 +77,11 @@ public class ClusterMembershipSpringResource {
         if (request.getMemberId().equals(memberId)) {
             throw new IllegalArgumentException("Member id in path and request body are different");
         }
-        return clusterMembershipService.enableMember(request).block(TIMEOUT);
+        return clusterMembershipService.enableMemberInternal(request).block(TIMEOUT);
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/members/{memberId}/stopBeingLeader")
     public void stopBeingLeader() {
-        clusterMembershipService.stopBeingLeader().block(TIMEOUT);
+        clusterMembershipService.stopBeingLeaderInternal().block(TIMEOUT);
     }
 }
