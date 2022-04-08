@@ -53,4 +53,16 @@ public interface FeatureActivationConfiguration {
      */
     @DefaultValue("false")
     boolean isInjectingContainerStatesEnabled();
+
+    /**
+     * This config controls how tasks in Started state are selected for termination for service jobs.
+     * Default (value false) approach prefers to terminate tasks on an agent with the most number of tasks for a
+     * given service job.
+     * When this config is set to true, we will prefer termination of tasks on agents with the smallest number first.
+     * This approach could expedite scale down of nodes naturally when service jobs reduce in size due to
+     * auto-scaling during low utilization periods.
+     * @return config to flip service job task termination in bin packing friendly way.
+     */
+    @DefaultValue("false")
+    boolean isServiceJobTaskTerminationFavorBinPackingEnabled();
 }

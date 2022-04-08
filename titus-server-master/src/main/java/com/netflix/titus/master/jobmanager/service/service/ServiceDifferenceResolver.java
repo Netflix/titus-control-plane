@@ -184,7 +184,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         List<ChangeAction> actions = new ArrayList<>();
-        List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks, allowedTaskKills);
+        List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(featureConfiguration, engine, refJobView, storeModel, allowedNewTasks, allowedTaskKills);
         actions.addAll(numberOfTaskAdjustingActions);
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
@@ -197,7 +197,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     /**
      * Check that the reference job has the required number of tasks.
      */
-    private List<ChangeAction> findJobSizeInconsistencies(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+    private List<ChangeAction> findJobSizeInconsistencies(FeatureActivationConfiguration configuration,
+                                                          ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                           ServiceJobView refJobView,
                                                           EntityHolder storeModel,
                                                           AtomicInteger allowedNewTasks,
@@ -219,7 +220,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             int finishedCount = (int) tasks.stream().filter(t -> t.getStatus().getState() == TaskState.Finished).count();
             int toRemoveCount = Math.min(allowedTaskKills.get(), -missing - finishedCount);
             if (toRemoveCount > 0) {
-                List<ServiceJobTask> tasksToRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, tasks.size() - toRemoveCount, titusRuntime);
+                List<ServiceJobTask> tasksToRemove = ScaleDownEvaluator.selectTasksToTerminate(configuration, tasks, tasks.size() - toRemoveCount, titusRuntime);
                 List<ChangeAction> killActions = tasksToRemove.stream()
                         .filter(t -> !isTerminating(t))
                         .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, runtime,

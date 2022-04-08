@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -79,7 +80,7 @@ import com.netflix.titus.common.util.tuple.Pair;
  */
 class ScaleDownEvaluator {
 
-    static List<ServiceJobTask> selectTasksToTerminate(List<ServiceJobTask> allTasks, int expectedSize, TitusRuntime titusRuntime) {
+    static List<ServiceJobTask> selectTasksToTerminate(FeatureActivationConfiguration configuration, List<ServiceJobTask> allTasks, int expectedSize, TitusRuntime titusRuntime) {
         int targetTerminateCount = allTasks.size() - expectedSize;
         if (targetTerminateCount <= 0) {
             return Collections.emptyList();
@@ -110,7 +111,12 @@ class ScaleDownEvaluator {
         List<ServiceJobTask> startedTasks = notStartedAndStartedTaskGroups.getRight();
 
         // Step 4: scale down tasks in Started state
-        List<ServiceJobTask> startedToRemove = selectTasksToTerminateInEquivalenceGroup(startedTasks, targetTerminateCount - tasksToKill.size(), titusRuntime);
+        List<ServiceJobTask> startedToRemove;
+        if (configuration.isServiceJobTaskTerminationFavorBinPackingEnabled()) {
+            startedToRemove = selectTasksToTerminateInEquivalenceGroupFavorBinPacking(startedTasks, targetTerminateCount - tasksToKill.size(), titusRuntime);
+        } else {
+            startedToRemove = selectTasksToTerminateInEquivalenceGroup(startedTasks, targetTerminateCount - tasksToKill.size(), titusRuntime);
+        }
         appendCandidatesToTerminate(tasksToKill, startedToRemove, targetTerminateCount);
 
         // Extra check in case we messed up somewhere.
@@ -177,6 +183,36 @@ class ScaleDownEvaluator {
         return tasksToKill;
     }
 
+    private static List<ServiceJobTask> selectTasksToTerminateInEquivalenceGroupFavorBinPacking(List<ServiceJobTask> allTasks, int targetTerminateCount, TitusRuntime titusRuntime) {
+        List<ServiceJobTask> tasksToKill = new ArrayList<>();
+        Region region = new Region(allTasks);
+
+        while (tasksToKill.size() < targetTerminateCount && region.hasMoreTasks()) {
+            // Step 1: select smallest groups of tasks to scale down
+            // smallest number of tasks on an agent in any zone
+            int smallestGroup = region.getSmallestTaskGroup();
+
+            // Step 2: kill tasks from the smallest groups, trying to maintain zone balancing
+            // There is increased likelihood that this way we will give agents with a smaller number of tasks
+            // a chance of being scaled-down.
+            boolean hasMore = true;
+            while (tasksToKill.size() < targetTerminateCount && hasMore) {
+                Optional<Zone> zoneOpt = region.getSmallestZoneWithTaskGroupSize(smallestGroup);
+                if (hasMore = zoneOpt.isPresent()) {
+                    // Step 3: remove oldest task
+                    Optional<ServiceJobTask> removedTask = zoneOpt.get().removeOldestTaskFromSmallestTaskGroup();
+                    removedTask.ifPresent(tasksToKill::add);
+                    if (!removedTask.isPresent()) {
+                        titusRuntime.getCodeInvariants().inconsistent("Expected task, but found nothing. Terminating evaluation loop of job %s", allTasks.get(0).getJobId());
+                        return tasksToKill;
+                    }
+                }
+            }
+        }
+
+        return tasksToKill;
+    }
+
     static class Region {
 
         private final Map<String, Zone> zones;
@@ -193,6 +229,28 @@ class ScaleDownEvaluator {
 
         int getLargestTaskGroup() {
             return zones.values().stream().mapToInt(Zone::getLargestTaskGroupSize).max().orElse(0);
+        }
+
+        int getSmallestTaskGroup() {
+            return zones.values().stream().mapToInt(Zone::getSmallestTaskGroupSize).filter(value -> value > 0).min().orElse(0);
+        }
+
+        Optional<Zone> getSmallestZoneWithTaskGroupSize(int smallestGroup) {
+            Zone selectedZone = null;
+            for (Zone zone : zones.values()) {
+                int sgz = zone.getSmallestTaskGroupSize();
+                if (sgz <= smallestGroup && sgz > 0) {
+                    if (selectedZone == null) {
+                        selectedZone = zone;
+                    } else {
+                        // If another zone has overall more tasks but has an agent with the smallest tasks, prefer that zone
+                        if (selectedZone.getTaskCount() < zone.getTaskCount()) {
+                            selectedZone = zone;
+                        }
+                    }
+                }
+            }
+            return Optional.ofNullable(selectedZone);
         }
 
         Optional<Zone> getLargestZoneWithTaskGroupSize(int largestGroup) {
@@ -235,6 +293,10 @@ class ScaleDownEvaluator {
             return tasksByAgentId.values().stream().mapToInt(List::size).max().orElse(0);
         }
 
+        int getSmallestTaskGroupSize() {
+            return tasksByAgentId.values().stream().mapToInt(List::size).filter(value -> value > 0).min().orElse(0);
+        }
+
         Optional<ServiceJobTask> removeOldestTaskFromLargestTaskGroup() {
             if (taskCount == 0) {
                 return Optional.empty();
@@ -243,6 +305,32 @@ class ScaleDownEvaluator {
                     .max(Comparator.comparingInt(l -> l.getValue().size()))
                     .map(largestGroupEntry -> {
                                 List<ServiceJobTask> tasks = largestGroupEntry.getValue();
+
+                                int bestIdx = 0;
+                                long bestTimestamp = tasks.get(0).getStatus().getTimestamp();
+
+                                for (int i = 1; i < tasks.size(); i++) {
+                                    long currentTimestamp = tasks.get(i).getStatus().getTimestamp();
+                                    if (currentTimestamp < bestTimestamp) {
+                                        bestIdx = i;
+                                        bestTimestamp = currentTimestamp;
+                                    }
+                                }
+                                taskCount--;
+                                return tasks.remove(bestIdx);
+                            }
+                    );
+        }
+
+        Optional<ServiceJobTask> removeOldestTaskFromSmallestTaskGroup() {
+            if (taskCount == 0) {
+                return Optional.empty();
+            }
+            return tasksByAgentId.entrySet().stream()
+                    .filter(stringListEntry -> stringListEntry.getValue().size() > 0)
+                    .min(Comparator.comparingInt(l -> l.getValue().size()))
+                    .map(smallestGroupEntry -> {
+                                List<ServiceJobTask> tasks = smallestGroupEntry.getValue();
 
                                 int bestIdx = 0;
                                 long bestTimestamp = tasks.get(0).getStatus().getTimestamp();
