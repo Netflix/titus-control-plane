@@ -45,7 +45,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_AN
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IP_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IPV6_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_IP_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_NETWORK_MODE;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_EFFECTIVE_NETWORK_MODE;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
 
@@ -120,7 +120,7 @@ public final class JobManagerUtil {
         String elasticIPAddress = annotations.get(LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS);
         String eniIPAddress = annotations.get(LEGACY_ANNOTATION_ENI_IP_ADDRESS);
         String eniIPv6Address = annotations.get(LEGACY_ANNOTATION_ENI_IPV6_ADDRESS);
-        String effectiveNetworkMode = annotations.get(LEGACY_ANNOTATION_NETWORK_MODE);
+        String effectiveNetworkMode = annotations.get(NETWORK_EFFECTIVE_NETWORK_MODE);
         String eniID = annotations.get(LEGACY_ANNOTATION_ENI_ID);
 
         Map<String, String> newContext = new HashMap<>(task.getTaskContext());
@@ -128,6 +128,7 @@ public final class JobManagerUtil {
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, ipaddress);
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, eniIPv6Address);
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, eniID);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_EFFECTIVE_MODE, effectiveNetworkMode);
 
         if (effectiveNetworkMode != null && effectiveNetworkMode.equals(NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString())) {
             // In the IPV6_ONLY_WITH_TRANSITION mode, the ipv4 on the pod doesn't represent

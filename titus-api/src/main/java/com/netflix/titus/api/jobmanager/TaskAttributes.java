@@ -68,6 +68,7 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_TRANSITION_IPV4 = "task.transitionIPv4";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX = "task.networkInterfaceIndex";
+    public static final String TASK_ATTRIBUTES_NETWORK_EFFECTIVE_MODE = "task.effectiveNetworkMode";
     public static final String TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE = "task.executorUriOverride";
     public static final String TASK_ATTRIBUTES_TIER = "task.tier";
     public static final String TASK_ATTRIBUTES_IP_ALLOCATION_ID = "task.ipAllocationId";

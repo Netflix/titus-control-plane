@@ -72,7 +72,6 @@ public final class KubePodConstants {
     public static final String LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS = "ElasticIPAddress";
     public static final String LEGACY_ANNOTATION_ENI_IP_ADDRESS = "EniIpAddress";
     public static final String LEGACY_ANNOTATION_ENI_IPV6_ADDRESS = "EniIPv6Address";
-    public static final String LEGACY_ANNOTATION_NETWORK_MODE = "NetworkMode";
     public static final String LEGACY_ANNOTATION_ENI_ID = "EniId";
     public static final String LEGACY_ANNOTATION_RESOURCE_ID = "ResourceId";
 
@@ -113,6 +112,7 @@ public final class KubePodConstants {
     public static final String NETWORK_SECURITY_GROUPS = "network.netflix.com/security-groups";
     public static final String NETWORK_SUBNET_IDS = "network.netflix.com/subnet-ids";
     public static final String NETWORK_STATIC_IP_ALLOCATION_UUID = "network.netflix.com/static-ip-allocation-uuid";
+    public static final String NETWORK_EFFECTIVE_NETWORK_MODE = "network.netflix.com/effective-network-mode";
 
     // Storage
     public static final String STORAGE_EBS_VOLUME_ID = "ebs.volume.netflix.com/volume-id";
