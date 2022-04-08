@@ -35,17 +35,16 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_ID;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IP_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IPV6_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.BRANCH_ENI_ID;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPV4_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPv6_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_EFFECTIVE_NETWORK_MODE;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IPV4_EIP;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IPV4_TRANSITION_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IP_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
 
@@ -92,7 +91,7 @@ public final class JobManagerUtil {
 
             // De-duplicate task status updates. 'Launched' state is reported from two places, so we get
             // 'Launched' state update twice. For other states there may be multiple updates, each with different reason.
-            // For example in 'StartInitiated', multiple updates are send reporting progress of a container setup.
+            // For example in 'StartInitiated', multiple updates are sent reporting progress of a container setup.
             if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus())) {
                 return Optional.empty();
             }
@@ -116,12 +115,13 @@ public final class JobManagerUtil {
             return task;
         }
 
-        String ipaddress = annotations.get(LEGACY_ANNOTATION_IP_ADDRESS);
-        String elasticIPAddress = annotations.get(LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS);
-        String eniIPAddress = annotations.get(LEGACY_ANNOTATION_ENI_IP_ADDRESS);
-        String eniIPv6Address = annotations.get(LEGACY_ANNOTATION_ENI_IPV6_ADDRESS);
+        String ipaddress = annotations.get(NETWORK_IP_ADDRESS);
+        String elasticIPAddress = annotations.get(NETWORK_IPV4_EIP);
+        String eniIPAddress = annotations.get(IPV4_ADDRESS);
+        String eniIPv6Address = annotations.get(IPv6_ADDRESS);
         String effectiveNetworkMode = annotations.get(NETWORK_EFFECTIVE_NETWORK_MODE);
-        String eniID = annotations.get(LEGACY_ANNOTATION_ENI_ID);
+        String eniID = annotations.get(BRANCH_ENI_ID);
+        String transitionIPAddress = annotations.get(NETWORK_IPV4_TRANSITION_ADDRESS);
 
         Map<String, String> newContext = new HashMap<>(task.getTaskContext());
         BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
@@ -129,35 +129,15 @@ public final class JobManagerUtil {
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, eniIPv6Address);
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, eniID);
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_EFFECTIVE_MODE, effectiveNetworkMode);
-
-        if (effectiveNetworkMode != null && effectiveNetworkMode.equals(NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString())) {
-            // In the IPV6_ONLY_WITH_TRANSITION mode, the ipv4 on the pod doesn't represent
-            // a unique IP for that pod, but a shared one. This should not be consumed
-            // as a normal ip by normal tools, and deserves a special attribute
-            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, eniIPAddress);
-        }
-        if (effectiveNetworkMode != null && effectiveNetworkMode != NetworkConfiguration.NetworkMode.Ipv6Only.toString() && effectiveNetworkMode != NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString()) {
-            // Only in the case of non IPv6-only mode do we want to set this attribute
-            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
-        }
-
-        //In the high scale mode, we would have overwritten the user configured subnetIds and security group IDs
-        String hsmAnnotationValue = annotations.get(KubeConstants.NETWORK_MODE);
-        if (hsmAnnotationValue != null && hsmAnnotationValue.equals(NetworkConfiguration.NetworkMode.HighScale.toString())) {
-            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS,  annotations.get(NETWORK_SUBNET_IDS));
-            contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, annotations.get(NETWORK_SECURITY_GROUPS));
-        }
-
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, transitionIPAddress);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, eniIPAddress);
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_ELASTIC_IPV4, elasticIPAddress);
 
-        return task.toBuilder().addAllToTaskContext(newContext).build();
-    }
+        // In certain network modes, these annotations are available to be set
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, annotations.get(NETWORK_SUBNET_IDS));
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, annotations.get(NETWORK_SECURITY_GROUPS));
 
-    public static Optional<String> parseEniResourceId(String resourceId) {
-        if (resourceId == null || !resourceId.startsWith("resource-eni-")) {
-            return Optional.empty();
-        }
-        return Optional.of(resourceId.substring("resource-eni-".length()));
+        return task.toBuilder().addAllToTaskContext(newContext).build();
     }
 
     /**

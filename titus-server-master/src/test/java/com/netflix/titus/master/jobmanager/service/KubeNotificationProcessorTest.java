@@ -67,10 +67,10 @@ import static com.netflix.titus.master.kubernetes.NodeDataGenerator.newNode;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andRunning;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IP_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_ENI_IPV6_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LEGACY_ANNOTATION_IP_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPV4_ADDRESS;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPv6_ADDRESS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_EFFECTIVE_NETWORK_MODE;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IP_ADDRESS;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -136,7 +136,7 @@ public class KubeNotificationProcessorTest {
                 TITUS_NODE_DOMAIN + "stack", "myStack"
         ));
         Map<String, String> UpdatedAnnotations = new HashMap<>();
-        UpdatedAnnotations.put(LEGACY_ANNOTATION_IP_ADDRESS, "1.2.3.4");
+        UpdatedAnnotations.put(NETWORK_IP_ADDRESS, "1.2.3.4");
         pod.getMetadata().setAnnotations(UpdatedAnnotations);
 
         Task updatedTask = processor.updateTaskStatus(
@@ -153,41 +153,6 @@ public class KubeNotificationProcessorTest {
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_STACK, "myStack");
-    }
-
-    @Test
-    public void testUpdateTaskStatusVKWithTransitionNetworkMode() {
-        V1Pod pod = newPod(TASK.getId(), andRunning());
-        V1Node node = newNode(andIpAddress("2.2.2.2"), andNodeAnnotations(
-                TITUS_NODE_DOMAIN + "ami", "ami123",
-                TITUS_NODE_DOMAIN + "stack", "myStack"
-        ));
-
-        Map<String, String> UpdatedAnnotations = new HashMap<>();
-        UpdatedAnnotations.put(LEGACY_ANNOTATION_IP_ADDRESS, "2001:db8:0:1234:0:567:8:1");
-        UpdatedAnnotations.put(LEGACY_ANNOTATION_ENI_IP_ADDRESS, "192.0.2.1");
-        UpdatedAnnotations.put(LEGACY_ANNOTATION_ENI_IPV6_ADDRESS, "2001:db8:0:1234:0:567:8:1");
-        UpdatedAnnotations.put(NETWORK_EFFECTIVE_NETWORK_MODE, NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString());
-        pod.getMetadata().setAnnotations(UpdatedAnnotations);
-
-        Task updatedTask = processor.updateTaskStatus(
-                new PodWrapper(pod),
-                TaskStatus.newBuilder().withState(TaskState.Started).build(),
-                Optional.of(node),
-                TASK,
-                false
-        ).orElse(null);
-
-        Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
-        assertThat(pastStates).contains(TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated);
-        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "2.2.2.2");
-        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "2001:db8:0:1234:0:567:8:1");
-        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, "2001:db8:0:1234:0:567:8:1");
-        // In IPv6 + transition mode, there should *not* be a ipv4. That would be confusing because such a v4 would not
-        // be unique to that task, and tools would try to use it, people would try to ssh to it, etc.
-        assertThat(updatedTask.getTaskContext()).doesNotContainKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4);
-        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_TRANSITION_IPV4, "192.0.2.1");
-        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_NETWORK_EFFECTIVE_MODE, NetworkConfiguration.NetworkMode.Ipv6AndIpv4Fallback.toString());
     }
 
     @Test

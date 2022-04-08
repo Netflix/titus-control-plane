@@ -64,17 +64,6 @@ public final class KubePodConstants {
     public static final String VLAN_ID = "network.netflix.com/vlan-id";
     public static final String ALLOCATION_INDEX = "network.netflix.com/allocation-idx";
 
-    // Legacy Pod Network Annotations
-    // These are backwards compatible shims for the now-deprecated "TitusExecutorDetails"
-    // These can be removed when the newer annotations are in use by the titus-executor
-    public static final String LEGACY_ANNOTATION_IS_ROUTABLE_IP = "IsRoutableIp";
-    public static final String LEGACY_ANNOTATION_IP_ADDRESS = "IpAddress";
-    public static final String LEGACY_ANNOTATION_ELASTIC_IP_ADDRESS = "ElasticIPAddress";
-    public static final String LEGACY_ANNOTATION_ENI_IP_ADDRESS = "EniIpAddress";
-    public static final String LEGACY_ANNOTATION_ENI_IPV6_ADDRESS = "EniIPv6Address";
-    public static final String LEGACY_ANNOTATION_ENI_ID = "EniId";
-    public static final String LEGACY_ANNOTATION_RESOURCE_ID = "ResourceId";
-
     // Security
     public static final String IAM_ROLE = "iam.amazonaws.com/role";
     public static final String SECURITY_GROUPS_LEGACY = "network.titus.netflix.com/securityGroups";
@@ -83,7 +72,6 @@ public final class KubePodConstants {
 
     public static final String POD_SCHEMA_VERSION = "pod.netflix.com/pod-schema-version";
     public static final String POD_SYSTEM_ENV_VAR_NAMES = "pod.titus.netflix.com/system-env-var-names";
-
 
     // App-specific fields
     public static final String WORKLOAD_NAME = "workload.netflix.com/name";
@@ -113,7 +101,9 @@ public final class KubePodConstants {
     public static final String NETWORK_SUBNET_IDS = "network.netflix.com/subnet-ids";
     public static final String NETWORK_STATIC_IP_ALLOCATION_UUID = "network.netflix.com/static-ip-allocation-uuid";
     public static final String NETWORK_EFFECTIVE_NETWORK_MODE = "network.netflix.com/effective-network-mode";
-
+    public static final String NETWORK_IP_ADDRESS = "network.netflix.com/address-ip";
+    public static final String NETWORK_IPV4_EIP = "network.netflix.com/address-elastic-ipv4";
+    public static final String NETWORK_IPV4_TRANSITION_ADDRESS = "network.netflix.com/address-transition-ipv4";
     // Storage
     public static final String STORAGE_EBS_VOLUME_ID = "ebs.volume.netflix.com/volume-id";
     public static final String STORAGE_EBS_MOUNT_PATH = "ebs.volume.netflix.com/mount-path";
