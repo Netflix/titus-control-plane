@@ -61,7 +61,7 @@ public interface KubeClusterMembershipConfiguration {
     /**
      * Data staleness threshold above which the registration data are removed.
      */
-    @DefaultValue("600000")
+    @DefaultValue("180000")
     long getRegistrationCleanupThresholdMs();
 
     @DefaultValue("500")
