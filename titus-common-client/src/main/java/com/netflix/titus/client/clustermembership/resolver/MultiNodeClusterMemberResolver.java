@@ -179,19 +179,24 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
         builder.withMemberRevisions(recentRevisions);
 
         // Find leader
-        Optional<ClusterMembershipRevision<ClusterMemberLeadership>> recentLeader = Optional.empty();
+        ClusterMembershipRevision<ClusterMemberLeadership> latestLeader = null;
         for (ClusterMembershipSnapshot snapshot : healthySnapshots) {
-            if (snapshot.getLeaderRevision().isPresent()) {
-                if (recentLeader.isPresent()) {
-                    if (recentLeader.get().getRevision() < snapshot.getLeaderRevision().get().getRevision()) {
-                        recentLeader = snapshot.getLeaderRevision();
+            ClusterMembershipRevision<ClusterMemberLeadership> snapshotLeader = snapshot.getLeaderRevision().orElse(null);
+            if (snapshotLeader != null) {
+                if (latestLeader != null) {
+                    if(latestLeader.getCurrent().getMemberId().equals(snapshotLeader.getCurrent().getMemberId())) {
+                        latestLeader = latestLeader.getRevision() < snapshotLeader.getRevision() ? snapshotLeader : latestLeader;
+                    } else {
+                        latestLeader = latestLeader.getTimestamp() < snapshotLeader.getTimestamp() ? snapshotLeader : latestLeader;
                     }
                 } else {
-                    recentLeader = snapshot.getLeaderRevision();
+                    latestLeader = snapshotLeader;
                 }
             }
         }
-        recentLeader.ifPresent(builder::withLeaderRevision);
+        if(latestLeader != null) {
+            builder.withLeaderRevision(latestLeader);
+        }
 
         // Choose latest version of each
         long minStaleness = healthySnapshots.stream()
