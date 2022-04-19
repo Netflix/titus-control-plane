@@ -130,6 +130,8 @@ public class TaskDocument implements EsDoc {
     private String networkInterfaceId;
     private String networkInterfaceIndex;
 
+    private String networkMode;
+
     public String getName() {
         return name;
     }
@@ -358,6 +360,10 @@ public class TaskDocument implements EsDoc {
         return tier;
     }
 
+    public String getNetworkMode() {
+        return networkMode;
+    }
+
     public static class ComputedFields {
         Long msFromSubmittedToLaunched;
         Long msFromLaunchedToStarting;
@@ -494,7 +500,7 @@ public class TaskDocument implements EsDoc {
             taskDocument.ipAddressAllocationId = ipAddressAllocationId;
         }
 
-        extractNetworkConfigurationData(taskContext, taskDocument);
+        extractNetworkConfigurationData(taskContext, jobDescriptor, taskDocument);
 
         long acceptedAt = findTaskStatus(task, TaskState.Accepted).map(ExecutableStatus::getTimestamp).orElse(0L);
         long launchedAt = findTaskStatus(task, TaskState.Launched).map(ExecutableStatus::getTimestamp).orElse(0L);
@@ -599,9 +605,12 @@ public class TaskDocument implements EsDoc {
         return isKeySafeForES;
     }
 
-    private static void extractNetworkConfigurationData(Map<String, String> taskContext, TaskDocument taskDocument) {
+    private static void extractNetworkConfigurationData(Map<String, String> taskContext, JobDescriptor jobDescriptor, TaskDocument taskDocument) {
         taskDocument.networkInterfaceId = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_ID));
         taskDocument.containerIp = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_CONTAINER_IP));
         taskDocument.networkInterfaceIndex = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX));
+        if (jobDescriptor.getNetworkConfiguration() != null) {
+            taskDocument.networkMode = jobDescriptor.getNetworkConfiguration().getNetworkModeName();
+        }
     }
 }
