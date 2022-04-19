@@ -280,6 +280,12 @@ public final class JobAttributes {
     public static final String JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED =
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.seccompAgentEnabledForNetSyscalls";
 
+    /**
+     * Enable traffic steering
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_TRAFFIC_STEERING_ENABLED =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.trafficSteeringEnabled";
+
     /*
      * EBS volume job attributes (set in {@link JobDescriptor#getAttributes()}.
      * EBS volume IDs are attributes as we do not expect to expose them directly as first-class Titus API

@@ -78,6 +78,7 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRI
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_PERF_ENABLED;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_TRAFFIC_STEERING_ENABLED;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
@@ -135,6 +136,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHED
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SCHEMA_VERSION;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SECCOMP_AGENT_NET_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SECCOMP_AGENT_PERF_ENABLED;
+import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_TRAFFIC_STEERING_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_SYSTEM_ENV_VAR_NAMES;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_CPU;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_EPHERMERAL_STORAGE;
@@ -461,6 +463,9 @@ public class V1SpecPodFactory implements PodFactory {
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_SECCOMP_AGENT_NET_ENABLED:
                     annotations.put(POD_SECCOMP_AGENT_NET_ENABLED, v);
+                    break;
+                case JOB_CONTAINER_ATTRIBUTE_TRAFFIC_STEERING_ENABLED:
+                    annotations.put(POD_TRAFFIC_STEERING_ENABLED, v);
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN:
                     annotations.put(NETWORK_IMDS_REQUIRE_TOKEN, v);
