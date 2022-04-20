@@ -109,12 +109,12 @@ public class SimpleAdmissionBackoffStrategy implements AdmissionBackoffStrategy 
         } else if (rateLimitedCount.get() > 0) {
             this.throttleFactor = Math.max(
                     configuration.getUnavailableThrottleFactor(),
-                    throttleFactor - configuration.getRateLimitedAdjustmentFactor()
+                    throttleFactor - configuration.getRateLimitedDownAdjustment()
             );
         } else if (successCount.get() > 0) {
             this.throttleFactor = Math.min(
                     1.0,
-                    throttleFactor + configuration.getRateLimitedAdjustmentFactor()
+                    throttleFactor + configuration.getRateLimitedUpAdjustment()
             );
         }
         successCount.set(0);

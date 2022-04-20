@@ -38,7 +38,7 @@ public class SimpleAdmissionBackoffStrategyTest {
 
         // Unavailable
         backoff.onError(1, ErrorKind.RateLimited, null);
-        await().until(() -> backoff.getThrottleFactor() == 0.9);
+        await().until(() -> backoff.getThrottleFactor() <= 0.9);
 
         // Recovery
         testRecovery(backoff);
