@@ -26,6 +26,9 @@ public interface SimpleAdmissionBackoffStrategyConfiguration {
     @DefaultValue("0.1")
     double getUnavailableThrottleFactor();
 
-    @DefaultValue("0.1")
-    double getRateLimitedAdjustmentFactor();
+    @DefaultValue("0.25")
+    double getRateLimitedDownAdjustment();
+
+    @DefaultValue("0.05")
+    double getRateLimitedUpAdjustment();
 }
