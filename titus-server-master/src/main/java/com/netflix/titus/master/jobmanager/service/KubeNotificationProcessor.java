@@ -54,6 +54,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.KubeUtil;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.master.kubernetes.PodToTaskMapper;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodDeletedEvent;
@@ -87,6 +88,7 @@ public class KubeNotificationProcessor {
 
     private static final String METRICS_ROOT = MetricConstants.METRIC_JOB_MANAGER + "kubeNotificationProcessor.";
 
+    private final KubernetesConfiguration configuration;
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final KubeJobManagementReconciler kubeJobManagementReconciler;
     private final V3JobOperations v3JobOperations;
@@ -104,11 +106,13 @@ public class KubeNotificationProcessor {
     private Disposable subscription;
 
     @Inject
-    public KubeNotificationProcessor(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+    public KubeNotificationProcessor(KubernetesConfiguration configuration,
+                                     DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                      KubeJobManagementReconciler kubeJobManagementReconciler,
                                      V3JobOperations v3JobOperations,
                                      ContainerResultCodeResolver containerResultCodeResolver,
                                      TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.kubeJobManagementReconciler = kubeJobManagementReconciler;
         this.v3JobOperations = v3JobOperations;
@@ -213,7 +217,7 @@ public class KubeNotificationProcessor {
             node = Optional.empty();
         }
 
-        Either<TaskStatus, String> newTaskStatusOrError = new PodToTaskMapper(podWrapper, node, task,
+        Either<TaskStatus, String> newTaskStatusOrError = new PodToTaskMapper(configuration, podWrapper, node, task,
                 event instanceof PodDeletedEvent,
                 containerResultCodeResolver,
                 titusRuntime

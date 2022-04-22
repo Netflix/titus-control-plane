@@ -24,6 +24,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.master.kubernetes.client.model.PodPhase;
@@ -41,6 +42,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMA
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_POD_SCHEDULED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_STUCK_IN_STATE;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
@@ -53,6 +55,7 @@ public class PodToTaskMapper {
     @VisibleForTesting
     static final String TASK_STARTING = "TASK_STARTING";
 
+    private final KubernetesConfiguration configuration;
     private final PodWrapper podWrapper;
     private final Optional<V1Node> node;
     private final Task task;
@@ -61,12 +64,14 @@ public class PodToTaskMapper {
 
     private final Either<TaskStatus, String> newTaskStatus;
 
-    public PodToTaskMapper(PodWrapper podWrapper,
+    public PodToTaskMapper(KubernetesConfiguration configuration,
+                           PodWrapper podWrapper,
                            Optional<V1Node> node,
                            Task task,
                            boolean podDeleted,
                            ContainerResultCodeResolver containerResultCodeResolver,
                            TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.podWrapper = podWrapper;
         this.node = node;
         this.task = task;
@@ -241,11 +246,43 @@ public class PodToTaskMapper {
         if (isBefore(Started, taskState)) {
             return unexpected("pod state (Running) not consistent with the task state");
         }
+
+        long now = titusRuntime.getClock().wallTime();
+        if ("NodeLost".equals(podWrapper.getReason())) {
+            // If task is still in the Accepted state, move it first, as we know it was scheduled.
+            if (taskState == TaskState.Accepted) {
+                return Either.ofValue(TaskStatus.newBuilder()
+                        .withState(Launched)
+                        .withReasonCode(REASON_NORMAL)
+                        .withReasonMessage(String.format(
+                                "The pod is scheduled but the communication with its node is lost. If not recovered in %s, the task will be marked as failed",
+                                DateTimeExt.toTimeUnitString(configuration.getNodeLostTimeoutMs())
+                        ))
+                        .withTimestamp(now)
+                        .build()
+                );
+            }
+            // Give it a chance to recover from the `NodeLost` state.
+            long lastUpdateTime = task.getStatus().getTimestamp();
+            long deadline = lastUpdateTime + configuration.getNodeLostTimeoutMs();
+            if (deadline > now) {
+                // Keep the existing state
+                return Either.ofValue(task.getStatus());
+            }
+            // We waited long enough. Time to mark this task as failed.
+            return Either.ofValue(TaskStatus.newBuilder()
+                    .withState(Finished)
+                    .withReasonCode(REASON_TASK_LOST)
+                    .withReasonMessage("The node where task was scheduled is lost")
+                    .withTimestamp(now)
+                    .build()
+            );
+        }
         return Either.ofValue(TaskStatus.newBuilder()
                 .withState(Started)
                 .withReasonCode(REASON_NORMAL)
                 .withReasonMessage(podWrapper.getMessage())
-                .withTimestamp(titusRuntime.getClock().wallTime())
+                .withTimestamp(now)
                 .build()
         );
     }

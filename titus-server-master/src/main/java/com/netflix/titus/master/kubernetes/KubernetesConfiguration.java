@@ -49,6 +49,9 @@ public interface KubernetesConfiguration {
     @DefaultValue("60000")
     long getOrphanedPodTimeoutMs();
 
+    @DefaultValue("600000")
+    long getNodeLostTimeoutMs();
+
     /**
      * @return the kube api server url to use. If this is empty, use the kube config path instead.
      */
