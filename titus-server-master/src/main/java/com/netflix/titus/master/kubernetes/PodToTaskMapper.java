@@ -316,6 +316,6 @@ public class PodToTaskMapper {
     }
 
     private String effectiveFinalReasonCode(String reasonCode) {
-        return containerResultCodeResolver.resolve(Finished, podWrapper.getMessage()).orElse(reasonCode);
+        return containerResultCodeResolver.resolve(Finished, task, podWrapper).orElse(reasonCode);
     }
 }
