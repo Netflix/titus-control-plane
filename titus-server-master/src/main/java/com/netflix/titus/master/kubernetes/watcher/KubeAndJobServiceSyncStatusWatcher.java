@@ -45,6 +45,7 @@ import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.master.kubernetes.PodToTaskMapper;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
@@ -64,6 +65,7 @@ public class KubeAndJobServiceSyncStatusWatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeAndJobServiceSyncStatusWatcher.class);
 
+    private final KubernetesConfiguration configuration;
     private final StdKubeApiFacade kubeApiFacade;
     private final ReadOnlyJobOperations jobService;
     private final ContainerResultCodeResolver containerResultCodeResolver;
@@ -74,10 +76,12 @@ public class KubeAndJobServiceSyncStatusWatcher {
     private final ConcurrentMap<String, TaskHolder> capturedState = new ConcurrentHashMap<>();
 
     @Inject
-    public KubeAndJobServiceSyncStatusWatcher(StdKubeApiFacade kubeApiFacade,
+    public KubeAndJobServiceSyncStatusWatcher(KubernetesConfiguration configuration,
+                                              StdKubeApiFacade kubeApiFacade,
                                               ReadOnlyJobOperations jobService,
                                               ContainerResultCodeResolver containerResultCodeResolver,
                                               TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.kubeApiFacade = kubeApiFacade;
         this.jobService = jobService;
         this.containerResultCodeResolver = containerResultCodeResolver;
@@ -236,7 +240,8 @@ public class KubeAndJobServiceSyncStatusWatcher {
         }
 
         private Optional<TaskStatus> extractedTaskStatus(Task task, V1Pod obj, boolean podDeleted) {
-            PodToTaskMapper mapper = new PodToTaskMapper(new PodWrapper(obj), Optional.empty(), task, podDeleted, containerResultCodeResolver, titusRuntime);
+            PodToTaskMapper mapper = new PodToTaskMapper(configuration, new PodWrapper(obj),
+                    Optional.empty(), task, podDeleted, containerResultCodeResolver, titusRuntime);
             Either<TaskStatus, String> either = mapper.getNewTaskStatus();
             if (either.hasValue()) {
                 return Optional.of(either.getValue());

@@ -37,9 +37,11 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
+import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
@@ -91,6 +93,8 @@ public class KubeNotificationProcessorTest {
     private DirectProcessor<PodEvent> reconcilerPodEvents;
     private KubeNotificationProcessor processor;
 
+    private final KubernetesConfiguration configuration = Archaius2Ext.newConfiguration(KubernetesConfiguration.class);
+
     @Mock
     private V3JobOperations jobOperations;
     @Mock
@@ -103,7 +107,8 @@ public class KubeNotificationProcessorTest {
         MockitoAnnotations.initMocks(this);
         podEvents = DirectProcessor.create();
         reconcilerPodEvents = DirectProcessor.create();
-        processor = new KubeNotificationProcessor(new FakeDirectKube(),
+        processor = new KubeNotificationProcessor(configuration,
+                new FakeDirectKube(),
                 new FakeReconciler(),
                 jobOperations,
                 containerResultCodeResolver,

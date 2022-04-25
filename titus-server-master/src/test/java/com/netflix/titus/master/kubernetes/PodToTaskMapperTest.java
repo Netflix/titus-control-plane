@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.kubernetes;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -24,6 +25,8 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
@@ -35,7 +38,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andDeletionTimestamp;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andMessage;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
@@ -56,7 +61,11 @@ public class PodToTaskMapperTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
+    private final TestClock clock = (TestClock) titusRuntime.getClock();
+
     private final ContainerResultCodeResolver containerResultCodeResolver = mock(ContainerResultCodeResolver.class);
+
+    private final KubernetesConfiguration configuration = Archaius2Ext.newConfiguration(KubernetesConfiguration.class);
 
     @Before
     public void setUp() throws Exception {
@@ -216,6 +225,33 @@ public class PodToTaskMapperTest {
         assertValue(result, TaskState.Finished, REASON_LOCAL_SYSTEM_ERROR, "Container was terminated without going through the Titus API");
     }
 
+    @Test
+    public void testNodeLost() {
+        Task task = newTask(TaskState.Accepted);
+        V1Pod pod = newPod(
+                andPhase("Running"),
+                andReason("NodeLost"),
+                andMessage("Node i-lostnode which was running pod lostpod is unresponsive")
+        );
+
+        // Check that the task is moved out of Accepted state first
+        Either<TaskStatus, String> result1 = updateMapper(task, pod).getNewTaskStatus();
+        assertValue(result1, TaskState.Launched, REASON_NORMAL,
+                "The pod is scheduled but the communication with its node is lost. If not recovered in 10min, the task will be marked as failed"
+        );
+
+        // Now check that there is no change before the node lost deadline is reached.
+        task = task.toBuilder().withStatus(result1.getValue()).build();
+        Either<TaskStatus, String> result2 = updateMapper(task, pod).getNewTaskStatus();
+        assertThat(result2.hasValue()).isTrue();
+        assertThat(result2.getValue()).isEqualTo(result1.getValue());
+
+        // Move time past the deadline
+        clock.advanceTime(Duration.ofMillis(configuration.getNodeLostTimeoutMs()));
+        Either<TaskStatus, String> result3 = updateMapper(task, pod).getNewTaskStatus();
+        assertValue(result3, TaskState.Finished, REASON_TASK_LOST, "The node where task was scheduled is lost");
+    }
+
     private void testPodDeletedWhenTaskStuckInState(String podPhase) {
         Task task = JobFunctions.changeTaskStatus(
                 newTask(TaskState.KillInitiated),
@@ -231,11 +267,11 @@ public class PodToTaskMapperTest {
     }
 
     private PodToTaskMapper updateMapper(Task task, V1Pod v1Pod) {
-        return new PodToTaskMapper(new PodWrapper(v1Pod), Optional.of(NODE), task, false, containerResultCodeResolver, titusRuntime);
+        return new PodToTaskMapper(configuration, new PodWrapper(v1Pod), Optional.of(NODE), task, false, containerResultCodeResolver, titusRuntime);
     }
 
     private PodToTaskMapper deleteMapper(Task task, V1Pod v1Pod) {
-        return new PodToTaskMapper(new PodWrapper(v1Pod), Optional.of(NODE), task, true, containerResultCodeResolver, titusRuntime);
+        return new PodToTaskMapper(configuration, new PodWrapper(v1Pod), Optional.of(NODE), task, true, containerResultCodeResolver, titusRuntime);
     }
 
     private void assertValue(Either<TaskStatus, String> result, TaskState expectedState, String expectedReason) {

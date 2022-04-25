@@ -31,9 +31,9 @@ import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.DefaultContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
+import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.std.DefaultStdStdKubeApiFacade;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiClients;
-import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 import io.kubernetes.client.openapi.ApiClient;
 import rx.Observable;
 
@@ -107,8 +107,11 @@ public class KubeAndJobServiceSyncStatusWatcherMain {
     public static void main(String[] args) {
         ApiClient kubeClient = StdKubeApiClients.createApiClient("cli", TitusRuntimes.internal(), 0L);
         DefaultStdStdKubeApiFacade facade = new DefaultStdStdKubeApiFacade(kubeConnectorConfiguration, kubeClient, titusRuntime);
+        KubernetesConfiguration configuration = Archaius2Ext.newConfiguration(KubernetesConfiguration.class);
 
-        KubeAndJobServiceSyncStatusWatcher watcher = new KubeAndJobServiceSyncStatusWatcher(facade, jobService, containerResultCodeResolver, titusRuntime);
+        KubeAndJobServiceSyncStatusWatcher watcher = new KubeAndJobServiceSyncStatusWatcher(
+                configuration, facade, jobService, containerResultCodeResolver, titusRuntime
+        );
         watcher.enterActiveMode();
         try {
             Thread.sleep(3600_1000);
