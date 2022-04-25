@@ -60,9 +60,10 @@ public class PodToTaskMapperTest {
 
     @Before
     public void setUp() throws Exception {
-        when(containerResultCodeResolver.resolve(any(), any())).thenAnswer(invocation -> {
-            String reason = invocation.getArgument(1);
-            if (reason.contains("system")) {
+        when(containerResultCodeResolver.resolve(any(), any(), any())).thenAnswer(invocation -> {
+            PodWrapper podWrapper = invocation.getArgument(2);
+            String message = podWrapper.getMessage();
+            if (message.contains("system")) {
                 return Optional.of(TaskStatus.REASON_LOCAL_SYSTEM_ERROR);
             }
             return Optional.empty();
@@ -96,7 +97,7 @@ public class PodToTaskMapperTest {
     @Test
     public void testPodScheduledAndLaunched() {
         Task task = newTask(TaskState.Accepted);
-        V1Pod pod = newPod(andPhase("Pending"),andMessage("junit"),  andWaiting(), andScheduled());
+        V1Pod pod = newPod(andPhase("Pending"), andMessage("junit"), andWaiting(), andScheduled());
         Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Launched, TaskStatus.REASON_POD_SCHEDULED);
     }
@@ -220,7 +221,7 @@ public class PodToTaskMapperTest {
                 newTask(TaskState.KillInitiated),
                 TaskStatus.newBuilder().withState(TaskState.KillInitiated).withReasonCode(TaskStatus.REASON_STUCK_IN_STATE).build()
         );
-        V1Pod pod = newPod(andPhase(podPhase),andMessage("junit"),  andScheduled());
+        V1Pod pod = newPod(andPhase(podPhase), andMessage("junit"), andScheduled());
         Either<TaskStatus, String> result = deleteMapper(task, pod).getNewTaskStatus();
         assertValue(result, TaskState.Finished, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR, "junit");
     }

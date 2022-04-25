@@ -18,9 +18,11 @@ package com.netflix.titus.master.kubernetes;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 
 public interface ContainerResultCodeResolver {
 
-    Optional<String> resolve(TaskState taskState, String reasonMessage);
+    Optional<String> resolve(TaskState nextTaskState, Task task, PodWrapper podWrapper);
 }

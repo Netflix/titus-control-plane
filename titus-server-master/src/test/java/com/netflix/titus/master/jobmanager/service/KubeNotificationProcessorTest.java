@@ -118,7 +118,7 @@ public class KubeNotificationProcessorTest {
 
         when(jobOperations.findTaskById(eq(TASK.getId()))).thenReturn(Optional.of(Pair.of(JOB, TASK)));
         when(jobOperations.updateTask(eq(TASK.getId()), any(), any(), anyString(), any())).thenReturn(Completable.complete());
-        when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.empty());
+        when(containerResultCodeResolver.resolve(any(), any(), any())).thenReturn(Optional.empty());
     }
 
     @After
