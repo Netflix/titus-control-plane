@@ -110,6 +110,11 @@ import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkIMDS
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkJumboFramesEnabled;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSecurityGroups;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSubnetIDs;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadDetail;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadName;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadOwnerEmail;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadSequence;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadStack;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_DNS_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_IMAGE_PULL_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_NAMESPACE;
@@ -145,11 +150,6 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.RESOURCE_NETWORK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.SECURITY_APP_METADATA;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.SECURITY_APP_METADATA_SIG;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_DETAIL;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_NAME;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_OWNER_EMAIL;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_SEQUENCE;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.WORKLOAD_STACK;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1EBSObjects;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
@@ -355,11 +355,11 @@ public class V1SpecPodFactory implements PodFactory {
         }
 
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
-        annotations.put(WORKLOAD_NAME, jobDescriptor.getApplicationName());
-        annotations.put(WORKLOAD_STACK, jobGroupInfo.getStack());
-        annotations.put(WORKLOAD_DETAIL, jobGroupInfo.getDetail());
-        annotations.put(WORKLOAD_SEQUENCE, jobGroupInfo.getSequence());
-        annotations.put(WORKLOAD_OWNER_EMAIL, jobDescriptor.getOwner().getTeamEmail());
+        annotations.put(AnnotationKeyWorkloadName, jobDescriptor.getApplicationName());
+        annotations.put(AnnotationKeyWorkloadStack, jobGroupInfo.getStack());
+        annotations.put(AnnotationKeyWorkloadDetail, jobGroupInfo.getDetail());
+        annotations.put(AnnotationKeyWorkloadSequence, jobGroupInfo.getSequence());
+        annotations.put(AnnotationKeyWorkloadOwnerEmail, jobDescriptor.getOwner().getTeamEmail());
 
         Optional<JobStatus> jobStatus = JobFunctions.findJobStatus(job, JobState.Accepted);
         if (jobStatus.isPresent()) {

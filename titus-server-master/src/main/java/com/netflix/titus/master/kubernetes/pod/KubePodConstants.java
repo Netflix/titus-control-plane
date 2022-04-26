@@ -46,13 +46,6 @@ public final class KubePodConstants {
     public static final String POD_SCHEMA_VERSION = "pod.netflix.com/pod-schema-version";
     public static final String POD_SYSTEM_ENV_VAR_NAMES = "pod.titus.netflix.com/system-env-var-names";
 
-    // App-specific fields
-    public static final String WORKLOAD_NAME = "workload.netflix.com/name";
-    public static final String WORKLOAD_DETAIL = "workload.netflix.com/detail";
-    public static final String WORKLOAD_STACK = "workload.netflix.com/stack";
-    public static final String WORKLOAD_SEQUENCE = "workload.netflix.com/sequence";
-    public static final String WORKLOAD_OWNER_EMAIL = "workload.netflix.com/owner-email";
-
     // Titus-specific fields
     public static final String JOB_ACCEPTED_TIMESTAMP_MS = "v3.job.titus.netflix.com/accepted-timestamp-ms";
     public static final String JOB_TYPE = "v3.job.titus.netflix.com/type";
