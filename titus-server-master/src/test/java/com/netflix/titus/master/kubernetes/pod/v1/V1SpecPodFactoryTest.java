@@ -68,6 +68,7 @@ import io.kubernetes.client.openapi.models.V1VolumeMount;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeySuffixSidecars;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -242,13 +243,13 @@ public class V1SpecPodFactoryTest {
         V1Pod pod = podFactory.buildV1Pod(job, task);
 
         Map<String, String> annotations = pod.getMetadata().getAnnotations();
-        String expectedSidecarAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
+        String expectedSidecarAnnotation = "mysidecar" + "." + AnnotationKeySuffixSidecars;
         assertThat(annotations.get(expectedSidecarAnnotation)).isEqualTo("true");
 
-        String expectedChannelAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
+        String expectedChannelAnnotation = "mysidecar" + "." + AnnotationKeySuffixSidecars + "/channel";
         assertThat(annotations.get(expectedChannelAnnotation)).isEqualTo("stable");
 
-        String expectedArgsAnnotation = "mysidecar" + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
+        String expectedArgsAnnotation = "mysidecar" + "." + AnnotationKeySuffixSidecars + "/arguments";
         assertThat(annotations.get(expectedArgsAnnotation)).isEqualTo(json_args);
     }
 

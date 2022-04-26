@@ -57,6 +57,7 @@ import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSF
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSMountPath;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSMountPerm;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSVolumeID;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeySuffixSidecars;
 
 public class KubePodUtil {
 
@@ -119,11 +120,11 @@ public class KubePodUtil {
 
     private static Map<String, String> createSinglePlatformSidecarAnnotations(PlatformSidecar ps) {
         Map<String, String> annotations = new HashMap<>();
-        String nameKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_SUFFIX;
+        String nameKey = ps.getName() + "." + AnnotationKeySuffixSidecars;
         annotations.put(nameKey, "true");
-        String channelKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_CHANNEL_SUFFIX;
+        String channelKey = ps.getName() + "." + AnnotationKeySuffixSidecars + "/channel";
         annotations.put(channelKey, ps.getChannel());
-        String argumentsKey = ps.getName() + KubeConstants.PLATFORM_SIDECAR_ARGS_SUFFIX;
+        String argumentsKey = ps.getName() + "." + AnnotationKeySuffixSidecars + "/arguments";
         annotations.put(argumentsKey, ps.getArguments());
         return annotations;
     }
