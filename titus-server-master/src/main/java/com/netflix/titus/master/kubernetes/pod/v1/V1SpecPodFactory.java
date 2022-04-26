@@ -99,13 +99,22 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.TITUS_PARAMETER_AGE
 import static com.netflix.titus.api.jobmanager.model.job.Container.ATTRIBUTE_NETFLIX_APP_METADATA;
 import static com.netflix.titus.api.jobmanager.model.job.Container.ATTRIBUTE_NETFLIX_APP_METADATA_SIG;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.getJobType;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyEgressBandwidth;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyIngressBandwidth;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkAccountID;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkAssignIPv6Address;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkBurstingEnabled;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkElasticIPPool;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkElasticIPs;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkIMDSRequireToken;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkJumboFramesEnabled;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSecurityGroups;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSubnetIDs;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_DNS_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_IMAGE_PULL_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.DEFAULT_NAMESPACE;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.EGRESS_BANDWIDTH;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.ENTRYPOINT_SHELL_SPLITTING_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IAM_ROLE;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.INGRESS_BANDWIDTH;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_ACCEPTED_TIMESTAMP_MS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_DISRUPTION_BUDGET_POLICY_NAME;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.JOB_ID;
@@ -118,15 +127,6 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_STDIO
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_UPLOAD_CHECK_INTERVAL;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_UPLOAD_REGEXP;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.LOG_UPLOAD_THRESHOLD_TIME;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ACCOUNT_ID;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ASSIGN_IVP6_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_BURSTING_ENABLED;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ELASTIC_IPS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_ELASTIC_IP_POOL;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IMDS_REQUIRE_TOKEN;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_JUMBO_FRAMES_ENABLED;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NEVER_RESTART_POLICY;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_CPU_BURSTING_ENABLED;
 import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.POD_FUSE_ENABLED;
@@ -370,12 +370,12 @@ public class V1SpecPodFactory implements PodFactory {
         ContainerResources containerResources = container.getContainerResources();
 
         String networkBandwidth = containerResources.getNetworkMbps() + "M";
-        annotations.put(EGRESS_BANDWIDTH, networkBandwidth);
-        annotations.put(INGRESS_BANDWIDTH, networkBandwidth);
+        annotations.put(AnnotationKeyEgressBandwidth, networkBandwidth);
+        annotations.put(AnnotationKeyIngressBandwidth, networkBandwidth);
 
         SecurityProfile securityProfile = container.getSecurityProfile();
         String securityGroups = StringExt.concatenate(securityProfile.getSecurityGroups(), ",");
-        annotations.put(NETWORK_SECURITY_GROUPS, securityGroups);
+        annotations.put(AnnotationKeyNetworkSecurityGroups, securityGroups);
         annotations.put(IAM_ROLE, securityProfile.getIamRole());
 
         Evaluators.acceptNotNull(
@@ -411,34 +411,34 @@ public class V1SpecPodFactory implements PodFactory {
                     annotations.put(POD_CPU_BURSTING_ENABLED, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING:
-                    annotations.put(NETWORK_BURSTING_ENABLED, v);
+                    annotations.put(AnnotationKeyNetworkBurstingEnabled, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTE_EIP_POOL:
-                    annotations.put(NETWORK_ELASTIC_IP_POOL, v);
+                    annotations.put(AnnotationKeyNetworkElasticIPPool, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTE_EIPS:
-                    annotations.put(NETWORK_ELASTIC_IPS, v);
+                    annotations.put(AnnotationKeyNetworkElasticIPs, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH:
                     annotations.put(POD_SCHED_POLICY, "batch");
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_SUBNETS:
-                    annotations.put(NETWORK_SUBNET_IDS, v);
+                    annotations.put(AnnotationKeyNetworkSubnetIDs, v);
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID:
-                    annotations.put(NETWORK_ACCOUNT_ID, v);
+                    annotations.put(AnnotationKeyNetworkAccountID, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_HOSTNAME_STYLE:
                     annotations.put(POD_HOSTNAME_STYLE, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_JUMBO:
-                    annotations.put(NETWORK_JUMBO_FRAMES_ENABLED, v);
+                    annotations.put(AnnotationKeyNetworkJumboFramesEnabled, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_FUSE_ENABLED:
                     annotations.put(POD_FUSE_ENABLED, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_ASSIGN_IPV6_ADDRESS:
-                    annotations.put(NETWORK_ASSIGN_IVP6_ADDRESS, v);
+                    annotations.put(AnnotationKeyNetworkAssignIPv6Address, v);
                     break;
                 case JOB_PARAMETER_ATTRIBUTES_LOG_UPLOAD_CHECK_INTERVAL:
                     annotations.put(LOG_UPLOAD_CHECK_INTERVAL, v);
@@ -468,7 +468,7 @@ public class V1SpecPodFactory implements PodFactory {
                     annotations.put(POD_TRAFFIC_STEERING_ENABLED, v);
                     break;
                 case JOB_CONTAINER_ATTRIBUTE_IMDS_REQUIRE_TOKEN:
-                    annotations.put(NETWORK_IMDS_REQUIRE_TOKEN, v);
+                    annotations.put(AnnotationKeyNetworkIMDSRequireToken, v);
                     break;
                 default:
                     annotations.put(k, v);
