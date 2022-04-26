@@ -108,7 +108,9 @@ import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkElas
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkElasticIPs;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkIMDSRequireToken;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkJumboFramesEnabled;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkMode;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSecurityGroups;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkStaticIPAllocationUUID;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSubnetIDs;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadDetail;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyWorkloadName;
@@ -393,11 +395,11 @@ public class V1SpecPodFactory implements PodFactory {
         );
         Evaluators.acceptNotNull(
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID),
-                id -> annotations.put(KubeConstants.STATIC_IP_ALLOCATION_ID, id)
+                id -> annotations.put(AnnotationKeyNetworkStaticIPAllocationUUID, id)
         );
         Evaluators.acceptNotNull(
                 job.getJobDescriptor().getNetworkConfiguration().getNetworkModeName(),
-                modeName -> annotations.put(KubeConstants.NETWORK_MODE, modeName)
+                modeName -> annotations.put(AnnotationKeyNetworkMode, modeName)
         );
 
         // convert container attributes into annotations

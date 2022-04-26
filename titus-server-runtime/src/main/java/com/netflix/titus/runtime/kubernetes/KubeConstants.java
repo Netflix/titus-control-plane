@@ -43,8 +43,6 @@ public final class KubeConstants {
     /**
      * Common prefix for Titus node annotations/labels and taints.
      */
-    public static final String NETFLIX_DOMAIN = "netflix.com/";
-
     public static final String TITUS_DOMAIN = "titus.netflix.com/";
 
     public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
@@ -187,13 +185,6 @@ public final class KubeConstants {
      * Reconciler Event Constants
      */
     public static final String NODE_LOST = "NodeLost";
-
-    /**
-     * Network annotations.
-     */
-    public static final String NETWORK_DOMAIN = "network." + NETFLIX_DOMAIN;
-    public static final String STATIC_IP_ALLOCATION_ID = NETWORK_DOMAIN + "static-ip-allocation-uuid";
-    public static final String NETWORK_MODE = NETWORK_DOMAIN + "network-mode";
 
     /**
      * Platform Sidecar annotations, from
