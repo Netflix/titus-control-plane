@@ -53,12 +53,6 @@ public final class KubePodConstants {
     public static final String ENTRYPOINT_SHELL_SPLITTING_ENABLED = "pod.titus.netflix.com/entrypoint-shell-splitting-enabled";
     public static final String JOB_DISRUPTION_BUDGET_POLICY_NAME = "v3.job.titus.netflix.com/disruption-budget-policy";
 
-    // Storage
-    public static final String STORAGE_EBS_VOLUME_ID = "ebs.volume.netflix.com/volume-id";
-    public static final String STORAGE_EBS_MOUNT_PATH = "ebs.volume.netflix.com/mount-path";
-    public static final String STORAGE_EBS_MOUNT_PERM = "ebs.volume.netflix.com/mount-perm";
-    public static final String STORAGE_EBS_FS_TYPE = "ebs.volume.netflix.com/fs-type";
-
     // Security
     public static final String SECURITY_APP_METADATA = "security.netflix.com/workload-metadata";
     public static final String SECURITY_APP_METADATA_SIG = "security.netflix.com/workload-metadata-sig";

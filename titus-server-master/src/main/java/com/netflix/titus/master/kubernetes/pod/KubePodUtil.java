@@ -53,6 +53,11 @@ import io.kubernetes.client.openapi.models.V1VolumeMount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSFSType;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSMountPath;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSMountPerm;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSVolumeID;
+
 public class KubePodUtil {
 
     private static final String MOUNT_PROPAGATION_BIDIRECTIONAL = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationBidirectional.toString();
@@ -92,10 +97,10 @@ public class KubePodUtil {
             return Collections.emptyMap();
         }
 
-        annotations.put(KubeConstants.EBS_VOLUME_ID, ebsVolumeId);
-        annotations.put(KubeConstants.EBS_MOUNT_PERMISSIONS, ebsVolume.getMountPermissions().toString());
-        annotations.put(KubeConstants.EBS_MOUNT_PATH, ebsVolume.getMountPath());
-        annotations.put(KubeConstants.EBS_FS_TYPE, ebsVolume.getFsType());
+        annotations.put(AnnotationKeyStorageEBSVolumeID, ebsVolumeId);
+        annotations.put(AnnotationKeyStorageEBSMountPerm, ebsVolume.getMountPermissions().toString());
+        annotations.put(AnnotationKeyStorageEBSMountPath, ebsVolume.getMountPath());
+        annotations.put(AnnotationKeyStorageEBSFSType, ebsVolume.getFsType());
 
         return annotations;
     }

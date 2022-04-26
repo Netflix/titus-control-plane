@@ -189,16 +189,6 @@ public final class KubeConstants {
     public static final String NODE_LOST = "NodeLost";
 
     /**
-     * Volume annotations.
-     */
-    public static final String VOLUME_DOMAIN = "volume." + NETFLIX_DOMAIN;
-    public static final String EBS_DOMAIN = "ebs." + VOLUME_DOMAIN;
-    public static final String EBS_VOLUME_ID = EBS_DOMAIN + "volume-id";
-    public static final String EBS_MOUNT_PERMISSIONS = EBS_DOMAIN + "mount-perm";
-    public static final String EBS_MOUNT_PATH = EBS_DOMAIN + "mount-path";
-    public static final String EBS_FS_TYPE = EBS_DOMAIN + "fs-type";
-
-    /**
      * Network annotations.
      */
     public static final String NETWORK_DOMAIN = "network." + NETFLIX_DOMAIN;
