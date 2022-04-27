@@ -39,7 +39,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.grpc.protogen.NetworkConfiguration;
 import com.netflix.titus.master.kubernetes.ContainerResultCodeResolver;
 import com.netflix.titus.master.kubernetes.KubernetesConfiguration;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
@@ -63,16 +62,13 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import rx.Completable;
 
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyIPAddress;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andIpAddress;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.andNodeAnnotations;
 import static com.netflix.titus.master.kubernetes.NodeDataGenerator.newNode;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andPhase;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.andRunning;
 import static com.netflix.titus.master.kubernetes.PodDataGenerator.newPod;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPV4_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPv6_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_EFFECTIVE_NETWORK_MODE;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IP_ADDRESS;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,7 +137,7 @@ public class KubeNotificationProcessorTest {
                 TITUS_NODE_DOMAIN + "stack", "myStack"
         ));
         Map<String, String> UpdatedAnnotations = new HashMap<>();
-        UpdatedAnnotations.put(NETWORK_IP_ADDRESS, "1.2.3.4");
+        UpdatedAnnotations.put(AnnotationKeyIPAddress, "1.2.3.4");
         pod.getMetadata().setAnnotations(UpdatedAnnotations);
 
         Task updatedTask = processor.updateTaskStatus(

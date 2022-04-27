@@ -38,9 +38,9 @@ import io.fabric8.kubernetes.api.model.ContainerState;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeySuffixContainers;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeySuffixContainersSidecar;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_IMAGE_TAG_PREFIX;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_SUFFIX_CONTAINERS;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.ANNOTATION_KEY_SUFFIX_CONTAINERS_SIDECAR;
 
 @Singleton
 class TaskDataInjector {
@@ -226,7 +226,7 @@ class TaskDataInjector {
      * @return platform sidecar name
      */
     private String getPlatformSidecarThatCreatedContainer(Pod pod, String containerName) {
-        String key = containerName + "." + ANNOTATION_KEY_SUFFIX_CONTAINERS + "/" + ANNOTATION_KEY_SUFFIX_CONTAINERS_SIDECAR;
+        String key = containerName + "." + AnnotationKeySuffixContainers + "/" + AnnotationKeySuffixContainersSidecar;
         return pod.getMetadata().getAnnotations().getOrDefault(key, "");
     }
 

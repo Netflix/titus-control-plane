@@ -16,8 +16,9 @@
 
 package com.netflix.titus.testkit.embedded.kube;
 
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Pod;
+
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkStaticIPAllocationUUID;
 
 public class EmbeddedKubePod {
 
@@ -36,6 +37,6 @@ public class EmbeddedKubePod {
     }
 
     public String getStaticIpAllocation() {
-        return pod.getMetadata().getAnnotations().get(KubeConstants.STATIC_IP_ALLOCATION_ID);
+        return pod.getMetadata().getAnnotations().get(AnnotationKeyNetworkStaticIPAllocationUUID);
     }
 }

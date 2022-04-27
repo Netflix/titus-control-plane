@@ -38,15 +38,15 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.kubernetes.client.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.BRANCH_ENI_ID;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPV4_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.IPv6_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_EFFECTIVE_NETWORK_MODE;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IPV4_EIP;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IPV4_TRANSITION_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_IP_ADDRESS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SECURITY_GROUPS;
-import static com.netflix.titus.master.kubernetes.pod.KubePodConstants.NETWORK_SUBNET_IDS;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyBranchEniID;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyEffectiveNetworkMode;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyElasticIPv4Address;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyIPAddress;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyIPv4Address;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyIPv4TransitionAddress;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyIPv6Address;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSecurityGroups;
+import static com.netflix.titus.common.kube.Annotations.AnnotationKeyNetworkSubnetIDs;
 
 /**
  * Collection of common functions.
@@ -115,13 +115,13 @@ public final class JobManagerUtil {
             return task;
         }
 
-        String ipaddress = annotations.get(NETWORK_IP_ADDRESS);
-        String elasticIPAddress = annotations.get(NETWORK_IPV4_EIP);
-        String eniIPAddress = annotations.get(IPV4_ADDRESS);
-        String eniIPv6Address = annotations.get(IPv6_ADDRESS);
-        String effectiveNetworkMode = annotations.get(NETWORK_EFFECTIVE_NETWORK_MODE);
-        String eniID = annotations.get(BRANCH_ENI_ID);
-        String transitionIPAddress = annotations.get(NETWORK_IPV4_TRANSITION_ADDRESS);
+        String ipaddress = annotations.get(AnnotationKeyIPAddress);
+        String elasticIPAddress = annotations.get(AnnotationKeyElasticIPv4Address);
+        String eniIPAddress = annotations.get(AnnotationKeyIPv4Address);
+        String eniIPv6Address = annotations.get(AnnotationKeyIPv6Address);
+        String effectiveNetworkMode = annotations.get(AnnotationKeyEffectiveNetworkMode);
+        String eniID = annotations.get(AnnotationKeyBranchEniID);
+        String transitionIPAddress = annotations.get(AnnotationKeyIPv4TransitionAddress);
 
         Map<String, String> newContext = new HashMap<>(task.getTaskContext());
         BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
@@ -134,8 +134,8 @@ public final class JobManagerUtil {
         contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_ELASTIC_IPV4, elasticIPAddress);
 
         // In certain network modes, these annotations are available to be set
-        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, annotations.get(NETWORK_SUBNET_IDS));
-        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, annotations.get(NETWORK_SECURITY_GROUPS));
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SUBNETS, annotations.get(AnnotationKeyNetworkSubnetIDs));
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_SECURITY_GROUPS, annotations.get(AnnotationKeyNetworkSecurityGroups));
 
         return task.toBuilder().addAllToTaskContext(newContext).build();
     }

@@ -43,8 +43,6 @@ public final class KubeConstants {
     /**
      * Common prefix for Titus node annotations/labels and taints.
      */
-    public static final String NETFLIX_DOMAIN = "netflix.com/";
-
     public static final String TITUS_DOMAIN = "titus.netflix.com/";
 
     public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
@@ -187,39 +185,6 @@ public final class KubeConstants {
      * Reconciler Event Constants
      */
     public static final String NODE_LOST = "NodeLost";
-
-    /**
-     * Volume annotations.
-     */
-    public static final String VOLUME_DOMAIN = "volume." + NETFLIX_DOMAIN;
-    public static final String EBS_DOMAIN = "ebs." + VOLUME_DOMAIN;
-    public static final String EBS_VOLUME_ID = EBS_DOMAIN + "volume-id";
-    public static final String EBS_MOUNT_PERMISSIONS = EBS_DOMAIN + "mount-perm";
-    public static final String EBS_MOUNT_PATH = EBS_DOMAIN + "mount-path";
-    public static final String EBS_FS_TYPE = EBS_DOMAIN + "fs-type";
-
-    /**
-     * Network annotations.
-     */
-    public static final String NETWORK_DOMAIN = "network." + NETFLIX_DOMAIN;
-    public static final String STATIC_IP_ALLOCATION_ID = NETWORK_DOMAIN + "static-ip-allocation-uuid";
-    public static final String NETWORK_MODE = NETWORK_DOMAIN + "network-mode";
-
-    /**
-     * Platform Sidecar annotations, from
-     * https://github.com/Netflix/titus-kube-common/blob/master/pod/annotations.go
-     */
-    public static final String PLATFORM_SIDECAR_SUFFIX = ".platform-sidecars.netflix.com";
-    public static final String PLATFORM_SIDECAR_CHANNEL_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/channel";
-    public static final String PLATFORM_SIDECAR_ARGS_SUFFIX = PLATFORM_SIDECAR_SUFFIX + "/arguments";
-
-    /**
-     * container annotations (specified on a pod about a container)
-     * Specific containers indicate they want to set something by appending
-     * a prefix key with their container name ($name.containers.netflix.com).
-     */
-    public static final String ANNOTATION_KEY_SUFFIX_CONTAINERS = "containers.netflix.com";
-    public static final String ANNOTATION_KEY_SUFFIX_CONTAINERS_SIDECAR = "platform-sidecar";
 
     /**
      * ANNOTATION_KEY_IMAGE_TAG_PREFIX Stores the original tag for the image.
