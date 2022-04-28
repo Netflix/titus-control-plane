@@ -61,6 +61,8 @@ import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSM
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeyStorageEBSVolumeID;
 import static com.netflix.titus.common.kube.Annotations.AnnotationKeySuffixSidecars;
 
+import com.netflix.titus.common.util.StringExt;
+
 public class KubePodUtil {
 
     private static final String MOUNT_PROPAGATION_BIDIRECTIONAL = com.netflix.titus.grpc.protogen.VolumeMount.MountPropagation.MountPropagationBidirectional.toString();
@@ -114,6 +116,15 @@ public class KubePodUtil {
      */
     public static Map<String, String> createPlatformSidecarAnnotations(Job<?> job) {
         Map<String, String> annotations = new HashMap<>();
+        // Passthru PlatformSidecar annotations
+        Map<String, String> containerAttributes = job.getJobDescriptor().getContainer().getAttributes();
+        String scRegex = String.format("^[a-zA-Z0-9_-]+\\.%s(/[a-zA-Z0-9_-]+)?", AnnotationKeySuffixSidecars);
+        containerAttributes.forEach((k, v) -> {
+            if (!StringExt.isEmpty(k) && !StringExt.isEmpty(v) && k.matches(scRegex)) {
+                annotations.put(k, v);
+            }
+        });
+        // Overwrite PlatformSidecar pod annotations from PlatformSidecar definition
         for (PlatformSidecar ps : job.getJobDescriptor().getPlatformSidecars()) {
             annotations.putAll(createSinglePlatformSidecarAnnotations(ps));
         }
