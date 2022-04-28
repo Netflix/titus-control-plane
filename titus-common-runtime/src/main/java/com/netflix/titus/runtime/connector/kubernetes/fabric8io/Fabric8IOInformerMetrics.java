@@ -22,7 +22,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 
-class Fabric8IOInformerMetrics<T> {
+public class Fabric8IOInformerMetrics<T> {
 
     private static final String ROOT = "titus.kubeClient.fabric8io.";
 
@@ -33,7 +33,7 @@ class Fabric8IOInformerMetrics<T> {
     private final Id resourceVersionId;
     private final Id sizeId;
 
-    Fabric8IOInformerMetrics(String name, SharedIndexInformer<T> informer, TitusRuntime titusRuntime) {
+    public Fabric8IOInformerMetrics(String name, SharedIndexInformer<T> informer, TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
         this.syncedId = titusRuntime.getRegistry().createId(ROOT + "synced").withTag("informer", name);
         this.watchingId = titusRuntime.getRegistry().createId(ROOT + "watching").withTag("informer", name);
@@ -53,7 +53,7 @@ class Fabric8IOInformerMetrics<T> {
                 .monitorValue(informer, i -> informer.getIndexer().list().size());
     }
 
-    void close() {
+    public void close() {
         PolledMeter.remove(titusRuntime.getRegistry(), syncedId);
         PolledMeter.remove(titusRuntime.getRegistry(), watchingId);
         PolledMeter.remove(titusRuntime.getRegistry(), resourceVersionId);

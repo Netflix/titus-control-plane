@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.testkit.embedded.kube.event.EmbeddedKubeEvent;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
@@ -34,6 +35,7 @@ import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodIP;
 import io.kubernetes.client.openapi.models.V1PodStatus;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -59,6 +61,10 @@ public class EmbeddedKubeCluster {
 
     public EmbeddedStdKubeApiFacade getKubeApiFacade() {
         return kubeIntegrator;
+    }
+
+    public NamespacedKubernetesClient getNamespacedKubernetesClient() {
+        return Mockito.mock(NamespacedKubernetesClient.class);
     }
 
     public EmbeddedKubeFleet getFleet() {
