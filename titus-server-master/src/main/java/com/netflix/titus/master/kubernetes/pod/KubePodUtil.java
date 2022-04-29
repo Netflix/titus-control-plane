@@ -280,6 +280,9 @@ public class KubePodUtil {
     }
 
     public static String selectScheduler(SchedulerConfiguration schedulerConfiguration, ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
+        if (configuration.isMixedSchedulingEnabled()) {
+            return configuration.getMixedSchedulingSchedulerName();
+        }
         String schedulerName;
         if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
             if (schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
