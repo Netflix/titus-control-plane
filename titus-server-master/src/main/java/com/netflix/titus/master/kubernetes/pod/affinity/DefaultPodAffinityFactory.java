@@ -252,8 +252,14 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                             ? resourcePools.get(0).getRule()
                             : resourcePools.stream().map(ResourcePoolAssignment::getRule).collect(Collectors.joining(","))
                     );
-
             addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_RESOURCE_POOL, names, true);
+
+            for (ResourcePoolAssignment assignment : resourcePools) {
+                if (assignment.preferred()) {
+                    addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_RESOURCE_POOL, assignment.getResourcePoolName(), false);
+                }
+            }
+
             annotations.put(KubeConstants.TITUS_SCALER_DOMAIN + "resource-pool-selection", rule);
             annotations.put(KubeConstants.NODE_LABEL_RESOURCE_POOL, String.join(",", names));
         }

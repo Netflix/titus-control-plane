@@ -47,7 +47,7 @@ public class CapacityGroupPodResourcePoolResolverTest {
 
     private final DefaultSettableConfig config = new DefaultSettableConfig();
 
-    private final KubePodConfiguration configuration = Archaius2Ext.newConfiguration(KubePodConfiguration.class);
+    private final KubePodConfiguration configuration = Archaius2Ext.newConfiguration(KubePodConfiguration.class, config);
 
     private final ApplicationSlaManagementService capacityGroupService = mock(ApplicationSlaManagementService.class);
 

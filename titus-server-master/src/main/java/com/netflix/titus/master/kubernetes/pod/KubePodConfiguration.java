@@ -95,6 +95,13 @@ public interface KubePodConfiguration {
     String getReservedCapacityKubeSchedulerNameForBinPacking();
 
     /**
+     * This bool indicates that we are in "mixed scheduling" mode, which means that we will launch pods
+     * on either elastic or reserved resource pools if they fit.
+     */
+    @DefaultValue("false")
+    boolean isMixedSchedulingEnabled();
+
+    /**
      * The grace period on the pod object to use when the pod is created.
      */
     @DefaultValue("600")
