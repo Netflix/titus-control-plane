@@ -18,53 +18,53 @@ package com.netflix.titus.master.service.management.kube.crd;
 
 public class F8IOResourceDimension {
 
-    private int cpu;
+    private long cpu;
 
-    private int gpu;
+    private long gpu;
 
-    private int memoryMB;
+    private long memoryMB;
 
-    private int diskMB;
+    private long diskMB;
 
-    private int networkMBPS;
+    private long networkMBPS;
 
-    public int getCpu() {
+    public long getCpu() {
         return cpu;
     }
 
-    public void setCpu(int cpu) {
+    public void setCpu(long cpu) {
         this.cpu = cpu;
     }
 
-    public int getGpu() {
+    public long getGpu() {
         return gpu;
     }
 
-    public void setGpu(int gpu) {
+    public void setGpu(long gpu) {
         this.gpu = gpu;
     }
 
-    public int getMemoryMB() {
+    public long getMemoryMB() {
         return memoryMB;
     }
 
-    public void setMemoryMB(int memoryMB) {
+    public void setMemoryMB(long memoryMB) {
         this.memoryMB = memoryMB;
     }
 
-    public int getDiskMB() {
+    public long getDiskMB() {
         return diskMB;
     }
 
-    public void setDiskMB(int diskMB) {
+    public void setDiskMB(long diskMB) {
         this.diskMB = diskMB;
     }
 
-    public int getNetworkMBPS() {
+    public long getNetworkMBPS() {
         return networkMBPS;
     }
 
-    public void setNetworkMBPS(int networkMBPS) {
+    public void setNetworkMBPS(long networkMBPS) {
         this.networkMBPS = networkMBPS;
     }
 }
