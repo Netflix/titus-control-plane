@@ -53,9 +53,9 @@ public class MixedSchedulerResourcePoolTest {
         List<ResourcePoolAssignment> result = resolver.resolve(newCPUJob(), task);
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC);
-        assertThat(result.get(0).isPreferred()).isFalse();
+        assertThat(result.get(0).preferred()).isFalse();
         assertThat(result.get(1).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED);
-        assertThat(result.get(1).isPreferred()).isTrue();
+        assertThat(result.get(1).preferred()).isTrue();
     }
 
     @Test
@@ -63,9 +63,9 @@ public class MixedSchedulerResourcePoolTest {
         List<ResourcePoolAssignment> result = resolver.resolve(newRamJob(), task);
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC);
-        assertThat(result.get(0).isPreferred()).isTrue();
+        assertThat(result.get(0).preferred()).isTrue();
         assertThat(result.get(1).getResourcePoolName()).isEqualTo(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED);
-        assertThat(result.get(1).isPreferred()).isFalse();
+        assertThat(result.get(1).preferred()).isFalse();
     }
 
     private Job newCPUJob() {

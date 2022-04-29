@@ -23,11 +23,11 @@ import com.google.common.base.Preconditions;
 public class ResourcePoolAssignment {
 
     private final String resourcePoolName;
-    private final boolean isPreferred;
+    private final boolean preferred;
     private final String rule;
 
-    public boolean isPreferred() {
-        return isPreferred;
+    public boolean preferred() {
+        return preferred;
     }
 
     @Override
@@ -39,22 +39,22 @@ public class ResourcePoolAssignment {
             return false;
         }
         ResourcePoolAssignment that = (ResourcePoolAssignment) o;
-        return Objects.equals(resourcePoolName, that.resourcePoolName) && Objects.equals(isPreferred, that.isPreferred) && Objects.equals(rule, that.rule);
+        return Objects.equals(resourcePoolName, that.resourcePoolName) && Objects.equals(preferred, that.preferred) && Objects.equals(rule, that.rule);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourcePoolName, isPreferred, rule);
+        return Objects.hash(resourcePoolName, preferred, rule);
     }
 
     @Override
     public String toString() {
-        return "ResourcePoolAssignment{" + "resourcePoolName='" + resourcePoolName + '\'' + ", preferredPoolName='" + isPreferred + '\'' + ", rule='" + rule + '\'' + '}';
+        return "ResourcePoolAssignment{" + "resourcePoolName='" + resourcePoolName + '\'' + ", preferredPoolName='" + preferred + '\'' + ", rule='" + rule + '\'' + '}';
     }
 
-    public ResourcePoolAssignment(String resourcePoolName, boolean isPreferred, String rule) {
+    public ResourcePoolAssignment(String resourcePoolName, boolean preferred, String rule) {
         this.resourcePoolName = resourcePoolName;
-        this.isPreferred = isPreferred;
+        this.preferred = preferred;
         this.rule = rule;
     }
 
@@ -72,7 +72,7 @@ public class ResourcePoolAssignment {
 
     public static final class Builder {
         private String resourcePoolName;
-        private boolean isPreferred;
+        private boolean preferred;
         private String rule;
 
         private Builder() {
@@ -83,8 +83,8 @@ public class ResourcePoolAssignment {
             return this;
         }
 
-        public Builder withIsPreferred(Boolean isPreferred) {
-            this.isPreferred = isPreferred;
+        public Builder withPreferred(Boolean preferred) {
+            this.preferred = preferred;
             return this;
         }
 
@@ -96,7 +96,7 @@ public class ResourcePoolAssignment {
         public ResourcePoolAssignment build() {
             Preconditions.checkNotNull(resourcePoolName, "resource pool name is null");
             Preconditions.checkNotNull(rule, "rule is null");
-            return new ResourcePoolAssignment(resourcePoolName, isPreferred, rule);
+            return new ResourcePoolAssignment(resourcePoolName, preferred, rule);
         }
     }
 }

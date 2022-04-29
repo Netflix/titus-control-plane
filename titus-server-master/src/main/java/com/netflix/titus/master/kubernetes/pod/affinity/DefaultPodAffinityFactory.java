@@ -255,7 +255,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_RESOURCE_POOL, names, true);
 
             for (ResourcePoolAssignment assignment : resourcePools) {
-                if (assignment.isPreferred()) {
+                if (assignment.preferred()) {
                     addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_RESOURCE_POOL, assignment.getResourcePoolName(), false);
                 }
             }

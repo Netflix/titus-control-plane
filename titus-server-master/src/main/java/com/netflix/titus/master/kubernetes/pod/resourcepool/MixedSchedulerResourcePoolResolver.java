@@ -26,12 +26,12 @@ public class MixedSchedulerResourcePoolResolver implements PodResourcePoolResolv
         String preferredPool = calculatePreferredPool(job);
         ResourcePoolAssignment elasticAssignment = ResourcePoolAssignment.newBuilder()
                 .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC)
-                .withIsPreferred(preferredPool.equals(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC))
+                .withPreferred(preferredPool.equals(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC))
                 .withRule("Mixed scheduling pool assignment " + PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC)
                 .build();
         ResourcePoolAssignment reservedAssignment = ResourcePoolAssignment.newBuilder()
                 .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED)
-                .withIsPreferred(preferredPool.equals(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED))
+                .withPreferred(preferredPool.equals(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED))
                 .withRule("Mixed scheduling pool assignment " + PodResourcePoolResolvers.RESOURCE_POOL_RESERVED)
                 .build();
         return Arrays.asList(elasticAssignment, reservedAssignment);
