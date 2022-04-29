@@ -26,6 +26,7 @@ import com.netflix.titus.master.kubernetes.client.DefaultDirectKubeApiServerInte
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.kubernetes.client.DirectKubeConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.std.StdKubeApiFacade;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 
 public class EmbeddedKubeModule extends AbstractModule {
 
@@ -38,6 +39,7 @@ public class EmbeddedKubeModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(StdKubeApiFacade.class).toInstance(embeddedKubeCluster.getKubeApiFacade());
+        bind(NamespacedKubernetesClient.class).toInstance(embeddedKubeCluster.getNamespacedKubernetesClient());
         bind(DirectKubeApiServerIntegrator.class).to(DefaultDirectKubeApiServerIntegrator.class);
     }
 

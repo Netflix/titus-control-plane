@@ -53,4 +53,11 @@ public interface FeatureActivationConfiguration {
      */
     @DefaultValue("false")
     boolean isInjectingContainerStatesEnabled();
+
+    /**
+     * Set to true to enable integration with Kubernetes capacity group CRD store.
+     * Set to false to persist capacity group management data in Cassandra.
+     */
+    @DefaultValue("false")
+    boolean isKubeCapacityGroupIntegrationEnabled();
 }
