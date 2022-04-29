@@ -23,15 +23,11 @@ import com.google.common.base.Preconditions;
 public class ResourcePoolAssignment {
 
     private final String resourcePoolName;
-    private String preferredResourcePoolName;
+    private final String preferredResourcePoolName;
     private final String rule;
 
     public String getPreferredResourcePoolName() {
         return preferredResourcePoolName;
-    }
-
-    public void setPreferredResourcePoolName(String preferredResourcePoolName) {
-        this.preferredResourcePoolName = preferredResourcePoolName;
     }
 
     @Override

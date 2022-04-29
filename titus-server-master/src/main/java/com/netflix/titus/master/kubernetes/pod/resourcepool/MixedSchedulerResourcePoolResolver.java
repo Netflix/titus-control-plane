@@ -8,7 +8,6 @@ import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.kubernetes.pod.KubePodConfiguration;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 public class MixedSchedulerResourcePoolResolver implements PodResourcePoolResolver {
 
@@ -24,23 +23,17 @@ public class MixedSchedulerResourcePoolResolver implements PodResourcePoolResolv
         if (!configuration.isMixedSchedulingEnabled()) {
             return Collections.emptyList();
         }
+        String preferredPool = calculatePreferredPool(job);
         ResourcePoolAssignment elasticAssignment = ResourcePoolAssignment.newBuilder()
                 .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC)
+                .withPreferredResourcePoolName(preferredPool)
                 .withRule("Mixed scheduling pool assignment " + PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC)
                 .build();
         ResourcePoolAssignment reservedAssignment = ResourcePoolAssignment.newBuilder()
                 .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED)
+                .withPreferredResourcePoolName(preferredPool)
                 .withRule("Mixed scheduling pool assignment " + PodResourcePoolResolvers.RESOURCE_POOL_RESERVED)
                 .build();
-
-        String preferredPool = calculatePreferredPool(job);
-        if (preferredPool == PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC) {
-            elasticAssignment.setPreferredResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC);
-            reservedAssignment.setPreferredResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_ELASTIC);
-        } else if (preferredPool == PodResourcePoolResolvers.RESOURCE_POOL_RESERVED) {
-            reservedAssignment.setPreferredResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED);
-            elasticAssignment.setPreferredResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED);
-        }
         return Arrays.asList(elasticAssignment, reservedAssignment);
     }
 
@@ -63,7 +56,7 @@ public class MixedSchedulerResourcePoolResolver implements PodResourcePoolResolv
         if (resources.getCpu() == 0) {
             return 100;
         }
-        return (resources.getMemoryMB() / 1024) / resources.getCpu();
+        return (resources.getMemoryMB() / 1024.0) / resources.getCpu();
     }
 }
 
