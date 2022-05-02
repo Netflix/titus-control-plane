@@ -102,7 +102,7 @@ subprojects {
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
         guiceVersion = '4.1.+'
-        hibernateValidatorVersion = '5.4.+'
+        hibernateValidatorVersion = '6.2.+'
         runtimeHealthVersion = '1.1.+'
         configMagicVersion = '0.11'
         swaggerUiVersion = '2.1.4'
