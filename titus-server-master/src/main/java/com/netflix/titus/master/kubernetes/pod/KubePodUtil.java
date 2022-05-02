@@ -280,6 +280,9 @@ public class KubePodUtil {
     }
 
     public static String selectScheduler(SchedulerConfiguration schedulerConfiguration, ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
+        if (configuration.isMixedSchedulingEnabled()) {
+            return configuration.getMixedSchedulingSchedulerName();
+        }
         String schedulerName;
         if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
             if (schedulerConfiguration.isCriticalServiceJobSpreadingEnabled()) {
@@ -291,5 +294,18 @@ public class KubePodUtil {
             schedulerName = configuration.getKubeSchedulerName();
         }
         return schedulerName;
+    }
+
+    public static String selectPriorityClassName(ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
+        if (!configuration.isMixedSchedulingEnabled()) {
+            // Returning null here means it will be unset when we create the pod,
+            // but will in turn get the `globalDefault` of whatever the priority class is for the cluster
+            return null;
+        }
+        if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
+            // TODO: Put these in titus-kube-common
+            return "sched-latency-fast";
+        }
+        return "sched-latency-delay";
     }
 }

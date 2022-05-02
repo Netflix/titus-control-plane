@@ -86,6 +86,9 @@ public interface KubePodConfiguration {
     @DefaultValue("titus-kube-scheduler-reserved")
     String getReservedCapacityKubeSchedulerName();
 
+    @DefaultValue("titus-kube-scheduler-mixed")
+    String getMixedSchedulingSchedulerName();
+
     /**
      * This string corresponds to a kube-scheduler profile name which implements exact same set of scheduler plugins as
      * the standard reserved capacity scheduler (titus-kube-scheduler-reserved) except

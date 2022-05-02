@@ -157,6 +157,7 @@ import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.buildV1Volumes
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createEbsPodAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.createPlatformSidecarAnnotations;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.sanitizeVolumeName;
+import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectPriorityClassName;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.selectScheduler;
 import static com.netflix.titus.master.kubernetes.pod.KubePodUtil.toV1EnvVar;
 
@@ -253,7 +254,7 @@ public class V1SpecPodFactory implements PodFactory {
 
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
         String schedulerName = selectScheduler(schedulerConfiguration, capacityGroupDescriptor, configuration);
-
+        String priorityClassName = selectPriorityClassName(capacityGroupDescriptor, configuration);
 
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
@@ -263,6 +264,7 @@ public class V1SpecPodFactory implements PodFactory {
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
                 .affinity(affinityWithMetadata.getLeft())
+                .priorityClassName(priorityClassName)
                 .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
                 .topologySpreadConstraints(topologyFactory.buildTopologySpreadConstraints(job));
 
