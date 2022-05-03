@@ -36,24 +36,6 @@ public interface AwsConfiguration {
     @DefaultValue("TitusMasterAsgName")
     String getTitusMasterAsgName();
 
-    /**
-     * Fetching all instance groups in {@link AwsInstanceCloudConnector#getInstanceGroups()} method may require
-     * multiple page queries (AWS calls), so we need to set a high timeout value.
-     */
-    @DefaultValue("300000")
-    long getInstanceGroupsFetchTimeoutMs();
-
-    /**
-     * Fetching all instances by instance group id in {@link AwsInstanceCloudConnector#getInstancesByInstanceGroupId(String)} ()}
-     * method may require multiple page queries (AWS calls), so we need to set a timeout value.
-     */
-    @DefaultValue("60000")
-    long getInstancesByInstanceGroupIdFetchTimeoutMs();
-
-    /**
-     * Except {@link AwsInstanceCloudConnector#getInstanceGroups()}, all the remaining operations require single
-     * AWS request, hence timeout value ~10sec should be more than enough.
-     */
     @DefaultValue("10000")
     long getAwsRequestTimeoutMs();
 

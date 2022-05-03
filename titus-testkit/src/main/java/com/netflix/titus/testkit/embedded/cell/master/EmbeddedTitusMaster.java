@@ -39,9 +39,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import com.netflix.titus.api.audit.model.AuditLogEvent;
 import com.netflix.titus.api.audit.service.AuditLogService;
-import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
-import com.netflix.titus.api.connector.cloud.noop.NoOpInstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.json.ObjectMappers;
@@ -59,7 +57,6 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
-import com.netflix.titus.grpc.protogen.JobActivityHistoryServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
@@ -67,7 +64,6 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBlockingStub;
-import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
@@ -177,7 +173,6 @@ public class EmbeddedTitusMaster {
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {
-                                      bind(InstanceCloudConnector.class).toInstance(new NoOpInstanceCloudConnector());
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
 

@@ -22,7 +22,6 @@ import javax.inject.Singleton;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.autoscaling.AmazonAutoScaling;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
-import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsync;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsync;
@@ -31,7 +30,6 @@ import com.google.inject.Provides;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.connector.cloud.IamConnector;
-import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.ext.aws.appscale.AWSAppScalingConfig;
 import com.netflix.titus.ext.aws.iam.AwsIamConnector;
@@ -40,7 +38,6 @@ public class AwsModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(AWSSecurityTokenServiceAsync.class).toProvider(AmazonStsAsyncProvider.class);
-        bind(AmazonEC2Async.class).toProvider(AmazonEC2AsyncProvider.class);
         bind(AmazonElasticLoadBalancingAsync.class).toProvider(AmazonElasticLoadBalancingAsyncProvider.class);
         bind(AmazonAutoScaling.class).toProvider(AmazonAutoScalingProvider.class);
         bind(AmazonIdentityManagementAsync.class).toProvider(AmazonIamAsyncProvider.class);
@@ -56,8 +53,6 @@ public class AwsModule extends AbstractModule {
         bind(AWSCredentialsProvider.class)
                 .annotatedWith(Names.named(DataPlaneAgentCredentialsProvider.NAME))
                 .toProvider(DataPlaneAgentCredentialsProvider.class);
-
-        bind(InstanceReaper.class).asEagerSingleton();
     }
 
     @Provides
@@ -70,20 +65,6 @@ public class AwsModule extends AbstractModule {
     @Singleton
     public AWSAppScalingConfig getAWSAppScalingConfig(ConfigProxyFactory factory) {
         return factory.newProxy(AWSAppScalingConfig.class);
-    }
-
-    @Provides
-    @Singleton
-    public InstanceCloudConnector getInstanceCloudConnector(
-            AwsConfiguration configuration,
-            @Named(DataPlaneControllerCredentialsProvider.NAME) AWSCredentialsProvider dataPlaneControllerCredentials,
-            TitusRuntime runtime) {
-
-        return new AwsInstanceCloudConnector(
-                configuration,
-                new AmazonEC2AsyncProvider(configuration, dataPlaneControllerCredentials, runtime).get(),
-                new DataPlaneAmazonAutoScalingAsyncProvider(configuration, dataPlaneControllerCredentials, runtime).get()
-        );
     }
 
     @Provides
