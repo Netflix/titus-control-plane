@@ -31,7 +31,6 @@ import com.netflix.titus.grpc.protogen.SchedulingResultEvent.Failures;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent.Success;
 import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
 import com.netflix.titus.master.kubernetes.client.DirectKubeApiServerIntegrator;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -60,7 +59,7 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
         }
 
         DirectKubeApiServerIntegrator directIntegrator = injector.getInstance(DirectKubeApiServerIntegrator.class);
-        V1Pod pod = directIntegrator.getPods().get(taskId);
+        V1Pod pod = directIntegrator.findPod(taskId).orElse(null);
         if (pod != null) {
             responseObserver.onNext(toGrpcSchedulingResultEvent(pod));
             responseObserver.onCompleted();

@@ -17,8 +17,6 @@
 package com.netflix.titus.master.kubernetes.client;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -131,8 +129,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     }
 
     @Override
-    public Map<String, V1Pod> getPods() {
-        return new HashMap<>(pods);
+    public Optional<V1Pod> findPod(String taskId) {
+        return Optional.ofNullable(pods.get(taskId));
     }
 
     @Override
@@ -234,11 +232,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 @Override
                 public void onAdd(V1Pod pod) {
                     Stopwatch stopwatch = Stopwatch.createStarted();
+                    String taskId = pod.getMetadata().getName();
                     try {
                         if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
                             return;
                         }
-                        String taskId = pod.getSpec().getContainers().get(0).getName();
 
                         V1Pod old = pods.get(taskId);
                         pods.put(taskId, pod);
@@ -256,13 +254,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                         logger.info("Pod Added: pod={}, sequenceNumber={}", formatPodEssentials(pod), podEvent.getSequenceNumber());
                         logger.debug("complete pod data: {}", pod);
                     } finally {
-                        logger.info("Pod informer onAdd: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
+                        logger.debug("Pod informer onAdd: pod={}, elapsedMs={}", taskId, stopwatch.elapsed().toMillis());
                     }
                 }
 
                 @Override
                 public void onUpdate(V1Pod oldPod, V1Pod newPod) {
                     Stopwatch stopwatch = Stopwatch.createStarted();
+                    String taskId = newPod.getMetadata().getName();
                     try {
                         if (!KubeUtil.isOwnedByKubeScheduler(newPod)) {
                             return;
@@ -270,7 +269,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                         metrics.onUpdate(newPod);
 
-                        pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
+                        pods.put(taskId, newPod);
 
                         PodUpdatedEvent podEvent = PodEvent.onUpdate(oldPod, newPod, findNode(newPod));
                         sink.next(podEvent);
@@ -278,13 +277,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                         logger.info("Pod Updated: old={}, new={}, sequenceNumber={}", formatPodEssentials(oldPod), formatPodEssentials(newPod), podEvent.getSequenceNumber());
                         logger.debug("Complete pod data: old={}, new={}", oldPod, newPod);
                     } finally {
-                        logger.info("Pod informer onUpdate: pod={}, elapsedMs={}", newPod.getMetadata().getName(), stopwatch.elapsed().toMillis());
+                        logger.debug("Pod informer onUpdate: pod={}, elapsedMs={}", taskId, stopwatch.elapsed().toMillis());
                     }
                 }
 
                 @Override
                 public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
                     Stopwatch stopwatch = Stopwatch.createStarted();
+                    String taskId = pod.getMetadata().getName();
                     try {
                         if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
                             return;
@@ -292,7 +292,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                         metrics.onDelete(pod);
 
-                        pods.remove(pod.getSpec().getContainers().get(0).getName());
+                        pods.remove(taskId);
 
                         PodDeletedEvent podEvent = PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod));
                         sink.next(podEvent);
@@ -300,7 +300,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                         logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}, sequenceNumber={}", formatPodEssentials(pod), deletedFinalStateUnknown, podEvent.getSequenceNumber());
                         logger.debug("complete pod data: {}", pod);
                     } finally {
-                        logger.info("Pod informer onDelete: pod={}, elapsedMs={}", pod.getMetadata().getName(), stopwatch.elapsed().toMillis());
+                        logger.debug("Pod informer onDelete: pod={}, elapsedMs={}", taskId, stopwatch.elapsed().toMillis());
                     }
                 }
             };

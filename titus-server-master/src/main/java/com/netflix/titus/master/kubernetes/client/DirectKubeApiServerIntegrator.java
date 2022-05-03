@@ -16,7 +16,7 @@
 
 package com.netflix.titus.master.kubernetes.client;
 
-import java.util.Map;
+import java.util.Optional;
 
 import com.netflix.titus.master.jobmanager.service.ComputeProvider;
 import com.netflix.titus.master.kubernetes.client.model.PodEvent;
@@ -27,7 +27,7 @@ public interface DirectKubeApiServerIntegrator extends ComputeProvider {
 
     String COMPONENT = "kubernetesIntegrator";
 
-    Map<String, V1Pod> getPods();
+    Optional<V1Pod> findPod(String taskId);
 
     Flux<PodEvent> events();
 }

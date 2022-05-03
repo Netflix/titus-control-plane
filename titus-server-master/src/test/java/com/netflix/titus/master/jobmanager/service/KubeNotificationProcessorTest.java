@@ -231,7 +231,7 @@ public class KubeNotificationProcessorTest {
         }
 
         @Override
-        public Map<String, V1Pod> getPods() {
+        public Optional<V1Pod> findPod(String taskId) {
             throw new UnsupportedOperationException("not needed");
         }
 
