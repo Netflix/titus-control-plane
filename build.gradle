@@ -157,6 +157,9 @@ subprojects {
 
         // Conflicts by SpringBoot
         exclude group: 'com.vaadin.external.google', module: 'android-json'
+
+        // Provided by jakarta.validation:jakarta.validation-api
+        exclude group: 'javax.validation', module: 'validation-api'
     }
 
     dependencies {

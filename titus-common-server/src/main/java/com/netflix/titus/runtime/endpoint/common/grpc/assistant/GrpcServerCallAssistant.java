@@ -8,9 +8,6 @@ import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * TODO Move to titus-control-plane/common project
- */
 public interface GrpcServerCallAssistant {
 
     <T> void callMono(StreamObserver<T> streamObserver, Function<GrpcServerCallContext, Mono<T>> monoResponse);
