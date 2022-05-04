@@ -25,13 +25,11 @@ import rx.Observable;
 import static com.netflix.titus.common.util.rx.RetryHandlerBuilder.retryHandler;
 
 public class RetryWrapper {
-    private static Logger log = LoggerFactory.getLogger(RetryWrapper.class);
 
     private static final int RETRY_COUNT = 3;
     private static final int RETRY_DELAY_SECONDS = 2;
 
     public static <T> Observable<T> wrapWithExponentialRetry(String retryHandlerTitle, Observable<T> sourceObservable) {
-
         return wrapWithExponentialRetry(retryHandlerTitle, RETRY_COUNT, RETRY_DELAY_SECONDS, sourceObservable);
     }
 
@@ -45,6 +43,4 @@ public class RetryWrapper {
                         .buildExponentialBackoff());
 
     }
-
-
 }

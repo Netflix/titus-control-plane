@@ -183,7 +183,6 @@ javax.el:javax.el-api:3.0.1-b06
 javax.inject:javax.inject:1
 javax.mail:mailapi:1.4.3
 javax.servlet:javax.servlet-api:3.1.0
-javax.validation:validation-api:1.1.0.Final
 javax.ws.rs:jsr311-api:1.1.1
 joda-time:joda-time:2.4
 junit:junit-dep:4.11
