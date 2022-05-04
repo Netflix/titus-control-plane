@@ -21,24 +21,15 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.api.FeatureActivationConfiguration;
-import com.netflix.titus.api.store.v2.ApplicationSlaStore;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.master.service.management.internal.DefaultApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.internal.DefaultResourceConsumptionService;
 import com.netflix.titus.master.service.management.internal.ResourceConsumptionLog;
 import com.netflix.titus.master.service.management.kube.KubeApplicationSlaManagementService;
-import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ManagementModule extends AbstractModule {
 
-    private static final Logger logger = LoggerFactory.getLogger(ManagementModule.class);
-
     @Override
     protected void configure() {
-        bind(ManagementSubsystemInitializer.class).asEagerSingleton();
+        bind(ApplicationSlaManagementService.class).to(KubeApplicationSlaManagementService.class);
 
         // Resource consumption monitoring
         bind(ResourceConsumptionService.class).to(DefaultResourceConsumptionService.class).asEagerSingleton();
@@ -49,20 +40,5 @@ public class ManagementModule extends AbstractModule {
     @Singleton
     public CapacityManagementConfiguration getCapacityManagementConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(CapacityManagementConfiguration.class);
-    }
-
-    @Provides
-    @Singleton
-    public ApplicationSlaManagementService getApplicationSlaManagementService(FeatureActivationConfiguration configuration,
-                                                                              NamespacedKubernetesClient kubernetesClient,
-                                                                              ApplicationSlaStore applicationSlaStore,
-                                                                              ManagementSubsystemInitializer managementSubsystemInitializer,
-                                                                              TitusRuntime titusRuntime) {
-        if (configuration.isKubeCapacityGroupIntegrationEnabled()) {
-            logger.info("Activating CapacityManagement service with the Kube/CRD store");
-            return new KubeApplicationSlaManagementService(kubernetesClient, titusRuntime);
-        }
-        logger.info("Activating CapacityManagement service with the Cassandra store");
-        return new DefaultApplicationSlaManagementService(applicationSlaStore, managementSubsystemInitializer);
     }
 }

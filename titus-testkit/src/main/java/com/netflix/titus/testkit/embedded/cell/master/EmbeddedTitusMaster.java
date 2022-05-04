@@ -70,6 +70,8 @@ import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.master.service.management.InMemoryApplicationSlaManagementService;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
@@ -175,6 +177,8 @@ public class EmbeddedTitusMaster {
                                   protected void configure() {
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
+
+                                      bind(ApplicationSlaManagementService.class).to(InMemoryApplicationSlaManagementService.class);
 
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
 

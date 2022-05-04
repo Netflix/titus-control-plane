@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.PreDestroy;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.model.ApplicationSLA;
@@ -60,6 +61,7 @@ public class KubeApplicationSlaManagementService implements ApplicationSlaManage
 
     private volatile Map<String, ApplicationSLA> capacityGroups = Collections.emptyMap();
 
+    @Inject
     public KubeApplicationSlaManagementService(NamespacedKubernetesClient kubeApiClient, TitusRuntime titusRuntime) {
         this.crdClient = kubeApiClient.resources(F8IOCapacityGroup.class).inNamespace("default");
         this.capacityGroupInformer = new CapacityGroupInformerWrapper(kubeApiClient, titusRuntime);
