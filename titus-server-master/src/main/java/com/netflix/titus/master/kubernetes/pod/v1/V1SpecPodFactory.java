@@ -254,7 +254,7 @@ public class V1SpecPodFactory implements PodFactory {
 
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(job.getJobDescriptor(), capacityGroupManagement);
         String schedulerName = selectScheduler(schedulerConfiguration, capacityGroupDescriptor, configuration);
-        String priorityClassName = selectPriorityClassName(capacityGroupDescriptor, configuration);
+        String priorityClassName = selectPriorityClassName(capacityGroupDescriptor, job, configuration);
 
         V1PodSpec spec = new V1PodSpec()
                 .schedulerName(schedulerName)
