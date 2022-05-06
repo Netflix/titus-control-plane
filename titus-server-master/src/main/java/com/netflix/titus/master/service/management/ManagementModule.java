@@ -21,8 +21,6 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.master.service.management.internal.DefaultResourceConsumptionService;
-import com.netflix.titus.master.service.management.internal.ResourceConsumptionLog;
 import com.netflix.titus.master.service.management.kube.KubeApplicationSlaManagementService;
 
 public class ManagementModule extends AbstractModule {
@@ -30,10 +28,6 @@ public class ManagementModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(ApplicationSlaManagementService.class).to(KubeApplicationSlaManagementService.class);
-
-        // Resource consumption monitoring
-        bind(ResourceConsumptionService.class).to(DefaultResourceConsumptionService.class).asEagerSingleton();
-        bind(ResourceConsumptionLog.class).asEagerSingleton();
     }
 
     @Provides
