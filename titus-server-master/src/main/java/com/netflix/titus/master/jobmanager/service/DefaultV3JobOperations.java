@@ -92,7 +92,6 @@ import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
-import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import org.slf4j.Logger;
@@ -125,7 +124,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private final FeatureActivationConfiguration featureActivationConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
     private final JobSubmitLimiter jobSubmitLimiter;
-    private final ManagementSubsystemInitializer managementSubsystemInitializer;
     private final TitusRuntime titusRuntime;
     private final EntitySanitizer entitySanitizer;
     private final VersionSupplier versionSupplier;
@@ -134,9 +132,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private Subscription transactionLoggerSubscription;
     private Subscription reconcilerEventSubscription;
 
-    /**
-     * WARNING: we depend here on {@link ManagementSubsystemInitializer} to enforce proper initialization order.
-     */
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
                                   FeatureActivationConfiguration featureActivationConfiguration,
@@ -144,7 +139,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   JobServiceRuntime runtime,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
                                   JobSubmitLimiter jobSubmitLimiter,
-                                  ManagementSubsystemInitializer managementSubsystemInitializer,
                                   TitusRuntime titusRuntime,
                                   @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                   VersionSupplier versionSupplier) {
@@ -154,7 +148,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.runtime = runtime;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
         this.jobSubmitLimiter = jobSubmitLimiter;
-        this.managementSubsystemInitializer = managementSubsystemInitializer;
         this.titusRuntime = titusRuntime;
         this.entitySanitizer = entitySanitizer;
         this.versionSupplier = versionSupplier;

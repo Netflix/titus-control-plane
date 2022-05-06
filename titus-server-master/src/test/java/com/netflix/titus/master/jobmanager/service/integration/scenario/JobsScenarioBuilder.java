@@ -53,7 +53,6 @@ import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJ
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -184,7 +183,6 @@ public class JobsScenarioBuilder {
                         Optional.of(testScheduler)
                 ),
                 jobSubmitLimiter,
-                new ManagementSubsystemInitializer(null, null),
                 titusRuntime,
                 EntitySanitizerBuilder.stdBuilder().build(),
                 versionSupplier

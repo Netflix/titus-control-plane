@@ -16,24 +16,13 @@
 
 package com.netflix.titus.master.store;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import com.netflix.titus.api.store.v2.ApplicationSlaStore;
-import com.netflix.titus.api.store.v2.ApplicationSlaStoreCache;
-import com.netflix.titus.api.store.v2.ApplicationSlaStoreSanitizer;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.master.store.memory.InMemoryApplicationSlaStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
-
-import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
 
 public class StoreModule extends AbstractModule {
     @Override
@@ -41,13 +30,5 @@ public class StoreModule extends AbstractModule {
         bind(JobStore.class).to(InMemoryJobStore.class);
         bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
         bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
-    }
-
-    @Singleton
-    @Provides
-    public ApplicationSlaStore getApplicationSlaStore(@Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer coreModelSanitizers) {
-        return new ApplicationSlaStoreCache(
-                new ApplicationSlaStoreSanitizer(new InMemoryApplicationSlaStore(), coreModelSanitizers)
-        );
     }
 }
