@@ -19,6 +19,7 @@ dependencies {
     compile project(':titus-common-grpc-api')
 
     compile "io.kubernetes:client-java:${kubernetesClientVersion}"
+    compile "io.kubernetes:client-java-api-fluent:${kubernetesClientVersion}"
     compile "io.fabric8:kubernetes-client:${fabric8ioKubeClient}"
 
     testCompile project(':titus-common-testkit')

@@ -87,6 +87,7 @@ public class PersistentVolumeReclaimController extends BaseGcController<V1Persis
 
         V1PersistentVolumeSpec spec = v1PersistentVolume.getSpec() == null ? new V1PersistentVolumeSpec() : v1PersistentVolume.getSpec();
         // Reclaim the pv by removing the claimRef.
+
         V1PersistentVolume updatedPv = new V1PersistentVolumeBuilder(v1PersistentVolume)
                 .withSpec(new V1PersistentVolumeSpecBuilder(spec).build().claimRef(null))
                 .build();

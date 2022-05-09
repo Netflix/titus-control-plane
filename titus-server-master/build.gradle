@@ -16,7 +16,6 @@ dependencies {
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
 
     // Misc dependencies
-    compile "io.kubernetes:client-java:${kubernetesClientVersion}"
     compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
     compile "com.google.inject:guice:${guiceVersion}"
     compile "org.webjars:swagger-ui:${swaggerUiVersion}"

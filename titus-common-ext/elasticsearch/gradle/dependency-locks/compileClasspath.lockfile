@@ -27,8 +27,8 @@ com.netflix.governator:governator-api:1.15.11
 com.netflix.governator:governator-core:1.15.11
 com.netflix.numerus:numerus:1.1
 com.netflix.spectator:spectator-api:0.59.0
-com.squareup.okhttp3:okhttp:3.14.9
-com.squareup.okio:okio:1.17.2
+com.squareup.okhttp3:okhttp:4.9.3
+com.squareup.okio:okio:2.8.0
 io.grpc:grpc-api:1.39.0
 io.grpc:grpc-context:1.39.0
 io.grpc:grpc-core:1.39.0
@@ -74,6 +74,9 @@ org.hdrhistogram:HdrHistogram:2.1.12
 org.hibernate.validator:hibernate-validator:6.2.3.Final
 org.hibernate:hibernate-validator:6.2.3.Final
 org.jboss.logging:jboss-logging:3.4.1.Final
+org.jetbrains.kotlin:kotlin-stdlib-common:1.4.10
+org.jetbrains.kotlin:kotlin-stdlib:1.4.10
+org.jetbrains:annotations:13.0
 org.pcollections:pcollections:3.1.4
 org.reactivestreams:reactive-streams:1.0.3
 org.slf4j:slf4j-api:1.7.25

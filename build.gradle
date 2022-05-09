@@ -106,13 +106,13 @@ subprojects {
         runtimeHealthVersion = '1.1.+'
         configMagicVersion = '0.11'
         swaggerUiVersion = '2.1.4'
-        okHttpVersion = '3.+'
+        okHttpVersion = '4.9.+'
         cassandraDriverVersion = '3.3.+'
         commonsCliVersion = '1.3.+'
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.+'
-        kubernetesClientVersion = '12.0.+' // Major release in support of Kubernetes 1.20.x
-        fabric8ioKubeClient = '5.8.+' // Check compatibility at: https://github.com/fabric8io/kubernetes-client#kubernetes-compatibility-matrix
+        kubernetesClientVersion = '13.0.+' // Major release in support of Kubernetes 1.21.x
+        fabric8ioKubeClient = '5.12.+' // Check compatibility at: https://github.com/fabric8io/kubernetes-client#kubernetes-compatibility-matrix
         commonsMath3Version = '3.6.1'
         friggaVersion = '0.+'
         pcollectionsVersion = '3.1.4'
