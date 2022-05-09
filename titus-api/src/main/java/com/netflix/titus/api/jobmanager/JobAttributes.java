@@ -314,7 +314,7 @@ public final class JobAttributes {
     /**
      * Overrides the default max skew for a job topology spreading. For a job with availability percentage limit disruption
      * budget policy, the skew is computed as a percentage of pods that can be taken down. For other disruption budgets
-     * it is set to 1. Job topology spreading is a soft constraint, so violating tke max skew constraint does not
+     * no max skew is set. Job topology spreading is a soft constraint, so violating tke max skew constraint does not
      * prevent a pod from being scheduled.
      */
     public static final String JOB_ATTRIBUTES_SPREADING_MAX_SKEW = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "spreading.maxSkew";
