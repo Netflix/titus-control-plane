@@ -29,12 +29,14 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.PlatformSidecar;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.VolumeMount;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.volume.SaaSVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.SharedContainerVolumeSource;
 import com.netflix.titus.api.jobmanager.model.job.volume.Volume;
@@ -296,7 +298,7 @@ public class KubePodUtil {
         return schedulerName;
     }
 
-    public static String selectPriorityClassName(ApplicationSLA capacityGroupDescriptor, KubePodConfiguration configuration) {
+    public static String selectPriorityClassName(ApplicationSLA capacityGroupDescriptor, Job<?> job, KubePodConfiguration configuration) {
         if (!configuration.isMixedSchedulingEnabled()) {
             // Returning null here means it will be unset when we create the pod,
             // but will in turn get the `globalDefault` of whatever the priority class is for the cluster
@@ -305,6 +307,10 @@ public class KubePodUtil {
         if (capacityGroupDescriptor != null && capacityGroupDescriptor.getTier() == Tier.Critical) {
             // TODO: Put these in titus-kube-common
             return "sched-latency-fast";
+        }
+        JobDescriptor.JobDescriptorExt jobDescriptorExt = job.getJobDescriptor().getExtensions();
+        if (jobDescriptorExt instanceof ServiceJobExt) {
+            return "sched-latency-medium";
         }
         return "sched-latency-delay";
     }
