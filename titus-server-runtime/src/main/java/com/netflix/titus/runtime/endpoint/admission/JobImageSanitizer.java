@@ -86,7 +86,7 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
     private Mono<Image> sanitizeImage(JobDescriptor jobDescriptor) {
         Image image = jobDescriptor.getContainer().getImage();
         if (StringExt.isNotEmpty(image.getDigest())) {
-            return checkImageDigestExist(image).then(Mono.empty());
+            return Mono.empty();
         }
         return registryClient.getImageDigest(image.getName(), image.getTag())
                 .map(digest -> image.toBuilder().withDigest(digest).build());
