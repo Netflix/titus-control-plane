@@ -80,6 +80,7 @@ public class JerseyModule extends JerseyServletModule {
 
             // V2 resources
             config.getClasses().add(ApplicationSlaManagementResource.class);
+            config.getClasses().add(ResourceConsumptionResource.class);
 
             return config;
         };
