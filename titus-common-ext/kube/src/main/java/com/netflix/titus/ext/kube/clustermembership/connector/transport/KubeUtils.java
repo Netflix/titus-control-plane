@@ -18,9 +18,18 @@ package com.netflix.titus.ext.kube.clustermembership.connector.transport;
 
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnectorException;
 import com.netflix.titus.common.util.ExceptionExt;
+import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.NamespaceSpecBuilder;
+import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KubeUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(KubeUtils.class);
 
     /**
      * Returns HTTP status code if found, or -1 otherwise.
@@ -49,5 +58,24 @@ public class KubeUtils {
             );
         }
         return ClusterMembershipConnectorException.clientError(ExceptionExt.toMessageChain(error), error);
+    }
+
+    public static void createNamespaceIfDoesNotExist(String namespace, NamespacedKubernetesClient kubeApiClient) {
+        // Returns null if the namespace does not exist
+        Namespace current = kubeApiClient.namespaces().withName(namespace).get();
+        if (current != null) {
+            logger.info("Namespace exists: {}", namespace);
+            return;
+        }
+
+        Namespace namespaceResource = new NamespaceBuilder()
+                .withMetadata(new ObjectMetaBuilder()
+                        .withName(namespace)
+                        .build()
+                )
+                .withSpec(new NamespaceSpecBuilder().build())
+                .build();
+        kubeApiClient.namespaces().create(namespaceResource);
+        logger.info("New namespace created: {}", namespace);
     }
 }
