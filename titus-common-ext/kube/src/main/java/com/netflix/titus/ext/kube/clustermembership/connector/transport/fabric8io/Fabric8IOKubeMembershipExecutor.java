@@ -22,6 +22,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.ext.kube.clustermembership.connector.KubeMembershipExecutor;
+import com.netflix.titus.ext.kube.clustermembership.connector.transport.KubeUtils;
 import com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io.crd.FClusterMembership;
 import com.netflix.titus.ext.kube.clustermembership.connector.transport.fabric8io.crd.Fabric8IOModelConverters;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -39,16 +40,12 @@ import reactor.core.scheduler.Schedulers;
 
 public class Fabric8IOKubeMembershipExecutor implements KubeMembershipExecutor {
 
-    private final NamespacedKubernetesClient kubeApiClient;
-    private final String namespace;
-
     private final NonNamespaceOperation<FClusterMembership, KubernetesResourceList<FClusterMembership>, Resource<FClusterMembership>> membershipClient;
     private final Scheduler scheduler;
 
     public Fabric8IOKubeMembershipExecutor(NamespacedKubernetesClient kubeApiClient,
                                            String namespace) {
-        this.kubeApiClient = kubeApiClient;
-        this.namespace = namespace;
+        KubeUtils.createNamespaceIfDoesNotExist(namespace, kubeApiClient);
         this.membershipClient = kubeApiClient.resources(FClusterMembership.class).inNamespace(namespace);
         this.scheduler = Schedulers.boundedElastic();
     }
