@@ -1,6 +1,7 @@
-# Titus Control Plane
+# Titus Control Plane (ARCHIVED)
 
-[![Nebula Build](https://github.com/Netflix/titus-control-plane/actions/workflows/nebula.yml/badge.svg?branch=master)](https://github.com/Netflix/titus-control-plane/actions/workflows/nebula.yml)
+This repo has been archived and is no longer in active development.
+
 [![Apache 2.0](https://img.shields.io/github/license/nebula-plugins/gradle-lint-plugin.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 ## Overview
