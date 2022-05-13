@@ -11,7 +11,7 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.netflixoss' version '9.1.0'
+    id 'nebula.netflixoss' version '10.2.1'
     id 'nebula.ospackage' version '8.5.6'
     id "com.google.osdetector" version "1.7.0"
 }
